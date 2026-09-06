@@ -12,6 +12,7 @@ import type * as auth from "../auth.js";
 import type * as health from "../health.js";
 import type * as households from "../households.js";
 import type * as http from "../http.js";
+import type * as parentInvites from "../parentInvites.js";
 
 import type {
   ApiFromModules,
@@ -24,6 +25,7 @@ declare const fullApi: ApiFromModules<{
   health: typeof health;
   households: typeof households;
   http: typeof http;
+  parentInvites: typeof parentInvites;
 }>;
 
 /**

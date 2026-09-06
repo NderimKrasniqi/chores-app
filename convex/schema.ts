@@ -30,7 +30,7 @@ export default defineSchema({
     // Better Auth user ID.
     authUserId: v.string(),
 
-    // All parents have the same domain authority.
+    // Every parent has equal domain authority.
     role: v.literal('parent'),
 
     joinedAt: v.number(),
@@ -42,10 +42,34 @@ export default defineSchema({
   children: defineTable({
     householdId: v.id('households'),
 
-    // No email/account requirement at the profile level.
+    // Child profiles do not require email accounts.
     displayName: v.string(),
 
     createdAt: v.number(),
     updatedAt: v.number(),
   }).index('by_household', ['householdId']),
+
+  parentInvites: defineTable({
+    householdId: v.id('households'),
+
+    // SHA-256 or equivalent hash of the actual invite token.
+    // The raw token is never persisted.
+    tokenHash: v.string(),
+
+    createdByAuthUserId: v.string(),
+
+    createdAt: v.number(),
+
+    // Parent-invite expiry policy is not yet specified by the product docs.
+    expiresAt: v.optional(v.number()),
+
+    // Set when a Parent explicitly revokes the invite.
+    revokedAt: v.optional(v.number()),
+
+    // Set when the invite is successfully consumed.
+    acceptedAt: v.optional(v.number()),
+    acceptedByAuthUserId: v.optional(v.string()),
+  })
+    .index('by_household', ['householdId'])
+    .index('by_token_hash', ['tokenHash']),
 });
