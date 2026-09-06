@@ -12,16 +12,34 @@ import {
 
 type AuthMode = 'sign-in' | 'sign-up';
 
-export function ParentAuthScreen() {
-  const [mode, setMode] = useState<AuthMode>('sign-up');
+type ParentAuthScreenProps = {
+  onBack?: () => void;
+};
 
-  const [parentName, setParentName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+export function ParentAuthScreen({
+  onBack,
+}: ParentAuthScreenProps) {
+  const [mode, setMode] =
+    useState<AuthMode>('sign-up');
 
-  const [submittingAuth, setSubmittingAuth] = useState(false);
+  const [parentName, setParentName] =
+    useState('');
 
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [email, setEmail] =
+    useState('');
+
+  const [password, setPassword] =
+    useState('');
+
+  const [
+    submittingAuth,
+    setSubmittingAuth,
+  ] = useState(false);
+
+  const [
+    errorMessage,
+    setErrorMessage,
+  ] = useState<string | null>(null);
 
   async function handleAuthSubmit() {
     setSubmittingAuth(true);
@@ -41,7 +59,10 @@ export function ParentAuthScreen() {
             });
 
       if (result.error) {
-        setErrorMessage(result.error.message ?? 'Authentication failed.');
+        setErrorMessage(
+          result.error.message ??
+            'Authentication failed.',
+        );
       }
     } catch (error) {
       setErrorMessage(
@@ -57,7 +78,11 @@ export function ParentAuthScreen() {
   return (
     <KeyboardAvoidingView
       className="flex-1 bg-slate-950"
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={
+        Platform.OS === 'ios'
+          ? 'padding'
+          : undefined
+      }
     >
       <ScrollView
         keyboardShouldPersistTaps="handled"
@@ -66,11 +91,26 @@ export function ParentAuthScreen() {
         }}
       >
         <View className="justify-center flex-1 px-6">
+          {onBack && (
+            <Pressable
+              className="self-start mb-8"
+              onPress={onBack}
+            >
+              <Text className="font-semibold text-slate-400">
+                ← Back
+              </Text>
+            </Pressable>
+          )}
+
           <Text className="text-3xl font-bold text-white">
-            {mode === 'sign-up' ? 'Create parent account' : 'Parent sign in'}
+            {mode === 'sign-up'
+              ? 'Create parent account'
+              : 'Parent sign in'}
           </Text>
 
-          <Text className="mt-2 text-slate-400">Chores App</Text>
+          <Text className="mt-2 text-slate-400">
+            Chores App
+          </Text>
 
           {mode === 'sign-up' && (
             <TextInput
@@ -104,7 +144,9 @@ export function ParentAuthScreen() {
           />
 
           {errorMessage && (
-            <Text className="mt-3 text-red-400">{errorMessage}</Text>
+            <Text className="mt-3 text-red-400">
+              {errorMessage}
+            </Text>
           )}
 
           <Pressable
@@ -127,7 +169,9 @@ export function ParentAuthScreen() {
               setErrorMessage(null);
 
               setMode((current) =>
-                current === 'sign-up' ? 'sign-in' : 'sign-up',
+                current === 'sign-up'
+                  ? 'sign-in'
+                  : 'sign-up',
               );
             }}
           >
