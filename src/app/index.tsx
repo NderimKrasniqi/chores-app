@@ -1,7 +1,7 @@
 import { EntryChoiceScreen } from '@/components/auth/entry-choice-screen';
 import { ParentAuthScreen } from '@/components/auth/parent-auth-screen';
 import { ChildAccessGate } from '@/components/child-access/child-access-gate';
-import { ChildJoinScreen } from '@/components/child-access/child-join-screen';
+import { ChildNoAccessScreen } from '@/components/child-access/child-no-access-screen';
 import { HouseholdListScreen } from '@/components/household/household-list-screen';
 import { HouseholdSetupScreen } from '@/components/household/household-setup-screen';
 import { authClient } from '@/lib/auth-client';
@@ -150,7 +150,7 @@ export default function HomeScreen() {
       childAccess === null
     ) {
       return (
-        <ChildJoinScreen />
+        <ChildNoAccessScreen />
       );
     }
 

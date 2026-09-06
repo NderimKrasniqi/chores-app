@@ -3,6 +3,7 @@ import {
   verifyLocalChildPin,
   type LocalChildContext,
 } from '@/lib/child-local-access';
+import { useAuthRuntime } from '@/providers/auth-runtime-provider';
 import { useState } from 'react';
 import {
   KeyboardAvoidingView,
@@ -34,8 +35,14 @@ export function ChildPinUnlockScreen({
   context,
   onUnlocked,
 }: ChildPinUnlockScreenProps) {
-  const [pin, setPin] =
-    useState('');
+  const {
+    activateParentStorage,
+  } = useAuthRuntime();
+
+  const [
+    pin,
+    setPin,
+  ] = useState('');
 
   const [
     checkingPin,
@@ -96,6 +103,13 @@ export function ChildPinUnlockScreen({
     }
   }
 
+  function handleSwitchProfile() {
+    setPin('');
+    setErrorMessage(null);
+
+    activateParentStorage();
+  }
+
   return (
     <KeyboardAvoidingView
       className="justify-center flex-1 px-6 bg-slate-950"
@@ -116,7 +130,7 @@ export function ChildPinUnlockScreen({
 
         <Text className="mt-3 text-base leading-6 text-slate-400">
           Enter your local PIN to unlock
-          this child profile.
+          this Child profile.
         </Text>
 
         <View className="p-4 mt-6 border rounded-xl border-slate-800 bg-slate-900">
@@ -167,10 +181,21 @@ export function ChildPinUnlockScreen({
           </Text>
         </Pressable>
 
+        <Pressable
+          className="px-4 py-4 mt-4 border rounded-xl border-slate-700"
+          disabled={checkingPin}
+          onPress={handleSwitchProfile}
+        >
+          <Text className="font-semibold text-center text-slate-300">
+            Use another profile
+          </Text>
+        </Pressable>
+
         <Text className="mt-5 text-xs leading-5 text-center text-slate-500">
-          This PIN is checked locally.
-          Server access is still controlled
-          by the active device grant.
+          The PIN is checked locally.
+          Convex still verifies the active
+          device grant before Child access
+          is allowed.
         </Text>
       </View>
     </KeyboardAvoidingView>

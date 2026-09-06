@@ -19,6 +19,18 @@ type EntryChoiceScreenProps = {
   onChooseParent: () => void;
 };
 
+/**
+ * One automatic Child-profile activation per JS app session.
+ *
+ * This lets a one-Child phone open directly to that Child's
+ * PIN screen after a fresh app launch, while still allowing
+ * "switch profile" to return here without immediately
+ * bouncing back into the Child context.
+ *
+ * A full app restart resets this value.
+ */
+let automaticallyOpenedSingleChild = false;
+
 export function EntryChoiceScreen({
   onChooseParent,
 }: EntryChoiceScreenProps) {
@@ -63,19 +75,46 @@ export function EntryChoiceScreen({
         const contexts =
           await listLocalChildContexts();
 
-        if (!cancelled) {
-          setLocalChildContexts(
-            contexts,
+        if (cancelled) {
+          return;
+        }
+
+        setLocalChildContexts(contexts);
+
+        /*
+         * Normal one-phone-per-child flow:
+         *
+         * If exactly one Child profile is stored locally,
+         * open its isolated Better Auth context automatically.
+         * ChildAccessGate will then require the local PIN.
+         */
+        if (
+          contexts.length === 1 &&
+          !automaticallyOpenedSingleChild
+        ) {
+          automaticallyOpenedSingleChild = true;
+
+          const onlyChild =
+            contexts[0];
+
+          setSwitchingContextId(
+            onlyChild.contextId,
+          );
+
+          activateStoragePrefix(
+            onlyChild.authStoragePrefix,
           );
         }
       } catch (error) {
-        if (!cancelled) {
-          setErrorMessage(
-            error instanceof Error
-              ? error.message
-              : 'Could not load saved child profiles.',
-          );
+        if (cancelled) {
+          return;
         }
+
+        setErrorMessage(
+          error instanceof Error
+            ? error.message
+            : 'Could not load saved child profiles.',
+        );
       } finally {
         if (!cancelled) {
           setLoadingContexts(false);
@@ -88,7 +127,7 @@ export function EntryChoiceScreen({
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [activateStoragePrefix]);
 
   function handleChooseParent() {
     setErrorMessage(null);
@@ -108,15 +147,6 @@ export function EntryChoiceScreen({
     );
 
     try {
-      /*
-       * Switch Better Auth + Convex to this
-       * Child's isolated SecureStore session.
-       *
-       * The provider subtree remounts after the
-       * storage prefix changes. If that session
-       * still has an active Convex device grant,
-       * ChildAccessGate will require the PIN.
-       */
       activateStoragePrefix(
         context.authStoragePrefix,
       );
@@ -168,6 +198,23 @@ export function EntryChoiceScreen({
     }
   }
 
+  if (
+    loadingContexts ||
+    switchingContextId !== null
+  ) {
+    return (
+      <View className="items-center justify-center flex-1 px-6 bg-slate-950">
+        <ActivityIndicator />
+
+        <Text className="mt-3 text-slate-400">
+          {switchingContextId
+            ? 'Opening child profile...'
+            : 'Loading profiles...'}
+        </Text>
+      </View>
+    );
+  }
+
   return (
     <View className="justify-center flex-1 px-6 bg-slate-950">
       <Text className="text-sm font-semibold tracking-wider uppercase text-slate-500">
@@ -179,58 +226,38 @@ export function EntryChoiceScreen({
       </Text>
 
       <Text className="mt-3 text-base leading-6 text-slate-400">
-        Choose a saved child profile, sign in
-        as a parent, or pair another child.
+        Choose a saved Child profile, sign in
+        as a Parent, or pair another Child.
       </Text>
 
-      {loadingContexts ? (
-        <View className="items-center py-8">
-          <ActivityIndicator />
-
-          <Text className="mt-3 text-sm text-slate-500">
-            Loading saved profiles...
+      {localChildContexts.length > 0 && (
+        <View className="mt-8">
+          <Text className="text-sm font-semibold tracking-wider uppercase text-slate-500">
+            Saved child profiles
           </Text>
+
+          {localChildContexts.map(
+            (context) => (
+              <Pressable
+                key={context.contextId}
+                className="px-5 py-5 mt-3 border rounded-2xl border-slate-700 bg-slate-900"
+                onPress={() =>
+                  handleChooseSavedChild(
+                    context,
+                  )
+                }
+              >
+                <Text className="text-lg font-semibold text-white">
+                  {context.childDisplayName}
+                </Text>
+
+                <Text className="mt-1 text-sm text-slate-400">
+                  {context.householdName}
+                </Text>
+              </Pressable>
+            ),
+          )}
         </View>
-      ) : (
-        localChildContexts.length > 0 && (
-          <View className="mt-8">
-            <Text className="text-sm font-semibold tracking-wider uppercase text-slate-500">
-              Saved child profiles
-            </Text>
-
-            {localChildContexts.map(
-              (context) => (
-                <Pressable
-                  key={context.contextId}
-                  className="px-5 py-5 mt-3 border rounded-2xl border-slate-700 bg-slate-900"
-                  disabled={
-                    switchingContextId !== null
-                  }
-                  onPress={() =>
-                    handleChooseSavedChild(
-                      context,
-                    )
-                  }
-                >
-                  <Text className="text-lg font-semibold text-white">
-                    {context.childDisplayName}
-                  </Text>
-
-                  <Text className="mt-1 text-sm text-slate-400">
-                    {context.householdName}
-                  </Text>
-
-                  {switchingContextId ===
-                    context.contextId && (
-                    <Text className="mt-2 text-sm text-slate-500">
-                      Opening profile...
-                    </Text>
-                  )}
-                </Pressable>
-              ),
-            )}
-          </View>
-        )
       )}
 
       <Pressable
@@ -258,7 +285,7 @@ export function EntryChoiceScreen({
         </Text>
 
         <Text className="mt-1 text-sm text-center text-slate-400">
-          Pair another child profile to this device
+          Pair another Child profile to this device
         </Text>
       </Pressable>
 
