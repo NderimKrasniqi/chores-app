@@ -1,5 +1,5 @@
 import { authClient } from '@/lib/auth-client';
-import { useConvexAuth, useMutation, useQuery } from 'convex/react';
+import { useAction, useConvexAuth, useMutation, useQuery } from 'convex/react';
 import { useState } from 'react';
 import {
   ActivityIndicator,
@@ -7,12 +7,14 @@ import {
   Platform,
   Pressable,
   ScrollView,
+  Share,
   Text,
   TextInput,
   View,
 } from 'react-native';
 
 import { api } from '../../convex/_generated/api';
+import type { Id } from '../../convex/_generated/dataModel';
 
 type AuthMode = 'sign-in' | 'sign-up';
 
@@ -40,6 +42,161 @@ function formatWeekday(day: PayoutWeekday) {
   return day.charAt(0).toUpperCase() + day.slice(1);
 }
 
+function ParentInviteCard({ householdId }: { householdId: Id<'households'> }) {
+  const activeInvite = useQuery(api.parentInvites.getActive, {
+    householdId,
+  });
+
+  const createInvite = useAction(api.parentInvites.create);
+  const revokeActiveInvite = useMutation(api.parentInvites.revokeActive);
+
+  const [rawToken, setRawToken] = useState<string | null>(null);
+  const [working, setWorking] = useState(false);
+  const [inviteError, setInviteError] = useState<string | null>(null);
+
+  async function handleGenerateInvite() {
+    setWorking(true);
+    setInviteError(null);
+
+    try {
+      const result = await createInvite({
+        householdId,
+      });
+
+      setRawToken(result.token);
+    } catch (error) {
+      setInviteError(
+        error instanceof Error
+          ? error.message
+          : 'Could not create parent invite.',
+      );
+    } finally {
+      setWorking(false);
+    }
+  }
+
+  async function handleRevokeInvite() {
+    setWorking(true);
+    setInviteError(null);
+
+    try {
+      await revokeActiveInvite({
+        householdId,
+      });
+
+      setRawToken(null);
+    } catch (error) {
+      setInviteError(
+        error instanceof Error
+          ? error.message
+          : 'Could not revoke parent invite.',
+      );
+    } finally {
+      setWorking(false);
+    }
+  }
+
+  async function handleShareInvite() {
+    if (!rawToken) {
+      return;
+    }
+
+    try {
+      await Share.share({
+        message: [
+          'Join my Chores App household as a parent.',
+          '',
+          'Parent invite code:',
+          rawToken,
+        ].join('\n'),
+      });
+    } catch (error) {
+      setInviteError(
+        error instanceof Error
+          ? error.message
+          : 'Could not share parent invite.',
+      );
+    }
+  }
+
+  return (
+    <View className="pt-5 mt-6 border-t border-slate-800">
+      <Text className="font-semibold text-white">Parent access</Text>
+
+      <Text className="mt-1 text-sm leading-5 text-slate-500">
+        Invite another parent with equal household authority.
+      </Text>
+
+      {activeInvite === undefined ? (
+        <Text className="mt-3 text-slate-500">Checking invite...</Text>
+      ) : activeInvite ? (
+        <Text className="mt-3 text-green-400">Active parent invite</Text>
+      ) : (
+        <Text className="mt-3 text-slate-500">No active parent invite</Text>
+      )}
+
+      {rawToken && (
+        <View className="p-4 mt-4 rounded-xl bg-slate-950">
+          <Text className="text-sm text-slate-500">Invite code</Text>
+
+          <Text selectable className="mt-2 text-sm leading-6 text-white">
+            {rawToken}
+          </Text>
+
+          <Text className="mt-3 text-xs leading-5 text-slate-500">
+            This code is shown only after generation. It is not recoverable from
+            the database.
+          </Text>
+
+          <Pressable
+            className="px-4 py-3 mt-4 bg-white rounded-xl"
+            onPress={handleShareInvite}
+          >
+            <Text className="font-semibold text-center text-slate-950">
+              Share invite
+            </Text>
+          </Pressable>
+        </View>
+      )}
+
+      {activeInvite && !rawToken && (
+        <Text className="mt-3 text-sm leading-5 text-slate-500">
+          An invite exists, but its raw code is not stored. Generate a
+          replacement to get a new shareable code.
+        </Text>
+      )}
+
+      {inviteError && <Text className="mt-3 text-red-400">{inviteError}</Text>}
+
+      <Pressable
+        className="px-4 py-3 mt-4 border rounded-xl border-slate-700"
+        disabled={working}
+        onPress={handleGenerateInvite}
+      >
+        <Text className="font-semibold text-center text-white">
+          {working
+            ? 'Please wait...'
+            : activeInvite
+              ? 'Regenerate invite'
+              : 'Generate parent invite'}
+        </Text>
+      </Pressable>
+
+      {activeInvite && (
+        <Pressable
+          className="px-4 py-3 mt-3 border border-red-900 rounded-xl"
+          disabled={working}
+          onPress={handleRevokeInvite}
+        >
+          <Text className="font-semibold text-center text-red-400">
+            Revoke invite
+          </Text>
+        </Pressable>
+      )}
+    </View>
+  );
+}
+
 export default function HomeScreen() {
   const [mode, setMode] = useState<AuthMode>('sign-up');
 
@@ -49,14 +206,21 @@ export default function HomeScreen() {
 
   const [householdName, setHouseholdName] = useState('');
   const [timezone, setTimezone] = useState(getDeviceTimezone);
+
   const [payoutWeekday, setPayoutWeekday] = useState<PayoutWeekday | null>(
     null,
   );
+
   const [weeklyUnclaimAllowance, setWeeklyUnclaimAllowance] = useState('');
+
   const [children, setChildren] = useState<string[]>(['']);
+
+  const [parentInviteToken, setParentInviteToken] = useState('');
 
   const [submittingAuth, setSubmittingAuth] = useState(false);
   const [creatingHousehold, setCreatingHousehold] = useState(false);
+  const [joiningHousehold, setJoiningHousehold] = useState(false);
+
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const { data: session, isPending: sessionPending } = authClient.useSession();
@@ -69,6 +233,7 @@ export default function HomeScreen() {
   );
 
   const createHousehold = useMutation(api.households.create);
+  const acceptParentInvite = useAction(api.parentInvites.accept);
 
   async function handleAuthSubmit() {
     setSubmittingAuth(true);
@@ -154,6 +319,33 @@ export default function HomeScreen() {
       );
     } finally {
       setCreatingHousehold(false);
+    }
+  }
+
+  async function handleJoinHousehold() {
+    setErrorMessage(null);
+
+    const token = parentInviteToken.trim();
+
+    if (!token) {
+      setErrorMessage('Enter a parent invite code.');
+      return;
+    }
+
+    setJoiningHousehold(true);
+
+    try {
+      await acceptParentInvite({
+        token,
+      });
+
+      setParentInviteToken('');
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : 'Could not join household.',
+      );
+    } finally {
+      setJoiningHousehold(false);
     }
   }
 
@@ -303,7 +495,10 @@ export default function HomeScreen() {
     return (
       <ScrollView
         className="flex-1 bg-slate-950"
-        contentContainerStyle={{ padding: 24 }}
+        contentContainerStyle={{
+          padding: 24,
+          paddingBottom: 48,
+        }}
       >
         <Text className="text-sm font-semibold tracking-wider uppercase text-slate-500">
           Parent
@@ -364,6 +559,8 @@ export default function HomeScreen() {
                 </View>
               ))}
             </View>
+
+            <ParentInviteCard householdId={household.householdId} />
           </View>
         ))}
 
@@ -403,8 +600,41 @@ export default function HomeScreen() {
         </Text>
 
         <Text className="mt-2 text-base leading-6 text-slate-400">
-          Configure the household settings that will control chores, deadlines,
-          unclaims, and payouts.
+          Create a new household or join one using a parent invite.
+        </Text>
+
+        <View className="p-5 mt-8 border rounded-2xl border-slate-800 bg-slate-900">
+          <Text className="text-xl font-bold text-white">
+            Join an existing household
+          </Text>
+
+          <Text className="mt-2 text-sm leading-5 text-slate-400">
+            If another parent invited you, paste the parent invite code here.
+          </Text>
+
+          <TextInput
+            className="px-4 py-4 mt-4 text-white border rounded-xl border-slate-700 bg-slate-950"
+            placeholder="Parent invite code"
+            placeholderTextColor="#64748b"
+            value={parentInviteToken}
+            onChangeText={setParentInviteToken}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+
+          <Pressable
+            className="px-4 py-4 mt-4 bg-white rounded-xl"
+            disabled={joiningHousehold}
+            onPress={handleJoinHousehold}
+          >
+            <Text className="font-semibold text-center text-slate-950">
+              {joiningHousehold ? 'Joining household...' : 'Join household'}
+            </Text>
+          </Pressable>
+        </View>
+
+        <Text className="mt-10 text-xl font-bold text-white">
+          Or create a new household
         </Text>
 
         <Text className="mt-8 font-semibold text-white">Household name</Text>
