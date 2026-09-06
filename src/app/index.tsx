@@ -1,11 +1,12 @@
 import { authClient } from '@/lib/auth-client';
-import { useConvexAuth, useQuery } from 'convex/react';
+import { useConvexAuth, useMutation, useQuery } from 'convex/react';
 import { useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  ScrollView,
   Text,
   TextInput,
   View,
@@ -15,31 +16,69 @@ import { api } from '../../convex/_generated/api';
 
 type AuthMode = 'sign-in' | 'sign-up';
 
+const PAYOUT_WEEKDAYS = [
+  'monday',
+  'tuesday',
+  'wednesday',
+  'thursday',
+  'friday',
+  'saturday',
+  'sunday',
+] as const;
+
+type PayoutWeekday = (typeof PAYOUT_WEEKDAYS)[number];
+
+function getDeviceTimezone() {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone ?? '';
+  } catch {
+    return '';
+  }
+}
+
+function formatWeekday(day: PayoutWeekday) {
+  return day.charAt(0).toUpperCase() + day.slice(1);
+}
+
 export default function HomeScreen() {
   const [mode, setMode] = useState<AuthMode>('sign-up');
-  const [name, setName] = useState('');
+
+  const [parentName, setParentName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [submitting, setSubmitting] = useState(false);
+
+  const [householdName, setHouseholdName] = useState('');
+  const [timezone, setTimezone] = useState(getDeviceTimezone);
+  const [payoutWeekday, setPayoutWeekday] = useState<PayoutWeekday | null>(
+    null,
+  );
+  const [weeklyUnclaimAllowance, setWeeklyUnclaimAllowance] = useState('');
+  const [children, setChildren] = useState<string[]>(['']);
+
+  const [submittingAuth, setSubmittingAuth] = useState(false);
+  const [creatingHousehold, setCreatingHousehold] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const { data: session, isPending: sessionPending } = authClient.useSession();
+
   const { isAuthenticated, isLoading: convexAuthLoading } = useConvexAuth();
 
-  const currentUser = useQuery(
-    api.auth.getCurrentUser,
+  const households = useQuery(
+    api.households.listForCurrentParent,
     isAuthenticated ? {} : 'skip',
   );
 
-  async function handleSubmit() {
-    setSubmitting(true);
+  const createHousehold = useMutation(api.households.create);
+
+  async function handleAuthSubmit() {
+    setSubmittingAuth(true);
     setErrorMessage(null);
 
     try {
       const result =
         mode === 'sign-up'
           ? await authClient.signUp.email({
-              name: name.trim(),
+              name: parentName.trim(),
               email: email.trim(),
               password,
             })
@@ -51,60 +90,294 @@ export default function HomeScreen() {
       if (result.error) {
         setErrorMessage(result.error.message ?? 'Authentication failed.');
       }
-    } catch {
-      setErrorMessage('Something went wrong. Please try again.');
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : 'Something went wrong. Please try again.',
+      );
     } finally {
-      setSubmitting(false);
+      setSubmittingAuth(false);
     }
   }
 
+  async function handleCreateHousehold() {
+    setErrorMessage(null);
+
+    const name = householdName.trim();
+    const householdTimezone = timezone.trim();
+
+    if (!name) {
+      setErrorMessage('Enter a household name.');
+      return;
+    }
+
+    if (!householdTimezone) {
+      setErrorMessage('Enter a household timezone.');
+      return;
+    }
+
+    if (!payoutWeekday) {
+      setErrorMessage('Choose a payout weekday.');
+      return;
+    }
+
+    if (!/^\d+$/.test(weeklyUnclaimAllowance)) {
+      setErrorMessage(
+        'Weekly unclaim allowance must be a non-negative whole number.',
+      );
+      return;
+    }
+
+    const normalizedChildren = children.map((child) => child.trim());
+
+    if (normalizedChildren.some((child) => !child)) {
+      setErrorMessage('Each child needs a name.');
+      return;
+    }
+
+    setCreatingHousehold(true);
+
+    try {
+      await createHousehold({
+        name,
+        timezone: householdTimezone,
+        payoutWeekday,
+        weeklyUnclaimAllowance: Number(weeklyUnclaimAllowance),
+        children: normalizedChildren.map((displayName) => ({
+          displayName,
+        })),
+      });
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : 'Could not create household.',
+      );
+    } finally {
+      setCreatingHousehold(false);
+    }
+  }
+
+  function updateChild(index: number, value: string) {
+    setChildren((current) =>
+      current.map((child, childIndex) =>
+        childIndex === index ? value : child,
+      ),
+    );
+  }
+
+  function addChild() {
+    setChildren((current) => [...current, '']);
+  }
+
+  function removeChild(index: number) {
+    setChildren((current) => {
+      if (current.length === 1) {
+        return current;
+      }
+
+      return current.filter((_, childIndex) => childIndex !== index);
+    });
+  }
+
   async function handleSignOut() {
-    await authClient.signOut();
+    setErrorMessage(null);
+
+    try {
+      await authClient.signOut();
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : 'Could not sign out.',
+      );
+    }
   }
 
   if (sessionPending || convexAuthLoading) {
     return (
       <View className="items-center justify-center flex-1 bg-slate-950">
         <ActivityIndicator />
+
         <Text className="mt-3 text-slate-400">Checking session...</Text>
       </View>
     );
   }
 
-  if (session?.user) {
+  if (!session?.user) {
     return (
-      <View className="justify-center flex-1 px-6 bg-slate-950">
-        <Text className="text-3xl font-bold text-white">Signed in</Text>
+      <KeyboardAvoidingView
+        className="flex-1 bg-slate-950"
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{ flexGrow: 1 }}
+        >
+          <View className="justify-center flex-1 px-6">
+            <Text className="text-3xl font-bold text-white">
+              {mode === 'sign-up' ? 'Create parent account' : 'Parent sign in'}
+            </Text>
 
-        <Text className="mt-4 text-lg text-white">{session.user.name}</Text>
+            <Text className="mt-2 text-slate-400">Chores App</Text>
+
+            {mode === 'sign-up' && (
+              <TextInput
+                className="px-4 py-4 mt-8 text-white border rounded-xl border-slate-700 bg-slate-900"
+                placeholder="Name"
+                placeholderTextColor="#64748b"
+                value={parentName}
+                onChangeText={setParentName}
+                autoCapitalize="words"
+              />
+            )}
+
+            <TextInput
+              className="px-4 py-4 mt-3 text-white border rounded-xl border-slate-700 bg-slate-900"
+              placeholder="Email"
+              placeholderTextColor="#64748b"
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              autoCorrect={false}
+              keyboardType="email-address"
+            />
+
+            <TextInput
+              className="px-4 py-4 mt-3 text-white border rounded-xl border-slate-700 bg-slate-900"
+              placeholder="Password"
+              placeholderTextColor="#64748b"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+            />
+
+            {errorMessage && (
+              <Text className="mt-3 text-red-400">{errorMessage}</Text>
+            )}
+
+            <Pressable
+              className="px-4 py-4 mt-5 bg-white rounded-xl"
+              disabled={submittingAuth}
+              onPress={handleAuthSubmit}
+            >
+              <Text className="font-semibold text-center text-slate-950">
+                {submittingAuth
+                  ? 'Please wait...'
+                  : mode === 'sign-up'
+                    ? 'Create account'
+                    : 'Sign in'}
+              </Text>
+            </Pressable>
+
+            <Pressable
+              className="mt-5"
+              onPress={() => {
+                setErrorMessage(null);
+
+                setMode((current) =>
+                  current === 'sign-up' ? 'sign-in' : 'sign-up',
+                );
+              }}
+            >
+              <Text className="text-center text-slate-400">
+                {mode === 'sign-up'
+                  ? 'Already have an account? Sign in'
+                  : 'Need an account? Sign up'}
+              </Text>
+            </Pressable>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    );
+  }
+
+  if (!isAuthenticated || households === undefined) {
+    return (
+      <View className="items-center justify-center flex-1 bg-slate-950">
+        <ActivityIndicator />
+
+        <Text className="mt-3 text-slate-400">Loading household...</Text>
+      </View>
+    );
+  }
+
+  if (households.length > 0) {
+    return (
+      <ScrollView
+        className="flex-1 bg-slate-950"
+        contentContainerStyle={{ padding: 24 }}
+      >
+        <Text className="text-sm font-semibold tracking-wider uppercase text-slate-500">
+          Parent
+        </Text>
+
+        <Text className="mt-1 text-2xl font-bold text-white">
+          {session.user.name}
+        </Text>
 
         <Text className="mt-1 text-slate-400">{session.user.email}</Text>
 
-        <View className="p-4 mt-6 border rounded-xl border-slate-700 bg-slate-900">
-          <Text className="font-semibold text-white">Convex actor</Text>
+        <Text className="mt-10 text-3xl font-bold text-white">
+          Your household
+        </Text>
 
-          {!isAuthenticated ? (
-            <Text className="mt-2 text-amber-400">
-              Connecting authenticated session...
+        {households.map((household) => (
+          <View
+            key={household.householdId}
+            className="p-5 mt-5 border rounded-2xl border-slate-800 bg-slate-900"
+          >
+            <Text className="text-2xl font-bold text-white">
+              {household.name}
             </Text>
-          ) : currentUser === undefined ? (
-            <Text className="mt-2 text-slate-400">Resolving user...</Text>
-          ) : (
-            <Text className="mt-2 text-green-400">
-              Authenticated in Convex ✓
-            </Text>
-          )}
-        </View>
+
+            <View className="mt-5">
+              <Text className="text-sm text-slate-500">Timezone</Text>
+
+              <Text className="mt-1 text-base text-white">
+                {household.timezone}
+              </Text>
+            </View>
+
+            <View className="mt-4">
+              <Text className="text-sm text-slate-500">Payout day</Text>
+
+              <Text className="mt-1 text-base text-white">
+                {formatWeekday(household.payoutWeekday)}
+              </Text>
+            </View>
+
+            <View className="mt-4">
+              <Text className="text-sm text-slate-500">Weekly unclaims</Text>
+
+              <Text className="mt-1 text-base text-white">
+                {household.weeklyUnclaimAllowance}
+              </Text>
+            </View>
+
+            <View className="pt-5 mt-6 border-t border-slate-800">
+              <Text className="font-semibold text-white">Children</Text>
+
+              {household.children.map((child) => (
+                <View
+                  key={child.childId}
+                  className="px-4 py-3 mt-3 rounded-xl bg-slate-800"
+                >
+                  <Text className="text-white">{child.displayName}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        ))}
+
+        {errorMessage && (
+          <Text className="mt-4 text-red-400">{errorMessage}</Text>
+        )}
 
         <Pressable
-          className="px-4 py-4 mt-8 bg-white rounded-xl"
+          className="px-4 py-4 mt-8 border rounded-xl border-slate-700"
           onPress={handleSignOut}
         >
-          <Text className="font-semibold text-center text-slate-950">
-            Sign out
-          </Text>
+          <Text className="font-semibold text-center text-white">Sign out</Text>
         </Pressable>
-      </View>
+      </ScrollView>
     );
   }
 
@@ -113,77 +386,149 @@ export default function HomeScreen() {
       className="flex-1 bg-slate-950"
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <View className="justify-center flex-1 px-6">
-        <Text className="text-3xl font-bold text-white">
-          {mode === 'sign-up' ? 'Create parent account' : 'Parent sign in'}
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{
+          paddingHorizontal: 24,
+          paddingTop: 48,
+          paddingBottom: 48,
+        }}
+      >
+        <Text className="text-sm font-semibold tracking-wider uppercase text-slate-500">
+          Household setup
         </Text>
 
-        <Text className="mt-2 text-slate-400">Chores App</Text>
+        <Text className="mt-2 text-3xl font-bold text-white">
+          Set up your family
+        </Text>
 
-        {mode === 'sign-up' && (
-          <TextInput
-            className="px-4 py-4 mt-8 text-white border rounded-xl border-slate-700 bg-slate-900"
-            placeholder="Name"
-            placeholderTextColor="#64748b"
-            value={name}
-            onChangeText={setName}
-            autoCapitalize="words"
-          />
-        )}
+        <Text className="mt-2 text-base leading-6 text-slate-400">
+          Configure the household settings that will control chores, deadlines,
+          unclaims, and payouts.
+        </Text>
+
+        <Text className="mt-8 font-semibold text-white">Household name</Text>
 
         <TextInput
-          className="px-4 py-4 mt-3 text-white border rounded-xl border-slate-700 bg-slate-900"
-          placeholder="Email"
+          className="px-4 py-4 mt-2 text-white border rounded-xl border-slate-700 bg-slate-900"
+          placeholder="Krasniqi Family"
           placeholderTextColor="#64748b"
-          value={email}
-          onChangeText={setEmail}
+          value={householdName}
+          onChangeText={setHouseholdName}
+        />
+
+        <Text className="mt-6 font-semibold text-white">
+          Household timezone
+        </Text>
+
+        <Text className="mt-1 text-sm leading-5 text-slate-500">
+          Use an IANA timezone such as Europe/Stockholm.
+        </Text>
+
+        <TextInput
+          className="px-4 py-4 mt-2 text-white border rounded-xl border-slate-700 bg-slate-900"
+          placeholder="Europe/Stockholm"
+          placeholderTextColor="#64748b"
+          value={timezone}
+          onChangeText={setTimezone}
           autoCapitalize="none"
           autoCorrect={false}
-          keyboardType="email-address"
         />
+
+        <Text className="mt-6 font-semibold text-white">Payout weekday</Text>
+
+        <View className="flex-row flex-wrap gap-2 mt-3">
+          {PAYOUT_WEEKDAYS.map((day) => (
+            <Pressable
+              key={day}
+              className={
+                payoutWeekday === day
+                  ? 'rounded-xl bg-white px-4 py-3'
+                  : 'rounded-xl border border-slate-700 bg-slate-900 px-4 py-3'
+              }
+              onPress={() => setPayoutWeekday(day)}
+            >
+              <Text
+                className={
+                  payoutWeekday === day
+                    ? 'font-semibold text-slate-950'
+                    : 'font-semibold text-slate-300'
+                }
+              >
+                {formatWeekday(day)}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+
+        <Text className="mt-6 font-semibold text-white">
+          Weekly unclaim allowance
+        </Text>
+
+        <Text className="mt-1 text-sm leading-5 text-slate-500">
+          This allowance applies equally to every child each payout week.
+        </Text>
 
         <TextInput
-          className="px-4 py-4 mt-3 text-white border rounded-xl border-slate-700 bg-slate-900"
-          placeholder="Password"
+          className="px-4 py-4 mt-2 text-white border rounded-xl border-slate-700 bg-slate-900"
+          placeholder="Enter a whole number"
           placeholderTextColor="#64748b"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
+          value={weeklyUnclaimAllowance}
+          onChangeText={setWeeklyUnclaimAllowance}
+          keyboardType="number-pad"
         />
 
+        <View className="flex-row items-center justify-between mt-8">
+          <Text className="font-semibold text-white">Children</Text>
+
+          <Pressable
+            className="px-3 py-2 border rounded-lg border-slate-700"
+            onPress={addChild}
+          >
+            <Text className="font-semibold text-white">+ Add child</Text>
+          </Pressable>
+        </View>
+
+        {children.map((child, index) => (
+          <View key={index} className="flex-row items-center gap-2 mt-3">
+            <TextInput
+              className="flex-1 px-4 py-4 text-white border rounded-xl border-slate-700 bg-slate-900"
+              placeholder={`Child ${index + 1} name`}
+              placeholderTextColor="#64748b"
+              value={child}
+              onChangeText={(value) => updateChild(index, value)}
+              autoCapitalize="words"
+            />
+
+            {children.length > 1 && (
+              <Pressable
+                className="px-4 py-4 border rounded-xl border-slate-700"
+                onPress={() => removeChild(index)}
+              >
+                <Text className="text-slate-300">Remove</Text>
+              </Pressable>
+            )}
+          </View>
+        ))}
+
         {errorMessage && (
-          <Text className="mt-3 text-red-400">{errorMessage}</Text>
+          <Text className="mt-5 text-red-400">{errorMessage}</Text>
         )}
 
         <Pressable
-          className="px-4 py-4 mt-5 bg-white rounded-xl"
-          disabled={submitting}
-          onPress={handleSubmit}
+          className="px-4 py-4 mt-8 bg-white rounded-xl"
+          disabled={creatingHousehold}
+          onPress={handleCreateHousehold}
         >
           <Text className="font-semibold text-center text-slate-950">
-            {submitting
-              ? 'Please wait...'
-              : mode === 'sign-up'
-                ? 'Create account'
-                : 'Sign in'}
+            {creatingHousehold ? 'Creating household...' : 'Create household'}
           </Text>
         </Pressable>
 
-        <Pressable
-          className="mt-5"
-          onPress={() =>
-            setMode((current) =>
-              current === 'sign-up' ? 'sign-in' : 'sign-up',
-            )
-          }
-        >
-          <Text className="text-center text-slate-400">
-            {mode === 'sign-up'
-              ? 'Already have an account? Sign in'
-              : 'Need an account? Sign up'}
-          </Text>
+        <Pressable className="mt-4" onPress={handleSignOut}>
+          <Text className="text-center text-slate-500">Sign out</Text>
         </Pressable>
-      </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
