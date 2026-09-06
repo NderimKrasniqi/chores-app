@@ -5,7 +5,7 @@ import {
 import { ConvexReactClient } from 'convex/react';
 import type { PropsWithChildren } from 'react';
 
-import { authClient } from '@/lib/auth-client';
+import { useAuthRuntime } from '@/providers/auth-runtime-provider';
 
 const convexUrl = process.env.EXPO_PUBLIC_CONVEX_URL;
 
@@ -18,14 +18,28 @@ const convex = new ConvexReactClient(convexUrl, {
   unsavedChangesWarning: false,
 });
 
-// Temporary compatibility bridge:
-// @convex-dev/better-auth 0.12.5 has stale client typings for
-// better-auth >= 1.6.22. Remove when the upstream provider typing is released.
-const compatibleAuthClient = authClient as unknown as AuthClient;
-
 export function ConvexClientProvider({ children }: PropsWithChildren) {
+  const { authClient, storagePrefix } = useAuthRuntime();
+
+  /*
+   * Temporary compatibility bridge:
+   *
+   * @convex-dev/better-auth 0.12.5 has stale
+   * client typings for newer Better Auth versions.
+   */
+  const compatibleAuthClient = authClient as unknown as AuthClient;
+
+  /*
+   * Changing storagePrefix intentionally remounts the
+   * auth bridge so Convex cannot retain authorization
+   * state from the previously active local context.
+   */
   return (
-    <ConvexBetterAuthProvider client={convex} authClient={compatibleAuthClient}>
+    <ConvexBetterAuthProvider
+      key={storagePrefix}
+      client={convex}
+      authClient={compatibleAuthClient}
+    >
       {children}
     </ConvexBetterAuthProvider>
   );

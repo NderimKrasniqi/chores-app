@@ -1,5 +1,11 @@
 import { ConvexClientProvider } from '@/providers/convex-client-provider';
-import { DarkTheme, DefaultTheme, Slot, ThemeProvider } from 'expo-router';
+import { AuthRuntimeProvider } from '@/providers/auth-runtime-provider';
+import {
+  DarkTheme,
+  DefaultTheme,
+  Slot,
+  ThemeProvider,
+} from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useColorScheme } from 'react-native';
 
@@ -13,11 +19,19 @@ export default function RootLayout() {
   const colorScheme = useColorScheme();
 
   return (
-    <ConvexClientProvider>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <AnimatedSplashOverlay />
-        <Slot />
-      </ThemeProvider>
-    </ConvexClientProvider>
+    <AuthRuntimeProvider>
+      <ConvexClientProvider>
+        <ThemeProvider
+          value={
+            colorScheme === 'dark'
+              ? DarkTheme
+              : DefaultTheme
+          }
+        >
+          <AnimatedSplashOverlay />
+          <Slot />
+        </ThemeProvider>
+      </ConvexClientProvider>
+    </AuthRuntimeProvider>
   );
 }

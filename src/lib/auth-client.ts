@@ -11,24 +11,59 @@ if (!convexSiteUrl) {
   throw new Error('Missing EXPO_PUBLIC_CONVEX_SITE_URL');
 }
 
-const scheme = Constants.expoConfig?.scheme;
+function getAppScheme(): string {
+  const configuredScheme = Constants.expoConfig?.scheme;
 
-if (typeof scheme !== 'string') {
-  throw new Error('Missing Expo app scheme');
+  if (typeof configuredScheme !== 'string') {
+    throw new Error('Expected exactly one Expo app scheme.');
+  }
+
+  return configuredScheme;
 }
 
-export const authClient = createAuthClient({
-  baseURL: convexSiteUrl,
+const appScheme = getAppScheme();
 
-  plugins: [
-    expoClient({
-      scheme,
-      storagePrefix: scheme,
-      storage: SecureStore,
-    }),
+/**
+ * Keep the existing storage prefix for the Parent/default
+ * authentication context so existing Parent sessions continue
+ * to use the same SecureStore keys.
+ */
+export const PARENT_AUTH_STORAGE_PREFIX = appScheme;
 
-    anonymousClient(),
+export function createAppAuthClient(storagePrefix: string) {
+  return createAuthClient({
+    baseURL: convexSiteUrl,
 
-    convexClient(),
-  ],
-});
+    plugins: [
+      expoClient({
+        scheme: appScheme,
+        storagePrefix,
+        storage: SecureStore,
+      }),
+
+      anonymousClient(),
+
+      convexClient(),
+    ],
+  });
+}
+
+export type AppAuthClient = ReturnType<typeof createAppAuthClient>;
+
+/**
+ * Live module binding for the currently active local
+ * authentication context.
+ */
+export let authClient = createAppAuthClient(PARENT_AUTH_STORAGE_PREFIX);
+
+export function activateAuthStoragePrefix(storagePrefix: string) {
+  const normalized = storagePrefix.trim();
+
+  if (!normalized) {
+    throw new Error('Auth storage prefix cannot be empty.');
+  }
+
+  authClient = createAppAuthClient(normalized);
+
+  return authClient;
+}
