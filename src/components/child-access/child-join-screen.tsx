@@ -1,4 +1,4 @@
-import { authClient } from '@/lib/auth-client';
+import { useAuthRuntime } from '@/providers/auth-runtime-provider';
 import { useAction } from 'convex/react';
 import { useState } from 'react';
 import {
@@ -12,6 +12,12 @@ import {
 
 import { api } from '../../../convex/_generated/api';
 
+import { ChildQrScannerScreen } from './child-qr-scanner-screen';
+
+type JoinMode =
+  | 'manual'
+  | 'qr';
+
 function formatManualCodeInput(
   value: string,
 ) {
@@ -20,7 +26,9 @@ function formatManualCodeInput(
     .replace(/[^A-Z0-9]/g, '')
     .slice(0, 10);
 
-  if (normalized.length <= 5) {
+  if (
+    normalized.length <= 5
+  ) {
     return normalized;
   }
 
@@ -31,19 +39,40 @@ function formatManualCodeInput(
 }
 
 export function ChildJoinScreen() {
-  const [manualCode, setManualCode] =
-    useState('');
+  const {
+    authClient,
+    activateParentStorage,
+  } = useAuthRuntime();
 
-  const [redeeming, setRedeeming] =
-    useState(false);
+  const [
+    joinMode,
+    setJoinMode,
+  ] =
+    useState<JoinMode>(
+      'manual',
+    );
 
-  const [signingOut, setSigningOut] =
-    useState(false);
+  const [
+    manualCode,
+    setManualCode,
+  ] = useState('');
+
+  const [
+    redeeming,
+    setRedeeming,
+  ] = useState(false);
+
+  const [
+    signingOut,
+    setSigningOut,
+  ] = useState(false);
 
   const [
     errorMessage,
     setErrorMessage,
-  ] = useState<string | null>(null);
+  ] = useState<string | null>(
+    null,
+  );
 
   const redeemManual = useAction(
     api.childPairing.redeemManual,
@@ -54,8 +83,9 @@ export function ChildJoinScreen() {
 
     if (!manualCode.trim()) {
       setErrorMessage(
-        'Enter the pairing code from your parent.',
+        'Enter the pairing code from your Parent.',
       );
+
       return;
     }
 
@@ -83,16 +113,40 @@ export function ChildJoinScreen() {
     setErrorMessage(null);
 
     try {
-      await authClient.signOut();
+      const result =
+        await authClient.signOut();
+
+      if (result.error) {
+        throw new Error(
+          result.error.message ??
+            'Could not exit Child setup.',
+        );
+      }
+
+      activateParentStorage();
     } catch (error) {
       setErrorMessage(
         error instanceof Error
           ? error.message
-          : 'Could not exit child setup.',
+          : 'Could not exit Child setup.',
       );
     } finally {
       setSigningOut(false);
     }
+  }
+
+  if (
+    joinMode === 'qr'
+  ) {
+    return (
+      <ChildQrScannerScreen
+        onCancel={() =>
+          setJoinMode(
+            'manual',
+          )
+        }
+      />
+    );
   }
 
   return (
@@ -114,13 +168,38 @@ export function ChildJoinScreen() {
         </Text>
 
         <Text className="mt-3 text-base leading-6 text-slate-400">
-          Ask a parent to generate a pairing
-          credential for your profile, then enter
-          the manual code shown on their device.
+          Scan the QR code shown on the
+          Parent device or enter the manual
+          pairing code.
         </Text>
 
-        <Text className="mt-8 font-semibold text-white">
-          Pairing code
+        <Pressable
+          className="px-4 py-4 mt-8 bg-white rounded-xl"
+          onPress={() => {
+            setErrorMessage(
+              null,
+            );
+
+            setJoinMode('qr');
+          }}
+        >
+          <Text className="font-semibold text-center text-slate-950">
+            Scan QR code
+          </Text>
+        </Pressable>
+
+        <View className="flex-row items-center my-7">
+          <View className="flex-1 h-px bg-slate-800" />
+
+          <Text className="px-4 text-xs font-semibold tracking-wider uppercase text-slate-500">
+            Or
+          </Text>
+
+          <View className="flex-1 h-px bg-slate-800" />
+        </View>
+
+        <Text className="font-semibold text-white">
+          Manual pairing code
         </Text>
 
         <TextInput
@@ -130,7 +209,9 @@ export function ChildJoinScreen() {
           value={manualCode}
           onChangeText={(value) =>
             setManualCode(
-              formatManualCodeInput(value),
+              formatManualCodeInput(
+                value,
+              ),
             )
           }
           autoCapitalize="characters"
@@ -139,8 +220,9 @@ export function ChildJoinScreen() {
         />
 
         <Text className="mt-2 text-xs leading-5 text-slate-500">
-          Pairing codes expire after 15 minutes and
-          can only be used once.
+          Pairing credentials expire after
+          15 minutes and can only be used
+          once.
         </Text>
 
         {errorMessage && (
@@ -150,26 +232,28 @@ export function ChildJoinScreen() {
         )}
 
         <Pressable
-          className="px-4 py-4 mt-6 bg-white rounded-xl"
+          className="px-4 py-4 mt-6 border rounded-xl border-slate-700"
           disabled={redeeming}
           onPress={handleRedeem}
         >
-          <Text className="font-semibold text-center text-slate-950">
+          <Text className="font-semibold text-center text-white">
             {redeeming
               ? 'Pairing device...'
-              : 'Join family'}
+              : 'Join with manual code'}
           </Text>
         </Pressable>
 
         <Pressable
           className="mt-5"
           disabled={signingOut}
-          onPress={handleExitChildSetup}
+          onPress={
+            handleExitChildSetup
+          }
         >
           <Text className="text-center text-slate-500">
             {signingOut
               ? 'Exiting...'
-              : 'Not a child? Go back'}
+              : 'Cancel Child setup'}
           </Text>
         </Pressable>
       </View>
