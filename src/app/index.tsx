@@ -1,6 +1,6 @@
 import { EntryChoiceScreen } from '@/components/auth/entry-choice-screen';
 import { ParentAuthScreen } from '@/components/auth/parent-auth-screen';
-import { ChildHomeScreen } from '@/components/child-access/child-home-screen';
+import { ChildAccessGate } from '@/components/child-access/child-access-gate';
 import { ChildJoinScreen } from '@/components/child-access/child-join-screen';
 import { HouseholdListScreen } from '@/components/household/household-list-screen';
 import { HouseholdSetupScreen } from '@/components/household/household-setup-screen';
@@ -18,7 +18,9 @@ import {
 
 import { api } from '../../convex/_generated/api';
 
-type EntryMode = 'choose' | 'parent';
+type EntryMode =
+  | 'choose'
+  | 'parent';
 
 function isAnonymousUser(
   user: object,
@@ -46,8 +48,13 @@ function LoadingScreen({
 }
 
 export default function HomeScreen() {
-  const [entryMode, setEntryMode] =
-    useState<EntryMode>('choose');
+  const [
+    entryMode,
+    setEntryMode,
+  ] =
+    useState<EntryMode>(
+      'choose',
+    );
 
   const {
     data: session,
@@ -64,11 +71,14 @@ export default function HomeScreen() {
 
   const anonymousSession =
     session?.user
-      ? isAnonymousUser(session.user)
+      ? isAnonymousUser(
+          session.user,
+        )
       : false;
 
   const households = useQuery(
     api.households.listForCurrentParent,
+
     isAuthenticated &&
       hasSession &&
       !anonymousSession
@@ -78,6 +88,7 @@ export default function HomeScreen() {
 
   const childAccess = useQuery(
     api.childAccess.getCurrentChildAccess,
+
     isAuthenticated &&
       hasSession &&
       anonymousSession
@@ -95,11 +106,15 @@ export default function HomeScreen() {
   }
 
   if (!session?.user) {
-    if (entryMode === 'parent') {
+    if (
+      entryMode === 'parent'
+    ) {
       return (
         <ParentAuthScreen
           onBack={() =>
-            setEntryMode('choose')
+            setEntryMode(
+              'choose',
+            )
           }
         />
       );
@@ -108,7 +123,9 @@ export default function HomeScreen() {
     return (
       <EntryChoiceScreen
         onChooseParent={() =>
-          setEntryMode('parent')
+          setEntryMode(
+            'parent',
+          )
         }
       />
     );
@@ -121,38 +138,56 @@ export default function HomeScreen() {
   }
 
   if (anonymousSession) {
-    if (childAccess === undefined) {
+    if (
+      childAccess === undefined
+    ) {
       return (
         <LoadingScreen message="Checking child access..." />
       );
     }
 
-    if (childAccess === null) {
-      return <ChildJoinScreen />;
+    if (
+      childAccess === null
+    ) {
+      return (
+        <ChildJoinScreen />
+      );
     }
 
     return (
-      <ChildHomeScreen
+      <ChildAccessGate
         access={childAccess}
       />
     );
   }
 
-  if (households === undefined) {
+  if (
+    households === undefined
+  ) {
     return (
       <LoadingScreen message="Loading household..." />
     );
   }
 
-  if (households.length > 0) {
+  if (
+    households.length > 0
+  ) {
     return (
       <HouseholdListScreen
-        parentName={session.user.name}
-        parentEmail={session.user.email}
-        households={households}
+        parentName={
+          session.user.name
+        }
+        parentEmail={
+          session.user.email
+        }
+        households={
+          households
+        }
       />
     );
   }
 
-  return <HouseholdSetupScreen />;
+  return (
+    <HouseholdSetupScreen />
+  );
 }

@@ -1,6 +1,9 @@
-import { authClient } from '@/lib/auth-client';
-import { useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { useAuthRuntime } from '@/providers/auth-runtime-provider';
+import {
+  Pressable,
+  Text,
+  View,
+} from 'react-native';
 
 import type { Id } from '../../../convex/_generated/dataModel';
 
@@ -15,24 +18,25 @@ type ChildHomeScreenProps = {
   };
 };
 
-export function ChildHomeScreen({ access }: ChildHomeScreenProps) {
-  const [signingOut, setSigningOut] = useState(false);
+export function ChildHomeScreen({
+  access,
+}: ChildHomeScreenProps) {
+  const {
+    activateParentStorage,
+  } = useAuthRuntime();
 
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-  async function handleSignOut() {
-    setSigningOut(true);
-    setErrorMessage(null);
-
-    try {
-      await authClient.signOut();
-    } catch (error) {
-      setErrorMessage(
-        error instanceof Error ? error.message : 'Could not sign out.',
-      );
-    } finally {
-      setSigningOut(false);
-    }
+  function handleLockAndSwitch() {
+    /*
+     * Do NOT sign the Child out.
+     *
+     * Their Better Auth anonymous session remains
+     * securely stored inside that Child's isolated
+     * SecureStore namespace.
+     *
+     * We simply switch back to the default context,
+     * which locks this profile in memory.
+     */
+    activateParentStorage();
   }
 
   return (
@@ -46,43 +50,50 @@ export function ChildHomeScreen({ access }: ChildHomeScreenProps) {
       </Text>
 
       <Text className="mt-3 text-base leading-6 text-slate-400">
-        This device is now securely paired with your child profile.
+        This device is securely paired with
+        your child profile.
       </Text>
 
-      <View className="p-5 mt-8 border border-green-900 rounded-2xl bg-slate-900">
+      <View className="p-5 mt-8 border rounded-2xl border-green-900 bg-slate-900">
         <Text className="font-semibold text-green-400">
           Device access active ✓
         </Text>
 
         <Text className="mt-2 text-sm leading-5 text-slate-400">
-          Convex has confirmed that this anonymous device identity has an active
-          access grant for {access.childDisplayName}.
+          Convex has confirmed that this
+          device identity has an active
+          access grant for{' '}
+          {access.childDisplayName}.
         </Text>
       </View>
 
       <View className="p-5 mt-4 rounded-2xl bg-slate-900">
-        <Text className="font-semibold text-white">Child chores</Text>
+        <Text className="font-semibold text-white">
+          Child chores
+        </Text>
 
         <Text className="mt-2 text-sm leading-5 text-slate-500">
-          Chores will appear here in the later chore implementation tasks. This
-          screen currently proves child authentication and household
-          authorization.
+          Chores will appear here in the
+          later chore implementation tasks.
+          This screen currently proves Child
+          authentication and authorization.
         </Text>
       </View>
 
-      {errorMessage && (
-        <Text className="mt-5 text-red-400">{errorMessage}</Text>
-      )}
-
       <Pressable
-        className="px-4 py-4 mt-8 border rounded-xl border-slate-700"
-        disabled={signingOut}
-        onPress={handleSignOut}
+        className="px-4 py-4 mt-8 bg-white rounded-xl"
+        onPress={handleLockAndSwitch}
       >
-        <Text className="font-semibold text-center text-white">
-          {signingOut ? 'Signing out...' : 'Exit child session'}
+        <Text className="font-semibold text-center text-slate-950">
+          Lock / switch profile
         </Text>
       </Pressable>
+
+      <Text className="mt-4 text-xs leading-5 text-center text-slate-500">
+        Locking does not sign this Child out.
+        Their secure device session remains
+        available after PIN verification.
+      </Text>
     </View>
   );
 }
