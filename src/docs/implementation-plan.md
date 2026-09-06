@@ -1,15 +1,17 @@
 # Implementation Plan
 **Status:** Approved — current
 
+**Implementation progress:** TASK-01 through TASK-06 complete. TASK-07 is next.
+
 ## Phase 1 — Establish trusted household access
-- [ ] TASK-01 Bootstrap the Expo, NativeWind, and Convex application with an unprotected connectivity seam
-- [ ] TASK-02 Implement Better Auth parent sign-in with `expo-secure-store` session persistence and protected Convex actor resolution
-- [ ] TASK-03 Implement household creation, child profiles, timezone, payout-day, and default unclaim settings
-- [ ] TASK-04 Implement second-parent invite acceptance, revocation/regeneration, and equal household authority
-- [ ] TASK-05 Implement child QR/manual-code pairing, device revocation, and `expo-secure-store`-protected PIN-gated shared-device access
+- [x] TASK-01 Bootstrap the Expo, NativeWind, and Convex application with an unprotected connectivity seam
+- [x] TASK-02 Implement Better Auth parent sign-in with `expo-secure-store` session persistence and protected Convex actor resolution
+- [x] TASK-03 Implement household creation, child profiles, timezone, payout-day, and default unclaim settings
+- [x] TASK-04 Implement second-parent invite acceptance, revocation/regeneration, and equal household authority
+- [x] TASK-05 Implement child QR/manual-code pairing, device revocation, and `expo-secure-store`-protected PIN-gated shared-device access
 
 ## Phase 2 — Establish chore configuration and scheduling
-- [ ] TASK-06 Implement parent chore definitions with recurrence, values, eligibility, availability, and unlock designation
+- [x] TASK-06 Implement parent chore definitions with recurrence, values, eligibility, availability, and unlock designation
 - [ ] TASK-07 Generate timezone-stable chore occurrences with immutable schedule snapshots and unclaimed expiry
 
 ## Phase 3 — Prove the responsibility-to-commitment loop
