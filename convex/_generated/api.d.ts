@@ -9,6 +9,8 @@
  */
 
 import type * as auth from "../auth.js";
+import type * as childAccess from "../childAccess.js";
+import type * as childPairing from "../childPairing.js";
 import type * as health from "../health.js";
 import type * as households from "../households.js";
 import type * as http from "../http.js";
@@ -22,6 +24,8 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
+  childAccess: typeof childAccess;
+  childPairing: typeof childPairing;
   health: typeof health;
   households: typeof households;
   http: typeof http;

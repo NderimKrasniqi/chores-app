@@ -2,6 +2,7 @@ import { expo } from '@better-auth/expo';
 import { createClient, type GenericCtx } from '@convex-dev/better-auth';
 import { convex } from '@convex-dev/better-auth/plugins';
 import { betterAuth } from 'better-auth/minimal';
+import { anonymous } from 'better-auth/plugins';
 
 import { components } from './_generated/api';
 import type { DataModel } from './_generated/dataModel';
@@ -13,10 +14,12 @@ export const authComponent = createClient<DataModel>(components.betterAuth);
 export const createAuth = (ctx: GenericCtx<DataModel>) => {
   return betterAuth({
     baseURL: process.env.CONVEX_SITE_URL,
+
     trustedOrigins: [
       'choresapp://',
       ...(process.env.APP_ENV === 'development' ? ['exp://', 'exp://**'] : []),
     ],
+
     database: authComponent.adapter(ctx),
 
     emailAndPassword: {
@@ -24,12 +27,13 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
       requireEmailVerification: false,
     },
 
-    plugins: [expo(), convex({ authConfig })],
+    plugins: [anonymous(), expo(), convex({ authConfig })],
   });
 };
 
 export const getCurrentUser = query({
   args: {},
+
   handler: async (ctx) => {
     return await authComponent.getAuthUser(ctx);
   },
