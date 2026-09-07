@@ -1,7 +1,7 @@
 # Implementation Plan
 **Status:** Approved — current
 
-**Implementation progress:** TASK-01 through TASK-08 complete. TASK-09 is next.
+**Implementation progress:** TASK-01 through TASK-09 complete. TASK-10 is next.
 
 ## Phase 1 — Establish trusted household access
 - [x] TASK-01 Bootstrap the Expo, NativeWind, and Convex application with an unprotected connectivity seam
@@ -16,7 +16,7 @@
 
 ## Phase 3 — Prove the responsibility-to-commitment loop
 - [x] TASK-08 Deliver personal-chore viewing, on-time submission, parent approval, earnings, and no-penalty misses
-- [ ] TASK-09 Gate the claimable-chore pool on approval of the current unlock-chore occurrence
+- [x] TASK-09 Gate the claimable-chore pool on approval of the current unlock-chore occurrence
 - [ ] TASK-10 Implement atomic exclusive claiming, eligibility checks, one-active-claim enforcement, and claimed-by visibility
 - [ ] TASK-11 Implement weekly unclaim accounting, the two-hour commitment lock, locked-claim warning, and parent cancellation
 - [ ] TASK-12 Deliver claimed-chore submission, parent review, approved earnings, and active-claim release

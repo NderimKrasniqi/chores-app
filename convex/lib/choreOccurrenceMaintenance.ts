@@ -30,6 +30,14 @@ export type OccurrenceMaintenanceOptions = {
   scheduleTransitions?:
     boolean;
 
+  /*
+   * Optional scope used by deterministic
+   * smoke tests.
+   *
+   * When supplied, BOTH generation and
+   * lifecycle reconciliation must remain
+   * inside these Households.
+   */
   householdIds?:
     Id<'households'>[];
 };
@@ -121,6 +129,28 @@ export async function runOccurrenceMaintenance(
           )
           .collect();
 
+  /*
+   * Smoke tests may provide a synthetic
+   * clock far in the future.
+   *
+   * If householdIds was supplied, that
+   * scope MUST also apply to lifecycle
+   * reconciliation.
+   *
+   * Otherwise a test using 2030 could
+   * accidentally reconcile real 2026
+   * application data.
+   */
+  const householdScope =
+    options.householdIds
+      ? new Set(
+          households.map(
+            (household) =>
+              household._id,
+          ),
+        )
+      : null;
+
   let createdCount = 0;
 
   let skippedExistingCount =
@@ -187,12 +217,22 @@ export async function runOccurrenceMaintenance(
       )
       .collect();
 
+  const scopedDueScheduled =
+    householdScope
+      ? dueScheduled.filter(
+          (occurrence) =>
+            householdScope.has(
+              occurrence.householdId,
+            ),
+        )
+      : dueScheduled;
+
   let scheduledReconciledCount =
     0;
 
   for (
     const occurrence of
-    dueScheduled
+    scopedDueScheduled
   ) {
     const reconciliation =
       await reconcileOccurrenceLifecycle(
@@ -240,6 +280,16 @@ export async function runOccurrenceMaintenance(
       )
       .collect();
 
+  const scopedDueAvailable =
+    householdScope
+      ? dueAvailable.filter(
+          (occurrence) =>
+            householdScope.has(
+              occurrence.householdId,
+            ),
+        )
+      : dueAvailable;
+
   let claimableDeadlineReconciledCount =
     0;
 
@@ -248,7 +298,7 @@ export async function runOccurrenceMaintenance(
 
   for (
     const occurrence of
-    dueAvailable
+    scopedDueAvailable
   ) {
     const reconciliation =
       await reconcileOccurrenceLifecycle(

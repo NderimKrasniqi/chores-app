@@ -1,3 +1,4 @@
+import { ClaimableChoresCard } from '@/components/chores/claimable-chores-card';
 import { PersonalChoresCard } from '@/components/chores/personal-chores-card';
 import { setChildExplicitlyLocked } from '@/lib/child-unlock-policy';
 import { useAuthRuntime } from '@/providers/auth-runtime-provider';
@@ -92,11 +93,10 @@ export function ChildHomeScreen({
       </Text>
 
       <Text className="mt-3 text-base leading-6 text-slate-400">
-        Your Personal Chores
-        appear below. Submit
-        completed work before its
-        deadline so a parent can
-        review it.
+        Finish your Personal Chores,
+        get Parent approval, and unlock
+        extra chores when your current
+        Unlock Chore is approved.
       </Text>
 
       <View className="p-5 mt-8 border rounded-2xl border-green-900 bg-slate-900">
@@ -116,6 +116,8 @@ export function ChildHomeScreen({
       </View>
 
       <PersonalChoresCard />
+
+      <ClaimableChoresCard />
 
       <Pressable
         className="px-4 py-4 mt-8 bg-white rounded-xl"

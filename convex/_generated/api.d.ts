@@ -15,6 +15,7 @@ import type * as choreDefinitions from "../choreDefinitions.js";
 import type * as choreOccurrenceMaintenance from "../choreOccurrenceMaintenance.js";
 import type * as choreOccurrenceTransitions from "../choreOccurrenceTransitions.js";
 import type * as choreOccurrences from "../choreOccurrences.js";
+import type * as claimableChores from "../claimableChores.js";
 import type * as crons from "../crons.js";
 import type * as health from "../health.js";
 import type * as households from "../households.js";
@@ -24,6 +25,8 @@ import type * as lib_choreOccurrenceGeneration from "../lib/choreOccurrenceGener
 import type * as lib_choreOccurrenceLifecycle from "../lib/choreOccurrenceLifecycle.js";
 import type * as lib_choreOccurrenceMaintenance from "../lib/choreOccurrenceMaintenance.js";
 import type * as lib_choreScheduling from "../lib/choreScheduling.js";
+import type * as lib_claimableAccessGate from "../lib/claimableAccessGate.js";
+import type * as lib_claimableChoreVisibility from "../lib/claimableChoreVisibility.js";
 import type * as lib_householdTime from "../lib/householdTime.js";
 import type * as lib_parentAuthorization from "../lib/parentAuthorization.js";
 import type * as lib_personalChoreExecution from "../lib/personalChoreExecution.js";
@@ -35,12 +38,15 @@ import type * as schema_childAccess from "../schema/childAccess.js";
 import type * as schema_chores from "../schema/chores.js";
 import type * as schema_households from "../schema/households.js";
 import type * as task06SmokeTests from "../task06SmokeTests.js";
+import type * as task07MaintenanceIsolationSmokeTests from "../task07MaintenanceIsolationSmokeTests.js";
 import type * as task07MaintenanceSmokeTests from "../task07MaintenanceSmokeTests.js";
 import type * as task07OccurrenceSmokeTests from "../task07OccurrenceSmokeTests.js";
 import type * as task07SchedulingSmokeTests from "../task07SchedulingSmokeTests.js";
 import type * as task08ApprovalSmokeTests from "../task08ApprovalSmokeTests.js";
 import type * as task08MissSmokeTests from "../task08MissSmokeTests.js";
 import type * as task08SubmissionSmokeTests from "../task08SubmissionSmokeTests.js";
+import type * as task09ClaimableVisibilitySmokeTests from "../task09ClaimableVisibilitySmokeTests.js";
+import type * as task09UnlockGateSmokeTests from "../task09UnlockGateSmokeTests.js";
 
 import type {
   ApiFromModules,
@@ -56,6 +62,7 @@ declare const fullApi: ApiFromModules<{
   choreOccurrenceMaintenance: typeof choreOccurrenceMaintenance;
   choreOccurrenceTransitions: typeof choreOccurrenceTransitions;
   choreOccurrences: typeof choreOccurrences;
+  claimableChores: typeof claimableChores;
   crons: typeof crons;
   health: typeof health;
   households: typeof households;
@@ -65,6 +72,8 @@ declare const fullApi: ApiFromModules<{
   "lib/choreOccurrenceLifecycle": typeof lib_choreOccurrenceLifecycle;
   "lib/choreOccurrenceMaintenance": typeof lib_choreOccurrenceMaintenance;
   "lib/choreScheduling": typeof lib_choreScheduling;
+  "lib/claimableAccessGate": typeof lib_claimableAccessGate;
+  "lib/claimableChoreVisibility": typeof lib_claimableChoreVisibility;
   "lib/householdTime": typeof lib_householdTime;
   "lib/parentAuthorization": typeof lib_parentAuthorization;
   "lib/personalChoreExecution": typeof lib_personalChoreExecution;
@@ -76,12 +85,15 @@ declare const fullApi: ApiFromModules<{
   "schema/chores": typeof schema_chores;
   "schema/households": typeof schema_households;
   task06SmokeTests: typeof task06SmokeTests;
+  task07MaintenanceIsolationSmokeTests: typeof task07MaintenanceIsolationSmokeTests;
   task07MaintenanceSmokeTests: typeof task07MaintenanceSmokeTests;
   task07OccurrenceSmokeTests: typeof task07OccurrenceSmokeTests;
   task07SchedulingSmokeTests: typeof task07SchedulingSmokeTests;
   task08ApprovalSmokeTests: typeof task08ApprovalSmokeTests;
   task08MissSmokeTests: typeof task08MissSmokeTests;
   task08SubmissionSmokeTests: typeof task08SubmissionSmokeTests;
+  task09ClaimableVisibilitySmokeTests: typeof task09ClaimableVisibilitySmokeTests;
+  task09UnlockGateSmokeTests: typeof task09UnlockGateSmokeTests;
 }>;
 
 /**
