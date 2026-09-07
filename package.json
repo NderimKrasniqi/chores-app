@@ -5,9 +5,11 @@
   "dependencies": {
     "@better-auth/expo": "~1.6.15",
     "@convex-dev/better-auth": "^0.12.5",
+    "@date-fns/tz": "^1.5.0",
     "@expo/ui": "~57.0.16",
     "better-auth": "~1.6.15",
     "convex": "^1.45.0",
+    "date-fns": "^4.4.0",
     "expo": "~57.0.20",
     "expo-camera": "~57.0.4",
     "expo-constants": "~57.0.17",

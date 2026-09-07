@@ -1,7 +1,7 @@
 # Current Implementation Status
 
-**Current milestone:** TASK-06 complete  
-**Next milestone:** TASK-07 — timezone-stable chore occurrences
+**Current milestone:** TASK-07 complete  
+**Next milestone:** TASK-08 — Personal Chore execution, submission, approval, earnings, and misses
 
 ## Completed
 
@@ -77,9 +77,44 @@
 - Archived definitions are excluded from active configuration.
 - TASK-06 automated smoke tests cover creation, invalid values, Unlock constraints, update behavior, archive behavior, Unlock replacement, and cleanup.
 
+### TASK-07 — Timezone-stable Chore Occurrences
+
+- Concrete `choreOccurrences` persistence implemented.
+- Chore Definition terms are snapshotted when each occurrence is generated.
+- Occurrence title and description snapshots implemented.
+- Positive whole-SEK value snapshots implemented.
+- Personal Child assignment snapshots implemented.
+- Claimable eligibility snapshots implemented.
+- Claimable definitions configured for all Children resolve to explicit Child IDs at occurrence generation time.
+- Household IANA timezone is snapshotted on each occurrence.
+- Household-local scheduled date is persisted.
+- Household-local availability and deadline terms are retained.
+- Availability and deadline are resolved into immutable absolute epoch timestamps.
+- Changing Household timezone does not move existing occurrences.
+- Editing a Chore Definition does not rewrite existing occurrences.
+- Future occurrences use the latest active definition and Household timezone.
+- Archived definitions stop generating future occurrences.
+- Generation is idempotent by Chore Definition and scheduled local date.
+- One-off recurrence generation implemented.
+- Daily recurrence generation implemented.
+- Weekly recurrence generation implemented.
+- Monthly recurrence generation implemented.
+- Monthly days 29–31 skip months that do not contain the configured calendar day rather than silently clamping to month-end.
+- Household-local calendar arithmetic is independent of device timezone.
+- DST-aware IANA timezone resolution implemented with `date-fns` and `@date-fns/tz`.
+- Future `scheduled` occurrences transition to `available` at the authoritative availability instant.
+- Unclaimed Claimable occurrences transition to `expired_unclaimed` at the authoritative deadline.
+- Lifecycle reconciliation is idempotent.
+- Exact occurrence transitions use Convex durable scheduled functions.
+- Rolling occurrence generation keeps a 14-day Household-local future horizon populated.
+- A recurring 15-minute Convex maintenance job provides generation and lifecycle reconciliation safety-net behavior.
+- Automated scheduling tests cover recurrence, monthly edge cases, IANA zones, deadline offsets, and DST behavior.
+- Automated occurrence tests cover idempotency, eligibility snapshots, immutable history, timezone changes, archive behavior, lifecycle boundaries, and cleanup.
+- Automated maintenance tests cover rolling generation, Household-local date resolution, availability reconciliation, unclaimed expiry reconciliation, idempotency, and cleanup.
+
 ## Current backend organization
 
-Public Convex domain modules remain at the `convex/` root so their generated API paths stay stable.
+Public Convex domain modules remain at the `convex/` root so generated API paths remain stable.
 
 Schema definitions are organized under:
 
@@ -87,7 +122,13 @@ Schema definitions are organized under:
 convex/schema/
 ```
 
-Current domain modules include:
+Reusable private backend helpers are organized under:
+
+```text
+convex/lib/
+```
+
+Relevant current modules include:
 
 ```text
 convex/
@@ -97,36 +138,93 @@ convex/
 ├── childPairing.ts
 ├── childAccess.ts
 ├── choreDefinitions.ts
-└── task06SmokeTests.ts
+├── choreOccurrences.ts
+├── choreOccurrenceTransitions.ts
+├── choreOccurrenceMaintenance.ts
+├── crons.ts
+├── schema.ts
+├── schema/
+│   ├── households.ts
+│   ├── childAccess.ts
+│   └── chores.ts
+└── lib/
+    ├── choreScheduling.ts
+    ├── choreOccurrenceGeneration.ts
+    ├── choreOccurrenceLifecycle.ts
+    ├── choreOccurrenceMaintenance.ts
+    └── householdTime.ts
 ```
 
-## Next — TASK-07
+Development-only automated verification currently includes:
 
-TASK-07 will introduce concrete Chore Occurrences.
+```text
+convex/
+├── task06SmokeTests.ts
+├── task07SchedulingSmokeTests.ts
+├── task07OccurrenceSmokeTests.ts
+└── task07MaintenanceSmokeTests.ts
+```
 
-The key distinction will be:
+## Chore scheduling model
+
+The current scheduling boundary is:
 
 ```text
 Chore Definition
     ↓
 Household-local recurrence intent
     ↓
-TASK-07 schedule generation
+Timezone-aware generation
     ↓
-Chore Occurrence
+Chore Occurrence snapshot
+    ├── scheduledLocalDate
+    ├── timezone
+    ├── availabilityStartsAt
+    ├── deadlineAt
+    ├── valueSek
+    ├── assignment / eligibility
+    └── lifecycle state
 ```
 
-Each occurrence must snapshot the relevant schedule and value terms when it is generated.
+A generated occurrence is historical application state. Later edits to its Chore Definition or Household timezone do not rewrite it.
 
-TASK-07 must ensure:
+## Occurrence lifecycle currently implemented
 
-- Household IANA timezone is authoritative.
-- Device timezone does not affect deadlines.
-- Local calendar recurrence resolves to absolute timestamps server-side.
-- Existing occurrence timestamps do not move when a Household timezone changes.
-- Definition edits affect future generation only.
-- Archived definitions stop future generation.
-- Existing occurrences preserve immutable schedule and value snapshots.
-- Unresolved recurring occurrences may overlap.
-- Unclaimed expiry is server-authoritative.
-- Monthly recurrence behavior for days 29–31 is deterministic and documented.
+TASK-07 owns:
+
+```text
+scheduled
+    │ availabilityStartsAt
+    ▼
+available
+```
+
+For an unclaimed Claimable occurrence:
+
+```text
+available
+    │ deadlineAt
+    ▼
+expired_unclaimed
+```
+
+Later tasks extend this lifecycle with claims, submissions, reviews, redo, approval, failure, cancellation, and financial effects.
+
+## Next — TASK-08
+
+TASK-08 introduces the Personal Chore execution loop.
+
+It must add:
+
+- Child-authorized Personal Chore queries.
+- Personal Chore availability visibility.
+- On-time submission.
+- Server-authoritative submission timestamps.
+- Prevention of submissions after the applicable deadline.
+- Parent review of Personal Chore submissions.
+- Approval lifecycle.
+- Approved earning creation.
+- Missed Personal Chore resolution.
+- Zero earnings for missed Personal Chores.
+- No monetary penalty or debt for missed Personal Chores.
+- Durable history that continues to use the immutable occurrence snapshots established in TASK-07.
