@@ -26,6 +26,12 @@ export function ClaimableChoresCard() {
       api.claimableChores.unclaim,
     );
 
+  const submit =
+    useMutation(
+      api.claimableChoreSubmissions
+        .submit,
+    );
+
   if (
     result ===
     undefined
@@ -61,6 +67,13 @@ export function ClaimableChoresCard() {
         claimId,
       ) => {
         await unclaim({
+          claimId,
+        });
+      }}
+      onSubmit={async (
+        claimId,
+      ) => {
+        await submit({
           claimId,
         });
       }}

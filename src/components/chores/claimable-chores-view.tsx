@@ -325,13 +325,18 @@ function getOwnedClaimLockMessage(
 function ClaimedChoresSection({
   claimedOccurrences,
   unclaimingClaimId,
+  submittingClaimId,
   actionsBusy,
   onUnclaim,
+  onSubmit,
 }: {
   claimedOccurrences:
     ClaimableChoresViewModel['claimedOccurrences'];
 
   unclaimingClaimId:
+    Id<'choreClaims'> | null;
+
+  submittingClaimId:
     Id<'choreClaims'> | null;
 
   actionsBusy:
@@ -341,6 +346,12 @@ function ClaimedChoresSection({
     claimId:
       Id<'choreClaims'>,
   ) => Promise<void>;
+
+  onSubmit?:
+    (
+      claimId:
+        Id<'choreClaims'>,
+    ) => Promise<void>;
 }) {
   if (
     claimedOccurrences.length ===
@@ -363,12 +374,24 @@ function ClaimedChoresSection({
             unclaimingClaimId ===
             occurrence.claimId;
 
-          const canOfferUnclaim =
+          const isSubmitting =
+            submittingClaimId ===
+            occurrence.claimId;
+
+          const isOwnedWorkingClaim =
             occurrence.isMine &&
             occurrence.claimState ===
-              'claimed' &&
+              'claimed';
+
+          const canOfferUnclaim =
+            isOwnedWorkingClaim &&
             occurrence.commitment !==
               null;
+
+          const canOfferSubmit =
+            isOwnedWorkingClaim &&
+            onSubmit !==
+              undefined;
 
           return (
             <View
@@ -422,6 +445,39 @@ function ClaimedChoresSection({
                   occurrence.timezone,
                 )}
               </Text>
+
+              {occurrence.isMine &&
+              occurrence.claimState ===
+                'submitted' ? (
+                <View className="p-3 mt-4 border rounded-xl border-sky-900 bg-sky-950">
+                  <Text className="text-sm font-semibold text-sky-300">
+                    Waiting for parent approval
+                  </Text>
+
+                  <Text className="mt-1 text-xs leading-5 text-sky-200">
+                    Your submission is recorded.
+                    This chore still uses your
+                    active Claim slot until a
+                    Parent approves it.
+                  </Text>
+                </View>
+              ) : null}
+
+              {occurrence.isMine &&
+              occurrence.claimState ===
+                'redo_required' ? (
+                <View className="p-3 mt-4 border rounded-xl border-amber-900 bg-amber-950">
+                  <Text className="text-sm font-semibold text-amber-300">
+                    Redo required
+                  </Text>
+
+                  <Text className="mt-1 text-xs leading-5 text-amber-200">
+                    This Claim remains active.
+                    Redo actions arrive in
+                    TASK-13.
+                  </Text>
+                </View>
+              ) : null}
 
               {canOfferUnclaim &&
               occurrence.commitment ? (
@@ -485,6 +541,51 @@ function ClaimedChoresSection({
                   </View>
                 )
               ) : null}
+
+              {canOfferSubmit ? (
+                <View className="pt-4 mt-4 border-t border-slate-800">
+                  <Text className="text-xs leading-5 text-slate-500">
+                    Submit when the work is
+                    finished. Parent approval is
+                    required before you earn{' '}
+                    {
+                      occurrence.valueSek
+                    }{' '}
+                    kr.
+                  </Text>
+
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`Submit ${occurrence.title} for review`}
+                    disabled={
+                      actionsBusy
+                    }
+                    onPress={() =>
+                      void onSubmit(
+                        occurrence
+                          .claimId,
+                      )
+                    }
+                    className={
+                      actionsBusy
+                        ? 'items-center px-4 py-3 mt-3 rounded-xl bg-slate-800'
+                        : 'items-center px-4 py-3 mt-3 bg-white rounded-xl'
+                    }
+                  >
+                    <Text
+                      className={
+                        actionsBusy
+                          ? 'font-semibold text-slate-500'
+                          : 'font-semibold text-slate-950'
+                      }
+                    >
+                      {isSubmitting
+                        ? 'Submitting…'
+                        : 'Submit for review'}
+                    </Text>
+                  </Pressable>
+                </View>
+              ) : null}
             </View>
           );
         },
@@ -497,6 +598,7 @@ export function ClaimableChoresView({
   result,
   onClaim,
   onUnclaim,
+  onSubmit,
 }: {
   result:
     ClaimableChoresViewModel;
@@ -512,6 +614,12 @@ export function ClaimableChoresView({
     claimId:
       Id<'choreClaims'>,
   ) => Promise<void>;
+
+  onSubmit?:
+    (
+      claimId:
+        Id<'choreClaims'>,
+    ) => Promise<void>;
 }) {
   const {
     gate,
@@ -531,6 +639,14 @@ export function ClaimableChoresView({
   const [
     unclaimingClaimId,
     setUnclaimingClaimId,
+  ] =
+    useState<
+      Id<'choreClaims'> | null
+    >(null);
+
+  const [
+    submittingClaimId,
+    setSubmittingClaimId,
   ] =
     useState<
       Id<'choreClaims'> | null
@@ -564,6 +680,8 @@ export function ClaimableChoresView({
     claimingOccurrenceId !==
       null ||
     unclaimingClaimId !==
+      null ||
+    submittingClaimId !==
       null;
 
   async function executeClaim(
@@ -671,6 +789,44 @@ export function ClaimableChoresView({
       );
     } finally {
       setUnclaimingClaimId(
+        null,
+      );
+    }
+  }
+
+  async function handleSubmit(
+    claimId:
+      Id<'choreClaims'>,
+  ) {
+    if (
+      actionsBusy ||
+      !onSubmit
+    ) {
+      return;
+    }
+
+    setActionError(
+      null,
+    );
+
+    setSubmittingClaimId(
+      claimId,
+    );
+
+    try {
+      await onSubmit(
+        claimId,
+      );
+    } catch (
+      error
+    ) {
+      setActionError(
+        getErrorMessage(
+          error,
+        ),
+      );
+    } finally {
+      setSubmittingClaimId(
         null,
       );
     }
@@ -791,11 +947,19 @@ export function ClaimableChoresView({
         unclaimingClaimId={
           unclaimingClaimId
         }
+        submittingClaimId={
+          submittingClaimId
+        }
         actionsBusy={
           actionsBusy
         }
         onUnclaim={
           handleUnclaim
+        }
+        onSubmit={
+          onSubmit
+            ? handleSubmit
+            : undefined
         }
       />
 

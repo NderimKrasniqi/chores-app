@@ -2,6 +2,7 @@ import { ChildDeviceList } from '@/components/child-access/child-device-list';
 import { ChildPairingCard } from '@/components/child-access/child-pairing-card';
 import { ActiveClaimableClaimsCard } from '@/components/chores/active-claimable-claims-card';
 import { ChoreDefinitionsCard } from '@/components/chores/chore-definitions-card';
+import { ClaimableChoreReviewsCard } from '@/components/chores/claimable-chore-reviews-card';
 import { PersonalChoreReviewsCard } from '@/components/chores/personal-chore-reviews-card';
 import { Task06SmokeTestCard } from '@/components/chores/task-06-smoke-test-card';
 import { useState } from 'react';
@@ -83,7 +84,9 @@ function SectionButton({
           ? 'flex-1 px-2 py-3 bg-white rounded-xl'
           : 'flex-1 px-2 py-3 rounded-xl'
       }
-      onPress={onPress}
+      onPress={
+        onPress
+      }
     >
       <Text
         className={
@@ -191,7 +194,8 @@ export function HouseholdCard({
 
             <Text className="mt-1 text-base text-white">
               {formatWeekday(
-                household.payoutWeekday,
+                household
+                  .payoutWeekday,
               )}
             </Text>
           </View>
@@ -203,7 +207,8 @@ export function HouseholdCard({
 
             <Text className="mt-1 text-base text-white">
               {
-                household.weeklyUnclaimAllowance
+                household
+                  .weeklyUnclaimAllowance
               }
             </Text>
           </View>
@@ -220,7 +225,9 @@ export function HouseholdCard({
               </Text>
             ) : (
               household.children.map(
-                (child) => (
+                (
+                  child,
+                ) => (
                   <View
                     key={
                       child.childId
@@ -229,7 +236,8 @@ export function HouseholdCard({
                   >
                     <Text className="font-semibold text-white">
                       {
-                        child.displayName
+                        child
+                          .displayName
                       }
                     </Text>
                   </View>
@@ -240,7 +248,8 @@ export function HouseholdCard({
 
           <ActiveClaimableClaimsCard
             householdId={
-              household.householdId
+              household
+                .householdId
             }
           />
         </View>
@@ -251,7 +260,8 @@ export function HouseholdCard({
         <View className="mt-2">
           <ChoreDefinitionsCard
             householdId={
-              household.householdId
+              household
+                .householdId
             }
             children={
               household.children
@@ -261,7 +271,8 @@ export function HouseholdCard({
           {__DEV__ && (
             <Task06SmokeTestCard
               householdId={
-                household.householdId
+                household
+                  .householdId
               }
               children={
                 household.children
@@ -276,7 +287,15 @@ export function HouseholdCard({
         <View className="mt-6">
           <PersonalChoreReviewsCard
             householdId={
-              household.householdId
+              household
+                .householdId
+            }
+          />
+
+          <ClaimableChoreReviewsCard
+            householdId={
+              household
+                .householdId
             }
           />
         </View>
@@ -296,7 +315,9 @@ export function HouseholdCard({
           </Text>
 
           {household.children.map(
-            (child) => (
+            (
+              child,
+            ) => (
               <View
                 key={
                   child.childId
@@ -305,19 +326,22 @@ export function HouseholdCard({
               >
                 <Text className="text-xl font-semibold text-white">
                   {
-                    child.displayName
+                    child
+                      .displayName
                   }
                 </Text>
 
                 <ChildPairingCard
                   householdId={
-                    household.householdId
+                    household
+                      .householdId
                   }
                   childId={
                     child.childId
                   }
                   childDisplayName={
-                    child.displayName
+                    child
+                      .displayName
                   }
                 />
 
@@ -332,7 +356,8 @@ export function HouseholdCard({
 
           <ParentInviteCard
             householdId={
-              household.householdId
+              household
+                .householdId
             }
           />
         </View>

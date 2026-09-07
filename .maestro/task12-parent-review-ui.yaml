@@ -1,0 +1,23 @@
+appId: host.exp.Exponent
+---
+- openLink: "exp://127.0.0.1:8081/--/maestro-task12-parent"
+
+- extendedWaitUntil:
+    visible: "TASK-12 Parent Review Fixture"
+    timeout: 60000
+
+- tapOn: "Reset TASK-12 parent review fixture"
+
+- assertVisible: "Claimable chore reviews"
+- assertVisible: "Fixture Child"
+- assertVisible: "Garage shelves"
+- assertVisible: "140 kr"
+
+- tapOn: "Approve claimable chore Garage shelves for Fixture Child"
+
+# Approval surfaces the earned immutable occurrence value.
+- assertVisible: "Approved Garage shelves. Fixture Child earned 140 kr."
+
+# The reviewed submission leaves the pending queue.
+- assertVisible: "Nothing waiting"
+- assertNotVisible: "Approve claimable chore Garage shelves for Fixture Child"

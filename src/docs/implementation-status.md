@@ -1,7 +1,7 @@
 # Current Implementation Status
 
-**Current milestone:** TASK-11 complete
-**Next milestone:** TASK-12 — Deliver claimed-chore submission, parent review, approved earnings, and active-claim release
+**Current milestone:** TASK-12 complete
+**Next milestone:** TASK-13 — Implement the single-redo review lifecycle and first-successful concurrent parent review behavior
 
 ## Completed
 
@@ -377,6 +377,51 @@ Backend smoke coverage includes:
 - Development-only Maestro fixtures exercise the same reusable production presentation components.
 - Maestro covers Child unclaim, pool return, allowance decrement, locked-Claim acknowledgement, locked owned-Claim presentation, and Parent cancellation.
 - TASK-10 claiming, visibility, and deadline regressions remain green.
+
+
+### TASK-12 — Claimable Chore submission, review, earnings, and active-Claim release
+
+#### Child submission
+
+- An authenticated Child may submit only their own actively `claimed` Claimable Chore.
+- Child and Household identity are resolved server-side from the active Child access grant.
+- Claim ownership, Household identity, occurrence kind, occurrence state, and immutable deadline are revalidated inside the mutation.
+- Submission timestamps are server-authoritative.
+- Submission at the exact immutable deadline remains valid.
+- Submission after the deadline is rejected without changing Claim or occurrence state.
+- Initial Claimable submission uses durable `choreSubmissions` attempt `1`.
+- Duplicate initial submission is prevented.
+- Successful submission atomically transitions both the Claim and Chore Occurrence to `submitted`.
+- Submission itself creates no Ledger Entry and no earning.
+- A submitted Claim remains unresolved and continues occupying the Child's single active-Claim slot.
+- Submitted Claims cannot be Child-unclaimed or submitted a second time.
+
+#### Parent review and approval
+
+- Authorized Parents can list pending Claimable submissions in the existing Household `Reviews` section.
+- Pending review resolution verifies the persisted submission, Claim ownership, Child identity, Household identity, Claimable occurrence, and submitted lifecycle state.
+- Review eligibility uses the authoritative persisted `submittedAt` value rather than Parent review time.
+- Parent review delay therefore cannot invalidate an on-time Child submission.
+- Either authorized Parent may approve a pending Claimable submission.
+- Approval creates one durable `approved` Chore Review.
+- Approval creates one positive Ledger Entry using the immutable Chore Occurrence value.
+- Duplicate approval cannot create a second review or duplicate earning.
+- Successful approval transitions both the Claim and Chore Occurrence to `approved`.
+- Approved Claim ownership leaves the unresolved active-Claim set, releasing the Child's active slot.
+
+#### TASK-12 presentation and verification
+
+- Child Claimable UI exposes `Submit for review` only for the Child's own actively `claimed` Claim.
+- Submitted work remains visible as `Waiting for parent approval`.
+- While review is pending, the UI continues to block a second active Claim.
+- Parent Claimable reviews remain inside the existing `Reviews` section rather than adding another Household tab.
+- Claimable review presentation is separated into a reusable view and Convex-backed wrapper.
+- Development-only Maestro fixtures exercise the same reusable Child and Parent production presentation.
+- Maestro verifies Claimable Claim → submission → pending review while the active slot stays occupied.
+- Maestro verifies Parent approval → earning confirmation → removal from the pending-review queue.
+- TASK-12 backend smoke coverage verifies on-time submission, exact-deadline submission, ownership and Household isolation, duplicate prevention, no earning on submission, active ownership while submitted, pending Parent review, approval after deadline for on-time work, immutable-value earning, terminal approval, active-slot release, duplicate financial-effect prevention, late persisted submission rejection, and Claim/submission ownership consistency.
+- TASK-08 approval behavior and TASK-10/TASK-11 Claim ownership, visibility, deadline, unclaim, and Parent-cancellation regressions remain green.
+- Rejection, redo deadlines, second submissions, and the first-successful concurrent Parent review lifecycle remain intentionally deferred to TASK-13.
 
 ## Current backend organization
 
