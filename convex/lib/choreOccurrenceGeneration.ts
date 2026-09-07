@@ -140,9 +140,19 @@ function determineInitialState(
   }
 
   /*
-   * Personal missed-deadline handling
-   * belongs to TASK-08.
+   * Personal submission AT deadline is
+   * still legal, so "missed" begins only
+   * strictly after deadlineAt.
    */
+  if (
+    kind ===
+      'personal' &&
+    now >
+      deadlineAt
+  ) {
+    return 'missed';
+  }
+
   return 'available';
 }
 
@@ -266,17 +276,6 @@ export async function generateOccurrencesForWindow(
       const scheduledLocalDate of
       scheduledDates
     ) {
-      /*
-       * Application-level uniqueness:
-       *
-       * definition +
-       * scheduled local date.
-       *
-       * Convex mutation serialization
-       * and retry semantics keep
-       * concurrent generation
-       * idempotent.
-       */
       const existing =
         await ctx.db
           .query(
@@ -453,7 +452,7 @@ export async function generateOccurrencesForWindow(
         );
 
       /*
-       * Exact availability transition.
+       * Availability transition.
        */
       if (
         scheduleTransitions &&
@@ -475,12 +474,8 @@ export async function generateOccurrencesForWindow(
       }
 
       /*
-       * Exact unclaimed-expiry
-       * transition for Claimable
-       * occurrences.
-       *
-       * The transition itself remains
-       * idempotent and re-checks state.
+       * Claimable expiry happens AT
+       * deadline.
        */
       if (
         scheduleTransitions &&
@@ -493,6 +488,37 @@ export async function generateOccurrencesForWindow(
       ) {
         await ctx.scheduler.runAt(
           schedule.deadlineAt,
+
+          internal
+            .choreOccurrenceTransitions
+            .reconcile,
+
+          {
+            occurrenceId,
+          },
+        );
+      }
+
+      /*
+       * Personal submission is allowed
+       * exactly AT deadline.
+       *
+       * Therefore schedule its miss
+       * reconciliation immediately
+       * AFTER the deadline.
+       */
+      if (
+        scheduleTransitions &&
+        definition.kind ===
+          'personal' &&
+        state !==
+          'missed' &&
+        schedule.deadlineAt >=
+          now
+      ) {
+        await ctx.scheduler.runAt(
+          schedule.deadlineAt +
+            1,
 
           internal
             .choreOccurrenceTransitions

@@ -69,6 +69,18 @@ const choreOccurrenceStateValidator =
     ),
   );
 
+const choreReviewDecisionValidator =
+  v.union(
+    v.literal('approved'),
+    v.literal('rejected'),
+  );
+
+const ledgerEntryKindValidator =
+  v.union(
+    v.literal('earning'),
+    v.literal('penalty'),
+  );
+
 export const choreTables = {
   /*
    * Durable Parent-authored template.
@@ -187,9 +199,8 @@ export const choreTables = {
   /*
    * Concrete scheduled instance of a Chore Definition.
    *
-   * The fields below snapshot the definition and schedule
-   * terms when this occurrence is created. Later edits to
-   * the Chore Definition must never rewrite these values.
+   * Definition and schedule terms are snapshotted when
+   * this occurrence is created.
    */
   choreOccurrences: defineTable({
     householdId:
@@ -200,15 +211,9 @@ export const choreTables = {
         'choreDefinitions',
       ),
 
-    /*
-     * Snapshot of Personal vs Claimable.
-     */
     kind:
       choreKindValidator,
 
-    /*
-     * Display/value snapshot.
-     */
     title:
       v.string(),
 
@@ -220,26 +225,18 @@ export const choreTables = {
       v.number(),
 
     /*
-     * Household-local calendar date that this occurrence
-     * represents, in YYYY-MM-DD form.
+     * Household-local YYYY-MM-DD.
      */
     scheduledLocalDate:
       v.string(),
 
     /*
-     * IANA Household Timezone used when the occurrence
-     * was resolved.
-     *
-     * Changing the Household timezone later must not move
-     * this occurrence.
+     * IANA Household Timezone used when this occurrence
+     * was generated.
      */
     timezone:
       v.string(),
 
-    /*
-     * Original Household-local schedule terms retained
-     * for auditing/debugging.
-     */
     availabilityLocalTime:
       v.optional(v.string()),
 
@@ -277,27 +274,12 @@ export const choreTables = {
     isUnlockChore:
       v.boolean(),
 
-    /*
-     * TASK-07 initially owns:
-     *
-     * scheduled -> available
-     * available Claimable -> expired_unclaimed
-     *
-     * Later tasks add the submission/review transitions
-     * already represented by this validator.
-     */
     state:
       choreOccurrenceStateValidator,
 
     createdAt:
       v.number(),
   })
-    /*
-     * Idempotent generation key.
-     *
-     * A definition may create at most one occurrence for
-     * a particular scheduled local calendar date.
-     */
     .index(
       'by_definition_scheduled_date',
       [
@@ -335,6 +317,194 @@ export const choreTables = {
       [
         'personalChildId',
         'availabilityStartsAt',
+      ],
+    ),
+
+  /*
+   * Child declaration that work is complete.
+   *
+   * Submission itself has no financial effect.
+   * Parent approval is required before an earning exists.
+   *
+   * attemptNumber is introduced now so TASK-13 can add
+   * the single-redo flow without rewriting submission
+   * history.
+   *
+   * TASK-08 creates attempt 1 only.
+   */
+  choreSubmissions: defineTable({
+    householdId:
+      v.id('households'),
+
+    occurrenceId:
+      v.id(
+        'choreOccurrences',
+      ),
+
+    childId:
+      v.id('children'),
+
+    /*
+     * TASK-08 requires 1.
+     * TASK-13 may later use 2 for the single redo.
+     */
+    attemptNumber:
+      v.number(),
+
+    /*
+     * Authoritative Convex server timestamp.
+     *
+     * This timestamp determines whether submission was
+     * on time. Device timestamps are never authoritative.
+     */
+    submittedAt:
+      v.number(),
+  })
+    .index(
+      'by_occurrence',
+      ['occurrenceId'],
+    )
+    .index(
+      'by_occurrence_attempt',
+      [
+        'occurrenceId',
+        'attemptNumber',
+      ],
+    )
+    .index(
+      'by_child_submitted_at',
+      [
+        'childId',
+        'submittedAt',
+      ],
+    )
+    .index(
+      'by_household_submitted_at',
+      [
+        'householdId',
+        'submittedAt',
+      ],
+    ),
+
+  /*
+   * Immutable Parent review decision.
+   *
+   * TASK-08 initially exposes approval for Personal
+   * Chores. The rejected value is represented now so
+   * TASK-13 can extend the same durable review model
+   * into redo handling.
+   *
+   * Application mutations enforce at most one successful
+   * review per Submission.
+   */
+  choreReviews: defineTable({
+    householdId:
+      v.id('households'),
+
+    occurrenceId:
+      v.id(
+        'choreOccurrences',
+      ),
+
+    submissionId:
+      v.id(
+        'choreSubmissions',
+      ),
+
+    decision:
+      choreReviewDecisionValidator,
+
+    // Better Auth Parent user ID.
+    reviewedByAuthUserId:
+      v.string(),
+
+    reviewedAt:
+      v.number(),
+  })
+    .index(
+      'by_submission',
+      ['submissionId'],
+    )
+    .index(
+      'by_occurrence',
+      ['occurrenceId'],
+    )
+    .index(
+      'by_household_reviewed_at',
+      [
+        'householdId',
+        'reviewedAt',
+      ],
+    ),
+
+  /*
+   * Immutable financial effects.
+   *
+   * TASK-08 creates positive earning entries only.
+   * TASK-14 will later create negative penalty entries.
+   *
+   * Running Balance is derived from these entries rather
+   * than stored as a mutable total.
+   */
+  ledgerEntries: defineTable({
+    householdId:
+      v.id('households'),
+
+    childId:
+      v.id('children'),
+
+    occurrenceId:
+      v.id(
+        'choreOccurrences',
+      ),
+
+    /*
+     * Earnings come from an approved review.
+     * Penalties added in later tasks need not have one.
+     */
+    reviewId:
+      v.optional(
+        v.id(
+          'choreReviews',
+        ),
+      ),
+
+    kind:
+      ledgerEntryKindValidator,
+
+    /*
+     * Whole SEK.
+     *
+     * earning => positive
+     * penalty => negative
+     *
+     * Mutations enforce those sign rules.
+     */
+    amountSek:
+      v.number(),
+
+    createdAt:
+      v.number(),
+  })
+    .index(
+      'by_occurrence_kind',
+      [
+        'occurrenceId',
+        'kind',
+      ],
+    )
+    .index(
+      'by_child_created_at',
+      [
+        'childId',
+        'createdAt',
+      ],
+    )
+    .index(
+      'by_household_created_at',
+      [
+        'householdId',
+        'createdAt',
       ],
     ),
 };

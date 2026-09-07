@@ -45,15 +45,12 @@ export async function reconcileOccurrenceLifecycle(
     occurrence.state;
 
   /*
-   * TASK-07 currently owns only:
+   * Only unresolved pre-submission
+   * states are time-driven here.
    *
-   * scheduled -> available
-   * available Claimable ->
-   * expired_unclaimed
-   *
-   * Later TASKs own submission,
-   * review, cancellation, failure,
-   * and claim lifecycle rules.
+   * Once submitted, review delay must
+   * never turn the occurrence into a
+   * miss.
    */
   if (
     previousState !==
@@ -70,18 +67,6 @@ export async function reconcileOccurrenceLifecycle(
     };
   }
 
-  /*
-   * Explicitly keep the full occurrence
-   * state union here.
-   *
-   * Without this annotation TypeScript
-   * narrows nextState to only:
-   *
-   * 'scheduled' | 'available'
-   *
-   * which prevents us from assigning
-   * 'expired_unclaimed' below.
-   */
   let nextState:
     Doc<'choreOccurrences'>['state'] =
       previousState;
@@ -98,13 +83,14 @@ export async function reconcileOccurrenceLifecycle(
   }
 
   /*
-   * At the deadline boundary an
-   * unresolved Claimable occurrence
-   * expires unclaimed.
+   * Claimable:
    *
-   * TASK-10 will extend this guard to
-   * verify that no active Claim exists
-   * before applying this transition.
+   * At the deadline boundary an
+   * unresolved, unclaimed occurrence
+   * expires.
+   *
+   * TASK-10 will extend this rule once
+   * Claims exist.
    */
   if (
     occurrence.kind ===
@@ -116,6 +102,28 @@ export async function reconcileOccurrenceLifecycle(
   ) {
     nextState =
       'expired_unclaimed';
+  }
+
+  /*
+   * Personal:
+   *
+   * Submission AT the deadline is valid.
+   *
+   * Therefore the occurrence becomes
+   * missed only strictly AFTER the
+   * deadline when no valid submission
+   * changed the state first.
+   */
+  if (
+    occurrence.kind ===
+      'personal' &&
+    nextState ===
+      'available' &&
+    now >
+      occurrence.deadlineAt
+  ) {
+    nextState =
+      'missed';
   }
 
   if (

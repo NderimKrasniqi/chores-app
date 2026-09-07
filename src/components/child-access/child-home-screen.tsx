@@ -1,6 +1,10 @@
+import { PersonalChoresCard } from '@/components/chores/personal-chores-card';
+import { setChildExplicitlyLocked } from '@/lib/child-unlock-policy';
 import { useAuthRuntime } from '@/providers/auth-runtime-provider';
 import {
+  Alert,
   Pressable,
+  ScrollView,
   Text,
   View,
 } from 'react-native';
@@ -9,12 +13,23 @@ import type { Id } from '../../../convex/_generated/dataModel';
 
 type ChildHomeScreenProps = {
   access: {
-    accessGrantId: Id<'childDeviceAccessGrants'>;
-    householdId: Id<'households'>;
-    householdName: string;
-    childId: Id<'children'>;
-    childDisplayName: string;
-    grantedAt: number;
+    accessGrantId:
+      Id<'childDeviceAccessGrants'>;
+
+    householdId:
+      Id<'households'>;
+
+    householdName:
+      string;
+
+    childId:
+      Id<'children'>;
+
+    childDisplayName:
+      string;
+
+    grantedAt:
+      number;
   };
 };
 
@@ -25,33 +40,63 @@ export function ChildHomeScreen({
     activateParentStorage,
   } = useAuthRuntime();
 
-  function handleLockAndSwitch() {
-    /*
-     * Do NOT sign the Child out.
-     *
-     * Their Better Auth anonymous session remains
-     * securely stored inside that Child's isolated
-     * SecureStore namespace.
-     *
-     * We simply switch back to the default context,
-     * which locks this profile in memory.
-     */
-    activateParentStorage();
+  async function handleLockAndSwitch() {
+    try {
+      /*
+       * Explicit lock is persistent.
+       *
+       * Even on a phone with only this
+       * Child stored, the next entry must
+       * prove the PIN before reopening.
+       */
+      await setChildExplicitlyLocked(
+        access.childId,
+        true,
+      );
+
+      /*
+       * Do NOT sign the Child out.
+       *
+       * Their Better Auth anonymous
+       * session remains inside this
+       * Child's isolated SecureStore
+       * namespace.
+       */
+      activateParentStorage();
+    } catch (error) {
+      Alert.alert(
+        'Could not lock profile',
+        error instanceof Error
+          ? error.message
+          : 'Please try again.',
+      );
+    }
   }
 
   return (
-    <View className="justify-center flex-1 px-6 bg-slate-950">
+    <ScrollView
+      className="flex-1 bg-slate-950"
+      contentContainerClassName="px-6 pt-20 pb-12"
+    >
       <Text className="text-sm font-semibold tracking-wider uppercase text-slate-500">
-        {access.householdName}
+        {
+          access.householdName
+        }
       </Text>
 
       <Text className="mt-3 text-4xl font-bold text-white">
-        Hi, {access.childDisplayName}
+        Hi,{' '}
+        {
+          access.childDisplayName
+        }
       </Text>
 
       <Text className="mt-3 text-base leading-6 text-slate-400">
-        This device is securely paired with
-        your child profile.
+        Your Personal Chores
+        appear below. Submit
+        completed work before its
+        deadline so a parent can
+        review it.
       </Text>
 
       <View className="p-5 mt-8 border rounded-2xl border-green-900 bg-slate-900">
@@ -60,29 +105,23 @@ export function ChildHomeScreen({
         </Text>
 
         <Text className="mt-2 text-sm leading-5 text-slate-400">
-          Convex has confirmed that this
-          device identity has an active
-          access grant for{' '}
-          {access.childDisplayName}.
+          Convex has confirmed
+          that this device identity
+          has an active access
+          grant for{' '}
+          {
+            access.childDisplayName
+          }.
         </Text>
       </View>
 
-      <View className="p-5 mt-4 rounded-2xl bg-slate-900">
-        <Text className="font-semibold text-white">
-          Child chores
-        </Text>
-
-        <Text className="mt-2 text-sm leading-5 text-slate-500">
-          Chores will appear here in the
-          later chore implementation tasks.
-          This screen currently proves Child
-          authentication and authorization.
-        </Text>
-      </View>
+      <PersonalChoresCard />
 
       <Pressable
         className="px-4 py-4 mt-8 bg-white rounded-xl"
-        onPress={handleLockAndSwitch}
+        onPress={
+          handleLockAndSwitch
+        }
       >
         <Text className="font-semibold text-center text-slate-950">
           Lock / switch profile
@@ -90,10 +129,13 @@ export function ChildHomeScreen({
       </Pressable>
 
       <Text className="mt-4 text-xs leading-5 text-center text-slate-500">
-        Locking does not sign this Child out.
-        Their secure device session remains
-        available after PIN verification.
+        Locking does not sign this
+        Child out. Their secure
+        device session remains
+        stored, but the PIN is
+        required before this profile
+        can be opened again.
       </Text>
-    </View>
+    </ScrollView>
   );
 }

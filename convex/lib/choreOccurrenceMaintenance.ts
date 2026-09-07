@@ -49,6 +49,9 @@ export type OccurrenceMaintenanceResult = {
 
   claimableDeadlineReconciledCount:
     number;
+
+  personalMissReconciledCount:
+    number;
 };
 
 function requireValidHorizon(
@@ -161,10 +164,8 @@ export async function runOccurrenceMaintenance(
   }
 
   /*
-   * Safety net for a scheduled
-   * availability transition whose
-   * exact callback was delayed or
-   * otherwise needs reconciliation.
+   * Safety net for delayed availability
+   * callbacks.
    */
   const dueScheduled =
     await ctx.db
@@ -210,11 +211,14 @@ export async function runOccurrenceMaintenance(
 
   /*
    * Safety net for unresolved
-   * Claimable occurrences whose
-   * deadline has passed.
+   * occurrences whose deadline has
+   * arrived or passed.
    *
-   * Personal deadline behavior
-   * belongs to TASK-08.
+   * Claimable:
+   * deadline boundary => expired.
+   *
+   * Personal:
+   * strictly after deadline => missed.
    */
   const dueAvailable =
     await ctx.db
@@ -236,19 +240,15 @@ export async function runOccurrenceMaintenance(
       )
       .collect();
 
-  const dueClaimable =
-    dueAvailable.filter(
-      (occurrence) =>
-        occurrence.kind ===
-        'claimable',
-    );
-
   let claimableDeadlineReconciledCount =
+    0;
+
+  let personalMissReconciledCount =
     0;
 
   for (
     const occurrence of
-    dueClaimable
+    dueAvailable
   ) {
     const reconciliation =
       await reconcileOccurrenceLifecycle(
@@ -258,9 +258,19 @@ export async function runOccurrenceMaintenance(
       );
 
     if (
-      reconciliation.changed
+      !reconciliation.changed
+    ) {
+      continue;
+    }
+
+    if (
+      occurrence.kind ===
+      'claimable'
     ) {
       claimableDeadlineReconciledCount +=
+        1;
+    } else {
+      personalMissReconciledCount +=
         1;
     }
   }
@@ -276,5 +286,7 @@ export async function runOccurrenceMaintenance(
     scheduledReconciledCount,
 
     claimableDeadlineReconciledCount,
+
+    personalMissReconciledCount,
   };
 }

@@ -2,6 +2,11 @@ import {
   getLocalChildContextByStoragePrefix,
   type LocalChildContext,
 } from '@/lib/child-local-access';
+import { rememberLocalChildGrant } from '@/lib/child-grant-status';
+import {
+  consumeTrustedSingleChildAutoOpen,
+  setChildExplicitlyLocked,
+} from '@/lib/child-unlock-policy';
 import { useAuthRuntime } from '@/providers/auth-runtime-provider';
 import {
   useEffect,
@@ -20,19 +25,28 @@ import { ChildPinSetupScreen } from './child-pin-setup-screen';
 import { ChildPinUnlockScreen } from './child-pin-unlock-screen';
 
 type ChildAccess = {
-  accessGrantId: Id<'childDeviceAccessGrants'>;
+  accessGrantId:
+    Id<'childDeviceAccessGrants'>;
 
-  householdId: Id<'households'>;
-  householdName: string;
+  householdId:
+    Id<'households'>;
 
-  childId: Id<'children'>;
-  childDisplayName: string;
+  householdName:
+    string;
 
-  grantedAt: number;
+  childId:
+    Id<'children'>;
+
+  childDisplayName:
+    string;
+
+  grantedAt:
+    number;
 };
 
 type ChildAccessGateProps = {
-  access: ChildAccess;
+  access:
+    ChildAccess;
 };
 
 export function ChildAccessGate({
@@ -50,13 +64,6 @@ export function ChildAccessGate({
       null,
     );
 
-  /*
-   * Unlock state deliberately lives only in React
-   * memory.
-   *
-   * It is not persisted. Restarting/remounting the
-   * app requires the PIN again.
-   */
   const [
     unlocked,
     setUnlocked,
@@ -70,15 +77,31 @@ export function ChildAccessGate({
   const [
     errorMessage,
     setErrorMessage,
-  ] = useState<string | null>(null);
+  ] = useState<
+    string | null
+  >(null);
 
   useEffect(() => {
-    let cancelled = false;
+    let cancelled =
+      false;
+
+    const trustedSingleChildOpen =
+      consumeTrustedSingleChildAutoOpen(
+        storagePrefix,
+      );
 
     async function loadLocalContext() {
-      setLoading(true);
-      setUnlocked(false);
-      setErrorMessage(null);
+      setLoading(
+        true,
+      );
+
+      setUnlocked(
+        false,
+      );
+
+      setErrorMessage(
+        null,
+      );
 
       try {
         const context =
@@ -99,12 +122,44 @@ export function ChildAccessGate({
             'This local auth context belongs to a different child profile.',
           );
 
-          setLocalContext(null);
+          setLocalContext(
+            null,
+          );
 
           return;
         }
 
-        setLocalContext(context);
+        if (context) {
+          /*
+           * Bind this saved local context to the
+           * exact server-side device grant.
+           *
+           * Existing TASK-05 profiles get migrated
+           * automatically the next time they are
+           * successfully opened.
+           */
+          await rememberLocalChildGrant(
+            context.contextId,
+            access.accessGrantId,
+          );
+
+          if (cancelled) {
+            return;
+          }
+        }
+
+        setLocalContext(
+          context,
+        );
+
+        if (
+          context &&
+          trustedSingleChildOpen
+        ) {
+          setUnlocked(
+            true,
+          );
+        }
       } catch (error) {
         if (cancelled) {
           return;
@@ -117,7 +172,9 @@ export function ChildAccessGate({
         );
       } finally {
         if (!cancelled) {
-          setLoading(false);
+          setLoading(
+            false,
+          );
         }
       }
     }
@@ -125,12 +182,37 @@ export function ChildAccessGate({
     void loadLocalContext();
 
     return () => {
-      cancelled = true;
+      cancelled =
+        true;
     };
   }, [
+    access.accessGrantId,
     access.childId,
     storagePrefix,
   ]);
+
+  async function handlePinUnlocked() {
+    if (!localContext) {
+      return;
+    }
+
+    try {
+      await setChildExplicitlyLocked(
+        localContext.childId,
+        false,
+      );
+
+      setUnlocked(
+        true,
+      );
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : 'Could not unlock child profile.',
+      );
+    }
+  }
 
   if (loading) {
     return (
@@ -138,7 +220,8 @@ export function ChildAccessGate({
         <ActivityIndicator />
 
         <Text className="mt-3 text-slate-400">
-          Loading child profile...
+          Loading child
+          profile...
         </Text>
       </View>
     );
@@ -158,10 +241,6 @@ export function ChildAccessGate({
     );
   }
 
-  /*
-   * Server grant exists, but this local Child
-   * has never had a PIN configured.
-   */
   if (!localContext) {
     return (
       <ChildPinSetupScreen
@@ -180,42 +259,44 @@ export function ChildAccessGate({
         authStoragePrefix={
           storagePrefix
         }
-        onComplete={(context) => {
+        onComplete={(
+          context,
+        ) => {
+          void rememberLocalChildGrant(
+            context.contextId,
+            access.accessGrantId,
+          );
+
           setLocalContext(
             context,
           );
 
-          /*
-           * The person just proved possession by
-           * creating/confirming the PIN, so this
-           * in-memory session can open immediately.
-           */
-          setUnlocked(true);
+          setUnlocked(
+            true,
+          );
         }}
       />
     );
   }
 
-  /*
-   * Existing stored Child profiles must prove the
-   * local PIN before the Child UI is rendered.
-   */
   if (!unlocked) {
     return (
       <ChildPinUnlockScreen
         context={
           localContext
         }
-        onUnlocked={() =>
-          setUnlocked(true)
-        }
+        onUnlocked={() => {
+          void handlePinUnlocked();
+        }}
       />
     );
   }
 
   return (
     <ChildHomeScreen
-      access={access}
+      access={
+        access
+      }
     />
   );
 }

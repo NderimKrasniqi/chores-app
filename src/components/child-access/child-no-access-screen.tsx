@@ -2,6 +2,8 @@ import {
   getLocalChildContextByStoragePrefix,
   removeLocalChildContext,
 } from '@/lib/child-local-access';
+import { forgetLocalChildGrant } from '@/lib/child-grant-status';
+import { setChildExplicitlyLocked } from '@/lib/child-unlock-policy';
 import { useAuthRuntime } from '@/providers/auth-runtime-provider';
 import {
   useEffect,
@@ -32,9 +34,10 @@ export function ChildNoAccessScreen() {
   const [
     cleanupState,
     setCleanupState,
-  ] = useState<CleanupState>(
-    'checking',
-  );
+  ] =
+    useState<CleanupState>(
+      'checking',
+    );
 
   const [
     cleanupAttempt,
@@ -44,19 +47,22 @@ export function ChildNoAccessScreen() {
   const [
     errorMessage,
     setErrorMessage,
-  ] = useState<string | null>(
-    null,
-  );
+  ] = useState<
+    string | null
+  >(null);
 
   useEffect(() => {
-    let cancelled = false;
+    let cancelled =
+      false;
 
     async function reconcileAccess() {
       setCleanupState(
         'checking',
       );
 
-      setErrorMessage(null);
+      setErrorMessage(
+        null,
+      );
 
       try {
         const localContext =
@@ -69,9 +75,8 @@ export function ChildNoAccessScreen() {
         }
 
         /*
-         * No saved local Child context means this is
-         * a fresh anonymous Child session that has not
-         * paired yet.
+         * Fresh anonymous Child session:
+         * nothing has been paired locally yet.
          */
         if (!localContext) {
           setCleanupState(
@@ -82,12 +87,9 @@ export function ChildNoAccessScreen() {
         }
 
         /*
-         * A saved Child context exists, but index.tsx
-         * only renders this component when Convex says
-         * there is NO active child-device grant.
-         *
-         * Therefore the saved context is no longer
-         * authorized and should be removed locally.
+         * A saved Child context exists, but
+         * Convex says the active device grant
+         * is gone or revoked.
          */
         setCleanupState(
           'cleaning',
@@ -110,14 +112,19 @@ export function ChildNoAccessScreen() {
           localContext.contextId,
         );
 
+        await forgetLocalChildGrant(
+          localContext.contextId,
+        );
+
+        await setChildExplicitlyLocked(
+          localContext.childId,
+          false,
+        );
+
         if (cancelled) {
           return;
         }
 
-        /*
-         * Return to the default auth namespace after
-         * deleting the revoked local Child context.
-         */
         activateParentStorage();
       } catch (error) {
         if (cancelled) {
@@ -139,7 +146,8 @@ export function ChildNoAccessScreen() {
     void reconcileAccess();
 
     return () => {
-      cancelled = true;
+      cancelled =
+        true;
     };
   }, [
     authClient,
@@ -149,7 +157,8 @@ export function ChildNoAccessScreen() {
   ]);
 
   if (
-    cleanupState === 'join'
+    cleanupState ===
+    'join'
   ) {
     return (
       <ChildJoinScreen />
@@ -157,12 +166,14 @@ export function ChildNoAccessScreen() {
   }
 
   if (
-    cleanupState === 'error'
+    cleanupState ===
+    'error'
   ) {
     return (
       <View className="justify-center flex-1 px-6 bg-slate-950">
         <Text className="text-2xl font-bold text-white">
-          Could not clear Child access
+          Could not clear
+          Child access
         </Text>
 
         <Text className="mt-3 leading-6 text-red-400">
@@ -173,8 +184,11 @@ export function ChildNoAccessScreen() {
           className="px-4 py-4 mt-6 bg-white rounded-xl"
           onPress={() =>
             setCleanupAttempt(
-              (current) =>
-                current + 1,
+              (
+                current,
+              ) =>
+                current +
+                1,
             )
           }
         >
