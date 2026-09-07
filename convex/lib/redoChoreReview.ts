@@ -8,6 +8,9 @@ import type {
 import type {
   MutationCtx,
 } from '../_generated/server';
+import {
+  ensureClaimableFailurePenalty,
+} from './claimableFailurePenalty';
 
 type ChoreKind =
   | 'personal'
@@ -143,11 +146,12 @@ async function loadRedoReviewContext(
   }
 
   /*
-   * D-04 applies to the active Redo
-   * deadline exactly as it applies to the
-   * original deadline.
+   * Parent review may occur after the
+   * Redo deadline.
    *
-   * Parent review time may be later.
+   * Persisted server-authoritative
+   * submittedAt decides whether attempt 2
+   * was on time.
    */
   if (
     submission.submittedAt >
@@ -347,10 +351,6 @@ export async function approveRedoSubmission(
       },
     );
 
-  /*
-   * Approval creates the normal immutable
-   * Chore Occurrence earning.
-   */
   const ledgerEntryId =
     await ctx.db.insert(
       'ledgerEntries',
@@ -474,11 +474,15 @@ export async function rejectRedoSubmission(
   /*
    * A rejected attempt 2 is terminal.
    *
-   * No second Redo is created.
+   * Personal:
+   * failed, earns 0, no penalty.
    *
-   * TASK-14 owns the eventual full-value
-   * Claimable penalty. TASK-13 records
-   * only the execution outcome.
+   * Claimable:
+   * failed and incurs the immutable
+   * full-value TASK-14 penalty.
+   *
+   * Review, terminal lifecycle, and money
+   * all happen in this same mutation.
    */
   if (claim) {
     await ctx.db.patch(
@@ -497,6 +501,14 @@ export async function rejectRedoSubmission(
         'failed',
     },
   );
+
+  if (claim) {
+    await ensureClaimableFailurePenalty(
+      ctx,
+      claim._id,
+      now,
+    );
+  }
 
   return {
     reviewId,

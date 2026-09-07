@@ -4,15 +4,27 @@ import type {
 import {
   mutation,
 } from './_generated/server';
-import { claimClaimableOccurrence } from './lib/claimableChoreClaiming';
-import { cancelClaimableClaimForParent } from './lib/claimableChoreCancellation';
-import { listHouseholdClaimedOccurrences } from './lib/claimableChoreVisibility';
-import { getWeeklyUnclaimUsageForChild } from './lib/claimUnclaimAccounting';
-import { resolveLocalDateTimeToEpochMs } from './lib/choreScheduling';
+import {
+  claimClaimableOccurrence,
+} from './lib/claimableChoreClaiming';
+import {
+  cancelClaimableClaimForParent,
+} from './lib/claimableChoreCancellation';
+import {
+  listHouseholdClaimedOccurrences,
+} from './lib/claimableChoreVisibility';
+import {
+  getWeeklyUnclaimUsageForChild,
+} from './lib/claimUnclaimAccounting';
+import {
+  resolveLocalDateTimeToEpochMs,
+} from './lib/choreScheduling';
 
 function assert(
-  condition: unknown,
-  message: string,
+  condition:
+    unknown,
+  message:
+    string,
 ): asserts condition {
   if (!condition) {
     throw new Error(
@@ -24,7 +36,8 @@ function assert(
 async function expectFailure(
   operation:
     () => Promise<unknown>,
-  message: string,
+  message:
+    string,
 ) {
   try {
     await operation();
@@ -54,6 +67,13 @@ export const run =
       const deadlineAt =
         resolveLocalDateTimeToEpochMs(
           '2030-01-16',
+          '18:00',
+          'Europe/Stockholm',
+        );
+
+      const redoDeadlineAt =
+        resolveLocalDateTimeToEpochMs(
+          '2030-01-17',
           '18:00',
           'Europe/Stockholm',
         );
@@ -182,7 +202,8 @@ export const run =
         > = [];
 
       async function createOccurrence(
-        title: string,
+        title:
+          string,
       ) {
         const occurrenceId =
           await ctx.db.insert(
@@ -318,7 +339,8 @@ export const run =
           'Cancellation audit information must be durable.',
         );
 
-        passed += 1;
+        passed +=
+          1;
 
         console.log(
           '✅ 1/8 Parent cancellation durably cancels Claim and occurrence',
@@ -356,7 +378,8 @@ export const run =
           'Parent cancellation must not consume weekly allowance.',
         );
 
-        passed += 1;
+        passed +=
+          1;
 
         console.log(
           '✅ 2/8 Parent cancellation consumes no Child unclaim allowance',
@@ -387,7 +410,8 @@ export const run =
           'Cancelled Claim must release the active-Claim slot.',
         );
 
-        passed += 1;
+        passed +=
+          1;
 
         console.log(
           '✅ 3/8 Parent cancellation releases active-Claim slot',
@@ -460,12 +484,20 @@ export const run =
           'Submitted unresolved Claim must remain Parent-cancellable.',
         );
 
-        passed += 1;
+        passed +=
+          1;
 
         console.log(
           '✅ 4/8 submitted unresolved Claim can be cancelled',
         );
 
+        /*
+         * TASK-13/14-compatible Redo
+         * cancellation fixture.
+         *
+         * redo_required must have a durable
+         * Redo record with its own deadline.
+         */
         const redoOccurrence =
           await createOccurrence(
             'Cancel redo',
@@ -475,6 +507,74 @@ export const run =
           await createClaim(
             redoOccurrence,
           );
+
+        const initialSubmissionId =
+          await ctx.db.insert(
+            'choreSubmissions',
+            {
+              householdId,
+
+              occurrenceId:
+                redoOccurrence,
+
+              childId,
+
+              attemptNumber:
+                1,
+
+              submittedAt:
+                now,
+            },
+          );
+
+        const rejectionReviewId =
+          await ctx.db.insert(
+            'choreReviews',
+            {
+              householdId,
+
+              occurrenceId:
+                redoOccurrence,
+
+              submissionId:
+                initialSubmissionId,
+
+              decision:
+                'rejected',
+
+              reviewedByAuthUserId:
+                'task11-parent',
+
+              reviewedAt:
+                now + 4,
+            },
+          );
+
+        await ctx.db.insert(
+          'choreRedos',
+          {
+            householdId,
+
+            occurrenceId:
+              redoOccurrence,
+
+            initialSubmissionId,
+
+            rejectionReviewId,
+
+            deadlineLocalDate:
+              '2030-01-17',
+
+            deadlineLocalTime:
+              '18:00',
+
+            deadlineAt:
+              redoDeadlineAt,
+
+            createdAt:
+              now + 4,
+          },
+        );
 
         await ctx.db.patch(
           redoClaim.claimId,
@@ -508,10 +608,11 @@ export const run =
         assert(
           persistedRedo?.state ===
             'cancelled',
-          'Redo unresolved Claim must remain Parent-cancellable.',
+          'Redo unresolved Claim must remain Parent-cancellable before its Redo deadline.',
         );
 
-        passed += 1;
+        passed +=
+          1;
 
         console.log(
           '✅ 5/8 redo-required unresolved Claim can be cancelled',
@@ -566,7 +667,8 @@ export const run =
           'Rejected cancellation must preserve terminal Claim state.',
         );
 
-        passed += 1;
+        passed +=
+          1;
 
         console.log(
           '✅ 6/8 terminal approved Claim cannot be cancelled',
@@ -584,7 +686,8 @@ export const run =
           'Cross-Household cancellation must fail.',
         );
 
-        passed += 1;
+        passed +=
+          1;
 
         console.log(
           '✅ 7/8 cross-Household cancellation is rejected',
@@ -598,9 +701,7 @@ export const run =
 
         assert(
           !activeAfterCancellation.some(
-            (
-              item,
-            ) =>
+            (item) =>
               item.claim._id ===
               firstClaim.claimId,
           ),
@@ -616,20 +717,19 @@ export const run =
 
         assert(
           !ledgerEntries.some(
-            (
-              entry,
-            ) =>
+            (entry) =>
               entry.householdId ===
-              householdId &&
+                householdId &&
               entry.childId ===
-              childId &&
+                childId &&
               entry.occurrenceId ===
-              firstOccurrence,
+                firstOccurrence,
           ),
           'Parent cancellation must create no financial effect.',
         );
 
-        passed += 1;
+        passed +=
+          1;
 
         console.log(
           '✅ 8/8 cancellation leaves active visibility and creates no penalty',
@@ -642,6 +742,83 @@ export const run =
             8,
         };
       } finally {
+        for (
+          const occurrenceId of
+          occurrenceIds
+        ) {
+          const redos =
+            await ctx.db
+              .query(
+                'choreRedos',
+              )
+              .withIndex(
+                'by_occurrence',
+                (q) =>
+                  q.eq(
+                    'occurrenceId',
+                    occurrenceId,
+                  ),
+              )
+              .collect();
+
+          for (
+            const redo of
+            redos
+          ) {
+            await ctx.db.delete(
+              redo._id,
+            );
+          }
+
+          const reviews =
+            await ctx.db
+              .query(
+                'choreReviews',
+              )
+              .withIndex(
+                'by_occurrence',
+                (q) =>
+                  q.eq(
+                    'occurrenceId',
+                    occurrenceId,
+                  ),
+              )
+              .collect();
+
+          for (
+            const review of
+            reviews
+          ) {
+            await ctx.db.delete(
+              review._id,
+            );
+          }
+
+          const submissions =
+            await ctx.db
+              .query(
+                'choreSubmissions',
+              )
+              .withIndex(
+                'by_occurrence',
+                (q) =>
+                  q.eq(
+                    'occurrenceId',
+                    occurrenceId,
+                  ),
+              )
+              .collect();
+
+          for (
+            const submission of
+            submissions
+          ) {
+            await ctx.db.delete(
+              submission._id,
+            );
+          }
+        }
+
         for (
           const claimId of
           claimIds

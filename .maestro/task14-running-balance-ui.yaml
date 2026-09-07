@@ -1,0 +1,19 @@
+appId: host.exp.Exponent
+---
+- openLink: "exp://127.0.0.1:8081/--/maestro-task14-child"
+
+- extendedWaitUntil:
+    visible: "TASK-14 Running Balance Fixture"
+    timeout: 60000
+
+- assertVisible: "Running balance"
+
+- assertVisible:
+    id: "task14-running-balance-card"
+
+- assertVisible:
+    id: "task14-running-balance-value"
+
+- assertVisible: "-100 kr"
+
+- assertVisible: "Approved earnings and Claimable penalties update this total."

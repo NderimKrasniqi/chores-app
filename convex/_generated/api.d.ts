@@ -39,6 +39,7 @@ import type * as lib_claimableChoreExecution from "../lib/claimableChoreExecutio
 import type * as lib_claimableChoreReview from "../lib/claimableChoreReview.js";
 import type * as lib_claimableChoreUnclaiming from "../lib/claimableChoreUnclaiming.js";
 import type * as lib_claimableChoreVisibility from "../lib/claimableChoreVisibility.js";
+import type * as lib_claimableFailurePenalty from "../lib/claimableFailurePenalty.js";
 import type * as lib_householdTime from "../lib/householdTime.js";
 import type * as lib_initialChoreRejection from "../lib/initialChoreRejection.js";
 import type * as lib_parentAuthorization from "../lib/parentAuthorization.js";
@@ -48,11 +49,13 @@ import type * as lib_redoChoreReview from "../lib/redoChoreReview.js";
 import type * as lib_redoDeadline from "../lib/redoDeadline.js";
 import type * as lib_redoDeadlineFailure from "../lib/redoDeadlineFailure.js";
 import type * as lib_redoSubmission from "../lib/redoSubmission.js";
+import type * as lib_runningBalance from "../lib/runningBalance.js";
 import type * as parentInvites from "../parentInvites.js";
 import type * as personalChoreReviews from "../personalChoreReviews.js";
 import type * as personalChores from "../personalChores.js";
 import type * as redoChoreReviews from "../redoChoreReviews.js";
 import type * as redoDeadlineTransitions from "../redoDeadlineTransitions.js";
+import type * as runningBalances from "../runningBalances.js";
 import type * as schema_childAccess from "../schema/childAccess.js";
 import type * as schema_chores from "../schema/chores.js";
 import type * as schema_claims from "../schema/claims.js";
@@ -85,6 +88,12 @@ import type * as task13RedoReviewSmokeTests from "../task13RedoReviewSmokeTests.
 import type * as task13RedoSubmissionSmokeTests from "../task13RedoSubmissionSmokeTests.js";
 import type * as task13ReviewAuthorityFixtures from "../task13ReviewAuthorityFixtures.js";
 import type * as task13ReviewAuthoritySmokeTests from "../task13ReviewAuthoritySmokeTests.js";
+import type * as task14MaintenancePenaltySmokeTests from "../task14MaintenancePenaltySmokeTests.js";
+import type * as task14MissedClaimPenaltySmokeTests from "../task14MissedClaimPenaltySmokeTests.js";
+import type * as task14OriginalDeadlineCancellationSmokeTests from "../task14OriginalDeadlineCancellationSmokeTests.js";
+import type * as task14PenaltyLedgerSmokeTests from "../task14PenaltyLedgerSmokeTests.js";
+import type * as task14RedoDeadlineCancellationSmokeTests from "../task14RedoDeadlineCancellationSmokeTests.js";
+import type * as task14RunningBalanceSmokeTests from "../task14RunningBalanceSmokeTests.js";
 
 import type {
   ApiFromModules,
@@ -124,6 +133,7 @@ declare const fullApi: ApiFromModules<{
   "lib/claimableChoreReview": typeof lib_claimableChoreReview;
   "lib/claimableChoreUnclaiming": typeof lib_claimableChoreUnclaiming;
   "lib/claimableChoreVisibility": typeof lib_claimableChoreVisibility;
+  "lib/claimableFailurePenalty": typeof lib_claimableFailurePenalty;
   "lib/householdTime": typeof lib_householdTime;
   "lib/initialChoreRejection": typeof lib_initialChoreRejection;
   "lib/parentAuthorization": typeof lib_parentAuthorization;
@@ -133,11 +143,13 @@ declare const fullApi: ApiFromModules<{
   "lib/redoDeadline": typeof lib_redoDeadline;
   "lib/redoDeadlineFailure": typeof lib_redoDeadlineFailure;
   "lib/redoSubmission": typeof lib_redoSubmission;
+  "lib/runningBalance": typeof lib_runningBalance;
   parentInvites: typeof parentInvites;
   personalChoreReviews: typeof personalChoreReviews;
   personalChores: typeof personalChores;
   redoChoreReviews: typeof redoChoreReviews;
   redoDeadlineTransitions: typeof redoDeadlineTransitions;
+  runningBalances: typeof runningBalances;
   "schema/childAccess": typeof schema_childAccess;
   "schema/chores": typeof schema_chores;
   "schema/claims": typeof schema_claims;
@@ -170,6 +182,12 @@ declare const fullApi: ApiFromModules<{
   task13RedoSubmissionSmokeTests: typeof task13RedoSubmissionSmokeTests;
   task13ReviewAuthorityFixtures: typeof task13ReviewAuthorityFixtures;
   task13ReviewAuthoritySmokeTests: typeof task13ReviewAuthoritySmokeTests;
+  task14MaintenancePenaltySmokeTests: typeof task14MaintenancePenaltySmokeTests;
+  task14MissedClaimPenaltySmokeTests: typeof task14MissedClaimPenaltySmokeTests;
+  task14OriginalDeadlineCancellationSmokeTests: typeof task14OriginalDeadlineCancellationSmokeTests;
+  task14PenaltyLedgerSmokeTests: typeof task14PenaltyLedgerSmokeTests;
+  task14RedoDeadlineCancellationSmokeTests: typeof task14RedoDeadlineCancellationSmokeTests;
+  task14RunningBalanceSmokeTests: typeof task14RunningBalanceSmokeTests;
 }>;
 
 /**

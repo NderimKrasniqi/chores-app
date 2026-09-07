@@ -23,8 +23,19 @@ export async function cancelClaimableClaimForParent(
     Id<'choreClaims'>,
   cancelledByAuthUserId:
     string,
-  now = Date.now(),
+  now =
+    Date.now(),
 ) {
+  if (
+    !Number.isFinite(
+      now,
+    )
+  ) {
+    throw new ConvexError(
+      'Cancellation timestamp must be finite.',
+    );
+  }
+
   const claim =
     await ctx.db.get(
       claimId,
@@ -74,18 +85,113 @@ export async function cancelClaimableClaimForParent(
   }
 
   /*
-   * Parent cancellation is terminal for
-   * this Claim and occurrence.
+   * Original commitment.
    *
-   * It deliberately does NOT write
-   * unclaimedAt. Parent cancellation must
-   * never consume the Child's weekly
-   * unclaim allowance.
+   * Submission AT deadlineAt is valid.
    *
-   * It also creates no Ledger Entry.
-   * Therefore there is no financial
-   * penalty.
+   * Therefore Parent cancellation also
+   * remains penalty-free through the exact
+   * original deadline.
+   *
+   * Once now > deadlineAt, a Claim still
+   * in `claimed` has already missed its
+   * commitment and cannot use Parent
+   * cancellation to erase the consequence.
    */
+  if (
+    claim.state ===
+      'claimed' &&
+    now >
+      occurrence.deadlineAt
+  ) {
+    throw new ConvexError(
+      'This Claim has already missed its deadline and can no longer be cancelled.',
+    );
+  }
+
+  /*
+   * Redo commitment.
+   *
+   * The original occurrence deadline is
+   * intentionally irrelevant here.
+   *
+   * A Redo has its own immutable
+   * Parent-authored deadline.
+   */
+  if (
+    claim.state ===
+    'redo_required'
+  ) {
+    const redo =
+      await ctx.db
+        .query(
+          'choreRedos',
+        )
+        .withIndex(
+          'by_occurrence',
+          (q) =>
+            q.eq(
+              'occurrenceId',
+              occurrence._id,
+            ),
+        )
+        .unique();
+
+    if (!redo) {
+      throw new ConvexError(
+        'Redo opportunity not found.',
+      );
+    }
+
+    if (
+      redo.householdId !==
+      householdId
+    ) {
+      throw new ConvexError(
+        'Redo Household does not match its Chore Occurrence.',
+      );
+    }
+
+    if (
+      !Number.isFinite(
+        redo.deadlineAt,
+      )
+    ) {
+      throw new ConvexError(
+        'Redo deadline must be finite.',
+      );
+    }
+
+    /*
+     * Redo submission AT deadlineAt is
+     * valid.
+     *
+     * Strictly after it, a still
+     * redo_required Claim has already
+     * failed by time.
+     */
+    if (
+      now >
+      redo.deadlineAt
+    ) {
+      throw new ConvexError(
+        'This Redo has already missed its deadline and can no longer be cancelled.',
+      );
+    }
+  }
+
+  /*
+   * A submitted Claim is intentionally
+   * still cancellable after its applicable
+   * submission deadline.
+   *
+   * Its persisted submission timestamp
+   * already proves whether the Child met
+   * the deadline, so Parent review delay
+   * cannot turn it into a missed
+   * commitment.
+   */
+
   await ctx.db.patch(
     claim._id,
     {

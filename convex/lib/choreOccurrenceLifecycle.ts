@@ -1,13 +1,24 @@
+import {
+  ConvexError,
+} from 'convex/values';
+
 import type {
   Doc,
   Id,
 } from '../_generated/dataModel';
-import type { MutationCtx } from '../_generated/server';
+import type {
+  MutationCtx,
+} from '../_generated/server';
+import {
+  ensureClaimableFailurePenalty,
+} from './claimableFailurePenalty';
 
 export type ReconcileOccurrenceLifecycleResult = {
-  found: boolean;
+  found:
+    boolean;
 
-  changed: boolean;
+  changed:
+    boolean;
 
   previousState?:
     Doc<'choreOccurrences'>['state'];
@@ -16,19 +27,20 @@ export type ReconcileOccurrenceLifecycleResult = {
     Doc<'choreOccurrences'>['state'];
 };
 
-async function claimPreventsUnclaimedExpiry(
-  ctx: MutationCtx,
+async function getClaimableDeadlineOwnership(
+  ctx:
+    MutationCtx,
   occurrenceId:
     Id<'choreOccurrences'>,
 ) {
   const claims =
     await ctx.db
-      .query('choreClaims')
+      .query(
+        'choreClaims',
+      )
       .withIndex(
         'by_occurrence',
-        (
-          query,
-        ) =>
+        (query) =>
           query.eq(
             'occurrenceId',
             occurrenceId,
@@ -37,39 +49,71 @@ async function claimPreventsUnclaimedExpiry(
       .collect();
 
   /*
-   * A Claimable occurrence is not
-   * "unclaimed" while it has an active
-   * Claim.
+   * Only a still-unsubmitted `claimed`
+   * commitment can fail against the
+   * original occurrence deadline.
    *
-   * Approved/failed are also protected
-   * defensively: later lifecycle tasks
-   * should move the occurrence itself
-   * into the matching terminal state,
-   * but it must never be mislabeled
-   * expired_unclaimed in the meantime.
-   *
-   * Voluntarily unclaimed or cancelled
-   * Claims no longer protect the
-   * occurrence. TASK-11 can therefore
-   * return those occurrences to the
-   * available pool while time remains.
+   * submitted / redo_required already
+   * moved into later lifecycle stages.
    */
-  return claims.some(
-    (
-      claim,
-    ) =>
-      claim.state !==
-        'unclaimed' &&
-      claim.state !==
-        'cancelled',
-  );
+  const activeUnsubmittedClaims =
+    claims.filter(
+      (claim) =>
+        claim.state ===
+        'claimed',
+    );
+
+  if (
+    activeUnsubmittedClaims.length >
+    1
+  ) {
+    throw new ConvexError(
+      'Claimable Chore has multiple active unsubmitted Claims.',
+    );
+  }
+
+  const activeUnsubmittedClaim =
+    activeUnsubmittedClaims[0] ??
+    null;
+
+  /*
+   * An occurrence is truly unclaimed only
+   * when no durable Claim still owns its
+   * outcome.
+   *
+   * Voluntary unclaim and Parent
+   * cancellation stop protecting the
+   * available occurrence from ordinary
+   * expired-unclaimed behavior.
+   *
+   * submitted / redo_required / approved /
+   * failed remain protected defensively so
+   * inconsistent delayed lifecycle work
+   * cannot mislabel them as unclaimed.
+   */
+  const protectedFromUnclaimedExpiry =
+    claims.some(
+      (claim) =>
+        claim.state !==
+          'unclaimed' &&
+        claim.state !==
+          'cancelled',
+    );
+
+  return {
+    activeUnsubmittedClaim,
+
+    protectedFromUnclaimedExpiry,
+  };
 }
 
 export async function reconcileOccurrenceLifecycle(
-  ctx: MutationCtx,
+  ctx:
+    MutationCtx,
   occurrenceId:
     Id<'choreOccurrences'>,
-  now = Date.now(),
+  now =
+    Date.now(),
 ): Promise<ReconcileOccurrenceLifecycleResult> {
   const occurrence =
     await ctx.db.get(
@@ -85,8 +129,11 @@ export async function reconcileOccurrenceLifecycle(
    */
   if (!occurrence) {
     return {
-      found: false,
-      changed: false,
+      found:
+        false,
+
+      changed:
+        false,
     };
   }
 
@@ -94,12 +141,13 @@ export async function reconcileOccurrenceLifecycle(
     occurrence.state;
 
   /*
-   * Only unresolved pre-submission
-   * states are time-driven here.
+   * Only unresolved pre-submission states
+   * are time-driven by the original
+   * occurrence deadline.
    *
-   * Once submitted, review delay must
-   * never turn the occurrence into a
-   * miss.
+   * submitted and redo_required are
+   * governed by Parent review / Redo
+   * lifecycle instead.
    */
   if (
     previousState !==
@@ -108,9 +156,14 @@ export async function reconcileOccurrenceLifecycle(
       'available'
   ) {
     return {
-      found: true,
-      changed: false,
+      found:
+        true,
+
+      changed:
+        false,
+
       previousState,
+
       nextState:
         previousState,
     };
@@ -131,18 +184,6 @@ export async function reconcileOccurrenceLifecycle(
       'available';
   }
 
-  /*
-   * Claimable:
-   *
-   * At the deadline boundary an
-   * unresolved occurrence expires only
-   * when it truly has no active or
-   * completed Claim ownership.
-   *
-   * A claimed occurrence remains under
-   * the Claim lifecycle instead of
-   * becoming expired_unclaimed.
-   */
   if (
     occurrence.kind ===
       'claimable' &&
@@ -151,14 +192,91 @@ export async function reconcileOccurrenceLifecycle(
     now >=
       occurrence.deadlineAt
   ) {
-    const protectedByClaim =
-      await claimPreventsUnclaimedExpiry(
+    const {
+      activeUnsubmittedClaim,
+      protectedFromUnclaimedExpiry,
+    } =
+      await getClaimableDeadlineOwnership(
         ctx,
         occurrenceId,
       );
 
+    /*
+     * D-04 / D-12:
+     *
+     * submission AT deadlineAt is valid.
+     *
+     * A still-owned, unsubmitted Claim
+     * therefore fails only strictly AFTER
+     * the immutable original deadline.
+     *
+     * Claim failure, occurrence failure,
+     * and its Ledger penalty all execute
+     * inside this one Convex transaction.
+     */
     if (
-      !protectedByClaim
+      activeUnsubmittedClaim &&
+      now >
+        occurrence.deadlineAt
+    ) {
+      if (
+        activeUnsubmittedClaim
+          .householdId !==
+        occurrence.householdId
+      ) {
+        throw new ConvexError(
+          'Claim Household does not match its Chore Occurrence.',
+        );
+      }
+
+      await ctx.db.patch(
+        activeUnsubmittedClaim._id,
+        {
+          state:
+            'failed',
+        },
+      );
+
+      await ctx.db.patch(
+        occurrence._id,
+        {
+          state:
+            'failed',
+        },
+      );
+
+      await ensureClaimableFailurePenalty(
+        ctx,
+        activeUnsubmittedClaim._id,
+        now,
+      );
+
+      return {
+        found:
+          true,
+
+        changed:
+          true,
+
+        previousState,
+
+        nextState:
+          'failed',
+      };
+    }
+
+    /*
+     * Never claimed, voluntarily unclaimed,
+     * or Parent-cancelled ownership no
+     * longer protects an otherwise
+     * available occurrence.
+     *
+     * At the exact deadline an active Claim
+     * remains protected because the Child
+     * may still submit at that instant.
+     */
+    if (
+      !protectedFromUnclaimedExpiry
     ) {
       nextState =
         'expired_unclaimed';
@@ -166,14 +284,10 @@ export async function reconcileOccurrenceLifecycle(
   }
 
   /*
-   * Personal:
+   * Personal submission AT deadlineAt is
+   * valid.
    *
-   * Submission AT the deadline is valid.
-   *
-   * Therefore the occurrence becomes
-   * missed only strictly AFTER the
-   * deadline when no valid submission
-   * changed the state first.
+   * Personal chores never create debt.
    */
   if (
     occurrence.kind ===
@@ -192,9 +306,14 @@ export async function reconcileOccurrenceLifecycle(
     previousState
   ) {
     return {
-      found: true,
-      changed: false,
+      found:
+        true,
+
+      changed:
+        false,
+
       previousState,
+
       nextState,
     };
   }
@@ -208,9 +327,14 @@ export async function reconcileOccurrenceLifecycle(
   );
 
   return {
-    found: true,
-    changed: true,
+    found:
+      true,
+
+    changed:
+      true,
+
     previousState,
+
     nextState,
   };
 }

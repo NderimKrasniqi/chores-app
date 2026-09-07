@@ -474,8 +474,25 @@ export async function generateOccurrencesForWindow(
       }
 
       /*
-       * Claimable expiry happens AT
-       * deadline.
+       * Claimable lifecycle has two exact
+       * deadline reconciliations.
+       *
+       * 1. AT deadlineAt:
+       *    a truly unclaimed occurrence
+       *    becomes expired_unclaimed.
+       *
+       * 2. AT deadlineAt + 1:
+       *    a still-owned, unsubmitted Claim
+       *    becomes failed and receives its
+       *    TASK-14 full-value penalty.
+       *
+       * Submission exactly at deadlineAt
+       * remains valid.
+       *
+       * The second callback is harmless if
+       * the first callback already expired
+       * an unclaimed occurrence or if the
+       * Child submitted on time.
        */
       if (
         scheduleTransitions &&
@@ -488,6 +505,19 @@ export async function generateOccurrencesForWindow(
       ) {
         await ctx.scheduler.runAt(
           schedule.deadlineAt,
+
+          internal
+            .choreOccurrenceTransitions
+            .reconcile,
+
+          {
+            occurrenceId,
+          },
+        );
+
+        await ctx.scheduler.runAt(
+          schedule.deadlineAt +
+            1,
 
           internal
             .choreOccurrenceTransitions

@@ -21,8 +21,10 @@ import {
 } from './lib/redoSubmission';
 
 function assert(
-  condition: unknown,
-  message: string,
+  condition:
+    unknown,
+  message:
+    string,
 ): asserts condition {
   if (!condition) {
     throw new Error(
@@ -436,6 +438,25 @@ export const run =
         };
       }
 
+      async function ledgerFor(
+        occurrenceId:
+          Id<'choreOccurrences'>,
+      ) {
+        return await ctx.db
+          .query(
+            'ledgerEntries',
+          )
+          .withIndex(
+            'by_occurrence_kind',
+            (q) =>
+              q.eq(
+                'occurrenceId',
+                occurrenceId,
+              ),
+          )
+          .collect();
+      }
+
       try {
         let passed =
           0;
@@ -462,7 +483,8 @@ export const run =
           'Redo must remain open at the exact deadline.',
         );
 
-        passed += 1;
+        passed +=
+          1;
 
         console.log(
           '✅ 1/7 exact Redo deadline remains submit-capable',
@@ -472,7 +494,8 @@ export const run =
           await reconcileRedoDeadlineFailure(
             ctx,
             personal.redoId,
-            redoDeadlineAt + 1,
+            redoDeadlineAt +
+              1,
           );
 
         const failedPersonal =
@@ -481,20 +504,9 @@ export const run =
           );
 
         const personalLedger =
-          await ctx.db
-            .query(
-              'ledgerEntries',
-            )
-            .withIndex(
-              'by_occurrence_kind',
-              (q) =>
-                q.eq(
-                  'occurrenceId',
-                  personal
-                    .occurrenceId,
-                ),
-            )
-            .collect();
+          await ledgerFor(
+            personal.occurrenceId,
+          );
 
         assert(
           personalFailure.changed &&
@@ -505,7 +517,8 @@ export const run =
           'Missed Personal Redo must fail with no financial effect.',
         );
 
-        passed += 1;
+        passed +=
+          1;
 
         console.log(
           '✅ 2/7 missed Personal Redo fails with no penalty',
@@ -518,7 +531,8 @@ export const run =
           await reconcileRedoDeadlineFailure(
             ctx,
             claimable.redoId,
-            redoDeadlineAt + 1,
+            redoDeadlineAt +
+              1,
           );
 
         const failedClaim =
@@ -532,20 +546,9 @@ export const run =
           );
 
         const claimableLedger =
-          await ctx.db
-            .query(
-              'ledgerEntries',
-            )
-            .withIndex(
-              'by_occurrence_kind',
-              (q) =>
-                q.eq(
-                  'occurrenceId',
-                  claimable
-                    .occurrenceId,
-                ),
-            )
-            .collect();
+          await ledgerFor(
+            claimable.occurrenceId,
+          );
 
         assert(
           claimableFailure.changed &&
@@ -554,14 +557,24 @@ export const run =
           failedClaimOccurrence?.state ===
             'failed' &&
           claimableLedger.length ===
-            0,
-          'Missed Claimable Redo must fail without creating TASK-14 penalty early.',
+            1 &&
+          claimableLedger[0]
+            .kind ===
+            'penalty' &&
+          claimableLedger[0]
+            .amountSek ===
+            -140 &&
+          claimableLedger[0]
+            .childId ===
+            childId,
+          'Missed Claimable Redo must fail and create one full-value penalty.',
         );
 
-        passed += 1;
+        passed +=
+          1;
 
         console.log(
-          '✅ 3/7 missed Claimable Redo fails Claim and occurrence',
+          '✅ 3/7 missed Claimable Redo creates full-value penalty',
         );
 
         const activeAfterFailure =
@@ -579,7 +592,8 @@ export const run =
           'Failed Claimable Redo must release the unresolved active Claim slot.',
         );
 
-        passed += 1;
+        passed +=
+          1;
 
         console.log(
           '✅ 4/7 failed Claimable Redo releases active Claim slot',
@@ -600,7 +614,8 @@ export const run =
           await reconcileRedoDeadlineFailure(
             ctx,
             submitted.redoId,
-            redoDeadlineAt + 1,
+            redoDeadlineAt +
+              1,
           );
 
         const submittedClaim =
@@ -613,16 +628,24 @@ export const run =
             submitted.occurrenceId,
           );
 
+        const submittedLedger =
+          await ledgerFor(
+            submitted.occurrenceId,
+          );
+
         assert(
           !submittedReconciliation.changed &&
           submittedClaim?.state ===
             'submitted' &&
           submittedOccurrence?.state ===
-            'submitted',
+            'submitted' &&
+          submittedLedger.length ===
+            0,
           'On-time attempt 2 must be protected from the later deadline callback.',
         );
 
-        passed += 1;
+        passed +=
+          1;
 
         console.log(
           '✅ 5/7 on-time attempt 2 is protected from deadline failure',
@@ -651,7 +674,8 @@ export const run =
           await reconcileRedoDeadlineFailure(
             ctx,
             cancelled.redoId,
-            redoDeadlineAt + 1,
+            redoDeadlineAt +
+              1,
           );
 
         const cancelledOccurrence =
@@ -659,14 +683,22 @@ export const run =
             cancelled.occurrenceId,
           );
 
+        const cancelledLedger =
+          await ledgerFor(
+            cancelled.occurrenceId,
+          );
+
         assert(
           !cancelledReconciliation.changed &&
           cancelledOccurrence?.state ===
-            'cancelled',
-          'Parent-cancelled Redo must ignore its later scheduled deadline callback.',
+            'cancelled' &&
+          cancelledLedger.length ===
+            0,
+          'Parent-cancelled Redo must ignore its later scheduled deadline callback without penalty.',
         );
 
-        passed += 1;
+        passed +=
+          1;
 
         console.log(
           '✅ 6/7 cancelled Redo deadline callback is harmless',
@@ -675,19 +707,34 @@ export const run =
         const secondFailurePass =
           await reconcileRedoDeadlineFailure(
             ctx,
-            personal.redoId,
-            redoDeadlineAt + 2,
+            claimable.redoId,
+            redoDeadlineAt +
+              2,
+          );
+
+        const ledgerAfterRetry =
+          await ledgerFor(
+            claimable.occurrenceId,
           );
 
         assert(
-          !secondFailurePass.changed,
-          'Redo deadline reconciliation must be idempotent after terminal failure.',
+          !secondFailurePass.changed &&
+          ledgerAfterRetry.length ===
+            1 &&
+          ledgerAfterRetry[0]
+            .kind ===
+            'penalty' &&
+          ledgerAfterRetry[0]
+            .amountSek ===
+            -140,
+          'Redo deadline reconciliation must be idempotent and never double-charge.',
         );
 
-        passed += 1;
+        passed +=
+          1;
 
         console.log(
-          '✅ 7/7 terminal Redo deadline reconciliation is idempotent',
+          '✅ 7/7 terminal Redo deadline reconciliation cannot double-charge',
         );
 
         return {

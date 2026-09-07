@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 
 import type { Id } from '../../../convex/_generated/dataModel';
+import { ChildRunningBalanceCard } from './child-running-balance-card';
 
 type ChildHomeScreenProps = {
   access: {
@@ -98,6 +99,8 @@ export function ChildHomeScreen({
         extra chores when your current
         Unlock Chore is approved.
       </Text>
+
+      <ChildRunningBalanceCard />
 
       <View className="p-5 mt-8 border rounded-2xl border-green-900 bg-slate-900">
         <Text className="font-semibold text-green-400">

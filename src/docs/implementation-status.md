@@ -1,7 +1,7 @@
 # Current Implementation Status
 
-**Current milestone:** TASK-13 complete
-**Next milestone:** TASK-14 — Apply missed locked-claim and failed-redo penalties with negative running-balance carry-forward
+**Current milestone:** TASK-14 complete  
+**Next milestone:** TASK-15 — Implement payout periods, manual Swish settlement tracking, pending outcomes, and weekly resets
 
 ## Completed
 
@@ -174,8 +174,9 @@
 - Submission alone does not create an earning.
 - Approved earning value is taken from the immutable occurrence snapshot.
 - Duplicate approval cannot create a duplicate earning.
-- The ledger schema also reserves `penalty` as a future entry kind for later tasks.
-- Running balances and payout settlement are intentionally deferred to later milestones.
+- The ledger schema also reserves `penalty`, which TASK-14 now uses for failed claimed Claimable commitments.
+- TASK-14 now derives Running Balance from Ledger Entries.
+- Payout settlement remains deferred to TASK-15.
 
 #### Missed Personal Chores
 
@@ -226,7 +227,6 @@ Physical-device verification includes:
 - reactive Child state updates;
 - multi-Child profile behavior;
 - live Child-device revocation.
-
 
 ### TASK-09 — Claimable Unlock gate
 
@@ -356,7 +356,10 @@ Backend smoke coverage includes:
 #### Parent cancellation
 
 - Either authorized Parent may cancel an unresolved Claim.
-- `claimed`, `submitted`, and `redo_required` Claims remain Parent-cancellable.
+- A `claimed` Claim remains Parent-cancellable through the exact original occurrence deadline.
+- A `redo_required` Claim remains Parent-cancellable through the exact Redo deadline.
+- Strictly after the applicable deadline, cancellation is rejected so delayed scheduler execution cannot erase an already-due failure consequence.
+- An on-time `submitted` Claim remains Parent-cancellable after its submission deadline because Parent review delay does not turn valid submitted work into a missed commitment.
 - Terminal Claims cannot be reopened through cancellation.
 - Parent cancellation transitions both Claim and Chore Occurrence to `cancelled`.
 - Cancellation retains authoritative cancellation time and Parent identity.
@@ -377,7 +380,6 @@ Backend smoke coverage includes:
 - Development-only Maestro fixtures exercise the same reusable production presentation components.
 - Maestro covers Child unclaim, pool return, allowance decrement, locked-Claim acknowledgement, locked owned-Claim presentation, and Parent cancellation.
 - TASK-10 claiming, visibility, and deadline regressions remain green.
-
 
 ### TASK-12 — Claimable Chore submission, review, earnings, and active-Claim release
 
@@ -421,7 +423,7 @@ Backend smoke coverage includes:
 - Maestro verifies Parent approval → earning confirmation → removal from the pending-review queue.
 - TASK-12 backend smoke coverage verifies on-time submission, exact-deadline submission, ownership and Household isolation, duplicate prevention, no earning on submission, active ownership while submitted, pending Parent review, approval after deadline for on-time work, immutable-value earning, terminal approval, active-slot release, duplicate financial-effect prevention, late persisted submission rejection, and Claim/submission ownership consistency.
 - TASK-08 approval behavior and TASK-10/TASK-11 Claim ownership, visibility, deadline, unclaim, and Parent-cancellation regressions remain green.
-- Rejection, redo deadlines, second submissions, and the first-successful concurrent Parent review lifecycle remain intentionally deferred to TASK-13.
+- Rejection, redo deadlines, second submissions, and the first-successful concurrent Parent review lifecycle were delivered in TASK-13.
 
 ## Current backend organization
 
@@ -454,12 +456,22 @@ convex/
 ├── choreOccurrenceMaintenance.ts
 ├── personalChores.ts
 ├── personalChoreReviews.ts
+├── claimableChores.ts
+├── claimableClaimCancellations.ts
+├── claimableChoreSubmissions.ts
+├── claimableChoreReviews.ts
+├── childRedos.ts
+├── redoChoreReviews.ts
+├── redoDeadlineTransitions.ts
+├── runningBalances.ts
 ├── crons.ts
 ├── schema.ts
 ├── schema/
 │   ├── households.ts
 │   ├── childAccess.ts
-│   └── chores.ts
+│   ├── claims.ts
+│   ├── chores.ts
+│   └── redos.ts
 └── lib/
     ├── childAuthorization.ts
     ├── parentAuthorization.ts
@@ -469,21 +481,27 @@ convex/
     ├── choreOccurrenceMaintenance.ts
     ├── householdTime.ts
     ├── personalChoreExecution.ts
-    └── personalChoreReview.ts
+    ├── personalChoreReview.ts
+    ├── claimableChoreClaiming.ts
+    ├── claimableChoreCancellation.ts
+    ├── claimableChoreExecution.ts
+    ├── claimableChoreReview.ts
+    ├── initialChoreRejection.ts
+    ├── redoSubmission.ts
+    ├── redoChoreReview.ts
+    ├── redoDeadlineFailure.ts
+    ├── claimableFailurePenalty.ts
+    └── runningBalance.ts
 ```
 
-Development-only automated verification currently includes:
+Development-only automated verification currently includes TASK-06 through TASK-14 smoke suites, including dedicated TASK-14 coverage for:
 
-```text
-convex/
-├── task06SmokeTests.ts
-├── task07SchedulingSmokeTests.ts
-├── task07OccurrenceSmokeTests.ts
-├── task07MaintenanceSmokeTests.ts
-├── task08SubmissionSmokeTests.ts
-├── task08ApprovalSmokeTests.ts
-└── task08MissSmokeTests.ts
-```
+- immutable penalty Ledger invariants;
+- missed locked-Claim failure;
+- maintenance penalty reconciliation;
+- original-deadline Parent cancellation boundaries;
+- Redo-deadline Parent cancellation boundaries;
+- negative Running Balance and cross-week carry-forward.
 
 ## Current chore data model
 
@@ -568,26 +586,47 @@ submittedAt <= deadlineAt
 
 ## Financial boundary currently implemented
 
-TASK-08 establishes the immutable ledger seam:
+The immutable Ledger is the authoritative financial source:
 
 ```text
-approved Personal Chore
+approved Personal / Claimable / Redo work
         ↓
 ledgerEntries
         ↓
 earning +valueSek
 ```
 
-The following are intentionally not yet implemented:
+```text
+failed locked claimed Claimable commitment
+        ↓
+ledgerEntries
+        ↓
+penalty -valueSek
+```
 
-- Claimable Chore earnings.
-- Claim penalties.
-- Redo failure penalties.
-- Running balance presentation.
-- Weekly payout periods.
-- Swish settlement tracking.
+TASK-14 establishes the current Running Balance boundary:
 
-Those are introduced by later milestones.
+- approved earnings use immutable Chore Occurrence value snapshots;
+- missing a locked claimed Claimable Chore strictly after its original deadline creates one full-value negative penalty;
+- a rejected or missed claimed Claimable Redo creates one full-value negative penalty;
+- failed or missed Personal Chores remain penalty-free and cannot create debt;
+- Parent cancellation creates no penalty;
+- penalty creation is idempotent so scheduled retries and maintenance reconciliation cannot double-charge;
+- an occurrence cannot simultaneously receive an earning and a failure penalty;
+- Running Balance is derived from immutable Ledger Entries rather than stored as a mutable total;
+- Running Balance may cross below zero;
+- later earnings offset carried negative value before producing a positive balance;
+- calendar-week changes do not reset a negative Running Balance;
+- Child-facing balance access resolves the authenticated Child server-side and exposes only that Child's total;
+- Parent-facing balance access is Household-authorized and cannot query a Child from another Household.
+
+The following are intentionally deferred to TASK-15:
+
+- durable Payout Periods;
+- marking positive payouts as paid;
+- settlement boundaries on Ledger Entries;
+- manual Swish settlement tracking;
+- closing/resetting weekly unclaim accounting against durable Payout Periods.
 
 ## Child-device UX boundary currently implemented
 
@@ -627,21 +666,20 @@ Parent revokes device access
 
 The Child PIN is a local profile boundary. Server authorization always depends on the active Better Auth device identity and current Convex access grant.
 
-## Next — TASK-12
+## Next — TASK-15
 
-TASK-12 adds execution and approval for an owned Claimable Chore.
+TASK-15 completes the settlement boundary around the immutable Ledger and TASK-14 Running Balance.
 
 It will:
 
-- allow the owning Child to submit the claimed occurrence;
-- keep submitted work in the active-Claim slot while Parent review is pending;
-- allow either authorized Parent to review the submission;
-- protect an on-time Child submission from Parent review delay;
-- create the approved Claimable Chore earning from immutable occurrence terms;
-- release the active-Claim slot after approval;
-- preserve the TASK-11 commitment, cancellation, and historical Claim invariants.
-
-TASK-13 will then add the single-redo review lifecycle.
+- introduce durable Payout Periods;
+- resolve Household payout-week boundaries from the configured payout weekday and timezone;
+- carry negative unsettled balances forward rather than creating a positive payout;
+- keep unresolved work out of a closed payout until its later financial outcome exists;
+- expose finalized positive unsettled value for manual Swish payment;
+- allow an authorized Parent to mark a payout paid;
+- keep paid payout history immutable;
+- close/reset weekly unclaim accounting against the durable Payout Period.
 
 ### TASK-13 — Single-Redo review lifecycle and first-successful Parent review
 
@@ -690,7 +728,7 @@ TASK-13 will then add the single-redo review lifecycle.
 - Rejected Personal Redos transition to `failed`.
 - Rejected Claimable Redos transition both the occurrence and Claim to `failed`.
 - No second Redo can be created.
-- Failed Claimable Redo penalties are intentionally deferred to TASK-14.
+- TASK-14 extends failed claimed Claimable Redos with the required full-value penalty.
 
 #### Redo deadline failure
 
@@ -699,7 +737,7 @@ TASK-13 will then add the single-redo review lifecycle.
 - Initial rejection schedules a durable Convex transition for `deadlineAt + 1`.
 - An unsubmitted Personal Redo becomes `failed` after its deadline.
 - An unsubmitted Claimable Redo transitions both Claim and occurrence to `failed`.
-- Redo deadline failure creates no ledger entry in TASK-13.
+- TASK-14 extends missed claimed Claimable Redo deadline failure with a full-value penalty; missed Personal Redos remain penalty-free.
 - A failed Claimable Redo releases the active Claim slot.
 - Scheduled deadline reconciliation is idempotent.
 - The scheduled callback is harmless after timely attempt-2 submission, Parent cancellation, or another terminal transition.
@@ -765,3 +803,124 @@ Maestro coverage verifies:
 - final Parent Redo approval and rejection;
 - existing Claim, unclaim, Parent cancellation, TASK-12 submission, and TASK-12 Parent approval journeys.
 
+### TASK-14 — Locked-Claim penalties, failed-Redo penalties, and negative Running Balance
+
+#### Immutable penalty Ledger Entries
+
+- Negative `penalty` Ledger Entries are created for financially failed claimed Claimable Chores.
+- Penalty value is always the negative of the immutable Chore Occurrence `valueSek` snapshot.
+- Later edits to the Chore Definition cannot alter an already accepted commitment's financial consequence.
+- Penalty creation verifies that the Claim and occurrence are both terminally `failed`.
+- A failed Personal Chore cannot create a penalty.
+- An occurrence with an earning cannot also receive a failure penalty.
+- Reconciliation detects an existing matching penalty and returns it idempotently.
+- Duplicate penalties for the same occurrence are rejected as an invariant violation.
+
+#### Missed locked original Claims
+
+- A still-owned `claimed` Claimable occurrence remains submit-capable at the exact original deadline.
+- Failure occurs only when `now > deadlineAt`.
+- Strictly after the deadline, an unresolved owned Claim transitions both Claim and occurrence to `failed`.
+- The same transaction creates one full-value penalty.
+- Failed ownership leaves active claimed-by visibility and releases the Child's active-Claim slot.
+- Never-claimed Claimable occurrences continue to become `expired_unclaimed` without penalty.
+- Exact-deadline submission remains protected from later lifecycle reconciliation.
+- Claimable occurrence generation schedules both the exact-deadline expiry check and the first post-deadline failure check.
+- The recurring maintenance job reconciles overdue owned Claims as a safety net.
+- Scheduled and maintenance reconciliation remain idempotent.
+
+#### Failed Claimable Redos
+
+- Rejection of attempt `2` is final and creates the full-value penalty for a claimed Claimable Chore.
+- Missing the Redo deadline strictly after its authoritative `choreRedos.deadlineAt` creates the same full-value penalty.
+- Personal Redo rejection and Personal Redo deadline failure remain penalty-free.
+- Claimable Redo failure transitions both Claim and occurrence to `failed`.
+- Repeated Redo reconciliation cannot double-charge the Child.
+- An on-time attempt-2 submission remains protected from later Redo deadline reconciliation.
+
+#### Parent cancellation deadline race
+
+- Parent cancellation itself remains penalty-free and consumes no Child unclaim.
+- A still-`claimed` commitment may be Parent-cancelled through the exact original occurrence deadline.
+- Strictly after the original deadline, cancellation is rejected because the financial failure condition is already due.
+- A `redo_required` Claim uses the Redo's own immutable deadline rather than the original occurrence deadline.
+- Parent cancellation remains valid through the exact Redo deadline and is rejected strictly afterward.
+- A valid on-time `submitted` Claim remains Parent-cancellable after its applicable deadline because Parent review delay is harmless.
+- Late cancellation rejection does not mutate the unresolved Claim; normal scheduled or maintenance reconciliation subsequently records the failure and penalty.
+
+#### Running Balance and negative carry-forward
+
+- Running Balance is derived from immutable Ledger Entries rather than stored as mutable Child state.
+- Until TASK-15 introduces settlement, all existing Ledger Entries participate in the current Running Balance.
+- Positive earnings and negative penalties are summed for exactly one Child.
+- A penalty may move the balance below zero.
+- Negative balances are not clamped to zero.
+- A later week's earning first offsets carried negative value.
+- Future earnings may eventually move the Running Balance back above zero.
+- Sibling Ledger Entries cannot affect another Child's Running Balance.
+
+#### Financial privacy and public queries
+
+- `runningBalances.getMine` accepts no Child ID.
+- The Child's identity is resolved from authenticated Child-device access server-side.
+- The Child-facing query exposes only that Child's Running Balance total.
+- `runningBalances.getForChild` first authorizes the Parent for the requested Household.
+- Parent lookup additionally verifies the requested Child belongs to that Household.
+- Cross-Household Child balance lookup is rejected.
+- Detailed sibling Ledger history is not exposed through the Running Balance surface.
+
+#### Child UI and Maestro
+
+- The Child home shows a compact `Running balance` surface near the top of the existing screen.
+- No new Child tab or navigation surface was introduced.
+- The displayed amount may be negative.
+- The reusable presentation component is exercised by a development-only TASK-14 Maestro fixture.
+- Maestro verifies rendering of a deterministic `-100 kr` Running Balance.
+- Existing TASK-10 Claim, TASK-11 unclaim and Parent cancellation, TASK-12 submission and approval, and TASK-13 Redo flows remain green.
+
+#### TASK-14 automated verification
+
+Backend smoke coverage includes:
+
+- refusal to penalize an unresolved Claim;
+- immutable occurrence-value penalty calculation;
+- idempotent penalty creation;
+- prevention of earning-plus-penalty double financial outcomes;
+- prevention of Personal debt;
+- exact original deadline protection;
+- post-deadline locked-Claim failure and full penalty;
+- active-slot release after failed Claim;
+- never-claimed expiry without penalty;
+- exact-deadline submission protection;
+- maintenance reconciliation and retry idempotence;
+- missed Personal Redo with no penalty;
+- missed claimed Claimable Redo full penalty;
+- rejected Personal Redo with no penalty;
+- rejected claimed Claimable Redo full penalty;
+- exact Redo deadline protection;
+- on-time Redo submission protection;
+- original-Claim Parent cancellation before and at the deadline;
+- rejection of original-Claim Parent cancellation strictly after deadline;
+- Redo Parent cancellation before and at the Redo deadline;
+- rejection of Redo Parent cancellation strictly after the Redo deadline;
+- submitted Claim cancellation after an on-time submission;
+- zero initial Running Balance;
+- negative Running Balance creation;
+- cross-week negative carry-forward;
+- future earning offset of carried debt;
+- return from negative to positive balance;
+- sibling financial isolation.
+
+Final TASK-10 through TASK-14 backend regression coverage passes.
+
+Final Maestro regression coverage passes for:
+
+- TASK-10 Claim UI;
+- TASK-11 unclaim UI;
+- TASK-11 Parent cancellation UI;
+- TASK-12 Claimable submission UI;
+- TASK-12 Parent review UI;
+- TASK-13 Child Redo UI;
+- TASK-13 Parent initial rejection UI;
+- TASK-13 Parent Redo review UI;
+- TASK-14 Running Balance UI.

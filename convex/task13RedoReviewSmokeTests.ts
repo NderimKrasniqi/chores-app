@@ -23,8 +23,10 @@ import {
 } from './lib/redoSubmission';
 
 function assert(
-  condition: unknown,
-  message: string,
+  condition:
+    unknown,
+  message:
+    string,
 ): asserts condition {
   if (!condition) {
     throw new Error(
@@ -36,7 +38,8 @@ function assert(
 async function expectFailure(
   operation:
     () => Promise<unknown>,
-  message: string,
+  message:
+    string,
 ) {
   try {
     await operation();
@@ -108,9 +111,9 @@ export const run =
         );
 
       /*
-       * Parent may review after the Redo
-       * deadline because persisted
-       * submittedAt is authoritative.
+       * Review delay is harmless because
+       * persisted submittedAt determines
+       * whether Redo submission was valid.
        */
       const redoReviewAt =
         resolveLocalDateTimeToEpochMs(
@@ -263,6 +266,25 @@ export const run =
           Id<'choreClaims'>
         > = [];
 
+      async function ledgerFor(
+        occurrenceId:
+          Id<'choreOccurrences'>,
+      ) {
+        return await ctx.db
+          .query(
+            'ledgerEntries',
+          )
+          .withIndex(
+            'by_occurrence_kind',
+            (q) =>
+              q.eq(
+                'occurrenceId',
+                occurrenceId,
+              ),
+          )
+          .collect();
+      }
+
       async function createPersonalRedoSubmission({
         submitAt =
           redoSubmittedAt,
@@ -361,8 +383,10 @@ export const run =
 
         return {
           occurrenceId,
+
           submissionId:
-            redoResult.submissionId,
+            redoResult
+              .submissionId,
         };
       }
 
@@ -488,9 +512,12 @@ export const run =
 
         return {
           occurrenceId,
+
           claimId,
+
           submissionId:
-            redoResult.submissionId,
+            redoResult
+              .submissionId,
         };
       }
 
@@ -498,6 +525,9 @@ export const run =
         let passed =
           0;
 
+        /*
+         * 1. Personal Redo approval.
+         */
         const personalApproved =
           await createPersonalRedoSubmission();
 
@@ -541,12 +571,18 @@ export const run =
           'Approved Personal Redo must create the normal earning and complete the occurrence.',
         );
 
-        passed += 1;
+        passed +=
+          1;
 
         console.log(
           '✅ 1/9 Personal Redo approval completes and earns',
         );
 
+        /*
+         * 2. Review may happen after Redo
+         * deadline if submission was on
+         * time.
+         */
         assert(
           personalOccurrence?.deadlineAt ===
             originalDeadlineAt &&
@@ -555,12 +591,16 @@ export const run =
           'Review delay must not rewrite the original deadline or invalidate an on-time Redo.',
         );
 
-        passed += 1;
+        passed +=
+          1;
 
         console.log(
           '✅ 2/9 on-time Redo remains approvable after its deadline',
         );
 
+        /*
+         * 3. Claimable Redo approval.
+         */
         const claimableApproved =
           await createClaimableRedoSubmission();
 
@@ -596,12 +636,17 @@ export const run =
           'Approved Claimable Redo must approve Claim and occurrence using immutable value.',
         );
 
-        passed += 1;
+        passed +=
+          1;
 
         console.log(
           '✅ 3/9 Claimable Redo approval completes Claim and occurrence',
         );
 
+        /*
+         * 4. Approved Claimable Redo
+         * releases active Claim slot.
+         */
         const activeAfterApproval =
           await listHouseholdClaimedOccurrences(
             ctx,
@@ -618,12 +663,17 @@ export const run =
           'Approved Claimable Redo must release the active Claim slot.',
         );
 
-        passed += 1;
+        passed +=
+          1;
 
         console.log(
           '✅ 4/9 Claimable Redo approval releases active Claim slot',
         );
 
+        /*
+         * 5. Rejected Personal Redo fails
+         * terminally but cannot create debt.
+         */
         const personalRejected =
           await createPersonalRedoSubmission();
 
@@ -665,22 +715,36 @@ export const run =
             )
             .collect();
 
+        const personalRejectedLedger =
+          await ledgerFor(
+            personalRejected
+              .occurrenceId,
+          );
+
         assert(
           rejectedPersonalReview?.decision ===
             'rejected' &&
           rejectedPersonalOccurrence?.state ===
             'failed' &&
           personalRejectedRedos.length ===
-            1,
-          'Rejected Personal Redo must fail terminally without creating another Redo.',
+            1 &&
+          personalRejectedLedger.length ===
+            0,
+          'Rejected Personal Redo must fail terminally without another Redo or financial penalty.',
         );
 
-        passed += 1;
+        passed +=
+          1;
 
         console.log(
-          '✅ 5/9 Personal Redo rejection fails with no second Redo',
+          '✅ 5/9 Personal Redo rejection fails with no penalty or second Redo',
         );
 
+        /*
+         * 6. Rejected Claimable Redo gets
+         * the same full-value consequence
+         * as a missed Claimable Redo.
+         */
         const claimableRejected =
           await createClaimableRedoSubmission();
 
@@ -706,20 +770,10 @@ export const run =
           );
 
         const rejectedClaimLedger =
-          await ctx.db
-            .query(
-              'ledgerEntries',
-            )
-            .withIndex(
-              'by_occurrence_kind',
-              (q) =>
-                q.eq(
-                  'occurrenceId',
-                  claimableRejected
-                    .occurrenceId,
-                ),
-            )
-            .collect();
+          await ledgerFor(
+            claimableRejected
+              .occurrenceId,
+          );
 
         assert(
           rejectedClaim?.state ===
@@ -727,16 +781,30 @@ export const run =
           rejectedClaimOccurrence?.state ===
             'failed' &&
           rejectedClaimLedger.length ===
-            0,
-          'Rejected Claimable Redo must fail without creating TASK-14 penalty early.',
+            1 &&
+          rejectedClaimLedger[0]
+            .kind ===
+            'penalty' &&
+          rejectedClaimLedger[0]
+            .amountSek ===
+            -140 &&
+          rejectedClaimLedger[0]
+            .childId ===
+            childA,
+          'Rejected Claimable Redo must create exactly one full-value penalty.',
         );
 
-        passed += 1;
+        passed +=
+          1;
 
         console.log(
-          '✅ 6/9 Claimable Redo rejection fails without early penalty',
+          '✅ 6/9 Claimable Redo rejection creates full-value penalty',
         );
 
+        /*
+         * 7. First successful approval
+         * remains authoritative.
+         */
         await expectFailure(
           () =>
             rejectRedoSubmission(
@@ -745,7 +813,8 @@ export const run =
                 .submissionId,
               'task13-parent-a',
               'personal',
-              redoReviewAt + 1,
+              redoReviewAt +
+                1,
             ),
           'A later rejection must not overwrite an approved Redo.',
         );
@@ -775,12 +844,17 @@ export const run =
           'First successful approval must remain authoritative.',
         );
 
-        passed += 1;
+        passed +=
+          1;
 
         console.log(
           '✅ 7/9 later conflicting rejection cannot overwrite approval',
         );
 
+        /*
+         * 8. First successful rejection
+         * remains authoritative.
+         */
         await expectFailure(
           () =>
             approveRedoSubmission(
@@ -789,7 +863,8 @@ export const run =
                 .submissionId,
               'task13-parent-b',
               'personal',
-              redoReviewAt + 1,
+              redoReviewAt +
+                1,
             ),
           'A later approval must not overwrite a rejected Redo.',
         );
@@ -842,17 +917,17 @@ export const run =
           'First successful rejection must remain authoritative with no later earning.',
         );
 
-        passed += 1;
+        passed +=
+          1;
 
         console.log(
           '✅ 8/9 later conflicting approval cannot overwrite rejection',
         );
 
         /*
-         * Synthetic defensive case:
-         * persist attempt 2 after its Redo
-         * deadline, then ensure review
-         * rejects it.
+         * 9. Defensive historical case:
+         * a persisted late attempt 2 must
+         * not become reviewable.
          */
         const lateFixture =
           await createPersonalRedoSubmission();
@@ -871,7 +946,8 @@ export const run =
           lateSubmission._id,
           {
             submittedAt:
-              redoDeadlineAt + 1,
+              redoDeadlineAt +
+              1,
           },
         );
 
@@ -918,7 +994,8 @@ export const run =
           'Late persisted Redo review failure must have no durable review effect.',
         );
 
-        passed += 1;
+        passed +=
+          1;
 
         console.log(
           '✅ 9/9 late persisted Redo cannot be reviewed',
@@ -936,19 +1013,9 @@ export const run =
           occurrenceIds
         ) {
           const ledgerEntries =
-            await ctx.db
-              .query(
-                'ledgerEntries',
-              )
-              .withIndex(
-                'by_occurrence_kind',
-                (q) =>
-                  q.eq(
-                    'occurrenceId',
-                    occurrenceId,
-                  ),
-              )
-              .collect();
+            await ledgerFor(
+              occurrenceId,
+            );
 
           for (
             const entry of

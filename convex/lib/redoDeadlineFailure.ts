@@ -12,6 +12,9 @@ import type {
 import type {
   MutationCtx,
 } from '../_generated/server';
+import {
+  ensureClaimableFailurePenalty,
+} from './claimableFailurePenalty';
 
 export type ReconcileRedoDeadlineFailureResult = {
   found:
@@ -76,11 +79,13 @@ export async function scheduleRedoDeadlineFailure(
  * Resolve a Redo that reached its active
  * deadline without attempt 2.
  *
- * This function intentionally creates no
- * financial effect.
+ * Personal:
+ * failed, earns 0, no penalty.
  *
- * TASK-14 later owns the Claimable
- * full-value failure penalty.
+ * Claimable:
+ * Claim + occurrence become failed and
+ * TASK-14 creates one immutable full-value
+ * penalty in the same Convex transaction.
  */
 export async function reconcileRedoDeadlineFailure(
   ctx:
@@ -270,8 +275,8 @@ export async function reconcileRedoDeadlineFailure(
         )
         .collect();
 
-    const claim =
-      claims.find(
+    const matchingClaims =
+      claims.filter(
         (candidate) =>
           candidate.childId ===
             initialSubmission
@@ -280,11 +285,17 @@ export async function reconcileRedoDeadlineFailure(
             'redo_required',
       );
 
-    if (!claim) {
+    if (
+      matchingClaims.length !==
+      1
+    ) {
       throw new ConvexError(
-        'Redo Claim ownership could not be verified.',
+        'Redo Claim ownership could not be uniquely verified.',
       );
     }
+
+    const claim =
+      matchingClaims[0];
 
     if (
       claim.householdId !==
@@ -323,6 +334,22 @@ export async function reconcileRedoDeadlineFailure(
         'failed',
     },
   );
+
+  /*
+   * Financial consequence is part of the
+   * same atomic state transition.
+   *
+   * The helper verifies the failed Claim,
+   * failed Claimable occurrence, ownership,
+   * immutable value, and idempotency.
+   */
+  if (claimId) {
+    await ensureClaimableFailurePenalty(
+      ctx,
+      claimId,
+      now,
+    );
+  }
 
   return {
     found:
