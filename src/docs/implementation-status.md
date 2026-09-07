@@ -1,7 +1,7 @@
 # Current Implementation Status
 
-**Current milestone:** TASK-10 complete
-**Next milestone:** TASK-11 — Implement weekly unclaim accounting, the two-hour commitment lock, locked-claim warning, and parent cancellation
+**Current milestone:** TASK-11 complete
+**Next milestone:** TASK-12 — Deliver claimed-chore submission, parent review, approved earnings, and active-claim release
 
 ## Completed
 
@@ -311,6 +311,73 @@ Backend smoke coverage includes:
 - unclaimed deadline expiry;
 - active Claim protection from `expired_unclaimed`.
 
+### TASK-11 — Claim commitment, unclaim, and Parent cancellation
+
+#### Weekly unclaim accounting
+
+- Successful Child-initiated unclaims remain durable Claim history.
+- `unclaimedAt` is the authoritative timestamp used for weekly unclaim accounting.
+- Parent cancellation never writes `unclaimedAt` and never consumes Child allowance.
+- Weekly usage is counted against the Household-configured unclaim allowance.
+- Exhausting the allowance does not prevent future Claims; new Claims become immediately non-unclaimable for that Payout Week.
+- Until durable Payout Periods arrive in TASK-15, TASK-11 resolves the current Payout Week from Household-local midnight on the configured payout weekday.
+- Household-local payout boundaries use timezone-aware calendar arithmetic, including DST transitions.
+
+#### Two-hour commitment lock
+
+- The Child unclaim lock begins exactly two hours before the immutable occurrence deadline.
+- One millisecond before the boundary remains eligible when allowance remains.
+- At the exact boundary and afterward, Child unclaim is rejected.
+- Lock decisions are re-derived server-side.
+- Claiming inside the lock window remains permitted.
+
+#### Locked-Claim acknowledgement
+
+- Child Claimable queries expose derived commitment-lock and remaining-unclaim metadata.
+- Claims that would be immediately non-unclaimable require explicit Child acknowledgement.
+- Immediate lock can result from the two-hour time window or exhausted weekly allowance.
+- The Claim mutation independently re-checks the commitment state and never trusts client calculations.
+- Ordinary unlocked Claims require no additional acknowledgement.
+
+#### Child unclaim lifecycle
+
+- Only an actively `claimed`, unsubmitted Claim may be voluntarily unclaimed.
+- Submitted and redo-required Claims cannot be Child-unclaimed.
+- Successful unclaim transitions the durable Claim to `unclaimed`.
+- A successful unclaim consumes exactly one weekly allowance.
+- Rejected unclaim attempts consume no allowance and make no Claim mutation.
+- A Child cannot unclaim another Child's Claim.
+- Successful unclaim releases the Child's active-Claim slot.
+- The occurrence returns to the available pool while still before its deadline.
+- Historical `unclaimed` Claim rows remain durable.
+- A later eligible Child may create a new Claim for that occurrence.
+- Historical released ownership no longer blocks reclaim.
+
+#### Parent cancellation
+
+- Either authorized Parent may cancel an unresolved Claim.
+- `claimed`, `submitted`, and `redo_required` Claims remain Parent-cancellable.
+- Terminal Claims cannot be reopened through cancellation.
+- Parent cancellation transitions both Claim and Chore Occurrence to `cancelled`.
+- Cancellation retains authoritative cancellation time and Parent identity.
+- Parent cancellation creates no Ledger Entry or penalty.
+- Parent cancellation consumes no weekly Child unclaim.
+- Cancellation releases the active-Claim slot.
+- Cancelled Claims leave active claimed-by visibility.
+- Cross-Household cancellation is rejected server-side.
+
+#### TASK-11 UI and automated verification
+
+- Child UI shows remaining weekly unclaims.
+- Owned Claims show whether voluntary unclaim is still available or the commitment is locked.
+- Child UI only exposes Unclaim while the derived commitment remains eligible.
+- Immediately locked Claims use inline confirmation before acknowledgement is sent to Convex.
+- Parent cancellation remains inside the existing compact Active claims section.
+- Parent cancellation uses inline confirmation explaining the no-penalty and no-unclaim-consumption behavior.
+- Development-only Maestro fixtures exercise the same reusable production presentation components.
+- Maestro covers Child unclaim, pool return, allowance decrement, locked-Claim acknowledgement, locked owned-Claim presentation, and Parent cancellation.
+- TASK-10 claiming, visibility, and deadline regressions remain green.
+
 ## Current backend organization
 
 Public Convex domain modules remain at the `convex/` root so generated API paths remain stable.
@@ -515,19 +582,18 @@ Parent revokes device access
 
 The Child PIN is a local profile boundary. Server authorization always depends on the active Better Auth device identity and current Convex access grant.
 
-## Next — TASK-11
+## Next — TASK-12
 
-TASK-11 adds commitment and unclaim behavior around an active Claim.
+TASK-12 adds execution and approval for an owned Claimable Chore.
 
-It must:
+It will:
 
-- track the Household weekly unclaim allowance;
-- allow eligible voluntary unclaim before the commitment lock;
-- enforce the two-hour commitment lock boundary;
-- warn the Child before a Claim becomes locked;
-- reject ordinary Child unclaim after the lock;
-- allow authorized Parent cancellation;
-- preserve Claim history rather than deleting it;
-- keep authorization, allowance, and time decisions server-authoritative.
+- allow the owning Child to submit the claimed occurrence;
+- keep submitted work in the active-Claim slot while Parent review is pending;
+- allow either authorized Parent to review the submission;
+- protect an on-time Child submission from Parent review delay;
+- create the approved Claimable Chore earning from immutable occurrence terms;
+- release the active-Claim slot after approval;
+- preserve the TASK-11 commitment, cancellation, and historical Claim invariants.
 
-TASK-12 will then add claimed-chore submission and Parent review.
+TASK-13 will then add the single-redo review lifecycle.

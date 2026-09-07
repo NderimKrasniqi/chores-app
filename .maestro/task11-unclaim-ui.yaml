@@ -1,0 +1,39 @@
+appId: host.exp.Exponent
+---
+- openLink: "exp://127.0.0.1:8081/--/maestro-task11"
+
+- extendedWaitUntil:
+    visible: "TASK-11 Maestro Fixture"
+    timeout: 60000
+
+- tapOn: "Reset TASK-11 fixture"
+
+- assertVisible: "2 of 2 remaining"
+
+# Normal Claim -> Child may unclaim.
+- tapOn: "Claim Dog walk"
+- assertVisible: "You claimed this"
+- assertVisible: "Unclaim Dog walk"
+
+- tapOn: "Unclaim Dog walk"
+
+# Successful unclaim consumes one weekly allowance
+# and returns the chore to the available pool.
+- assertVisible: "1 of 2 remaining"
+- assertVisible: "Claim Dog walk"
+
+# A Claim already inside the two-hour window
+# must first show the explicit commitment warning.
+- tapOn: "Review locked claim Late cleanup"
+
+- assertVisible: "This claim will be locked immediately"
+- assertVisible: "Cancel locked claim Late cleanup"
+- assertVisible: "Confirm locked claim Late cleanup"
+
+# Explicit Child acknowledgement permits the Claim.
+- tapOn: "Confirm locked claim Late cleanup"
+
+- assertVisible: "You claimed this"
+- assertVisible: "Locked commitment"
+- assertVisible: "The two-hour lock window has started. This claim can no longer be unclaimed."
+- assertNotVisible: "Unclaim Late cleanup"

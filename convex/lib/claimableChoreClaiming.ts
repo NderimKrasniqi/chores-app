@@ -9,6 +9,9 @@ import type {
   MutationCtx,
 } from '../_generated/server';
 import { getClaimableAccessGateForChild } from './claimableAccessGate';
+import { getClaimUnclaimStatus } from './claimCommitmentRules';
+import { getWeeklyUnclaimUsageForChild } from './claimUnclaimAccounting';
+import { findClaimPreventingReclaim } from './claimOwnership';
 
 const activeClaimStates = [
   'claimed',
@@ -53,30 +56,6 @@ async function findActiveClaimForChild(
   return null;
 }
 
-/*
- * Atomically claim one available
- * Claimable Chore Occurrence.
- *
- * The caller supplies only the occurrence
- * identity. Child and Household identity
- * come from authenticated server state.
- *
- * All consequential rules are checked
- * inside the same Convex mutation:
- *
- * - Unlock gate;
- * - Household boundary;
- * - Claimable kind;
- * - availability window;
- * - eligibility snapshot;
- * - exclusive occurrence ownership;
- * - one unresolved Claim per Child.
- *
- * Convex mutations are transactional.
- * The occurrence-Claim index read and
- * insert therefore provide the
- * first-successful-claim boundary.
- */
 export async function claimClaimableOccurrence(
   ctx: MutationCtx,
   householdId:
@@ -86,15 +65,9 @@ export async function claimClaimableOccurrence(
   occurrenceId:
     Id<'choreOccurrences'>,
   now = Date.now(),
+  acceptImmediateLock =
+    false,
 ) {
-  /*
-   * Re-check TASK-09 authorization at the
-   * moment of claiming.
-   *
-   * A client having previously seen the
-   * pool never grants authority to claim
-   * after the Unlock gate closes.
-   */
   const gate =
     await getClaimableAccessGateForChild(
       ctx,
@@ -107,6 +80,17 @@ export async function claimClaimableOccurrence(
   ) {
     throw new ConvexError(
       'Claimable Chores are locked until the current Unlock Chore is approved.',
+    );
+  }
+
+  const household =
+    await ctx.db.get(
+      householdId,
+    );
+
+  if (!household) {
+    throw new ConvexError(
+      'Household not found.',
     );
   }
 
@@ -158,13 +142,6 @@ export async function claimClaimableOccurrence(
     );
   }
 
-  /*
-   * Claimable Chores expire AT their
-   * deadline boundary.
-   *
-   * Unlike Personal submission, claiming
-   * exactly at deadline is not permitted.
-   */
   if (
     now >=
     occurrence.deadlineAt
@@ -174,12 +151,6 @@ export async function claimClaimableOccurrence(
     );
   }
 
-  /*
-   * TASK-07 snapshots explicit Child IDs
-   * on every generated Claimable
-   * occurrence, including definitions
-   * configured for "all Children".
-   */
   if (
     occurrence
       .eligibleChildIds
@@ -192,43 +163,18 @@ export async function claimClaimableOccurrence(
     );
   }
 
-  /*
-   * Exclusive ownership boundary.
-   *
-   * The index read participates in the
-   * transaction. Concurrent attempts for
-   * the same occurrence cannot both
-   * successfully commit a Claim.
-   */
-  const existingClaim =
-    await ctx.db
-      .query(
-        'choreClaims',
-      )
-      .withIndex(
-        'by_occurrence',
-        (q) =>
-          q.eq(
-            'occurrenceId',
-            occurrenceId,
-          ),
-      )
-      .first();
+  const blockingClaim =
+    await findClaimPreventingReclaim(
+      ctx,
+      occurrenceId,
+    );
 
-  if (existingClaim) {
+  if (blockingClaim) {
     throw new ConvexError(
       'This Claimable Chore has already been claimed.',
     );
   }
 
-  /*
-   * A Child may own at most one unresolved
-   * Claim at a time.
-   *
-   * Submission and redo continue to occupy
-   * the slot. Approval, unclaim,
-   * cancellation, and failure are terminal.
-   */
   const activeClaim =
     await findActiveClaimForChild(
       ctx,
@@ -238,6 +184,58 @@ export async function claimClaimableOccurrence(
   if (activeClaim) {
     throw new ConvexError(
       'This Child already has an active Claimable Chore.',
+    );
+  }
+
+  /*
+   * TASK-11 commitment contract.
+   *
+   * Claiming is still permitted when
+   * unclaim rights are unavailable.
+   *
+   * However, the client must explicitly
+   * acknowledge that this Claim becomes
+   * immediately locked.
+   *
+   * The server independently derives both
+   * causes:
+   *
+   * - exact two-hour time boundary;
+   * - exhausted weekly allowance.
+   */
+  const usage =
+    await getWeeklyUnclaimUsageForChild(
+      ctx,
+      household,
+      childId,
+      now,
+    );
+
+  const unclaimStatus =
+    getClaimUnclaimStatus({
+      deadlineAt:
+        occurrence.deadlineAt,
+
+      now,
+
+      weeklyUnclaimAllowance:
+        usage.allowance,
+
+      usedUnclaims:
+        usage.usedUnclaims,
+    });
+
+  const isImmediatelyLocked =
+    unclaimStatus.isTimeLocked ||
+    !unclaimStatus
+      .hasUnclaimAllowance;
+
+  if (
+    isImmediatelyLocked &&
+    !acceptImmediateLock
+  ) {
+    throw new ConvexError(
+      'This Claim will be locked immediately. Confirm the locked commitment before claiming.',
     );
   }
 
@@ -255,10 +253,6 @@ export async function claimClaimableOccurrence(
         state:
           'claimed',
 
-        /*
-         * Convex server time is
-         * authoritative.
-         */
         claimedAt:
           now,
       },
@@ -277,5 +271,23 @@ export async function claimClaimableOccurrence(
 
     state:
       'claimed' as const,
+
+    commitment: {
+      lockAt:
+        unclaimStatus.lockAt,
+
+      isImmediatelyLocked,
+
+      remainingUnclaims:
+        usage.remainingUnclaims,
+
+      lockReason:
+        unclaimStatus.isTimeLocked
+          ? 'time_window' as const
+          : !unclaimStatus
+                .hasUnclaimAllowance
+            ? 'allowance_exhausted' as const
+            : null,
+    },
   };
 }

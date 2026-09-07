@@ -38,6 +38,35 @@ const deadlineAt =
     0,
   );
 
+const lockAt =
+  deadlineAt -
+  2 *
+    60 *
+    60 *
+    1000;
+
+const unlockedCommitment = {
+  lockAt,
+
+  isTimeLocked:
+    false,
+
+  hasUnclaimAllowance:
+    true,
+
+  remainingUnclaims:
+    2,
+
+  canUnclaim:
+    true,
+
+  isImmediatelyLocked:
+    false,
+
+  lockReason:
+    null,
+} as const;
+
 type Viewer =
   | 'childA'
   | 'childB';
@@ -93,6 +122,9 @@ export function Task10MaestroFixtureScreen() {
                   'Europe/Stockholm',
 
                 deadlineAt,
+
+                commitment:
+                  unlockedCommitment,
               },
             ]
       ),
@@ -114,6 +146,9 @@ export function Task10MaestroFixtureScreen() {
           'Europe/Stockholm',
 
         deadlineAt,
+
+        commitment:
+          unlockedCommitment,
       },
     ];
 
@@ -167,6 +202,12 @@ export function Task10MaestroFixtureScreen() {
             isMine:
               viewer ===
               'childA',
+
+            commitment:
+              viewer ===
+              'childA'
+                ? unlockedCommitment
+                : null,
           },
         ]
       : [];
@@ -180,6 +221,45 @@ export function Task10MaestroFixtureScreen() {
 
         currentUnlockOccurrence:
           null,
+      },
+
+      unclaimAllowance: {
+        allowance:
+          2,
+
+        usedUnclaims:
+          0,
+
+        remainingUnclaims:
+          2,
+
+        payoutWeek: {
+          startLocalDate:
+            '2030-01-11',
+
+          endLocalDate:
+            '2030-01-18',
+
+          startAt:
+            Date.UTC(
+              2030,
+              0,
+              10,
+              23,
+              0,
+              0,
+            ),
+
+          endAt:
+            Date.UTC(
+              2030,
+              0,
+              17,
+              23,
+              0,
+              0,
+            ),
+        },
       },
 
       claimableOccurrences,
@@ -280,6 +360,24 @@ export function Task10MaestroFixtureScreen() {
 
           setPartyClaimed(
             true,
+          );
+        }}
+        onUnclaim={async (
+          claimId,
+        ) => {
+          if (
+            viewer !==
+            'childA' ||
+            claimId !==
+              PARTY_CLAIM_ID
+          ) {
+            throw new Error(
+              'Fixture expects Child A to unclaim Party.',
+            );
+          }
+
+          setPartyClaimed(
+            false,
           );
         }}
       />

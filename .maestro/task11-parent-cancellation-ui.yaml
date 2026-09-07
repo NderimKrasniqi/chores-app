@@ -1,0 +1,35 @@
+appId: host.exp.Exponent
+---
+- openLink: "exp://127.0.0.1:8081/--/maestro-task11-parent"
+
+- extendedWaitUntil:
+    visible: "TASK-11 Parent Fixture"
+    timeout: 60000
+
+- tapOn: "Reset TASK-11 Parent fixture"
+
+- assertVisible: "Active claims"
+- assertVisible: "School supplies"
+- assertVisible: "Claimed by Child A"
+
+# Opening cancellation must not immediately mutate the Claim.
+- tapOn: "Cancel claim School supplies"
+
+- assertVisible: "Cancel this claim?"
+- assertVisible: "The chore will be cancelled without a penalty and without using the Child's weekly unclaim."
+- assertVisible: "Keep claim School supplies"
+- assertVisible: "Confirm cancel claim School supplies"
+
+# Parent can back out safely.
+- tapOn: "Keep claim School supplies"
+
+- assertVisible: "Active claims"
+- assertVisible: "School supplies"
+
+# Reopen and explicitly confirm.
+- tapOn: "Cancel claim School supplies"
+- tapOn: "Confirm cancel claim School supplies"
+
+- assertVisible: "Cancellation recorded"
+- assertNotVisible: "Active claims"
+- assertNotVisible: "School supplies"

@@ -21,6 +21,11 @@ export function ClaimableChoresCard() {
       api.claimableChores.claim,
     );
 
+  const unclaim =
+    useMutation(
+      api.claimableChores.unclaim,
+    );
+
   if (
     result ===
     undefined
@@ -45,9 +50,18 @@ export function ClaimableChoresCard() {
       }
       onClaim={async (
         occurrenceId,
+        acceptImmediateLock,
       ) => {
         await claim({
           occurrenceId,
+          acceptImmediateLock,
+        });
+      }}
+      onUnclaim={async (
+        claimId,
+      ) => {
+        await unclaim({
+          claimId,
         });
       }}
     />

@@ -31,6 +31,34 @@ type ClaimState =
   | 'cancelled'
   | 'failed';
 
+type CommitmentLockReason =
+  | 'time_window'
+  | 'allowance_exhausted'
+  | null;
+
+export type ClaimCommitmentStatus = {
+  lockAt:
+    number;
+
+  isTimeLocked:
+    boolean;
+
+  hasUnclaimAllowance:
+    boolean;
+
+  remainingUnclaims:
+    number;
+
+  canUnclaim:
+    boolean;
+
+  isImmediatelyLocked:
+    boolean;
+
+  lockReason:
+    CommitmentLockReason;
+};
+
 export type ClaimableChoresViewModel = {
   gate: {
     canAccessClaimables:
@@ -56,6 +84,31 @@ export type ClaimableChoresViewModel = {
       | null;
   };
 
+  unclaimAllowance: {
+    allowance:
+      number;
+
+    usedUnclaims:
+      number;
+
+    remainingUnclaims:
+      number;
+
+    payoutWeek: {
+      startLocalDate:
+        string;
+
+      endLocalDate:
+        string;
+
+      startAt:
+        number;
+
+      endAt:
+        number;
+    };
+  };
+
   claimableOccurrences: Array<{
     occurrenceId:
       Id<'choreOccurrences'>;
@@ -74,6 +127,9 @@ export type ClaimableChoresViewModel = {
 
     deadlineAt:
       number;
+
+    commitment:
+      ClaimCommitmentStatus;
   }>;
 
   claimedOccurrences: Array<{
@@ -115,6 +171,9 @@ export type ClaimableChoresViewModel = {
 
     isMine:
       boolean;
+
+    commitment:
+      ClaimCommitmentStatus | null;
   }>;
 };
 
@@ -218,14 +277,70 @@ function getErrorMessage(
     return error.message;
   }
 
-  return 'Could not claim this chore. Please try again.';
+  return 'Could not complete this action. Please try again.';
+}
+
+function getImmediateLockMessage(
+  commitment:
+    ClaimCommitmentStatus,
+) {
+  if (
+    commitment.lockReason ===
+    'time_window'
+  ) {
+    return 'This chore is already inside the two-hour lock window. If you claim it, you will not be able to unclaim it.';
+  }
+
+  if (
+    commitment.lockReason ===
+    'allowance_exhausted'
+  ) {
+    return 'You have no weekly unclaims remaining. You can still claim this chore, but you will not be able to unclaim it.';
+  }
+
+  return 'This claim will be locked immediately and cannot be unclaimed.';
+}
+
+function getOwnedClaimLockMessage(
+  commitment:
+    ClaimCommitmentStatus,
+) {
+  if (
+    commitment.lockReason ===
+    'time_window'
+  ) {
+    return 'The two-hour lock window has started. This claim can no longer be unclaimed.';
+  }
+
+  if (
+    commitment.lockReason ===
+    'allowance_exhausted'
+  ) {
+    return 'You have no weekly unclaims remaining. This claim can no longer be unclaimed.';
+  }
+
+  return 'This claim is locked and can no longer be unclaimed.';
 }
 
 function ClaimedChoresSection({
   claimedOccurrences,
+  unclaimingClaimId,
+  actionsBusy,
+  onUnclaim,
 }: {
   claimedOccurrences:
     ClaimableChoresViewModel['claimedOccurrences'];
+
+  unclaimingClaimId:
+    Id<'choreClaims'> | null;
+
+  actionsBusy:
+    boolean;
+
+  onUnclaim: (
+    claimId:
+      Id<'choreClaims'>,
+  ) => Promise<void>;
 }) {
   if (
     claimedOccurrences.length ===
@@ -243,60 +358,136 @@ function ClaimedChoresSection({
       {claimedOccurrences.map(
         (
           occurrence,
-        ) => (
-          <View
-            key={
-              occurrence.claimId
-            }
-            className="p-4 mt-3 border rounded-xl border-slate-800 bg-slate-950"
-          >
-            <View className="flex-row items-start justify-between">
-              <View className="flex-1 pr-3">
-                <Text className="text-base font-semibold text-white">
-                  {
-                    occurrence.title
-                  }
-                </Text>
+        ) => {
+          const isUnclaiming =
+            unclaimingClaimId ===
+            occurrence.claimId;
 
-                {occurrence.description ? (
-                  <Text className="mt-1 text-sm leading-5 text-slate-400">
+          const canOfferUnclaim =
+            occurrence.isMine &&
+            occurrence.claimState ===
+              'claimed' &&
+            occurrence.commitment !==
+              null;
+
+          return (
+            <View
+              key={
+                occurrence.claimId
+              }
+              className="p-4 mt-3 border rounded-xl border-slate-800 bg-slate-950"
+            >
+              <View className="flex-row items-start justify-between">
+                <View className="flex-1 pr-3">
+                  <Text className="text-base font-semibold text-white">
                     {
-                      occurrence.description
+                      occurrence.title
                     }
                   </Text>
-                ) : null}
+
+                  {occurrence.description ? (
+                    <Text className="mt-1 text-sm leading-5 text-slate-400">
+                      {
+                        occurrence.description
+                      }
+                    </Text>
+                  ) : null}
+                </View>
+
+                <Text className="text-base font-bold text-green-400">
+                  {
+                    occurrence.valueSek
+                  }{' '}
+                  kr
+                </Text>
               </View>
 
-              <Text className="text-base font-bold text-green-400">
-                {
-                  occurrence.valueSek
-                }{' '}
-                kr
+              <Text className="mt-3 text-sm font-medium text-slate-300">
+                {occurrence.isMine
+                  ? 'You claimed this'
+                  : `Claimed by ${occurrence.claimedByDisplayName}`}
               </Text>
+
+              <Text className="mt-1 text-xs text-slate-500">
+                Status:{' '}
+                {formatClaimState(
+                  occurrence.claimState,
+                )}
+              </Text>
+
+              <Text className="mt-1 text-xs leading-5 text-slate-500">
+                Deadline:{' '}
+                {formatDeadline(
+                  occurrence.deadlineAt,
+                  occurrence.timezone,
+                )}
+              </Text>
+
+              {canOfferUnclaim &&
+              occurrence.commitment ? (
+                occurrence.commitment
+                  .canUnclaim ? (
+                  <View className="mt-4">
+                    <Text className="text-xs leading-5 text-slate-500">
+                      Unclaim available
+                      until:{' '}
+                      {formatDeadline(
+                        occurrence
+                          .commitment
+                          .lockAt,
+                        occurrence
+                          .timezone,
+                      )}
+                    </Text>
+
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={`Unclaim ${occurrence.title}`}
+                      disabled={
+                        actionsBusy
+                      }
+                      onPress={() =>
+                        void onUnclaim(
+                          occurrence
+                            .claimId,
+                        )
+                      }
+                      className={
+                        actionsBusy
+                          ? 'items-center px-4 py-3 mt-3 rounded-xl bg-slate-800'
+                          : 'items-center px-4 py-3 mt-3 rounded-xl bg-amber-800'
+                      }
+                    >
+                      <Text
+                        className={
+                          actionsBusy
+                            ? 'font-semibold text-slate-500'
+                            : 'font-semibold text-white'
+                        }
+                      >
+                        {isUnclaiming
+                          ? 'Unclaiming…'
+                          : 'Unclaim'}
+                      </Text>
+                    </Pressable>
+                  </View>
+                ) : (
+                  <View className="p-3 mt-4 border rounded-xl border-amber-900 bg-amber-950">
+                    <Text className="text-sm font-semibold text-amber-300">
+                      Locked commitment
+                    </Text>
+
+                    <Text className="mt-1 text-xs leading-5 text-amber-200">
+                      {getOwnedClaimLockMessage(
+                        occurrence.commitment,
+                      )}
+                    </Text>
+                  </View>
+                )
+              ) : null}
             </View>
-
-            <Text className="mt-3 text-sm font-medium text-slate-300">
-              {occurrence.isMine
-                ? 'You claimed this'
-                : `Claimed by ${occurrence.claimedByDisplayName}`}
-            </Text>
-
-            <Text className="mt-1 text-xs text-slate-500">
-              Status:{' '}
-              {formatClaimState(
-                occurrence.claimState,
-              )}
-            </Text>
-
-            <Text className="mt-1 text-xs leading-5 text-slate-500">
-              Deadline:{' '}
-              {formatDeadline(
-                occurrence.deadlineAt,
-                occurrence.timezone,
-              )}
-            </Text>
-          </View>
-        ),
+          );
+        },
       )}
     </View>
   );
@@ -305,6 +496,7 @@ function ClaimedChoresSection({
 export function ClaimableChoresView({
   result,
   onClaim,
+  onUnclaim,
 }: {
   result:
     ClaimableChoresViewModel;
@@ -312,10 +504,18 @@ export function ClaimableChoresView({
   onClaim: (
     occurrenceId:
       Id<'choreOccurrences'>,
+    acceptImmediateLock:
+      boolean,
+  ) => Promise<void>;
+
+  onUnclaim: (
+    claimId:
+      Id<'choreClaims'>,
   ) => Promise<void>;
 }) {
   const {
     gate,
+    unclaimAllowance,
     claimableOccurrences,
     claimedOccurrences,
   } = result;
@@ -329,8 +529,24 @@ export function ClaimableChoresView({
     >(null);
 
   const [
-    claimError,
-    setClaimError,
+    unclaimingClaimId,
+    setUnclaimingClaimId,
+  ] =
+    useState<
+      Id<'choreClaims'> | null
+    >(null);
+
+  const [
+    pendingLockedOccurrenceId,
+    setPendingLockedOccurrenceId,
+  ] =
+    useState<
+      Id<'choreOccurrences'> | null
+    >(null);
+
+  const [
+    actionError,
+    setActionError,
   ] =
     useState<
       string | null
@@ -344,17 +560,23 @@ export function ClaimableChoresView({
         occurrence.isMine,
     );
 
-  async function handleClaim(
+  const actionsBusy =
+    claimingOccurrenceId !==
+      null ||
+    unclaimingClaimId !==
+      null;
+
+  async function executeClaim(
     occurrenceId:
       Id<'choreOccurrences'>,
+    acceptImmediateLock:
+      boolean,
   ) {
-    if (
-      claimingOccurrenceId
-    ) {
+    if (actionsBusy) {
       return;
     }
 
-    setClaimError(
+    setActionError(
       null,
     );
 
@@ -365,17 +587,90 @@ export function ClaimableChoresView({
     try {
       await onClaim(
         occurrenceId,
+        acceptImmediateLock,
+      );
+
+      setPendingLockedOccurrenceId(
+        null,
       );
     } catch (
       error
     ) {
-      setClaimError(
+      setActionError(
         getErrorMessage(
           error,
         ),
       );
     } finally {
       setClaimingOccurrenceId(
+        null,
+      );
+    }
+  }
+
+  function beginClaim(
+    occurrence:
+      ClaimableChoresViewModel['claimableOccurrences'][number],
+  ) {
+    if (
+      actionsBusy ||
+      hasMyActiveClaim
+    ) {
+      return;
+    }
+
+    setActionError(
+      null,
+    );
+
+    if (
+      occurrence.commitment
+        .isImmediatelyLocked
+    ) {
+      setPendingLockedOccurrenceId(
+        occurrence
+          .occurrenceId,
+      );
+
+      return;
+    }
+
+    void executeClaim(
+      occurrence.occurrenceId,
+      false,
+    );
+  }
+
+  async function handleUnclaim(
+    claimId:
+      Id<'choreClaims'>,
+  ) {
+    if (actionsBusy) {
+      return;
+    }
+
+    setActionError(
+      null,
+    );
+
+    setUnclaimingClaimId(
+      claimId,
+    );
+
+    try {
+      await onUnclaim(
+        claimId,
+      );
+    } catch (
+      error
+    ) {
+      setActionError(
+        getErrorMessage(
+          error,
+        ),
+      );
+    } finally {
+      setUnclaimingClaimId(
         null,
       );
     }
@@ -416,6 +711,41 @@ export function ClaimableChoresView({
           </Text>
         </View>
       </View>
+
+      <View className="p-3 mt-4 rounded-xl bg-slate-950">
+        <Text className="text-sm font-semibold text-slate-300">
+          Weekly unclaims
+        </Text>
+
+        <Text className="mt-1 text-sm text-slate-400">
+          {
+            unclaimAllowance.remainingUnclaims
+          }{' '}
+          of{' '}
+          {
+            unclaimAllowance.allowance
+          }{' '}
+          remaining
+        </Text>
+
+        {unclaimAllowance
+          .remainingUnclaims ===
+        0 ? (
+          <Text className="mt-1 text-xs leading-5 text-amber-300">
+            You can still claim extra
+            chores, but new claims will be
+            locked immediately.
+          </Text>
+        ) : null}
+      </View>
+
+      {actionError ? (
+        <View className="p-3 mt-4 border rounded-xl border-red-900 bg-red-950">
+          <Text className="text-sm leading-5 text-red-300">
+            {actionError}
+          </Text>
+        </View>
+      ) : null}
 
       {!gate.canAccessClaimables ? (
         <View className="p-4 mt-4 border rounded-xl border-amber-900 bg-slate-950">
@@ -458,6 +788,15 @@ export function ClaimableChoresView({
         claimedOccurrences={
           claimedOccurrences
         }
+        unclaimingClaimId={
+          unclaimingClaimId
+        }
+        actionsBusy={
+          actionsBusy
+        }
+        onUnclaim={
+          handleUnclaim
+        }
       />
 
       {gate.canAccessClaimables ? (
@@ -471,14 +810,6 @@ export function ClaimableChoresView({
               Finish your current claimed
               chore before claiming another.
             </Text>
-          ) : null}
-
-          {claimError ? (
-            <View className="p-3 mt-3 border rounded-xl border-red-900 bg-red-950">
-              <Text className="text-sm leading-5 text-red-300">
-                {claimError}
-              </Text>
-            </View>
           ) : null}
 
           {claimableOccurrences.length ===
@@ -504,10 +835,13 @@ export function ClaimableChoresView({
                     claimingOccurrenceId ===
                     occurrence.occurrenceId;
 
+                  const isConfirmingLocked =
+                    pendingLockedOccurrenceId ===
+                    occurrence.occurrenceId;
+
                   const claimDisabled =
                     hasMyActiveClaim ||
-                    claimingOccurrenceId !==
-                      null;
+                    actionsBusy;
 
                   return (
                     <View
@@ -549,43 +883,139 @@ export function ClaimableChoresView({
                         )}
                       </Text>
 
-                      <Pressable
-                        accessibilityRole="button"
-                        accessibilityLabel={
-                          isClaiming
-                            ? `Claiming ${occurrence.title}`
-                            : hasMyActiveClaim
-                              ? `Cannot claim ${occurrence.title}: active claim already`
-                              : `Claim ${occurrence.title}`
-                        }
-                        disabled={
-                          claimDisabled
-                        }
-                        onPress={() =>
-                          void handleClaim(
-                            occurrence.occurrenceId,
-                          )
-                        }
-                        className={
-                          claimDisabled
-                            ? 'items-center px-4 py-3 mt-4 rounded-xl bg-slate-800'
-                            : 'items-center px-4 py-3 mt-4 rounded-xl bg-green-700'
-                        }
-                      >
-                        <Text
+                      {occurrence
+                        .commitment
+                        .isImmediatelyLocked ? (
+                        <Text className="mt-1 text-xs font-medium text-amber-300">
+                          Immediate commitment
+                          lock
+                        </Text>
+                      ) : (
+                        <Text className="mt-1 text-xs text-slate-500">
+                          Unclaim until:{' '}
+                          {formatDeadline(
+                            occurrence
+                              .commitment
+                              .lockAt,
+                            occurrence
+                              .timezone,
+                          )}
+                        </Text>
+                      )}
+
+                      {isConfirmingLocked ? (
+                        <View className="p-3 mt-4 border rounded-xl border-amber-800 bg-amber-950">
+                          <Text className="text-sm font-semibold text-amber-300">
+                            This claim will
+                            be locked
+                            immediately
+                          </Text>
+
+                          <Text className="mt-1 text-xs leading-5 text-amber-200">
+                            {getImmediateLockMessage(
+                              occurrence.commitment,
+                            )}
+                          </Text>
+
+                          <View className="flex-row mt-3">
+                            <Pressable
+                              accessibilityRole="button"
+                              accessibilityLabel={`Cancel locked claim ${occurrence.title}`}
+                              disabled={
+                                actionsBusy
+                              }
+                              onPress={() =>
+                                setPendingLockedOccurrenceId(
+                                  null,
+                                )
+                              }
+                              className="items-center flex-1 px-3 py-3 mr-2 rounded-xl bg-slate-800"
+                            >
+                              <Text className="font-semibold text-white">
+                                Cancel
+                              </Text>
+                            </Pressable>
+
+                            <Pressable
+                              accessibilityRole="button"
+                              accessibilityLabel={`Confirm locked claim ${occurrence.title}`}
+                              disabled={
+                                actionsBusy
+                              }
+                              onPress={() =>
+                                void executeClaim(
+                                  occurrence
+                                    .occurrenceId,
+                                  true,
+                                )
+                              }
+                              className={
+                                actionsBusy
+                                  ? 'items-center flex-1 px-3 py-3 rounded-xl bg-slate-800'
+                                  : 'items-center flex-1 px-3 py-3 rounded-xl bg-amber-700'
+                              }
+                            >
+                              <Text
+                                className={
+                                  actionsBusy
+                                    ? 'font-semibold text-slate-500'
+                                    : 'font-semibold text-white'
+                                }
+                              >
+                                {isClaiming
+                                  ? 'Claiming…'
+                                  : 'Claim anyway'}
+                              </Text>
+                            </Pressable>
+                          </View>
+                        </View>
+                      ) : (
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityLabel={
+                            isClaiming
+                              ? `Claiming ${occurrence.title}`
+                              : hasMyActiveClaim
+                                ? `Cannot claim ${occurrence.title}: active claim already`
+                                : occurrence
+                                      .commitment
+                                      .isImmediatelyLocked
+                                  ? `Review locked claim ${occurrence.title}`
+                                  : `Claim ${occurrence.title}`
+                          }
+                          disabled={
+                            claimDisabled
+                          }
+                          onPress={() =>
+                            beginClaim(
+                              occurrence,
+                            )
+                          }
                           className={
                             claimDisabled
-                              ? 'font-semibold text-slate-500'
-                              : 'font-semibold text-white'
+                              ? 'items-center px-4 py-3 mt-4 rounded-xl bg-slate-800'
+                              : occurrence
+                                    .commitment
+                                    .isImmediatelyLocked
+                                ? 'items-center px-4 py-3 mt-4 rounded-xl bg-amber-700'
+                                : 'items-center px-4 py-3 mt-4 rounded-xl bg-green-700'
                           }
                         >
-                          {isClaiming
-                            ? 'Claiming…'
-                            : hasMyActiveClaim
-                              ? 'Active claim already'
-                              : 'Claim'}
-                        </Text>
-                      </Pressable>
+                          <Text
+                            className={
+                              claimDisabled
+                                ? 'font-semibold text-slate-500'
+                                : 'font-semibold text-white'
+                            }
+                          >
+                            {isClaiming
+                              ? 'Claiming…'
+                              : hasMyActiveClaim
+                                ? 'Active claim already'
+                                : 'Claim'}
+                          </Text>
+                        </Pressable>
+                      )}
                     </View>
                   );
                 },

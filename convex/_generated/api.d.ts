@@ -16,6 +16,7 @@ import type * as choreOccurrenceMaintenance from "../choreOccurrenceMaintenance.
 import type * as choreOccurrenceTransitions from "../choreOccurrenceTransitions.js";
 import type * as choreOccurrences from "../choreOccurrences.js";
 import type * as claimableChores from "../claimableChores.js";
+import type * as claimableClaimCancellations from "../claimableClaimCancellations.js";
 import type * as crons from "../crons.js";
 import type * as health from "../health.js";
 import type * as households from "../households.js";
@@ -25,8 +26,13 @@ import type * as lib_choreOccurrenceGeneration from "../lib/choreOccurrenceGener
 import type * as lib_choreOccurrenceLifecycle from "../lib/choreOccurrenceLifecycle.js";
 import type * as lib_choreOccurrenceMaintenance from "../lib/choreOccurrenceMaintenance.js";
 import type * as lib_choreScheduling from "../lib/choreScheduling.js";
+import type * as lib_claimCommitmentRules from "../lib/claimCommitmentRules.js";
+import type * as lib_claimOwnership from "../lib/claimOwnership.js";
+import type * as lib_claimUnclaimAccounting from "../lib/claimUnclaimAccounting.js";
 import type * as lib_claimableAccessGate from "../lib/claimableAccessGate.js";
+import type * as lib_claimableChoreCancellation from "../lib/claimableChoreCancellation.js";
 import type * as lib_claimableChoreClaiming from "../lib/claimableChoreClaiming.js";
+import type * as lib_claimableChoreUnclaiming from "../lib/claimableChoreUnclaiming.js";
 import type * as lib_claimableChoreVisibility from "../lib/claimableChoreVisibility.js";
 import type * as lib_householdTime from "../lib/householdTime.js";
 import type * as lib_parentAuthorization from "../lib/parentAuthorization.js";
@@ -52,6 +58,11 @@ import type * as task09UnlockGateSmokeTests from "../task09UnlockGateSmokeTests.
 import type * as task10ClaimDeadlineSmokeTests from "../task10ClaimDeadlineSmokeTests.js";
 import type * as task10ClaimSmokeTests from "../task10ClaimSmokeTests.js";
 import type * as task10ClaimVisibilitySmokeTests from "../task10ClaimVisibilitySmokeTests.js";
+import type * as task11ClaimWarningSmokeTests from "../task11ClaimWarningSmokeTests.js";
+import type * as task11CommitmentRulesSmokeTests from "../task11CommitmentRulesSmokeTests.js";
+import type * as task11ParentCancellationSmokeTests from "../task11ParentCancellationSmokeTests.js";
+import type * as task11UnclaimAccountingSmokeTests from "../task11UnclaimAccountingSmokeTests.js";
+import type * as task11UnclaimSmokeTests from "../task11UnclaimSmokeTests.js";
 
 import type {
   ApiFromModules,
@@ -68,6 +79,7 @@ declare const fullApi: ApiFromModules<{
   choreOccurrenceTransitions: typeof choreOccurrenceTransitions;
   choreOccurrences: typeof choreOccurrences;
   claimableChores: typeof claimableChores;
+  claimableClaimCancellations: typeof claimableClaimCancellations;
   crons: typeof crons;
   health: typeof health;
   households: typeof households;
@@ -77,8 +89,13 @@ declare const fullApi: ApiFromModules<{
   "lib/choreOccurrenceLifecycle": typeof lib_choreOccurrenceLifecycle;
   "lib/choreOccurrenceMaintenance": typeof lib_choreOccurrenceMaintenance;
   "lib/choreScheduling": typeof lib_choreScheduling;
+  "lib/claimCommitmentRules": typeof lib_claimCommitmentRules;
+  "lib/claimOwnership": typeof lib_claimOwnership;
+  "lib/claimUnclaimAccounting": typeof lib_claimUnclaimAccounting;
   "lib/claimableAccessGate": typeof lib_claimableAccessGate;
+  "lib/claimableChoreCancellation": typeof lib_claimableChoreCancellation;
   "lib/claimableChoreClaiming": typeof lib_claimableChoreClaiming;
+  "lib/claimableChoreUnclaiming": typeof lib_claimableChoreUnclaiming;
   "lib/claimableChoreVisibility": typeof lib_claimableChoreVisibility;
   "lib/householdTime": typeof lib_householdTime;
   "lib/parentAuthorization": typeof lib_parentAuthorization;
@@ -104,6 +121,11 @@ declare const fullApi: ApiFromModules<{
   task10ClaimDeadlineSmokeTests: typeof task10ClaimDeadlineSmokeTests;
   task10ClaimSmokeTests: typeof task10ClaimSmokeTests;
   task10ClaimVisibilitySmokeTests: typeof task10ClaimVisibilitySmokeTests;
+  task11ClaimWarningSmokeTests: typeof task11ClaimWarningSmokeTests;
+  task11CommitmentRulesSmokeTests: typeof task11CommitmentRulesSmokeTests;
+  task11ParentCancellationSmokeTests: typeof task11ParentCancellationSmokeTests;
+  task11UnclaimAccountingSmokeTests: typeof task11UnclaimAccountingSmokeTests;
+  task11UnclaimSmokeTests: typeof task11UnclaimSmokeTests;
 }>;
 
 /**

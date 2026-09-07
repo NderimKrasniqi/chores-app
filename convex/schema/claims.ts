@@ -6,14 +6,13 @@ import {
 } from 'convex/values';
 
 /*
- * Claim lifecycle.
+ * Durable Claim lifecycle.
  *
- * TASK-10 initially creates `claimed`.
+ * A Claim keeps the same identity while
+ * moving through its execution states.
  *
- * Later tasks will move the same durable
- * Claim through submission, redo, approval,
- * unclaim, cancellation, and failure without
- * replacing its identity.
+ * `unclaimed` and `cancelled` are terminal
+ * outcomes introduced by TASK-11.
  */
 const choreClaimStateValidator =
   v.union(
@@ -27,15 +26,6 @@ const choreClaimStateValidator =
   );
 
 export const claimTables = {
-  /*
-   * Durable exclusive ownership of one
-   * Claimable Chore Occurrence.
-   *
-   * The occurrence already contains the
-   * immutable accepted value, deadline,
-   * timezone, and eligibility snapshots,
-   * so those terms are not duplicated here.
-   */
   choreClaims: defineTable({
     householdId:
       v.id('households'),
@@ -53,17 +43,40 @@ export const claimTables = {
 
     /*
      * Authoritative Convex server time.
-     *
-     * The client never supplies claimedAt.
      */
     claimedAt:
       v.number(),
-  })
+
     /*
-     * Used for exclusive ownership:
-     * one occurrence may have at most one
-     * successful durable Claim.
+     * Present only after a successful
+     * Child-initiated unclaim.
+     *
+     * This timestamp is the durable fact
+     * used for weekly allowance usage.
+     *
+     * Parent cancellation never writes
+     * unclaimedAt and therefore never
+     * consumes Child allowance.
      */
+    unclaimedAt:
+      v.optional(
+        v.number(),
+      ),
+
+    /*
+     * Present only when an authorized
+     * Parent cancels the unresolved Claim.
+     */
+    cancelledAt:
+      v.optional(
+        v.number(),
+      ),
+
+    cancelledByAuthUserId:
+      v.optional(
+        v.string(),
+      ),
+  })
     .index(
       'by_occurrence',
       [
@@ -71,10 +84,6 @@ export const claimTables = {
       ],
     )
 
-    /*
-     * Used for the Child's active-Claim
-     * slot and future Claim history.
-     */
     .index(
       'by_child',
       [
@@ -82,11 +91,6 @@ export const claimTables = {
       ],
     )
 
-    /*
-     * TASK-10 and later lifecycle work
-     * can efficiently inspect unresolved
-     * states for one Child.
-     */
     .index(
       'by_child_state',
       [
@@ -96,9 +100,18 @@ export const claimTables = {
     )
 
     /*
-     * Household-facing claimed-by
-     * visibility and history.
+     * Efficiently counts successful
+     * Child unclaims inside the current
+     * Payout Week.
      */
+    .index(
+      'by_child_unclaimed_at',
+      [
+        'childId',
+        'unclaimedAt',
+      ],
+    )
+
     .index(
       'by_household_claimed_at',
       [

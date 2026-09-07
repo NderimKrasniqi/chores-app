@@ -6,6 +6,7 @@ import type {
   QueryCtx,
 } from '../_generated/server';
 import { getClaimableAccessGateForChild } from './claimableAccessGate';
+import { findClaimPreventingReclaim } from './claimOwnership';
 
 const visibleClaimStates = [
   'claimed',
@@ -30,10 +31,6 @@ export async function listVisibleClaimableOccurrencesForChild(
       now,
     );
 
-  /*
-   * Locked Children receive no
-   * available Claimable Chore data.
-   */
   if (
     !gate.canAccessClaimables
   ) {
@@ -89,29 +86,19 @@ export async function listVisibleClaimableOccurrencesForChild(
     }
 
     /*
-     * A claimed occurrence must no longer
-     * appear as available to siblings.
+     * Historical successful unclaims do
+     * not hide the occurrence.
      *
-     * Claim ownership lives in choreClaims
-     * rather than mutating the occurrence
-     * into a synthetic "claimed" state.
+     * Any other Claim state prevents it
+     * from appearing as available.
      */
-    const existingClaim =
-      await ctx.db
-        .query(
-          'choreClaims',
-        )
-        .withIndex(
-          'by_occurrence',
-          (q) =>
-            q.eq(
-              'occurrenceId',
-              occurrence._id,
-            ),
-        )
-        .first();
+    const blockingClaim =
+      await findClaimPreventingReclaim(
+        ctx,
+        occurrence._id,
+      );
 
-    if (existingClaim) {
+    if (blockingClaim) {
       continue;
     }
 
@@ -133,18 +120,6 @@ export async function listVisibleClaimableOccurrencesForChild(
   };
 }
 
-/*
- * Household-visible unresolved Claim
- * ownership.
- *
- * This is intentionally separate from
- * the Child's unlocked available pool.
- *
- * A Child may still need to see that a
- * sibling owns a Claim even when that
- * Child's own Unlock gate is currently
- * closed.
- */
 export async function listHouseholdClaimedOccurrences(
   ctx:
     | MutationCtx
