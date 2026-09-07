@@ -16,6 +16,55 @@ export type ReconcileOccurrenceLifecycleResult = {
     Doc<'choreOccurrences'>['state'];
 };
 
+async function claimPreventsUnclaimedExpiry(
+  ctx: MutationCtx,
+  occurrenceId:
+    Id<'choreOccurrences'>,
+) {
+  const claims =
+    await ctx.db
+      .query('choreClaims')
+      .withIndex(
+        'by_occurrence',
+        (
+          query,
+        ) =>
+          query.eq(
+            'occurrenceId',
+            occurrenceId,
+          ),
+      )
+      .collect();
+
+  /*
+   * A Claimable occurrence is not
+   * "unclaimed" while it has an active
+   * Claim.
+   *
+   * Approved/failed are also protected
+   * defensively: later lifecycle tasks
+   * should move the occurrence itself
+   * into the matching terminal state,
+   * but it must never be mislabeled
+   * expired_unclaimed in the meantime.
+   *
+   * Voluntarily unclaimed or cancelled
+   * Claims no longer protect the
+   * occurrence. TASK-11 can therefore
+   * return those occurrences to the
+   * available pool while time remains.
+   */
+  return claims.some(
+    (
+      claim,
+    ) =>
+      claim.state !==
+        'unclaimed' &&
+      claim.state !==
+        'cancelled',
+  );
+}
+
 export async function reconcileOccurrenceLifecycle(
   ctx: MutationCtx,
   occurrenceId:
@@ -86,11 +135,13 @@ export async function reconcileOccurrenceLifecycle(
    * Claimable:
    *
    * At the deadline boundary an
-   * unresolved, unclaimed occurrence
-   * expires.
+   * unresolved occurrence expires only
+   * when it truly has no active or
+   * completed Claim ownership.
    *
-   * TASK-10 will extend this rule once
-   * Claims exist.
+   * A claimed occurrence remains under
+   * the Claim lifecycle instead of
+   * becoming expired_unclaimed.
    */
   if (
     occurrence.kind ===
@@ -100,8 +151,18 @@ export async function reconcileOccurrenceLifecycle(
     now >=
       occurrence.deadlineAt
   ) {
-    nextState =
-      'expired_unclaimed';
+    const protectedByClaim =
+      await claimPreventsUnclaimedExpiry(
+        ctx,
+        occurrenceId,
+      );
+
+    if (
+      !protectedByClaim
+    ) {
+      nextState =
+        'expired_unclaimed';
+    }
   }
 
   /*

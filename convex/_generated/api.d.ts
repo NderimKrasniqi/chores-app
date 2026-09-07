@@ -26,6 +26,7 @@ import type * as lib_choreOccurrenceLifecycle from "../lib/choreOccurrenceLifecy
 import type * as lib_choreOccurrenceMaintenance from "../lib/choreOccurrenceMaintenance.js";
 import type * as lib_choreScheduling from "../lib/choreScheduling.js";
 import type * as lib_claimableAccessGate from "../lib/claimableAccessGate.js";
+import type * as lib_claimableChoreClaiming from "../lib/claimableChoreClaiming.js";
 import type * as lib_claimableChoreVisibility from "../lib/claimableChoreVisibility.js";
 import type * as lib_householdTime from "../lib/householdTime.js";
 import type * as lib_parentAuthorization from "../lib/parentAuthorization.js";
@@ -36,6 +37,7 @@ import type * as personalChoreReviews from "../personalChoreReviews.js";
 import type * as personalChores from "../personalChores.js";
 import type * as schema_childAccess from "../schema/childAccess.js";
 import type * as schema_chores from "../schema/chores.js";
+import type * as schema_claims from "../schema/claims.js";
 import type * as schema_households from "../schema/households.js";
 import type * as task06SmokeTests from "../task06SmokeTests.js";
 import type * as task07MaintenanceIsolationSmokeTests from "../task07MaintenanceIsolationSmokeTests.js";
@@ -47,6 +49,9 @@ import type * as task08MissSmokeTests from "../task08MissSmokeTests.js";
 import type * as task08SubmissionSmokeTests from "../task08SubmissionSmokeTests.js";
 import type * as task09ClaimableVisibilitySmokeTests from "../task09ClaimableVisibilitySmokeTests.js";
 import type * as task09UnlockGateSmokeTests from "../task09UnlockGateSmokeTests.js";
+import type * as task10ClaimDeadlineSmokeTests from "../task10ClaimDeadlineSmokeTests.js";
+import type * as task10ClaimSmokeTests from "../task10ClaimSmokeTests.js";
+import type * as task10ClaimVisibilitySmokeTests from "../task10ClaimVisibilitySmokeTests.js";
 
 import type {
   ApiFromModules,
@@ -73,6 +78,7 @@ declare const fullApi: ApiFromModules<{
   "lib/choreOccurrenceMaintenance": typeof lib_choreOccurrenceMaintenance;
   "lib/choreScheduling": typeof lib_choreScheduling;
   "lib/claimableAccessGate": typeof lib_claimableAccessGate;
+  "lib/claimableChoreClaiming": typeof lib_claimableChoreClaiming;
   "lib/claimableChoreVisibility": typeof lib_claimableChoreVisibility;
   "lib/householdTime": typeof lib_householdTime;
   "lib/parentAuthorization": typeof lib_parentAuthorization;
@@ -83,6 +89,7 @@ declare const fullApi: ApiFromModules<{
   personalChores: typeof personalChores;
   "schema/childAccess": typeof schema_childAccess;
   "schema/chores": typeof schema_chores;
+  "schema/claims": typeof schema_claims;
   "schema/households": typeof schema_households;
   task06SmokeTests: typeof task06SmokeTests;
   task07MaintenanceIsolationSmokeTests: typeof task07MaintenanceIsolationSmokeTests;
@@ -94,6 +101,9 @@ declare const fullApi: ApiFromModules<{
   task08SubmissionSmokeTests: typeof task08SubmissionSmokeTests;
   task09ClaimableVisibilitySmokeTests: typeof task09ClaimableVisibilitySmokeTests;
   task09UnlockGateSmokeTests: typeof task09UnlockGateSmokeTests;
+  task10ClaimDeadlineSmokeTests: typeof task10ClaimDeadlineSmokeTests;
+  task10ClaimSmokeTests: typeof task10ClaimSmokeTests;
+  task10ClaimVisibilitySmokeTests: typeof task10ClaimVisibilitySmokeTests;
 }>;
 
 /**

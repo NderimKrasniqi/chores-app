@@ -1,27 +1,19 @@
 import {
+  mutation,
   query,
 } from './_generated/server';
-import { requireCurrentChildAccess } from './lib/childAuthorization';
-import { listVisibleClaimableOccurrencesForChild } from './lib/claimableChoreVisibility';
+import {
+  v,
+} from 'convex/values';
 
-/*
- * Child-facing Claimable Chore pool.
- *
- * TASK-09 exposes visibility only.
- * Claim creation belongs to TASK-10.
- *
- * Child and Household identity are always
- * resolved from the authenticated anonymous
- * Child-device session.
- *
- * The client does not supply childId or
- * householdId.
- *
- * The server-side visibility helper applies
- * the current Unlock Chore gate and Child
- * eligibility rules before any Claimable
- * occurrence data is returned.
- */
+import { requireCurrentChildAccess } from './lib/childAuthorization';
+import { claimClaimableOccurrence } from './lib/claimableChoreClaiming';
+import {
+  listHouseholdClaimedOccurrences,
+  listVisibleClaimableOccurrencesForChild,
+} from './lib/claimableChoreVisibility';
+import { requireCurrentParentForHousehold } from './lib/parentAuthorization';
+
 export const listMine =
   query({
     args: {},
@@ -40,71 +32,68 @@ export const listMine =
       const now =
         Date.now();
 
-      const {
-        gate,
-        occurrences,
-      } =
-        await listVisibleClaimableOccurrencesForChild(
-          ctx,
-          household._id,
-          child._id,
-          now,
-        );
+      const [
+        visible,
+        claimed,
+      ] =
+        await Promise.all([
+          listVisibleClaimableOccurrencesForChild(
+            ctx,
+            household._id,
+            child._id,
+            now,
+          ),
+
+          listHouseholdClaimedOccurrences(
+            ctx,
+            household._id,
+          ),
+        ]);
 
       return {
-        /*
-         * TASK-09 UI can use this to explain
-         * why the pool is locked or unlocked.
-         */
         gate: {
           canAccessClaimables:
-            gate.canAccessClaimables,
+            visible.gate
+              .canAccessClaimables,
 
           reason:
-            gate.reason,
+            visible.gate
+              .reason,
 
           currentUnlockOccurrence:
-            gate.currentUnlockOccurrence
+            visible.gate
+              .currentUnlockOccurrence
               ? {
                   occurrenceId:
-                    gate
+                    visible.gate
                       .currentUnlockOccurrence
                       .occurrenceId,
 
                   state:
-                    gate
+                    visible.gate
                       .currentUnlockOccurrence
                       .state,
 
                   scheduledLocalDate:
-                    gate
+                    visible.gate
                       .currentUnlockOccurrence
                       .scheduledLocalDate,
 
                   availabilityStartsAt:
-                    gate
+                    visible.gate
                       .currentUnlockOccurrence
                       .availabilityStartsAt,
 
                   deadlineAt:
-                    gate
+                    visible.gate
                       .currentUnlockOccurrence
                       .deadlineAt,
                 }
               : null,
         },
 
-        /*
-         * When the Unlock gate is closed,
-         * listVisibleClaimableOccurrencesForChild
-         * returns an empty array.
-         *
-         * This means Claimable Chore visibility
-         * is enforced by the backend rather than
-         * merely hidden by React Native.
-         */
         claimableOccurrences:
-          occurrences.map(
+          visible.occurrences.map(
             (
               occurrence,
             ) => ({
@@ -138,19 +127,171 @@ export const listMine =
               deadlineAt:
                 occurrence.deadlineAt,
 
-              /*
-               * TASK-09 only returns
-               * available Claimable Chores.
-               *
-               * We expose the state anyway so
-               * the UI contract remains explicit
-               * and future TASK-10 work does not
-               * have to infer it.
-               */
               state:
                 occurrence.state,
             }),
           ),
+
+        claimedOccurrences:
+          claimed.map(
+            (
+              item,
+            ) => ({
+              claimId:
+                item.claim._id,
+
+              occurrenceId:
+                item.occurrence._id,
+
+              childId:
+                item.child._id,
+
+              claimedByDisplayName:
+                item.child
+                  .displayName,
+
+              claimState:
+                item.claim.state,
+
+              claimedAt:
+                item.claim
+                  .claimedAt,
+
+              title:
+                item.occurrence
+                  .title,
+
+              description:
+                item.occurrence
+                  .description,
+
+              valueSek:
+                item.occurrence
+                  .valueSek,
+
+              scheduledLocalDate:
+                item.occurrence
+                  .scheduledLocalDate,
+
+              timezone:
+                item.occurrence
+                  .timezone,
+
+              deadlineAt:
+                item.occurrence
+                  .deadlineAt,
+
+              isMine:
+                item.child._id ===
+                child._id,
+            }),
+          ),
       };
+    },
+  });
+
+export const listActiveForParent =
+  query({
+    args: {
+      householdId:
+        v.id(
+          'households',
+        ),
+    },
+
+    handler: async (
+      ctx,
+      args,
+    ) => {
+      await requireCurrentParentForHousehold(
+        ctx,
+        args.householdId,
+      );
+
+      const claimed =
+        await listHouseholdClaimedOccurrences(
+          ctx,
+          args.householdId,
+        );
+
+      return claimed.map(
+        (
+          item,
+        ) => ({
+          claimId:
+            item.claim._id,
+
+          occurrenceId:
+            item.occurrence._id,
+
+          childId:
+            item.child._id,
+
+          claimedByDisplayName:
+            item.child
+              .displayName,
+
+          claimState:
+            item.claim.state,
+
+          claimedAt:
+            item.claim
+              .claimedAt,
+
+          title:
+            item.occurrence
+              .title,
+
+          description:
+            item.occurrence
+              .description,
+
+          valueSek:
+            item.occurrence
+              .valueSek,
+
+          scheduledLocalDate:
+            item.occurrence
+              .scheduledLocalDate,
+
+          timezone:
+            item.occurrence
+              .timezone,
+
+          deadlineAt:
+            item.occurrence
+              .deadlineAt,
+        }),
+      );
+    },
+  });
+
+export const claim =
+  mutation({
+    args: {
+      occurrenceId:
+        v.id(
+          'choreOccurrences',
+        ),
+    },
+
+    handler: async (
+      ctx,
+      args,
+    ) => {
+      const {
+        child,
+        household,
+      } =
+        await requireCurrentChildAccess(
+          ctx,
+        );
+
+      return await claimClaimableOccurrence(
+        ctx,
+        household._id,
+        child._id,
+        args.occurrenceId,
+      );
     },
   });

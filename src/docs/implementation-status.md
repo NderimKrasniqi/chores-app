@@ -1,7 +1,7 @@
 # Current Implementation Status
 
-**Current milestone:** TASK-08 complete
-**Next milestone:** TASK-09 — Gate the Claimable Chore pool on approval of the current Unlock Chore occurrence
+**Current milestone:** TASK-10 complete
+**Next milestone:** TASK-11 — Implement weekly unclaim accounting, the two-hour commitment lock, locked-claim warning, and parent cancellation
 
 ## Completed
 
@@ -227,6 +227,90 @@ Physical-device verification includes:
 - multi-Child profile behavior;
 - live Child-device revocation.
 
+
+### TASK-09 — Claimable Unlock gate
+
+- The Claimable Chore pool is gated by the Child's current Unlock Chore occurrence.
+- The current Unlock is the newest Unlock occurrence whose availability has started.
+- Future Unlock occurrences do not lock the pool early.
+- No current Unlock occurrence means no active gate, so Claimables remain open.
+- Approval of the current Unlock opens the pool.
+- Submitted, available, missed, redo-required, failed, or otherwise unapproved current Unlocks keep the pool locked.
+- Approval of an older Unlock cannot reopen the pool after a newer occurrence becomes current.
+- Claimable visibility independently enforces availability, deadline, eligibility, and Unlock access.
+- TASK-09 automated smoke tests cover Unlock transitions and Claimable visibility.
+- Child UI reactively shows locked/unlocked state and available Claimable Chores.
+- Maintenance smoke tests were hardened so synthetic Household-scoped test time cannot mutate unrelated development data.
+
+### TASK-10 — Atomic Claimable Chore claiming
+
+#### Durable Claim ownership
+
+- Durable `choreClaims` persistence implemented.
+- Claims retain Household, occurrence, Child, lifecycle state, and authoritative claim time.
+- The immutable Chore Occurrence remains the source of value, deadline, timezone, and eligibility terms.
+- Child and Household identity are resolved server-side from the authenticated Child session.
+
+#### Atomic claiming rules
+
+- Claiming re-checks the TASK-09 Unlock gate inside the mutation.
+- Only available Claimable occurrences may be claimed.
+- Eligibility is enforced server-side.
+- Cross-Household claiming is rejected.
+- Claiming before availability is rejected.
+- Claiming at or after the deadline is rejected.
+- First successful Claim wins ownership of the occurrence.
+- A Child may own at most one unresolved Claim at a time.
+- `claimed`, `submitted`, and `redo_required` occupy the active-Claim slot.
+- Terminal Claim states release that slot.
+
+#### Visibility
+
+- Claimed occurrences disappear from the available pool for all eligible Children.
+- Active Claim ownership remains visible.
+- The claimant sees `You claimed this`.
+- Other Children see `Claimed by <Child>`.
+- Submitted and redo-required Claims remain visible as active ownership.
+- Terminal Claims leave the active claimed-by surface.
+
+#### Deadline integration
+
+- Unclaimed Claimable occurrences still become `expired_unclaimed` at the deadline.
+- An occurrence with an active or completed Claim is protected from being incorrectly marked `expired_unclaimed`.
+- TASK-10 regression coverage verifies both sides of this deadline boundary.
+
+#### Child UI and Maestro
+
+- Available Claimable Chores expose a `Claim` action.
+- Successful Claims reactively move from `Available` to `Claimed`.
+- Additional Claim actions are disabled while the Child owns an unresolved Claim.
+- Claimable presentation is split into a reusable view and Convex-backed wrapper.
+- Local Maestro testing runs against Expo Go on the iOS Simulator with no EAS dependency.
+- A basic app-shell Maestro smoke flow verifies accessibility automation.
+- A development-only TASK-10 fixture drives the same production Claimable UI with deterministic state.
+- Maestro verifies Claim action, claimant visibility, sibling claimed-by visibility, removal from Available, and one-active-Claim UI behavior.
+
+#### TASK-10 automated verification
+
+Backend smoke coverage includes:
+
+- successful eligible Claim;
+- exclusive ownership;
+- duplicate-Claim rejection;
+- one unresolved Claim per Child;
+- active-slot release after terminal state;
+- eligibility enforcement;
+- future occurrence rejection;
+- exact-deadline rejection;
+- Unlock-gate enforcement;
+- cross-Household rejection;
+- claimed-by visibility;
+- claimed occurrence removal from all available pools;
+- submitted Claim active visibility;
+- terminal Claim removal from active visibility;
+- unclaimed deadline expiry;
+- active Claim protection from `expired_unclaimed`.
+
 ## Current backend organization
 
 Public Convex domain modules remain at the `convex/` root so generated API paths remain stable.
@@ -431,18 +515,19 @@ Parent revokes device access
 
 The Child PIN is a local profile boundary. Server authorization always depends on the active Better Auth device identity and current Convex access grant.
 
-## Next — TASK-09
+## Next — TASK-11
 
-TASK-09 introduces the first Claimable Chore visibility gate.
+TASK-11 adds commitment and unclaim behavior around an active Claim.
 
 It must:
 
-- identify the applicable current Unlock Chore occurrence for each Child;
-- require approval of that Unlock Chore occurrence before the Child can see or use the Claimable Chore pool;
-- keep Claimable access closed while the Unlock Chore is scheduled, available, submitted, missed, failed, or otherwise not approved;
-- open Claimable access only from server-authoritative approved Unlock state;
-- preserve Household-local occurrence timing and immutable snapshots from TASK-07;
-- preserve the approval boundary established in TASK-08;
-- avoid relying on client-only visibility checks for authorization.
+- track the Household weekly unclaim allowance;
+- allow eligible voluntary unclaim before the commitment lock;
+- enforce the two-hour commitment lock boundary;
+- warn the Child before a Claim becomes locked;
+- reject ordinary Child unclaim after the lock;
+- allow authorized Parent cancellation;
+- preserve Claim history rather than deleting it;
+- keep authorization, allowance, and time decisions server-authoritative.
 
-TASK-10 will then build atomic Claimable Chore claiming on top of that gate.
+TASK-12 will then add claimed-chore submission and Parent review.

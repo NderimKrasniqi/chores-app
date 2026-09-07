@@ -1,0 +1,29 @@
+appId: host.exp.Exponent
+---
+- openLink: "exp://127.0.0.1:8081/--/maestro-task10"
+
+- assertVisible: "TASK-10 Maestro Fixture"
+
+- tapOn: "Reset TASK-10 fixture"
+
+- assertVisible: "Viewing as Child A"
+
+- assertVisible: "Party"
+
+- tapOn: "Claim Party"
+
+- assertVisible: "You claimed this"
+
+- assertVisible: "Cannot claim Laundry: active claim already"
+
+- assertNotVisible: "Claim Party"
+
+- tapOn: "View as Child B"
+
+- assertVisible: "Viewing as Child B"
+
+- assertVisible: "Claimed by Child A"
+
+- assertNotVisible: "Claim Party"
+
+- assertVisible: "Claim Laundry"

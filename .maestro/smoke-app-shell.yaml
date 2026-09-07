@@ -1,0 +1,11 @@
+appId: host.exp.Exponent
+---
+- openLink: "exp://127.0.0.1:8081/--/"
+
+- extendedWaitUntil:
+    visible: "CHORES APP"
+    timeout: 60000
+
+- assertVisible: "Who's using this device?"
+- assertVisible: "I'm a parent, Sign in or open the Parent account"
+- assertVisible: "Add another child, Pair another Child profile to this device"

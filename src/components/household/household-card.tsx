@@ -1,5 +1,6 @@
 import { ChildDeviceList } from '@/components/child-access/child-device-list';
 import { ChildPairingCard } from '@/components/child-access/child-pairing-card';
+import { ActiveClaimableClaimsCard } from '@/components/chores/active-claimable-claims-card';
 import { ChoreDefinitionsCard } from '@/components/chores/chore-definitions-card';
 import { PersonalChoreReviewsCard } from '@/components/chores/personal-chore-reviews-card';
 import { Task06SmokeTestCard } from '@/components/chores/task-06-smoke-test-card';
@@ -236,6 +237,12 @@ export function HouseholdCard({
               )
             )}
           </View>
+
+          <ActiveClaimableClaimsCard
+            householdId={
+              household.householdId
+            }
+          />
         </View>
       )}
 
@@ -283,9 +290,9 @@ export function HouseholdCard({
           </Text>
 
           <Text className="mt-2 text-sm leading-5 text-slate-500">
-            Pair devices, review
-            active access, or revoke
-            a Child device.
+            Pair devices, review active
+            access, or revoke a Child
+            device.
           </Text>
 
           {household.children.map(
