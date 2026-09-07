@@ -4,6 +4,7 @@ import { ActiveClaimableClaimsCard } from '@/components/chores/active-claimable-
 import { ChoreDefinitionsCard } from '@/components/chores/chore-definitions-card';
 import { ClaimableChoreReviewsCard } from '@/components/chores/claimable-chore-reviews-card';
 import { PersonalChoreReviewsCard } from '@/components/chores/personal-chore-reviews-card';
+import { RedoChoreReviewsCard } from '@/components/chores/redo-chore-reviews-card';
 import { Task06SmokeTestCard } from '@/components/chores/task-06-smoke-test-card';
 import { useState } from 'react';
 import {
@@ -29,9 +30,11 @@ export type HouseholdSummary = {
   householdId:
     Id<'households'>;
 
-  name: string;
+  name:
+    string;
 
-  timezone: string;
+  timezone:
+    string;
 
   payoutWeekday:
     PayoutWeekday;
@@ -73,9 +76,14 @@ function SectionButton({
   label,
   onPress,
 }: {
-  active: boolean;
-  label: string;
-  onPress: () => void;
+  active:
+    boolean;
+
+  label:
+    string;
+
+  onPress: () =>
+    void;
 }) {
   return (
     <Pressable
@@ -293,6 +301,13 @@ export function HouseholdCard({
           />
 
           <ClaimableChoreReviewsCard
+            householdId={
+              household
+                .householdId
+            }
+          />
+
+          <RedoChoreReviewsCard
             householdId={
               household
                 .householdId

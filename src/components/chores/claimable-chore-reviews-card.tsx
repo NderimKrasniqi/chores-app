@@ -38,6 +38,13 @@ export function ClaimableChoreReviewsCard({
         .approve,
     );
 
+  const reject =
+    useMutation(
+      api
+        .claimableChoreReviews
+        .reject,
+    );
+
   if (
     pending ===
     undefined
@@ -65,6 +72,19 @@ export function ClaimableChoreReviewsCard({
       ) => {
         return await approve({
           submissionId,
+        });
+      }}
+      onReject={async (
+        submissionId,
+        redoDeadlineLocalDate,
+        redoDeadlineLocalTime,
+      ) => {
+        return await reject({
+          submissionId,
+
+          redoDeadlineLocalDate,
+
+          redoDeadlineLocalTime,
         });
       }}
     />

@@ -10,20 +10,20 @@ import {
 import type {
   Id,
 } from '../../../convex/_generated/dataModel';
-import { RedoDeadlineRejectControls } from './redo-deadline-reject-controls';
 
-export type ClaimableChoreReviewViewModel = {
+export type RedoChoreReviewViewModel = {
   submissionId:
     Id<'choreSubmissions'>;
-
-  claimId:
-    Id<'choreClaims'>;
 
   occurrenceId:
     Id<'choreOccurrences'>;
 
   childId:
     Id<'children'>;
+
+  kind:
+    'personal' |
+    'claimable';
 
   childDisplayName:
     string;
@@ -37,17 +37,17 @@ export type ClaimableChoreReviewViewModel = {
   valueSek:
     number;
 
-  scheduledLocalDate:
-    string;
-
   submittedAt:
     number;
 
-  deadlineAt:
+  redoDeadlineAt:
     number;
 
   timezone:
     string;
+
+  isUnlockChore:
+    boolean;
 };
 
 type ReviewAction =
@@ -94,32 +94,28 @@ function getErrorMessage(
     return error.message;
   }
 
-  return 'Could not complete this review. Please try again.';
+  return 'Could not review this Redo. Please try again.';
 }
 
-export function ClaimableChoreReviewsView({
+export function RedoChoreReviewsView({
   pending,
   onApprove,
   onReject,
 }: {
   pending:
-    ClaimableChoreReviewViewModel[];
+    RedoChoreReviewViewModel[];
 
   onApprove: (
-    submissionId:
-      Id<'choreSubmissions'>,
+    submission:
+      RedoChoreReviewViewModel,
   ) => Promise<{
     amountSek:
       number;
   }>;
 
-  onReject?: (
-    submissionId:
-      Id<'choreSubmissions'>,
-    redoDeadlineLocalDate:
-      string,
-    redoDeadlineLocalTime:
-      string,
+  onReject: (
+    submission:
+      RedoChoreReviewViewModel,
   ) => Promise<unknown>;
 }) {
   const [
@@ -140,14 +136,6 @@ export function ClaimableChoreReviewsView({
     >(null);
 
   const [
-    actionError,
-    setActionError,
-  ] =
-    useState<
-      string | null
-    >(null);
-
-  const [
     actionMessage,
     setActionMessage,
   ] =
@@ -155,9 +143,17 @@ export function ClaimableChoreReviewsView({
       string | null
     >(null);
 
+  const [
+    actionError,
+    setActionError,
+  ] =
+    useState<
+      string | null
+    >(null);
+
   async function handleApprove(
     submission:
-      ClaimableChoreReviewViewModel,
+      RedoChoreReviewViewModel,
   ) {
     if (
       reviewingId !==
@@ -166,11 +162,11 @@ export function ClaimableChoreReviewsView({
       return;
     }
 
-    setActionError(
+    setActionMessage(
       null,
     );
 
-    setActionMessage(
+    setActionError(
       null,
     );
 
@@ -186,12 +182,11 @@ export function ClaimableChoreReviewsView({
     try {
       const result =
         await onApprove(
-          submission
-            .submissionId,
+          submission,
         );
 
       setActionMessage(
-        `Approved ${submission.title}. ${submission.childDisplayName} earned ${result.amountSek} kr.`,
+        `Approved Redo ${submission.title}. ${submission.childDisplayName} earned ${result.amountSek} kr.`,
       );
     } catch (
       error
@@ -214,25 +209,20 @@ export function ClaimableChoreReviewsView({
 
   async function handleReject(
     submission:
-      ClaimableChoreReviewViewModel,
-    redoDeadlineLocalDate:
-      string,
-    redoDeadlineLocalTime:
-      string,
+      RedoChoreReviewViewModel,
   ) {
     if (
       reviewingId !==
-        null ||
-      !onReject
+      null
     ) {
       return;
     }
 
-    setActionError(
+    setActionMessage(
       null,
     );
 
-    setActionMessage(
+    setActionError(
       null,
     );
 
@@ -247,14 +237,11 @@ export function ClaimableChoreReviewsView({
 
     try {
       await onReject(
-        submission
-          .submissionId,
-        redoDeadlineLocalDate,
-        redoDeadlineLocalTime,
+        submission,
       );
 
       setActionMessage(
-        `Rejected ${submission.title}. Redo required until ${redoDeadlineLocalDate} ${redoDeadlineLocalTime}.`,
+        `Rejected Redo ${submission.title}. The chore is now failed.`,
       );
     } catch (
       error
@@ -278,14 +265,14 @@ export function ClaimableChoreReviewsView({
   return (
     <View className="pt-6 mt-6 border-t border-slate-800">
       <Text className="text-lg font-semibold text-white">
-        Claimable chore reviews
+        Redo reviews
       </Text>
 
       <Text className="mt-2 text-sm leading-5 text-slate-500">
-        Approve completed extra chores or
-        reject the first submission with
-        one Redo deadline. The active Claim
-        remains occupied during Redo.
+        These are second and final
+        submissions. Approve to complete
+        the chore, or reject to end it as
+        failed.
       </Text>
 
       {actionMessage ? (
@@ -308,12 +295,13 @@ export function ClaimableChoreReviewsView({
       0 ? (
         <View className="p-5 mt-4 rounded-2xl bg-slate-950">
           <Text className="font-semibold text-white">
-            Nothing waiting
+            No Redos waiting
           </Text>
 
           <Text className="mt-2 text-sm leading-5 text-slate-500">
-            Submitted Claimable Chores will
-            appear here for Parent review.
+            Submitted Redos will appear
+            here for their final Parent
+            review.
           </Text>
         </View>
       ) : (
@@ -351,7 +339,14 @@ export function ClaimableChoreReviewsView({
                 >
                   <View className="flex-row items-start justify-between">
                     <View className="flex-1 pr-4">
-                      <Text className="text-xs font-semibold tracking-wider uppercase text-slate-500">
+                      <Text className="text-xs font-semibold tracking-wider uppercase text-amber-400">
+                        {submission.kind ===
+                        'personal'
+                          ? 'Personal Redo'
+                          : 'Claimable Redo'}
+                      </Text>
+
+                      <Text className="mt-1 text-xs font-semibold tracking-wider uppercase text-slate-500">
                         {
                           submission
                             .childDisplayName
@@ -384,9 +379,17 @@ export function ClaimableChoreReviewsView({
                     </Text>
                   </View>
 
+                  {submission.isUnlockChore ? (
+                    <View className="self-start px-2 py-1 mt-3 rounded-lg bg-amber-950">
+                      <Text className="text-xs font-semibold text-amber-400">
+                        Unlock chore
+                      </Text>
+                    </View>
+                  ) : null}
+
                   <View className="pt-3 mt-4 border-t border-slate-800">
                     <Text className="text-xs leading-5 text-slate-500">
-                      Submitted:{' '}
+                      Redo submitted:{' '}
                       {formatDateTime(
                         submission
                           .submittedAt,
@@ -396,38 +399,20 @@ export function ClaimableChoreReviewsView({
                     </Text>
 
                     <Text className="text-xs leading-5 text-slate-500">
-                      Original deadline:{' '}
+                      Redo deadline:{' '}
                       {formatDateTime(
                         submission
-                          .deadlineAt,
+                          .redoDeadlineAt,
                         submission
                           .timezone,
                       )}
                     </Text>
-
-                    <Text className="text-xs leading-5 text-slate-500">
-                      Household timezone:{' '}
-                      {
-                        submission
-                          .timezone
-                      }
-                    </Text>
                   </View>
 
-                  <Text className="mt-3 text-xs leading-5 text-slate-500">
-                    Approval creates the{' '}
-                    {
-                      submission
-                        .valueSek
-                    }{' '}
-                    kr earning and releases
-                    this Child&apos;s active
-                    Claim slot.
-                  </Text>
-
                   <Pressable
+                    testID={`redo-review-approve-${submission.submissionId}`}
                     accessibilityRole="button"
-                    accessibilityLabel={`Approve claimable chore ${submission.title} for ${submission.childDisplayName}`}
+                    accessibilityLabel={`Approve Redo ${submission.title} for ${submission.childDisplayName}`}
                     disabled={
                       actionsBusy
                     }
@@ -438,50 +423,60 @@ export function ClaimableChoreReviewsView({
                     }
                     className={
                       actionsBusy
-                        ? 'px-4 py-3 mt-4 rounded-xl bg-slate-700'
-                        : 'px-4 py-3 mt-4 bg-white rounded-xl'
+                        ? 'items-center px-4 py-3 mt-4 rounded-xl bg-slate-800'
+                        : 'items-center px-4 py-3 mt-4 bg-white rounded-xl'
                     }
                   >
                     <Text
                       className={
                         actionsBusy
-                          ? 'font-semibold text-center text-slate-400'
-                          : 'font-semibold text-center text-slate-950'
+                          ? 'font-semibold text-slate-500'
+                          : 'font-semibold text-slate-950'
                       }
                     >
                       {isApproving
-                        ? 'Approving…'
-                        : 'Approve'}
+                        ? 'Approving Redo…'
+                        : 'Approve Redo'}
                     </Text>
                   </Pressable>
 
-                  {onReject ? (
-                    <RedoDeadlineRejectControls
-                      disabled={
+                  <Pressable
+                    testID={`redo-review-reject-${submission.submissionId}`}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Reject Redo ${submission.title} for ${submission.childDisplayName}`}
+                    disabled={
+                      actionsBusy
+                    }
+                    onPress={() =>
+                      void handleReject(
+                        submission,
+                      )
+                    }
+                    className={
+                      actionsBusy
+                        ? 'items-center px-4 py-3 mt-3 rounded-xl bg-slate-800'
+                        : 'items-center px-4 py-3 mt-3 rounded-xl bg-red-900'
+                    }
+                  >
+                    <Text
+                      className={
                         actionsBusy
+                          ? 'font-semibold text-slate-500'
+                          : 'font-semibold text-red-100'
                       }
-                      rejecting={
-                        isRejecting
-                      }
-                      title={
-                        submission.title
-                      }
-                      childDisplayName={
-                        submission
-                          .childDisplayName
-                      }
-                      onReject={async (
-                        redoDeadlineLocalDate,
-                        redoDeadlineLocalTime,
-                      ) => {
-                        await handleReject(
-                          submission,
-                          redoDeadlineLocalDate,
-                          redoDeadlineLocalTime,
-                        );
-                      }}
-                    />
-                  ) : null}
+                    >
+                      {isRejecting
+                        ? 'Rejecting Redo…'
+                        : 'Reject Redo'}
+                    </Text>
+                  </Pressable>
+
+                  <Text className="mt-3 text-xs leading-5 text-slate-500">
+                    A rejected Redo is
+                    final. There is no
+                    second correction
+                    opportunity.
+                  </Text>
                 </View>
               );
             },

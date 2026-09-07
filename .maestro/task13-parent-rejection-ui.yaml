@@ -1,0 +1,38 @@
+appId: host.exp.Exponent
+---
+- openLink: "exp://127.0.0.1:8081/--/maestro-task13-parent"
+
+- extendedWaitUntil:
+    visible: "TASK-13 Parent Rejection Fixture"
+    timeout: 60000
+
+- tapOn: "Reset TASK-13 parent rejection fixture"
+
+- assertVisible: "Garage shelves"
+- assertVisible: "Fixture Child"
+- assertVisible: "Needs correction?"
+
+- tapOn:
+    id: "redo-deadline-date-input"
+
+- inputText: "2030-01-17"
+
+- hideKeyboard
+
+- tapOn:
+    id: "redo-deadline-time-input"
+
+- inputText: "18:00"
+
+- hideKeyboard
+
+- assertVisible: "2030-01-17"
+- assertVisible: "18:00"
+- assertNotVisible: "Use YYYY-MM-DD and 24-hour HH:mm."
+
+- tapOn:
+    id: "redo-reject-button"
+
+- extendedWaitUntil:
+    visible: "Nothing waiting"
+    timeout: 5000

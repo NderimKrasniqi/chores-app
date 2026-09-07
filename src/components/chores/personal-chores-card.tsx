@@ -14,7 +14,10 @@ import {
 } from 'react-native';
 
 import { api } from '../../../convex/_generated/api';
-import type { Id } from '../../../convex/_generated/dataModel';
+import type {
+  Id,
+} from '../../../convex/_generated/dataModel';
+import { ChildRedoRequiredCard } from './child-redo-required-card';
 
 type OccurrenceState =
   | 'scheduled'
@@ -34,7 +37,8 @@ type PersonalChoreOccurrence = {
   choreDefinitionId:
     Id<'choreDefinitions'>;
 
-  title: string;
+  title:
+    string;
 
   description?:
     string;
@@ -115,7 +119,9 @@ function formatDeadline(
           'short',
       },
     ).format(
-      new Date(timestamp),
+      new Date(
+        timestamp,
+      ),
     );
   } catch {
     return new Date(
@@ -128,10 +134,10 @@ function statePriority(
   state: OccurrenceState,
 ) {
   switch (state) {
-    case 'available':
+    case 'redo_required':
       return 0;
 
-    case 'redo_required':
+    case 'available':
       return 1;
 
     case 'submitted':
@@ -161,7 +167,8 @@ function ChoreCard({
     (
       occurrenceId:
         Id<'choreOccurrences'>,
-      title: string,
+      title:
+        string,
     ) => void;
 
   compact?:
@@ -178,25 +185,19 @@ function ChoreCard({
       <View className="flex-row items-start justify-between">
         <View className="flex-1 pr-3">
           <Text className="text-base font-semibold text-white">
-            {
-              occurrence.title
-            }
+            {occurrence.title}
           </Text>
 
           {!compact &&
           occurrence.description ? (
             <Text className="mt-1 text-sm leading-5 text-slate-400">
-              {
-                occurrence.description
-              }
+              {occurrence.description}
             </Text>
           ) : null}
         </View>
 
         <Text className="text-base font-bold text-green-400">
-          {
-            occurrence.valueSek
-          }{' '}
+          {occurrence.valueSek}{' '}
           kr
         </Text>
       </View>
@@ -225,7 +226,7 @@ function ChoreCard({
 
       {!compact ? (
         <Text className="text-xs leading-5 text-slate-500">
-          Deadline:{' '}
+          Original deadline:{' '}
           {formatDeadline(
             occurrence.deadlineAt,
             occurrence.timezone,
@@ -274,36 +275,69 @@ export function PersonalChoresCard() {
       api.personalChores.listMine,
     );
 
+  const redos =
+    useQuery(
+      api.childRedos.listMine,
+    );
+
   const submit =
     useMutation(
       api.personalChores.submit,
     );
 
+  const submitRedo =
+    useMutation(
+      api.personalChores.submitRedo,
+    );
+
   const [
     submittingId,
     setSubmittingId,
-  ] = useState<
-    Id<'choreOccurrences'> |
-      undefined
-  >(undefined);
+  ] =
+    useState<
+      Id<'choreOccurrences'> |
+        undefined
+    >(undefined);
+
+  const redoByOccurrence =
+    useMemo(
+      () =>
+        new Map(
+          (
+            redos ??
+            []
+          ).map(
+            (
+              redo,
+            ) => [
+              redo.occurrenceId,
+              redo,
+            ],
+          ),
+        ),
+      [
+        redos,
+      ],
+    );
 
   /*
    * One recurring Chore Definition may
    * already have many future concrete
    * occurrences generated.
    *
-   * Child presentation should behave
-   * like one responsibility lane:
+   * Child presentation behaves like one
+   * responsibility lane:
    *
-   * - show unresolved current work;
-   * - otherwise show only the next
-   *   upcoming occurrence;
-   * - keep terminal outcomes in a
-   *   small recent-history section.
+   * - unresolved current work first;
+   * - otherwise only the next upcoming;
+   * - terminal outcomes in recent history.
    */
   const presentation =
     useMemo(() => {
-      if (!occurrences) {
+      if (
+        !occurrences ||
+        !redos
+      ) {
         return undefined;
       }
 
@@ -335,7 +369,9 @@ export function PersonalChoresCard() {
           groups.set(
             occurrence
               .choreDefinitionId,
-            [occurrence],
+            [
+              occurrence,
+            ],
           );
         }
       }
@@ -351,21 +387,21 @@ export function PersonalChoresCard() {
         const ordered = [
           ...group,
         ].sort(
-          (left, right) =>
+          (
+            left,
+            right,
+          ) =>
             left
               .availabilityStartsAt -
             right
               .availabilityStartsAt,
         );
 
-        /*
-         * Overlapping unresolved
-         * occurrences are valid domain
-         * state, so show all of them.
-         */
         const unresolved =
           ordered.filter(
-            (occurrence) =>
+            (
+              occurrence,
+            ) =>
               occurrence.state ===
                 'available' ||
               occurrence.state ===
@@ -385,14 +421,11 @@ export function PersonalChoresCard() {
           continue;
         }
 
-        /*
-         * No current work for this
-         * definition: show only the
-         * nearest future occurrence.
-         */
         const nextUpcoming =
           ordered.find(
-            (occurrence) =>
+            (
+              occurrence,
+            ) =>
               occurrence.state ===
               'scheduled',
           );
@@ -405,7 +438,10 @@ export function PersonalChoresCard() {
       }
 
       currentAndNext.sort(
-        (left, right) => {
+        (
+          left,
+          right,
+        ) => {
           const priorityDifference =
             statePriority(
               left.state,
@@ -433,7 +469,9 @@ export function PersonalChoresCard() {
       const recentHistory =
         typedOccurrences
           .filter(
-            (occurrence) =>
+            (
+              occurrence,
+            ) =>
               occurrence.state ===
                 'approved' ||
               occurrence.state ===
@@ -444,7 +482,10 @@ export function PersonalChoresCard() {
                 'cancelled',
           )
           .sort(
-            (left, right) =>
+            (
+              left,
+              right,
+            ) =>
               right
                 .availabilityStartsAt -
               left
@@ -461,12 +502,14 @@ export function PersonalChoresCard() {
       };
     }, [
       occurrences,
+      redos,
     ]);
 
   async function handleSubmit(
     occurrenceId:
       Id<'choreOccurrences'>,
-    title: string,
+    title:
+      string,
   ) {
     setSubmittingId(
       occurrenceId,
@@ -486,7 +529,44 @@ export function PersonalChoresCard() {
     ) {
       Alert.alert(
         'Could not submit',
-        error instanceof Error
+        error instanceof
+          Error
+          ? error.message
+          : 'Please try again.',
+      );
+    } finally {
+      setSubmittingId(
+        undefined,
+      );
+    }
+  }
+
+  async function handleSubmitRedo(
+    occurrenceId:
+      Id<'choreOccurrences'>,
+    title:
+      string,
+  ) {
+    setSubmittingId(
+      occurrenceId,
+    );
+
+    try {
+      await submitRedo({
+        occurrenceId,
+      });
+
+      Alert.alert(
+        'Redo submitted',
+        `${title} was sent back to your parent for review.`,
+      );
+    } catch (
+      error
+    ) {
+      Alert.alert(
+        'Could not submit Redo',
+        error instanceof
+          Error
           ? error.message
           : 'Please try again.',
       );
@@ -517,7 +597,8 @@ export function PersonalChoresCard() {
   const {
     currentAndNext,
     recentHistory,
-  } = presentation;
+  } =
+    presentation;
 
   return (
     <View className="p-5 mt-4 rounded-2xl bg-slate-900">
@@ -548,25 +629,82 @@ export function PersonalChoresCard() {
           {currentAndNext.map(
             (
               occurrence,
-            ) => (
-              <ChoreCard
-                key={
+            ) => {
+              const redo =
+                redoByOccurrence.get(
                   occurrence
-                    .occurrenceId
-                }
-                occurrence={
-                  occurrence
-                }
-                submitting={
-                  submittingId ===
-                  occurrence
-                    .occurrenceId
-                }
-                onSubmit={
-                  handleSubmit
-                }
-              />
-            ),
+                    .occurrenceId,
+                );
+
+              if (
+                occurrence.state ===
+                  'redo_required' &&
+                redo
+              ) {
+                return (
+                  <ChildRedoRequiredCard
+                    key={
+                      occurrence
+                        .occurrenceId
+                    }
+                    title={
+                      occurrence.title
+                    }
+                    description={
+                      occurrence.description
+                    }
+                    valueSek={
+                      occurrence.valueSek
+                    }
+                    deadlineAt={
+                      redo.deadlineAt
+                    }
+                    timezone={
+                      occurrence.timezone
+                    }
+                    claimRemainsActive={
+                      false
+                    }
+                    canSubmit={
+                      redo.canSubmitRedo
+                    }
+                    submitting={
+                      submittingId ===
+                      occurrence
+                        .occurrenceId
+                    }
+                    submitTestID={`personal-redo-submit-${occurrence.occurrenceId}`}
+                    onSubmit={async () => {
+                      await handleSubmitRedo(
+                        occurrence
+                          .occurrenceId,
+                        occurrence.title,
+                      );
+                    }}
+                  />
+                );
+              }
+
+              return (
+                <ChoreCard
+                  key={
+                    occurrence
+                      .occurrenceId
+                  }
+                  occurrence={
+                    occurrence
+                  }
+                  submitting={
+                    submittingId ===
+                    occurrence
+                      .occurrenceId
+                  }
+                  onSubmit={
+                    handleSubmit
+                  }
+                />
+              );
+            },
           )}
         </View>
       )}

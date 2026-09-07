@@ -1,7 +1,7 @@
 # Implementation Plan
 **Status:** Approved — current
 
-**Implementation progress:** TASK-01 through TASK-12 complete. TASK-13 is next.
+**Implementation progress:** TASK-01 through TASK-13 complete. TASK-14 is next.
 
 ## Phase 1 — Establish trusted household access
 - [x] TASK-01 Bootstrap the Expo, NativeWind, and Convex application with an unprotected connectivity seam
@@ -20,7 +20,7 @@
 - [x] TASK-10 Implement atomic exclusive claiming, eligibility checks, one-active-claim enforcement, and claimed-by visibility
 - [x] TASK-11 Implement weekly unclaim accounting, the two-hour commitment lock, locked-claim warning, and parent cancellation
 - [x] TASK-12 Deliver claimed-chore submission, parent review, approved earnings, and active-claim release
-- [ ] TASK-13 Implement the single-redo review lifecycle and first-successful concurrent parent review behavior
+- [x] TASK-13 Implement the single-redo review lifecycle and first-successful concurrent parent review behavior
 - [ ] TASK-14 Apply missed locked-claim and failed-redo penalties with negative running-balance carry-forward
 
 ## Phase 4 — Complete settlement, evidence, and household engagement

@@ -1,7 +1,7 @@
 # Current Implementation Status
 
-**Current milestone:** TASK-12 complete
-**Next milestone:** TASK-13 — Implement the single-redo review lifecycle and first-successful concurrent parent review behavior
+**Current milestone:** TASK-13 complete
+**Next milestone:** TASK-14 — Apply missed locked-claim and failed-redo penalties with negative running-balance carry-forward
 
 ## Completed
 
@@ -642,3 +642,126 @@ It will:
 - preserve the TASK-11 commitment, cancellation, and historical Claim invariants.
 
 TASK-13 will then add the single-redo review lifecycle.
+
+### TASK-13 — Single-Redo review lifecycle and first-successful Parent review
+
+#### Durable Redo facts
+
+- Durable `choreRedos` persistence implemented.
+- A Redo retains Household, occurrence, initial Submission, rejection Review, Parent-set local deadline date/time, absolute deadline, and creation time.
+- The original Chore Occurrence deadline remains immutable.
+- The active Redo deadline is stored separately from the original occurrence deadline.
+- Redo deadline resolution uses the immutable occurrence timezone.
+- A Redo deadline must be strictly after the rejection Review time.
+- At most one Redo is created for an occurrence.
+
+#### Initial rejection and Redo creation
+
+- Either authorized Parent may reject an on-time first Submission.
+- Only attempt `1` can create a Redo.
+- Initial rejection creates one durable rejected Review and one durable Redo.
+- Personal occurrences transition to `redo_required`.
+- Claimable occurrences and their active Claims both transition to `redo_required`.
+- A Claim remains active while Redo work is outstanding.
+- Initial rejection creates no earning and no penalty.
+- A late initial Submission cannot receive a Redo.
+- Duplicate rejection cannot create another Review or Redo.
+- Claimable ownership is revalidated transactionally.
+
+#### Child Redo submission
+
+- Redo submission is attempt `2`.
+- Personal and Claimable Redo submission use separate explicit mutations from the attempt-1 paths.
+- Redo eligibility is derived from the durable Redo record rather than the original occurrence deadline.
+- Submission at the exact Redo deadline is valid.
+- Submission after the Redo deadline is rejected.
+- Duplicate attempt-2 submissions are prevented.
+- Claimable Redo submission requires the same Child to own the active `redo_required` Claim.
+- Claimable attempt-2 submission keeps the active Claim slot occupied while Parent review is pending.
+- Redo submission itself creates no financial effect.
+
+#### Final Redo review
+
+- Parent approval of an on-time attempt-2 Submission completes the occurrence.
+- Claimable Redo approval also transitions the Claim to `approved` and releases the active Claim slot.
+- Approved Redos earn the immutable occurrence value.
+- Parent review delay cannot invalidate an on-time Redo Submission.
+- Parent rejection of attempt `2` is final.
+- Rejected Personal Redos transition to `failed`.
+- Rejected Claimable Redos transition both the occurrence and Claim to `failed`.
+- No second Redo can be created.
+- Failed Claimable Redo penalties are intentionally deferred to TASK-14.
+
+#### Redo deadline failure
+
+- Exact Redo deadline remains valid.
+- Failure occurs only strictly after the Redo deadline.
+- Initial rejection schedules a durable Convex transition for `deadlineAt + 1`.
+- An unsubmitted Personal Redo becomes `failed` after its deadline.
+- An unsubmitted Claimable Redo transitions both Claim and occurrence to `failed`.
+- Redo deadline failure creates no ledger entry in TASK-13.
+- A failed Claimable Redo releases the active Claim slot.
+- Scheduled deadline reconciliation is idempotent.
+- The scheduled callback is harmless after timely attempt-2 submission, Parent cancellation, or another terminal transition.
+
+#### First-successful Parent review authority
+
+- Every Submission permits at most one successful Parent review decision.
+- Competing Approve and Reject mutations use Convex transactional conflict detection and retry behavior.
+- In a concurrent attempt-1 Approve-versus-Reject race, exactly one decision succeeds.
+- The losing mutation cannot create a second Review, earning, or Redo.
+- The durable lifecycle and financial result always match the first successful Review.
+- Later conflicting review attempts cannot overwrite the authoritative decision.
+- Attempt-2 review paths preserve the same one-decision-per-Submission invariant.
+
+#### Parent and Child UI
+
+- The existing Parent `Reviews` section supports rejecting attempt-1 Personal and Claimable submissions.
+- Parent rejection requires a Household-local Redo date and time.
+- Redo controls use stable automation IDs for date, time, and reject actions.
+- Parent scrolling preserves taps while text inputs are active.
+- Child Personal Redos display the authoritative Redo deadline and an attempt-2 submit action.
+- Child Claimable Redos display the authoritative Redo deadline, explain that the Claim remains active, and expose attempt-2 submission.
+- Parent `Reviews` includes a compact Redo review section.
+- Parent Redo approval completes and earns.
+- Parent Redo rejection clearly communicates that the result is final and failed.
+- Development-only Maestro fixtures exercise the same reusable production presentation components.
+
+#### TASK-13 automated verification
+
+Backend smoke coverage includes:
+
+- Redo deadline timezone and wall-clock resolution;
+- initial rejection for Personal and Claimable submissions;
+- exactly one durable Redo creation;
+- attempt-2 Personal and Claimable submission;
+- exact Redo-deadline submission acceptance;
+- post-deadline Redo submission rejection;
+- Redo approval and immutable-value earning;
+- Redo rejection as terminal failure;
+- Claim slot retention during Redo and release after terminal resolution;
+- protection from Parent review delay;
+- exact-deadline protection and post-deadline failure;
+- idempotent Redo deadline reconciliation;
+- harmless scheduled callbacks after timely submission or cancellation;
+- first-successful concurrent Parent Approve-versus-Reject behavior;
+- prevention of later conflicting review decisions.
+
+TASK-13 smoke suites pass with:
+
+- Redo deadline rules: `5/5`;
+- initial rejection: `8/8`;
+- Redo submission: `9/9`;
+- Redo review: `9/9`;
+- Redo deadline failure: `7/7`;
+- concurrent review authority: `8/8`.
+
+Regression coverage remains green for TASK-08 Personal approval, TASK-11 Parent cancellation, and TASK-12 Claimable submission and approval.
+
+Maestro coverage verifies:
+
+- attempt-1 Parent rejection with a Redo deadline;
+- Child Personal and Claimable Redo presentation and submission;
+- final Parent Redo approval and rejection;
+- existing Claim, unclaim, Parent cancellation, TASK-12 submission, and TASK-12 Parent approval journeys.
+

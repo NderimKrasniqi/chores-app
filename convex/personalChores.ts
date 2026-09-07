@@ -9,6 +9,9 @@ import {
   listPersonalOccurrencesForChild,
   submitPersonalOccurrence,
 } from './lib/personalChoreExecution';
+import {
+  submitPersonalRedo,
+} from './lib/redoSubmission';
 
 /*
  * Child-facing Personal Chore view.
@@ -99,9 +102,8 @@ export const listMine =
   });
 
 /*
- * Child submits completed Personal work.
+ * Attempt 1.
  *
- * The app does not supply submittedAt.
  * Convex server time is authoritative.
  */
 export const submit =
@@ -125,6 +127,41 @@ export const submit =
         );
 
       return await submitPersonalOccurrence(
+        ctx,
+        args.occurrenceId,
+        child._id,
+      );
+    },
+  });
+
+/*
+ * Attempt 2 — the one permitted Redo.
+ *
+ * The active deadline comes from the
+ * durable choreRedos record rather than
+ * the original occurrence deadline.
+ */
+export const submitRedo =
+  mutation({
+    args: {
+      occurrenceId:
+        v.id(
+          'choreOccurrences',
+        ),
+    },
+
+    handler: async (
+      ctx,
+      args,
+    ) => {
+      const {
+        child,
+      } =
+        await requireCurrentChildAccess(
+          ctx,
+        );
+
+      return await submitPersonalRedo(
         ctx,
         args.occurrenceId,
         child._id,

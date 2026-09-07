@@ -1,0 +1,24 @@
+appId: host.exp.Exponent
+---
+- openLink: "exp://127.0.0.1:8081/--/maestro-task13-parent-redo"
+
+- extendedWaitUntil:
+    visible: "TASK-13 Parent Redo Review Fixture"
+    timeout: 60000
+
+- assertVisible: "Bedroom reset"
+- assertVisible: "Garage shelves"
+- assertVisible: "Personal Redo"
+- assertVisible: "Claimable Redo"
+
+- tapOn:
+    id: "redo-review-approve-task13-personal-redo-review"
+
+- assertVisible: "Approved Redo Bedroom reset.*"
+
+- tapOn:
+    id: "redo-review-reject-task13-claimable-redo-review"
+
+- assertVisible: "Rejected Redo Garage shelves.*"
+
+- assertVisible: "No Redos waiting"

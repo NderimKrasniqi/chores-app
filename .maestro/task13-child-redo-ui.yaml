@@ -1,0 +1,22 @@
+appId: host.exp.Exponent
+---
+- openLink: "exp://127.0.0.1:8081/--/maestro-task13-child"
+
+- extendedWaitUntil:
+    visible: "TASK-13 Child Redo Fixture"
+    timeout: 60000
+
+- assertVisible: "Bedroom reset"
+- assertVisible: "Garage shelves"
+- assertVisible: "Redo deadline"
+- assertVisible: "This Claim remains active.*"
+
+- tapOn:
+    id: "task13-personal-redo-submit"
+
+- assertVisible: "Personal Redo submitted"
+
+- tapOn:
+    id: "task13-claimable-redo-submit"
+
+- assertVisible: "Claimable Redo submitted"
