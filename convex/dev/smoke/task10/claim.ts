@@ -335,6 +335,12 @@ export const run =
                 60 *
                 1000,
 
+            availabilityReachedAt:
+              now -
+              60 *
+                60 *
+                1000,
+
             deadlineAt:
               now +
               8 *

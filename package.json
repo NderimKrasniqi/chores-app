@@ -56,7 +56,11 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "typecheck": "tsc --noEmit",
+    "verify:backend": "node ./scripts/verify-backend.mjs",
+    "verify:convex": "npx convex dev --once --typecheck=disable --start \"node ./scripts/verify-backend.mjs\"",
+    "verify": "npm run typecheck && npm run verify:convex"
   },
   "private": true
 }
