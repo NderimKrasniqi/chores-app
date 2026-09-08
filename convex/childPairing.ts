@@ -4,6 +4,10 @@ import { internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { action, internalMutation, mutation } from './_generated/server';
 import { authComponent } from './auth';
+import {
+  requireCurrentParentAuthUser,
+  requireCurrentParentForHousehold,
+} from './lib/auth/parentAuthorization';
 
 const PAIRING_LIFETIME_MS = 15 * 60 * 1000;
 
@@ -107,11 +111,10 @@ export const create = action({
     manualCode: string;
     expiresAt: number;
   }> => {
-    const authUser = await authComponent.safeGetAuthUser(ctx);
-
-    if (!authUser) {
-      throw new ConvexError('Not authenticated.');
-    }
+    const authUser =
+      await requireCurrentParentAuthUser(
+        ctx,
+      );
 
     const qrToken = generateQrToken();
     const manualCode = generateManualCode();
@@ -249,32 +252,17 @@ export const revokeCredential = mutation({
   returns: v.boolean(),
 
   handler: async (ctx, args): Promise<boolean> => {
-    const authUser = await authComponent.safeGetAuthUser(ctx);
-
-    if (!authUser) {
-      throw new ConvexError('Not authenticated.');
-    }
-
     const credential = await ctx.db.get(args.pairingCredentialId);
 
     if (!credential) {
       throw new ConvexError('Pairing credential not found.');
     }
 
-    const membership = await ctx.db
-      .query('householdMembers')
-      .withIndex('by_household_auth_user', (q) =>
-        q
-          .eq('householdId', credential.householdId)
-          .eq('authUserId', authUser._id),
-      )
-      .unique();
-
-    if (!membership || membership.role !== 'parent') {
-      throw new ConvexError(
-        'You are not authorized to revoke this pairing credential.',
+    const { authUser } =
+      await requireCurrentParentForHousehold(
+        ctx,
+        credential.householdId,
       );
-    }
 
     if (credential.redeemedAt !== undefined) {
       throw new ConvexError(
@@ -307,30 +295,17 @@ export const revokeDevice = mutation({
   returns: v.boolean(),
 
   handler: async (ctx, args): Promise<boolean> => {
-    const authUser = await authComponent.safeGetAuthUser(ctx);
-
-    if (!authUser) {
-      throw new ConvexError('Not authenticated.');
-    }
-
     const grant = await ctx.db.get(args.accessGrantId);
 
     if (!grant) {
       throw new ConvexError('Child device access grant not found.');
     }
 
-    const membership = await ctx.db
-      .query('householdMembers')
-      .withIndex('by_household_auth_user', (q) =>
-        q.eq('householdId', grant.householdId).eq('authUserId', authUser._id),
-      )
-      .unique();
-
-    if (!membership || membership.role !== 'parent') {
-      throw new ConvexError(
-        'You are not authorized to revoke this child device.',
+    const { authUser } =
+      await requireCurrentParentForHousehold(
+        ctx,
+        grant.householdId,
       );
-    }
 
     if (grant.revokedAt !== undefined) {
       return false;

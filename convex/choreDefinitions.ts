@@ -3,13 +3,14 @@ import { ConvexError, v } from 'convex/values';
 import type { Id } from './_generated/dataModel';
 import type {
   MutationCtx,
-  QueryCtx,
 } from './_generated/server';
 import {
   mutation,
   query,
 } from './_generated/server';
-import { authComponent } from './auth';
+import {
+  requireCurrentParentForHousehold,
+} from './lib/auth/parentAuthorization';
 
 const weekdayValidator = v.union(
   v.literal('monday'),
@@ -391,48 +392,6 @@ function normalizeRecurrence(
   }
 }
 
-async function requireParentForHousehold(
-  ctx:
-    | MutationCtx
-    | QueryCtx,
-  householdId:
-    Id<'households'>,
-  authUserId:
-    string,
-) {
-  const membership =
-    await ctx.db
-      .query(
-        'householdMembers',
-      )
-      .withIndex(
-        'by_household_auth_user',
-        (q) =>
-          q
-            .eq(
-              'householdId',
-              householdId,
-            )
-            .eq(
-              'authUserId',
-              authUserId,
-            ),
-      )
-      .unique();
-
-  if (
-    !membership ||
-    membership.role !==
-      'parent'
-  ) {
-    throw new ConvexError(
-      'You are not authorized to configure chores for this household.',
-    );
-  }
-
-  return membership;
-}
-
 async function validateDefinitionInput(
   ctx: MutationCtx,
   args: DefinitionInput,
@@ -784,22 +743,11 @@ export const create =
       ctx,
       args,
     ) => {
-      const authUser =
-        await authComponent.safeGetAuthUser(
+      const { authUser } =
+        await requireCurrentParentForHousehold(
           ctx,
+          args.householdId,
         );
-
-      if (!authUser) {
-        throw new ConvexError(
-          'Not authenticated.',
-        );
-      }
-
-      await requireParentForHousehold(
-        ctx,
-        args.householdId,
-        authUser._id,
-      );
 
       const normalized =
         await validateDefinitionInput(
@@ -927,17 +875,6 @@ export const update =
       ctx,
       args,
     ) => {
-      const authUser =
-        await authComponent.safeGetAuthUser(
-          ctx,
-        );
-
-      if (!authUser) {
-        throw new ConvexError(
-          'Not authenticated.',
-        );
-      }
-
       const definition =
         await ctx.db.get(
           args.choreDefinitionId,
@@ -949,10 +886,9 @@ export const update =
         );
       }
 
-      await requireParentForHousehold(
+      await requireCurrentParentForHousehold(
         ctx,
         definition.householdId,
-        authUser._id,
       );
 
       if (
@@ -1068,17 +1004,6 @@ export const archive =
       ctx,
       args,
     ) => {
-      const authUser =
-        await authComponent.safeGetAuthUser(
-          ctx,
-        );
-
-      if (!authUser) {
-        throw new ConvexError(
-          'Not authenticated.',
-        );
-      }
-
       const definition =
         await ctx.db.get(
           args.choreDefinitionId,
@@ -1090,11 +1015,11 @@ export const archive =
         );
       }
 
-      await requireParentForHousehold(
-        ctx,
-        definition.householdId,
-        authUser._id,
-      );
+      const { authUser } =
+        await requireCurrentParentForHousehold(
+          ctx,
+          definition.householdId,
+        );
 
       if (
         definition.archivedAt !==
@@ -1137,21 +1062,9 @@ export const listActiveForHousehold =
       ctx,
       args,
     ) => {
-      const authUser =
-        await authComponent.safeGetAuthUser(
-          ctx,
-        );
-
-      if (!authUser) {
-        throw new ConvexError(
-          'Not authenticated.',
-        );
-      }
-
-      await requireParentForHousehold(
+      await requireCurrentParentForHousehold(
         ctx,
         args.householdId,
-        authUser._id,
       );
 
       const definitions =

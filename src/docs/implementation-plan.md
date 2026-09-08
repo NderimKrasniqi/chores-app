@@ -1,7 +1,7 @@
 # Implementation Plan
 **Status:** Approved — current
 
-**Implementation progress:** TASK-01 through TASK-20 complete. TASK-21 is next.
+**Implementation progress:** TASK-01 through TASK-21 complete. TASK-22 is next.
 
 ## Phase 1 — Establish trusted household access
 - [x] TASK-01 Bootstrap the Expo, NativeWind, and Convex application with an unprotected connectivity seam
@@ -34,7 +34,7 @@
 - [x] TASK-20 Verify the integrated first-release surface across all approved household, chore, review, financial, and notification journeys
 
 ## Phase 6 — Audit and stabilize the engineering foundation
-- [ ] TASK-21 Audit the complete codebase for correctness, security, architecture, readability, maintainability, performance, testing quality, and current Expo/Convex best practices; produce prioritized findings before refactoring
+- [x] TASK-21 Audit the complete codebase for correctness, security, architecture, readability, maintainability, performance, testing quality, and current Expo/Convex best practices; produce prioritized findings before refactoring
 - [ ] TASK-22 Resolve approved P0/P1 findings and selected high-value P2 findings, stabilizing domain, backend, application, and integration boundaries before production UI work
 
 ## Phase 7 — Define and build the production experience

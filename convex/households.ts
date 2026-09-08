@@ -2,8 +2,10 @@ import { ConvexError, v } from 'convex/values';
 
 import type { Id } from './_generated/dataModel';
 import { mutation, query } from './_generated/server';
-import { authComponent } from './auth';
-import { requireCurrentParentForHousehold } from './lib/auth/parentAuthorization';
+import {
+  requireCurrentParentAuthUser,
+  requireCurrentParentForHousehold,
+} from './lib/auth/parentAuthorization';
 import { ensureCurrentPayoutPeriod } from './lib/finance/payoutPeriods';
 
 const payoutWeekdayValidator = v.union(
@@ -52,11 +54,10 @@ export const create = mutation({
   }),
 
   handler: async (ctx, args) => {
-    const authUser = await authComponent.safeGetAuthUser(ctx);
-
-    if (!authUser) {
-      throw new ConvexError('Not authenticated.');
-    }
+    const authUser =
+      await requireCurrentParentAuthUser(
+        ctx,
+      );
 
     const householdName = args.name.trim();
 
@@ -151,11 +152,10 @@ export const listForCurrentParent = query({
   ),
 
   handler: async (ctx) => {
-    const authUser = await authComponent.safeGetAuthUser(ctx);
-
-    if (!authUser) {
-      throw new ConvexError('Not authenticated.');
-    }
+    const authUser =
+      await requireCurrentParentAuthUser(
+        ctx,
+      );
 
     const memberships = await ctx.db
       .query('householdMembers')

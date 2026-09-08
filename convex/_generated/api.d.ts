@@ -59,6 +59,7 @@ import type * as dev_smoke_task16_evidenceFixture from "../dev/smoke/task16/evid
 import type * as dev_smoke_task17_activity from "../dev/smoke/task17/activity.js";
 import type * as dev_smoke_task18_notificationInfrastructure from "../dev/smoke/task18/notificationInfrastructure.js";
 import type * as dev_smoke_task18_orchestration from "../dev/smoke/task18/orchestration.js";
+import type * as dev_smoke_task22_parentPrincipalSeparation from "../dev/smoke/task22/parentPrincipalSeparation.js";
 import type * as health from "../health.js";
 import type * as householdActivity from "../householdActivity.js";
 import type * as households from "../households.js";
@@ -180,6 +181,7 @@ declare const fullApi: ApiFromModules<{
   "dev/smoke/task17/activity": typeof dev_smoke_task17_activity;
   "dev/smoke/task18/notificationInfrastructure": typeof dev_smoke_task18_notificationInfrastructure;
   "dev/smoke/task18/orchestration": typeof dev_smoke_task18_orchestration;
+  "dev/smoke/task22/parentPrincipalSeparation": typeof dev_smoke_task22_parentPrincipalSeparation;
   health: typeof health;
   householdActivity: typeof householdActivity;
   households: typeof households;

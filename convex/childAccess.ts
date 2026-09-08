@@ -5,6 +5,9 @@ import {
 
 import { query } from './_generated/server';
 import { authComponent } from './auth';
+import {
+  requireCurrentParentForHousehold,
+} from './lib/auth/parentAuthorization';
 
 function isAnonymousAuthUser(
   user: object,
@@ -295,17 +298,6 @@ export const listActivePairingCredentialsForChild =
       ctx,
       args,
     ) => {
-      const authUser =
-        await authComponent.safeGetAuthUser(
-          ctx,
-        );
-
-      if (!authUser) {
-        throw new ConvexError(
-          'Not authenticated.',
-        );
-      }
-
       const child =
         await ctx.db.get(
           args.childId,
@@ -317,35 +309,10 @@ export const listActivePairingCredentialsForChild =
         );
       }
 
-      const membership =
-        await ctx.db
-          .query(
-            'householdMembers',
-          )
-          .withIndex(
-            'by_household_auth_user',
-            (q) =>
-              q
-                .eq(
-                  'householdId',
-                  child.householdId,
-                )
-                .eq(
-                  'authUserId',
-                  authUser._id,
-                ),
-          )
-          .unique();
-
-      if (
-        !membership ||
-        membership.role !==
-          'parent'
-      ) {
-        throw new ConvexError(
-          'You are not authorized to view pairing credentials for this child.',
-        );
-      }
+      await requireCurrentParentForHousehold(
+        ctx,
+        child.householdId,
+      );
 
       const now =
         Date.now();
@@ -442,17 +409,6 @@ export const listDevicesForChild =
       ctx,
       args,
     ) => {
-      const authUser =
-        await authComponent.safeGetAuthUser(
-          ctx,
-        );
-
-      if (!authUser) {
-        throw new ConvexError(
-          'Not authenticated.',
-        );
-      }
-
       const child =
         await ctx.db.get(
           args.childId,
@@ -464,35 +420,10 @@ export const listDevicesForChild =
         );
       }
 
-      const membership =
-        await ctx.db
-          .query(
-            'householdMembers',
-          )
-          .withIndex(
-            'by_household_auth_user',
-            (q) =>
-              q
-                .eq(
-                  'householdId',
-                  child.householdId,
-                )
-                .eq(
-                  'authUserId',
-                  authUser._id,
-                ),
-          )
-          .unique();
-
-      if (
-        !membership ||
-        membership.role !==
-          'parent'
-      ) {
-        throw new ConvexError(
-          'You are not authorized to view devices for this child.',
-        );
-      }
+      await requireCurrentParentForHousehold(
+        ctx,
+        child.householdId,
+      );
 
       const grants =
         await ctx.db

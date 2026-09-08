@@ -3,7 +3,9 @@ import { ConvexError, v } from 'convex/values';
 import { internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { action, internalMutation, mutation, query } from './_generated/server';
-import { authComponent } from './auth';
+import {
+  requireCurrentParentAuthUser,
+} from './lib/auth/parentAuthorization';
 
 function bytesToHex(bytes: Uint8Array) {
   return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join(
@@ -44,11 +46,10 @@ export const create = action({
     inviteId: Id<'parentInvites'>;
     token: string;
   }> => {
-    const authUser = await authComponent.safeGetAuthUser(ctx);
-
-    if (!authUser) {
-      throw new ConvexError('Not authenticated.');
-    }
+    const authUser =
+      await requireCurrentParentAuthUser(
+        ctx,
+      );
 
     const token = generateInviteToken();
     const tokenHash = await hashInviteToken(token);
@@ -86,11 +87,10 @@ export const accept = action({
     householdId: Id<'households'>;
     membershipId: Id<'householdMembers'>;
   }> => {
-    const authUser = await authComponent.safeGetAuthUser(ctx);
-
-    if (!authUser) {
-      throw new ConvexError('Not authenticated.');
-    }
+    const authUser =
+      await requireCurrentParentAuthUser(
+        ctx,
+      );
 
     const token = args.token.trim();
 
@@ -115,11 +115,10 @@ export const revokeActive = mutation({
   returns: v.number(),
 
   handler: async (ctx, args): Promise<number> => {
-    const authUser = await authComponent.safeGetAuthUser(ctx);
-
-    if (!authUser) {
-      throw new ConvexError('Not authenticated.');
-    }
+    const authUser =
+      await requireCurrentParentAuthUser(
+        ctx,
+      );
 
     const membership = await ctx.db
       .query('householdMembers')
@@ -179,11 +178,10 @@ export const getActive = query({
   ),
 
   handler: async (ctx, args) => {
-    const authUser = await authComponent.safeGetAuthUser(ctx);
-
-    if (!authUser) {
-      throw new ConvexError('Not authenticated.');
-    }
+    const authUser =
+      await requireCurrentParentAuthUser(
+        ctx,
+      );
 
     const membership = await ctx.db
       .query('householdMembers')

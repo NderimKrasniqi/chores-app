@@ -1,69 +1,18 @@
 import {
-  ConvexError,
   v,
 } from 'convex/values';
 
-import type { Id } from './_generated/dataModel';
-import type {
-  MutationCtx,
-  QueryCtx,
-} from './_generated/server';
 import {
   mutation,
   query,
 } from './_generated/server';
-import { authComponent } from './auth';
-import { generateOccurrencesForWindow } from './lib/occurrences/generation';
+import {
+  requireCurrentParentForHousehold,
+} from './lib/auth/parentAuthorization';
+import {
+  generateOccurrencesForWindow,
+} from './lib/occurrences/generation';
 
-async function requireParentForHousehold(
-  ctx:
-    | MutationCtx
-    | QueryCtx,
-  householdId:
-    Id<'households'>,
-  authUserId: string,
-) {
-  const membership =
-    await ctx.db
-      .query(
-        'householdMembers',
-      )
-      .withIndex(
-        'by_household_auth_user',
-        (q) =>
-          q
-            .eq(
-              'householdId',
-              householdId,
-            )
-            .eq(
-              'authUserId',
-              authUserId,
-            ),
-      )
-      .unique();
-
-  if (
-    !membership ||
-    membership.role !==
-      'parent'
-  ) {
-    throw new ConvexError(
-      'You are not authorized to manage chore occurrences for this household.',
-    );
-  }
-
-  return membership;
-}
-
-/*
- * Parent-authorized generation seam.
- *
- * TASK-07 scheduling/reconciliation
- * will later call the same private
- * generation helper without requiring
- * a Parent to press anything.
- */
 export const generateForWindow =
   mutation({
     args: {
@@ -83,21 +32,9 @@ export const generateForWindow =
       ctx,
       args,
     ) => {
-      const authUser =
-        await authComponent.safeGetAuthUser(
-          ctx,
-        );
-
-      if (!authUser) {
-        throw new ConvexError(
-          'Authentication required.',
-        );
-      }
-
-      await requireParentForHousehold(
+      await requireCurrentParentForHousehold(
         ctx,
         args.householdId,
-        authUser._id,
       );
 
       return await generateOccurrencesForWindow(
@@ -122,21 +59,9 @@ export const listForHousehold =
       ctx,
       args,
     ) => {
-      const authUser =
-        await authComponent.safeGetAuthUser(
-          ctx,
-        );
-
-      if (!authUser) {
-        throw new ConvexError(
-          'Authentication required.',
-        );
-      }
-
-      await requireParentForHousehold(
+      await requireCurrentParentForHousehold(
         ctx,
         args.householdId,
-        authUser._id,
       );
 
       const occurrences =
@@ -155,7 +80,10 @@ export const listForHousehold =
           .collect();
 
       return occurrences.sort(
-        (left, right) =>
+        (
+          left,
+          right,
+        ) =>
           left.availabilityStartsAt -
           right.availabilityStartsAt,
       );

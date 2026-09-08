@@ -12,6 +12,9 @@ import type {
 import {
   authComponent,
 } from '../../auth';
+import {
+  isAnonymousAuthUser,
+} from '../auth/parentAuthorization';
 
 type DatabaseCtx =
   | MutationCtx
@@ -130,32 +133,40 @@ export async function createEvidenceViewToken(
   }
 
   const parentMembership =
-    await ctx.db
-      .query(
-        'householdMembers',
-      )
-      .withIndex(
-        'by_household_auth_user',
-        (q) =>
-          q
-            .eq(
-              'householdId',
-              submission
-                .householdId,
-            )
-            .eq(
-              'authUserId',
-              authUser._id,
-            ),
-      )
-      .unique();
+    isAnonymousAuthUser(
+      authUser,
+    )
+      ? null
+      : await ctx.db
+          .query(
+            'householdMembers',
+          )
+          .withIndex(
+            'by_household_auth_user',
+            (q) =>
+              q
+                .eq(
+                  'householdId',
+                  submission
+                    .householdId,
+                )
+                .eq(
+                  'authUserId',
+                  authUser._id,
+                ),
+          )
+          .unique();
+
+  const hasParentAccess =
+    parentMembership?.role ===
+    'parent';
 
   let viewerChildId:
     | Id<'children'>
     | undefined;
 
   if (
-    !parentMembership
+    !hasParentAccess
   ) {
     const grants =
       await ctx.db

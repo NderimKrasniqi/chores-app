@@ -1,19 +1,18 @@
 # Current Implementation Status
 
-**Current milestone:** TASK-21 — Full engineering audit
-**Next milestone:** TASK-22 — Approved critical fixes and architectural stabilization
+**Current milestone:** TASK-22 — Approved critical fixes and architectural stabilization
+**Next milestone:** TASK-23 — Production UX architecture
 
 ## Planned
 
 ### TASK-21 — Full engineering audit
 
-- Review the complete repository before starting another feature or production-UI implementation phase.
-- Audit correctness, security, privacy, data integrity, architecture, module boundaries, authorization, state transitions, concurrency, scheduling, financial invariants, notification orchestration, offline behavior, error handling, type safety, readability, maintainability, performance, dependency usage, and testing architecture.
-- Review React Native / Expo and Convex usage against current project-compatible best practices.
-- Trace consequential journeys end-to-end rather than reviewing files only in isolation.
-- Identify dead code, duplicated domain logic, avoidable coupling, oversized modules, unclear ownership, and unnecessary abstractions.
-- Produce a prioritized P0/P1/P2/P3/DEFER report before making broad code changes.
-- The audit itself is findings-first; architectural refactors are approved and executed separately in TASK-22.
+- Complete repository audit performed across authentication, authorization, Child-device access, chores, Claims, reviews, Redos, finance, evidence, activity, notifications, offline behavior, scheduled work, test architecture, and foundational frontend infrastructure.
+- Findings are persisted in `src/docs/task21-engineering-audit.md`.
+- One P0 Parent/Child principal-separation issue was identified.
+- P1 findings include lifetime-history operational reads, financial aggregation cost, time-driven reactive state, global maintenance fan-out, evidence retention/orphans, unnecessary public backend capabilities, and missing automated CI verification.
+- High-value P2 hardening opportunities were recorded separately from production UI work.
+- Temporary presentation refactoring is explicitly deferred to TASK-23/TASK-24 unless required by foundational stabilization.
 
 ### TASK-22 — Critical fixes and architectural stabilization
 
