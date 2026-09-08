@@ -253,6 +253,21 @@ export const choreTables = {
     availabilityStartsAt:
       v.number(),
 
+    /*
+     * Durable activation fact.
+     *
+     * Undefined while a future occurrence
+     * is still scheduled.
+     *
+     * Once availabilityStartsAt is reached,
+     * this is permanently set to that
+     * immutable activation timestamp.
+     */
+    availabilityReachedAt:
+      v.optional(
+        v.number(),
+      ),
+
     deadlineAt:
       v.number(),
 
@@ -342,6 +357,14 @@ export const choreTables = {
         'personalChildId',
         'state',
         'availabilityStartsAt',
+      ],
+    )
+    .index(
+      'by_personal_child_is_unlock_chore_availability_reached_at',
+      [
+        'personalChildId',
+        'isUnlockChore',
+        'availabilityReachedAt',
       ],
     )
     .index(

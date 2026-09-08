@@ -69,35 +69,42 @@ export async function getClaimableAccessGateForChild(
     | QueryCtx,
   childId:
     Id<'children'>,
-  now = Date.now(),
+  _now = Date.now(),
 ): Promise<ClaimableAccessGate> {
+  /*
+   * The current Unlock is selected from a
+   * durable activation fact rather than
+   * from wall-clock comparison.
+   *
+   * The exact availability callback writes
+   * availabilityReachedAt, which moves the
+   * occurrence into this indexed range and
+   * invalidates reactive subscriptions.
+   */
   const currentUnlock =
     await ctx.db
       .query(
         'choreOccurrences',
       )
       .withIndex(
-        'by_personal_child_availability',
+        'by_personal_child_is_unlock_chore_availability_reached_at',
         (q) =>
           q
             .eq(
               'personalChildId',
               childId,
             )
-            .lte(
-              'availabilityStartsAt',
-              now,
+            .eq(
+              'isUnlockChore',
+              true,
+            )
+            .gte(
+              'availabilityReachedAt',
+              0,
             ),
       )
-      .order('desc')
-      .filter(
-        (q) =>
-          q.eq(
-            q.field(
-              'isUnlockChore',
-            ),
-            true,
-          ),
+      .order(
+        'desc',
       )
       .first();
 

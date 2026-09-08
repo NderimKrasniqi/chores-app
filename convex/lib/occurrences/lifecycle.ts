@@ -301,9 +301,21 @@ export async function reconcileOccurrenceLifecycle(
       'missed';
   }
 
+  const stateChanged =
+    nextState !==
+    previousState;
+
+  const shouldMarkAvailabilityReached =
+    occurrence
+      .availabilityReachedAt ===
+      undefined &&
+    now >=
+      occurrence
+        .availabilityStartsAt;
+
   if (
-    nextState ===
-    previousState
+    !stateChanged &&
+    !shouldMarkAvailabilityReached
   ) {
     return {
       found:
@@ -321,8 +333,20 @@ export async function reconcileOccurrenceLifecycle(
   await ctx.db.patch(
     occurrenceId,
     {
-      state:
-        nextState,
+      ...(stateChanged
+        ? {
+            state:
+              nextState,
+          }
+        : {}),
+
+      ...(shouldMarkAvailabilityReached
+        ? {
+            availabilityReachedAt:
+              occurrence
+                .availabilityStartsAt,
+          }
+        : {}),
     },
   );
 
@@ -331,7 +355,7 @@ export async function reconcileOccurrenceLifecycle(
       true,
 
     changed:
-      true,
+      stateChanged,
 
     previousState,
 

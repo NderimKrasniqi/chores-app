@@ -62,6 +62,7 @@ import type * as dev_smoke_task18_orchestration from "../dev/smoke/task18/orches
 import type * as dev_smoke_task22_claimCommitmentLock from "../dev/smoke/task22/claimCommitmentLock.js";
 import type * as dev_smoke_task22_financialProjection from "../dev/smoke/task22/financialProjection.js";
 import type * as dev_smoke_task22_parentPrincipalSeparation from "../dev/smoke/task22/parentPrincipalSeparation.js";
+import type * as dev_smoke_task22_unlockActivation from "../dev/smoke/task22/unlockActivation.js";
 import type * as health from "../health.js";
 import type * as householdActivity from "../householdActivity.js";
 import type * as households from "../households.js";
@@ -121,6 +122,7 @@ import type * as lib_scheduling_choreScheduling from "../lib/scheduling/choreSch
 import type * as lib_scheduling_householdTime from "../lib/scheduling/householdTime.js";
 import type * as migrations_claimCommitmentLocks from "../migrations/claimCommitmentLocks.js";
 import type * as migrations_financialBalances from "../migrations/financialBalances.js";
+import type * as migrations_unlockActivations from "../migrations/unlockActivations.js";
 import type * as parentInvites from "../parentInvites.js";
 import type * as payouts from "../payouts.js";
 import type * as personalChoreReviews from "../personalChoreReviews.js";
@@ -199,6 +201,7 @@ declare const fullApi: ApiFromModules<{
   "dev/smoke/task22/claimCommitmentLock": typeof dev_smoke_task22_claimCommitmentLock;
   "dev/smoke/task22/financialProjection": typeof dev_smoke_task22_financialProjection;
   "dev/smoke/task22/parentPrincipalSeparation": typeof dev_smoke_task22_parentPrincipalSeparation;
+  "dev/smoke/task22/unlockActivation": typeof dev_smoke_task22_unlockActivation;
   health: typeof health;
   householdActivity: typeof householdActivity;
   households: typeof households;
@@ -258,6 +261,7 @@ declare const fullApi: ApiFromModules<{
   "lib/scheduling/householdTime": typeof lib_scheduling_householdTime;
   "migrations/claimCommitmentLocks": typeof migrations_claimCommitmentLocks;
   "migrations/financialBalances": typeof migrations_financialBalances;
+  "migrations/unlockActivations": typeof migrations_unlockActivations;
   parentInvites: typeof parentInvites;
   payouts: typeof payouts;
   personalChoreReviews: typeof personalChoreReviews;

@@ -320,6 +320,13 @@ export const run =
               isUnlockChore:
                 true,
 
+              availabilityReachedAt:
+                now -
+                24 *
+                  60 *
+                  60 *
+                  1000,
+
               state:
                 'approved',
 
@@ -406,6 +413,12 @@ export const run =
 
               isUnlockChore:
                 true,
+
+              availabilityReachedAt:
+                now -
+                60 *
+                  60 *
+                  1000,
 
               state:
                 'available',
@@ -561,6 +574,12 @@ export const run =
 
               isUnlockChore:
                 true,
+
+              availabilityReachedAt:
+                now -
+                30 *
+                  60 *
+                  1000,
 
               state:
                 'missed',

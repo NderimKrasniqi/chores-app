@@ -437,6 +437,15 @@ export async function generateOccurrencesForWindow(
               schedule
                 .availabilityStartsAt,
 
+            ...(state !==
+            'scheduled'
+              ? {
+                  availabilityReachedAt:
+                    schedule
+                      .availabilityStartsAt,
+                }
+              : {}),
+
             deadlineAt:
               schedule.deadlineAt,
 
