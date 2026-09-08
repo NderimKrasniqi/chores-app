@@ -1,7 +1,64 @@
 # Current Implementation Status
 
-**Current milestone:** TASK-20 complete — first-release verification passed
-**Next milestone:** First-release implementation plan complete
+**Current milestone:** TASK-21 — Full engineering audit
+**Next milestone:** TASK-22 — Approved critical fixes and architectural stabilization
+
+## Planned
+
+### TASK-21 — Full engineering audit
+
+- Review the complete repository before starting another feature or production-UI implementation phase.
+- Audit correctness, security, privacy, data integrity, architecture, module boundaries, authorization, state transitions, concurrency, scheduling, financial invariants, notification orchestration, offline behavior, error handling, type safety, readability, maintainability, performance, dependency usage, and testing architecture.
+- Review React Native / Expo and Convex usage against current project-compatible best practices.
+- Trace consequential journeys end-to-end rather than reviewing files only in isolation.
+- Identify dead code, duplicated domain logic, avoidable coupling, oversized modules, unclear ownership, and unnecessary abstractions.
+- Produce a prioritized P0/P1/P2/P3/DEFER report before making broad code changes.
+- The audit itself is findings-first; architectural refactors are approved and executed separately in TASK-22.
+
+### TASK-22 — Critical fixes and architectural stabilization
+
+- Resolve approved P0 correctness/security/data-integrity findings.
+- Resolve approved P1 architectural and reliability findings that materially affect the production foundation.
+- Apply selected high-value P2 maintainability improvements where the benefit exceeds migration churn.
+- Prefer explicit domain/backend/application boundaries and small stable interfaces that the production UI can consume.
+- Consolidate duplicated authoritative business rules where appropriate.
+- Preserve server-authoritative deadlines, claims, reviews, financial state, authorization, and offline-confirmation semantics.
+- Avoid spending substantial effort polishing temporary presentation code that TASK-24 will replace.
+- Add or strengthen focused regression coverage for every consequential refactor.
+
+### TASK-23 — Production UX architecture
+
+- Treat the current application UI as a functional validation surface, not the final product design.
+- Define Parent and Child information architecture separately where their jobs differ.
+- Map the approved J-01 through J-13 journeys into the intended production navigation and interaction model.
+- Design household onboarding, pairing, chore configuration, daily Child work, Claimable discovery, claiming/unclaiming, submission/photo evidence, Parent review, Redo, balances, payouts, activity, notifications, and recovery states.
+- Define loading, empty, pending, offline, failure, retry, destructive-confirmation, and server-confirmation states before implementation.
+- Establish low-fidelity wireframes and the production design-system foundations before rebuilding screens.
+- Validate that UX requirements do not require accidental changes to approved domain rules; any intentional product/domain change must update its authoritative docs first.
+
+### TASK-24 — Production UI/UX implementation
+
+- Replace temporary validation-oriented presentation with the approved production experience.
+- Build on stabilized application/domain interfaces rather than coupling screens directly to persistence details where avoidable.
+- Migrate journey-by-journey rather than through one repository-wide visual rewrite.
+- Preserve accessibility and deterministic E2E selectors as production components replace fixture-era presentation.
+- Keep existing behavioral regression coverage green while updating E2E flows to the production interaction model.
+- Remove obsolete temporary presentation and fixture support only after replacement coverage exists.
+
+### TASK-25 — Real-household pilot
+
+- Exercise the production experience with real household usage across multiple representative days.
+- Validate recurrence, timezone behavior, deadlines, locks, review delay, Redo, balances, payout periods, shared-device access, revocation, offline recovery, and notifications under normal usage.
+- Record pilot findings separately from speculative feature ideas.
+- Fix material correctness, reliability, usability, and accessibility issues discovered through actual usage.
+- Complete focused backend and E2E regression verification after pilot fixes.
+
+### TASK-26 — Distribution readiness
+
+- Prepare production environment configuration and release-safe development tooling boundaries.
+- Complete required privacy/store disclosures, retention/deletion review, app metadata, icon/splash assets, and production build configuration.
+- Verify TestFlight and physical-device release behavior when Apple Developer credentials are available.
+- Physical iOS APNs end-to-end verification remains credential-dependent and belongs in this distribution phase rather than blocking engineering/UX work before it.
 
 ## Completed
 

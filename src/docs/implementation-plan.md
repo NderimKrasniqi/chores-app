@@ -1,7 +1,7 @@
 # Implementation Plan
 **Status:** Approved — current
 
-**Implementation progress:** TASK-01 through TASK-20 complete. First-release verification complete.
+**Implementation progress:** TASK-01 through TASK-20 complete. TASK-21 is next.
 
 ## Phase 1 — Establish trusted household access
 - [x] TASK-01 Bootstrap the Expo, NativeWind, and Convex application with an unprotected connectivity seam
@@ -32,3 +32,15 @@
 ## Phase 5 — Harden and close the first release
 - [x] TASK-19 Enforce read-only offline fallback and server-confirmed recovery states across consequential actions
 - [x] TASK-20 Verify the integrated first-release surface across all approved household, chore, review, financial, and notification journeys
+
+## Phase 6 — Audit and stabilize the engineering foundation
+- [ ] TASK-21 Audit the complete codebase for correctness, security, architecture, readability, maintainability, performance, testing quality, and current Expo/Convex best practices; produce prioritized findings before refactoring
+- [ ] TASK-22 Resolve approved P0/P1 findings and selected high-value P2 findings, stabilizing domain, backend, application, and integration boundaries before production UI work
+
+## Phase 7 — Define and build the production experience
+- [ ] TASK-23 Define the real Parent and Child UX architecture, navigation model, journey flows, low-fidelity wireframes, design system, accessibility requirements, and loading/error/offline interaction states before production UI implementation
+- [ ] TASK-24 Implement the production UI/UX journey-by-journey on the stabilized application interfaces, replacing temporary validation surfaces while preserving approved behavior and regression coverage
+
+## Phase 8 — Pilot and prepare distribution
+- [ ] TASK-25 Run a real-household pilot across representative scheduling, chore, review, financial, notification, offline, pairing, and recovery journeys; resolve material pilot findings and complete regression verification
+- [ ] TASK-26 Complete production distribution readiness, including production configuration, privacy/store disclosures, app metadata and assets, TestFlight verification, and App Store release preparation when Apple Developer credentials are available

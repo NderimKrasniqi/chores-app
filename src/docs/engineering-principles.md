@@ -19,6 +19,22 @@ Review meaningful improvements in:
 
 Do not create stylistic churn when the existing implementation is already clear and correct.
 
+## Audit and refactor discipline
+
+- A broad engineering audit is findings-first. Do not begin with a repository-wide rewrite or cleanup.
+- Review the existing implementation before proposing structural changes, and distinguish correctness problems from stylistic preferences.
+- Classify audit findings consistently:
+  - **P0 — correctness, security, privacy, or data-integrity risk:** fix before further product development.
+  - **P1 — material architectural or reliability problem:** normally stabilize before production UI work.
+  - **P2 — readability, maintainability, testability, or localized design improvement:** fix when the value justifies the churn.
+  - **P3 — optimization or polish:** require material evidence or a clear maintenance benefit.
+  - **DEFER — presentation work likely to be replaced by the production UI/UX:** do not refactor merely to improve temporary code.
+- Prefer targeted refactors with explicit invariants and regression coverage over broad rewrites.
+- Stabilize domain rules, server authority, authorization, persistence, application interfaces, and consequential state transitions before investing in final presentation architecture.
+- Do not treat existing temporary UI composition as an architectural constraint on the production experience.
+- Performance work should target measured or structurally credible problems rather than speculative micro-optimization.
+- Consequential architecture changes discovered during an audit must update the appropriate living architecture documentation and ADR history before or with implementation.
+
 ## Testing
 
 - Test behavior through meaningful public interfaces, not private implementation details.
