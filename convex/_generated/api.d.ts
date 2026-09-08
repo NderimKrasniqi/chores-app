@@ -59,6 +59,7 @@ import type * as dev_smoke_task16_evidenceFixture from "../dev/smoke/task16/evid
 import type * as dev_smoke_task17_activity from "../dev/smoke/task17/activity.js";
 import type * as dev_smoke_task18_notificationInfrastructure from "../dev/smoke/task18/notificationInfrastructure.js";
 import type * as dev_smoke_task18_orchestration from "../dev/smoke/task18/orchestration.js";
+import type * as dev_smoke_task22_activeChildGrantLookup from "../dev/smoke/task22/activeChildGrantLookup.js";
 import type * as dev_smoke_task22_claimCommitmentLock from "../dev/smoke/task22/claimCommitmentLock.js";
 import type * as dev_smoke_task22_evidenceRetention from "../dev/smoke/task22/evidenceRetention.js";
 import type * as dev_smoke_task22_evidenceRetentionFixture from "../dev/smoke/task22/evidenceRetentionFixture.js";
@@ -84,6 +85,7 @@ import type * as jobs_redos_deadlineTransitions from "../jobs/redos/deadlineTran
 import type * as lib_activity_approvalActivity from "../lib/activity/approvalActivity.js";
 import type * as lib_auth_childAuthorization from "../lib/auth/childAuthorization.js";
 import type * as lib_auth_parentAuthorization from "../lib/auth/parentAuthorization.js";
+import type * as lib_childAccess_activeGrants from "../lib/childAccess/activeGrants.js";
 import type * as lib_claims_accessGate from "../lib/claims/accessGate.js";
 import type * as lib_claims_cancellation from "../lib/claims/cancellation.js";
 import type * as lib_claims_claiming from "../lib/claims/claiming.js";
@@ -208,6 +210,7 @@ declare const fullApi: ApiFromModules<{
   "dev/smoke/task17/activity": typeof dev_smoke_task17_activity;
   "dev/smoke/task18/notificationInfrastructure": typeof dev_smoke_task18_notificationInfrastructure;
   "dev/smoke/task18/orchestration": typeof dev_smoke_task18_orchestration;
+  "dev/smoke/task22/activeChildGrantLookup": typeof dev_smoke_task22_activeChildGrantLookup;
   "dev/smoke/task22/claimCommitmentLock": typeof dev_smoke_task22_claimCommitmentLock;
   "dev/smoke/task22/evidenceRetention": typeof dev_smoke_task22_evidenceRetention;
   "dev/smoke/task22/evidenceRetentionFixture": typeof dev_smoke_task22_evidenceRetentionFixture;
@@ -233,6 +236,7 @@ declare const fullApi: ApiFromModules<{
   "lib/activity/approvalActivity": typeof lib_activity_approvalActivity;
   "lib/auth/childAuthorization": typeof lib_auth_childAuthorization;
   "lib/auth/parentAuthorization": typeof lib_auth_parentAuthorization;
+  "lib/childAccess/activeGrants": typeof lib_childAccess_activeGrants;
   "lib/claims/accessGate": typeof lib_claims_accessGate;
   "lib/claims/cancellation": typeof lib_claims_cancellation;
   "lib/claims/claiming": typeof lib_claims_claiming;

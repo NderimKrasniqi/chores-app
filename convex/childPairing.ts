@@ -8,6 +8,10 @@ import {
   requireCurrentParentAuthUser,
   requireCurrentParentForHousehold,
 } from './lib/auth/parentAuthorization';
+import {
+  findActiveChildAccessGrantForCredential,
+  getUniqueActiveChildAccessGrantForAuthUser,
+} from './lib/childAccess/activeGrants';
 
 const PAIRING_LIFETIME_MS = 15 * 60 * 1000;
 
@@ -463,18 +467,12 @@ export const consumeQrCredential = internalMutation({
         throw new ConvexError('Invalid or unavailable QR pairing token.');
       }
 
-      const existingGrants = await ctx.db
-        .query('childDeviceAccessGrants')
-        .withIndex('by_auth_user', (q) =>
-          q.eq('authUserId', args.actorAuthUserId),
-        )
-        .collect();
-
-      const existingGrant = existingGrants.find(
-        (grant) =>
-          grant.pairingCredentialId === credential._id &&
-          grant.revokedAt === undefined,
-      );
+      const existingGrant =
+        await findActiveChildAccessGrantForCredential(
+          ctx,
+          args.actorAuthUserId,
+          credential._id,
+        );
 
       if (!existingGrant) {
         throw new ConvexError('Invalid or unavailable QR pairing token.');
@@ -491,16 +489,11 @@ export const consumeQrCredential = internalMutation({
       throw new ConvexError('Invalid or unavailable QR pairing token.');
     }
 
-    const grantsForIdentity = await ctx.db
-      .query('childDeviceAccessGrants')
-      .withIndex('by_auth_user', (q) =>
-        q.eq('authUserId', args.actorAuthUserId),
-      )
-      .collect();
-
-    const activeGrant = grantsForIdentity.find(
-      (grant) => grant.revokedAt === undefined,
-    );
+    const activeGrant =
+      await getUniqueActiveChildAccessGrantForAuthUser(
+        ctx,
+        args.actorAuthUserId,
+      );
 
     if (activeGrant) {
       throw new ConvexError(
@@ -621,18 +614,12 @@ export const consumeManualCredential = internalMutation({
       credential.redeemedAt !== undefined &&
       credential.redeemedByAuthUserId === args.actorAuthUserId
     ) {
-      const existingGrants = await ctx.db
-        .query('childDeviceAccessGrants')
-        .withIndex('by_auth_user', (q) =>
-          q.eq('authUserId', args.actorAuthUserId),
-        )
-        .collect();
-
-      const existingGrant = existingGrants.find(
-        (grant) =>
-          grant.pairingCredentialId === credential._id &&
-          grant.revokedAt === undefined,
-      );
+      const existingGrant =
+        await findActiveChildAccessGrantForCredential(
+          ctx,
+          args.actorAuthUserId,
+          credential._id,
+        );
 
       if (existingGrant) {
         if (attemptBucket) {
@@ -655,16 +642,11 @@ export const consumeManualCredential = internalMutation({
       credential.expiresAt > now;
 
     if (credentialIsAvailable) {
-      const grantsForIdentity = await ctx.db
-        .query('childDeviceAccessGrants')
-        .withIndex('by_auth_user', (q) =>
-          q.eq('authUserId', args.actorAuthUserId),
-        )
-        .collect();
-
-      const activeGrant = grantsForIdentity.find(
-        (grant) => grant.revokedAt === undefined,
-      );
+      const activeGrant =
+        await getUniqueActiveChildAccessGrantForAuthUser(
+          ctx,
+          args.actorAuthUserId,
+        );
 
       if (!activeGrant) {
         const accessGrantId = await ctx.db.insert('childDeviceAccessGrants', {

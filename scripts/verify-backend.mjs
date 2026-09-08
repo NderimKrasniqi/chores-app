@@ -45,7 +45,9 @@ const smokeFunctions = [
   'dev/smoke/task22/claimCommitmentLock:run',
   'dev/smoke/task22/unlockActivation:run',
   'dev/smoke/task22/evidenceRetention:run',
-  'dev/smoke/task22/maintenanceFanout:run',
+"  'dev/smoke/task22/maintenanceFanout:run',
+  'dev/smoke/task22/activeChildGrantLookup:run',
+  'dev/smoke/task22/activeChildDrantLookup:run',
 ];
 
 for (const functionName of smokeFunctions) {

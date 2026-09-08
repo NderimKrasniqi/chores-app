@@ -15,6 +15,9 @@ import {
 import {
   isAnonymousAuthUser,
 } from '../auth/parentAuthorization';
+import {
+  getUniqueActiveChildAccessGrantForAuthUser,
+} from '../childAccess/activeGrants';
 
 type DatabaseCtx =
   | MutationCtx
@@ -168,34 +171,19 @@ export async function createEvidenceViewToken(
   if (
     !hasParentAccess
   ) {
-    const grants =
-      await ctx.db
-        .query(
-          'childDeviceAccessGrants',
-        )
-        .withIndex(
-          'by_auth_user',
-          (q) =>
-            q.eq(
-              'authUserId',
-              authUser._id,
-            ),
-        )
-        .collect();
-
     const matchingGrant =
-      grants.find(
-        (grant) =>
-          grant.revokedAt ===
-            undefined &&
-          grant.householdId ===
-            submission
-              .householdId &&
-          grant.childId ===
-            submission.childId,
+      await getUniqueActiveChildAccessGrantForAuthUser(
+        ctx,
+        authUser._id,
       );
 
-    if (!matchingGrant) {
+    if (
+      !matchingGrant ||
+      matchingGrant.householdId !==
+        submission.householdId ||
+      matchingGrant.childId !==
+        submission.childId
+    ) {
       throw new ConvexError(
         'You are not authorized to view this evidence.',
       );
@@ -373,34 +361,19 @@ export async function resolveEvidenceViewToken(
       return null;
     }
 
-    const grants =
-      await ctx.db
-        .query(
-          'childDeviceAccessGrants',
-        )
-        .withIndex(
-          'by_auth_user',
-          (q) =>
-            q.eq(
-              'authUserId',
-              token
-                .viewerAuthUserId,
-            ),
-        )
-        .collect();
-
     const activeGrant =
-      grants.find(
-        (grant) =>
-          grant.revokedAt ===
-            undefined &&
-          grant.householdId ===
-            token.householdId &&
-          grant.childId ===
-            token.viewerChildId,
+      await getUniqueActiveChildAccessGrantForAuthUser(
+        ctx,
+        token.viewerAuthUserId,
       );
 
-    if (!activeGrant) {
+    if (
+      !activeGrant ||
+      activeGrant.householdId !==
+        token.householdId ||
+      activeGrant.childId !==
+        token.viewerChildId
+    ) {
       return null;
     }
   }

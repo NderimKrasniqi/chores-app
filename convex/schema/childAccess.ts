@@ -85,6 +85,13 @@ export const childAccessTables = {
     .index('by_child', ['childId'])
     .index('by_auth_user', ['authUserId'])
     .index(
+      'by_auth_user_revoked_at',
+      [
+        'authUserId',
+        'revokedAt',
+      ],
+    )
+    .index(
       'by_child_auth_user',
       ['childId', 'authUserId'],
     ),

@@ -8,6 +8,9 @@ import { authComponent } from './auth';
 import {
   requireCurrentParentForHousehold,
 } from './lib/auth/parentAuthorization';
+import {
+  getUniqueActiveChildAccessGrantForAuthUser,
+} from './lib/childAccess/activeGrants';
 
 function isAnonymousAuthUser(
   user: object,
@@ -168,46 +171,15 @@ export const getCurrentChildAccess =
         return null;
       }
 
-      const grants =
-        await ctx.db
-          .query(
-            'childDeviceAccessGrants',
-          )
-          .withIndex(
-            'by_auth_user',
-            (q) =>
-              q.eq(
-                'authUserId',
-                authUser._id,
-              ),
-          )
-          .collect();
-
-      const activeGrants =
-        grants.filter(
-          (grant) =>
-            grant.revokedAt ===
-            undefined,
+      const grant =
+        await getUniqueActiveChildAccessGrantForAuthUser(
+          ctx,
+          authUser._id,
         );
 
-      if (
-        activeGrants.length ===
-        0
-      ) {
+      if (!grant) {
         return null;
       }
-
-      if (
-        activeGrants.length >
-        1
-      ) {
-        throw new ConvexError(
-          'Child device identity has multiple active access grants.',
-        );
-      }
-
-      const grant =
-        activeGrants[0];
 
       const child =
         await ctx.db.get(
