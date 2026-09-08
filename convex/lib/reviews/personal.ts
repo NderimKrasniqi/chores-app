@@ -6,6 +6,9 @@ import type {
 import type {
   MutationCtx,
 } from '../../_generated/server';
+import {
+  insertFinancialLedgerEntry,
+} from '../finance/financialProjection';
 
 export async function approvePersonalSubmission(
   ctx: MutationCtx,
@@ -165,8 +168,8 @@ export async function approvePersonalSubmission(
     );
 
   const ledgerEntryId =
-    await ctx.db.insert(
-      'ledgerEntries',
+    await insertFinancialLedgerEntry(
+      ctx,
       {
         householdId:
           occurrence.householdId,

@@ -9,6 +9,9 @@ import type {
   MutationCtx,
 } from '../../_generated/server';
 import {
+  insertFinancialLedgerEntry,
+} from '../finance/financialProjection';
+import {
   findSubmittedClaimForSubmission,
 } from '../claims/submittedClaim';
 
@@ -198,8 +201,8 @@ export async function approveClaimableSubmission(
    * Chore Occurrence snapshot.
    */
   const ledgerEntryId =
-    await ctx.db.insert(
-      'ledgerEntries',
+    await insertFinancialLedgerEntry(
+      ctx,
       {
         householdId:
           occurrence.householdId,

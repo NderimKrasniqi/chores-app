@@ -18,8 +18,8 @@ import {
   markPayoutPaid,
 } from './lib/finance/payoutSettlement';
 import {
-  calculateRunningBalanceForChild,
-} from './lib/finance/runningBalance';
+  listPayoutOverviewForChildren,
+} from './lib/finance/payoutOverview';
 
 const weekdayValidator =
   v.union(
@@ -212,130 +212,11 @@ export const getOverview =
           household,
         );
 
-      const children =
-        await ctx.db
-          .query(
-            'children',
-          )
-          .withIndex(
-            'by_household',
-            (q) =>
-              q.eq(
-                'householdId',
-                household._id,
-              ),
-          )
-          .collect();
-
-      const householdPayouts =
-        await ctx.db
-          .query(
-            'payouts',
-          )
-          .withIndex(
-            'by_household_created_at',
-            (q) =>
-              q.eq(
-                'householdId',
-                household._id,
-              ),
-          )
-          .order(
-            'desc',
-          )
-          .collect();
-
-      const resultChildren = [];
-
-      for (
-        const child of
-        children
-      ) {
-        const balance =
-          await calculateRunningBalanceForChild(
-            ctx,
-            child._id,
-          );
-
-        const childPayouts =
-          householdPayouts.filter(
-            (payout) =>
-              payout.childId ===
-              child._id,
-          );
-
-        const projections = [];
-
-        for (
-          const payout of
-          childPayouts
-        ) {
-          const period =
-            await ctx.db.get(
-              payout
-                .payoutPeriodId,
-            );
-
-          if (!period) {
-            throw new ConvexError(
-              'Payout Period not found.',
-            );
-          }
-
-          projections.push({
-            payoutId:
-              payout._id,
-
-            payoutPeriodId:
-              period._id,
-
-            periodEndLocalDate:
-              period
-                .endLocalDate,
-
-            balanceAtCloseSek:
-              payout
-                .balanceAtCloseSek,
-
-            amountDueSek:
-              payout
-                .amountDueSek,
-
-            pendingOutcomeCount:
-              payout
-                .pendingOutcomeCount,
-
-            status:
-              payout.status,
-
-            paidAt:
-              payout.paidAt ??
-              null,
-          });
-        }
-
-        resultChildren.push({
-          childId:
-            child._id,
-
-          displayName:
-            child.displayName,
-
-          runningBalanceSek:
-            balance.balanceSek,
-
-          pendingPayouts:
-            projections.filter(
-              (payout) =>
-                payout.status ===
-                'pending',
-            ),
-
-          latestPayout:
-            projections[0] ??
-            null,
-        });
-      }
+      const resultChildren =
+        await listPayoutOverviewForChildren(
+          ctx,
+          household._id,
+        );
 
       return {
         configuredPayoutWeekday:

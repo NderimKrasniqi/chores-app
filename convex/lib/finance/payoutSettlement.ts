@@ -9,10 +9,19 @@ import type {
 import type {
   MutationCtx,
 } from '../../_generated/server';
+import {
+  applyPaidPayoutToFinancialBalance,
+} from './financialProjection';
+import {
+  countPendingOutcomesForChild,
+} from './pendingOutcomes';
+import {
+  calculatePeriodBalanceAtClose,
+} from './periodBalance';
 
 function requireWholeSek(
   value: number,
-  name: string,
+  label: string,
 ) {
   if (
     !Number.isSafeInteger(
@@ -20,228 +29,14 @@ function requireWholeSek(
     )
   ) {
     throw new ConvexError(
-      `${name} must be whole SEK.`,
+      `${label} must be whole SEK.`,
     );
   }
-}
-
-async function getGrossFinancialEffectsBefore(
-  ctx: MutationCtx,
-  householdId:
-    Id<'households'>,
-  childId:
-    Id<'children'>,
-  cutoffAt: number,
-) {
-  const entries =
-    await ctx.db
-      .query(
-        'ledgerEntries',
-      )
-      .withIndex(
-        'by_child_created_at',
-        (q) =>
-          q
-            .eq(
-              'childId',
-              childId,
-            )
-            .lt(
-              'createdAt',
-              cutoffAt,
-            ),
-      )
-      .collect();
-
-  let totalSek = 0;
-
-  for (
-    const entry of
-    entries
-  ) {
-    if (
-      entry.householdId !==
-      householdId
-    ) {
-      throw new ConvexError(
-        'Ledger Entry Household does not match payout Child.',
-      );
-    }
-
-    requireWholeSek(
-      entry.amountSek,
-      'Ledger Entry amount',
-    );
-
-    totalSek +=
-      entry.amountSek;
-
-    requireWholeSek(
-      totalSek,
-      'Financial total',
-    );
-  }
-
-  return totalSek;
-}
-
-async function getPriorReservedPayouts(
-  ctx: MutationCtx,
-  householdId:
-    Id<'households'>,
-  childId:
-    Id<'children'>,
-  currentPeriod:
-    Doc<'payoutPeriods'>,
-) {
-  const payouts =
-    await ctx.db
-      .query(
-        'payouts',
-      )
-      .withIndex(
-        'by_child',
-        (q) =>
-          q.eq(
-            'childId',
-            childId,
-          ),
-      )
-      .collect();
-
-  let reservedSek = 0;
-
-  for (
-    const payout of
-    payouts
-  ) {
-    if (
-      payout.householdId !==
-      householdId
-    ) {
-      throw new ConvexError(
-        'Payout Household does not match Child.',
-      );
-    }
-
-    const period =
-      await ctx.db.get(
-        payout.payoutPeriodId,
-      );
-
-    if (!period) {
-      throw new ConvexError(
-        'Payout Period not found.',
-      );
-    }
-
-    if (
-      period.householdId !==
-      householdId
-    ) {
-      throw new ConvexError(
-        'Payout Period Household mismatch.',
-      );
-    }
-
-    /*
-     * A previous positive payout reserves
-     * that amount even while its Swish
-     * payment is still pending.
-     *
-     * This prevents the same earnings from
-     * appearing again in a later payout.
-     */
-    if (
-      period.endAt <=
-      currentPeriod.startAt
-    ) {
-      reservedSek +=
-        payout.amountDueSek;
-
-      requireWholeSek(
-        reservedSek,
-        'Reserved payout total',
-      );
-    }
-  }
-
-  return reservedSek;
-}
-
-async function countPendingOutcomesForChild(
-  ctx: MutationCtx,
-  householdId:
-    Id<'households'>,
-  childId:
-    Id<'children'>,
-) {
-  const occurrences =
-    await ctx.db
-      .query(
-        'choreOccurrences',
-      )
-      .withIndex(
-        'by_household',
-        (q) =>
-          q.eq(
-            'householdId',
-            householdId,
-          ),
-      )
-      .collect();
-
-  const personalPending =
-    occurrences.filter(
-      (occurrence) =>
-        occurrence.kind ===
-          'personal' &&
-        occurrence.personalChildId ===
-          childId &&
-        (
-          occurrence.state ===
-            'submitted' ||
-          occurrence.state ===
-            'redo_required'
-        ),
-    ).length;
-
-  const claims =
-    await ctx.db
-      .query(
-        'choreClaims',
-      )
-      .withIndex(
-        'by_child',
-        (q) =>
-          q.eq(
-            'childId',
-            childId,
-          ),
-      )
-      .collect();
-
-  const claimablePending =
-    claims.filter(
-      (claim) =>
-        claim.householdId ===
-          householdId &&
-        (
-          claim.state ===
-            'submitted' ||
-          claim.state ===
-            'redo_required'
-        ),
-    ).length;
-
-  return (
-    personalPending +
-    claimablePending
-  );
 }
 
 export async function createPayoutOutcomesForPeriod(
-  ctx: MutationCtx,
+  ctx:
+    MutationCtx,
   period:
     Doc<'payoutPeriods'>,
   now: number,
@@ -298,25 +93,12 @@ export async function createPayoutOutcomesForPeriod(
       continue;
     }
 
-    const grossSek =
-      await getGrossFinancialEffectsBefore(
-        ctx,
-        period.householdId,
-        child._id,
-        period.endAt,
-      );
-
-    const reservedSek =
-      await getPriorReservedPayouts(
-        ctx,
-        period.householdId,
-        child._id,
-        period,
-      );
-
     const balanceAtCloseSek =
-      grossSek -
-      reservedSek;
+      await calculatePeriodBalanceAtClose(
+        ctx,
+        period,
+        child._id,
+      );
 
     requireWholeSek(
       balanceAtCloseSek,
@@ -374,12 +156,14 @@ export async function createPayoutOutcomesForPeriod(
 }
 
 export async function markPayoutPaid(
-  ctx: MutationCtx,
+  ctx:
+    MutationCtx,
   payoutId:
     Id<'payouts'>,
   paidByAuthUserId:
     string,
-  now = Date.now(),
+  now =
+    Date.now(),
 ) {
   const payout =
     await ctx.db.get(
@@ -422,6 +206,23 @@ export async function markPayoutPaid(
       'Payment time must be finite.',
     );
   }
+
+  await applyPaidPayoutToFinancialBalance(
+    ctx,
+    {
+      householdId:
+        payout.householdId,
+
+      childId:
+        payout.childId,
+
+      amountSek:
+        payout.amountDueSek,
+
+      paidAt:
+        now,
+    },
+  );
 
   await ctx.db.patch(
     payout._id,

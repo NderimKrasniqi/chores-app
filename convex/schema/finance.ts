@@ -23,6 +23,52 @@ const payoutStatusValidator =
   );
 
 export const financeTables = {
+  /*
+   * Rebuildable per-Child financial read
+   * projection.
+   *
+   * Ledger Entries and paid Payouts remain
+   * the durable audit history.
+   *
+   * This table exists so current balance
+   * reads do not rescan lifetime history.
+   */
+  childFinancialBalances:
+    defineTable({
+      householdId:
+        v.id('households'),
+
+      childId:
+        v.id('children'),
+
+      earningTotalSek:
+        v.number(),
+
+      penaltyTotalSek:
+        v.number(),
+
+      settledTotalSek:
+        v.number(),
+
+      entryCount:
+        v.number(),
+
+      updatedAt:
+        v.number(),
+    })
+      .index(
+        'by_child',
+        [
+          'childId',
+        ],
+      )
+      .index(
+        'by_household',
+        [
+          'householdId',
+        ],
+      ),
+
   payoutPeriods: defineTable({
     householdId:
       v.id('households'),
@@ -139,6 +185,21 @@ export const financeTables = {
       'by_child',
       [
         'childId',
+      ],
+    )
+    .index(
+      'by_child_created_at',
+      [
+        'childId',
+        'createdAt',
+      ],
+    )
+    .index(
+      'by_child_status_created_at',
+      [
+        'childId',
+        'status',
+        'createdAt',
       ],
     )
     .index(

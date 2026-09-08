@@ -8,6 +8,9 @@ import type {
 import type {
   MutationCtx,
 } from '../../_generated/server';
+import {
+  insertFinancialLedgerEntry,
+} from './financialProjection';
 
 /*
  * TASK-14 financial primitive.
@@ -249,8 +252,8 @@ export async function ensureClaimableFailurePenalty(
   }
 
   const ledgerEntryId =
-    await ctx.db.insert(
-      'ledgerEntries',
+    await insertFinancialLedgerEntry(
+      ctx,
       {
         householdId:
           occurrence.householdId,
