@@ -3,7 +3,7 @@ import {
 } from '../../../_generated/server';
 import {
   reconcileOccurrenceLifecycle,
-} from '../../../lib/choreOccurrenceLifecycle';
+} from '../../../lib/occurrences/lifecycle';
 
 function assert(
   condition: unknown,

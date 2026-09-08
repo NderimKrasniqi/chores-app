@@ -13,7 +13,7 @@ import {
   query,
 } from './_generated/server';
 import { authComponent } from './auth';
-import { generateOccurrencesForWindow } from './lib/choreOccurrenceGeneration';
+import { generateOccurrencesForWindow } from './lib/occurrences/generation';
 
 async function requireParentForHousehold(
   ctx:

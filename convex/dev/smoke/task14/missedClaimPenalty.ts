@@ -10,13 +10,13 @@ import {
 } from '../../../_generated/server';
 import {
   submitClaimableClaim,
-} from '../../../lib/claimableChoreExecution';
+} from '../../../lib/claims/execution';
 import {
   listHouseholdClaimedOccurrences,
-} from '../../../lib/claimableChoreVisibility';
+} from '../../../lib/claims/visibility';
 import {
   reconcileOccurrenceLifecycle,
-} from '../../../lib/choreOccurrenceLifecycle';
+} from '../../../lib/occurrences/lifecycle';
 
 function assert(
   condition:

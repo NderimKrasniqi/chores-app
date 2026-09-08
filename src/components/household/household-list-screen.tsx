@@ -1,4 +1,4 @@
-import { authClient } from '@/lib/auth-client';
+import { authClient } from '@/lib/auth/client';
 import { useState } from 'react';
 import {
   Pressable,

@@ -6,13 +6,13 @@ import {
 } from '../../../_generated/server';
 import {
   rejectInitialSubmission,
-} from '../../../lib/initialChoreRejection';
+} from '../../../lib/reviews/initialRejection';
 import {
   listHouseholdClaimedOccurrences,
-} from '../../../lib/claimableChoreVisibility';
+} from '../../../lib/claims/visibility';
 import {
   resolveLocalDateTimeToEpochMs,
-} from '../../../lib/choreScheduling';
+} from '../../../lib/scheduling/choreScheduling';
 
 function assert(
   condition: unknown,

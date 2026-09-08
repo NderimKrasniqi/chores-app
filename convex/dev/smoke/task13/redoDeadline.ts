@@ -3,7 +3,7 @@ import {
 } from '../../../_generated/server';
 import {
   resolveRedoDeadline,
-} from '../../../lib/redoDeadline';
+} from '../../../lib/redos/deadline';
 
 function assert(
   condition: unknown,

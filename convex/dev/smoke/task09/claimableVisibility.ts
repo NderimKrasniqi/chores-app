@@ -5,7 +5,7 @@ import {
 import {
   internalMutation,
 } from '../../../_generated/server';
-import { listVisibleClaimableOccurrencesForChild } from '../../../lib/claimableChoreVisibility';
+import { listVisibleClaimableOccurrencesForChild } from '../../../lib/claims/visibility';
 
 type SmokeTestResult = {
   label: string;

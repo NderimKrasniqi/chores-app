@@ -4,7 +4,7 @@ import { ChildAccessGate } from '@/components/child-access/child-access-gate';
 import { ChildNoAccessScreen } from '@/components/child-access/child-no-access-screen';
 import { HouseholdListScreen } from '@/components/household/household-list-screen';
 import { HouseholdSetupScreen } from '@/components/household/household-setup-screen';
-import { authClient } from '@/lib/auth-client';
+import { authClient } from '@/lib/auth/client';
 import {
   useConvexAuth,
   useQuery,

@@ -5,11 +5,11 @@ import {
 import {
   internalMutation,
 } from '../../../_generated/server';
-import { claimClaimableOccurrence } from '../../../lib/claimableChoreClaiming';
+import { claimClaimableOccurrence } from '../../../lib/claims/claiming';
 import {
   listHouseholdClaimedOccurrences,
   listVisibleClaimableOccurrencesForChild,
-} from '../../../lib/claimableChoreVisibility';
+} from '../../../lib/claims/visibility';
 
 type SmokeTestResult = {
   label: string;

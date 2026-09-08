@@ -6,8 +6,8 @@ import {
   getClaimUnclaimStatus,
   getCurrentPayoutWeekWindow,
   isClaimTimeLocked,
-} from '../../../lib/claimCommitmentRules';
-import { resolveLocalDateTimeToEpochMs } from '../../../lib/choreScheduling';
+} from '../../../lib/claims/commitmentRules';
+import { resolveLocalDateTimeToEpochMs } from '../../../lib/scheduling/choreScheduling';
 
 function assert(
   condition: unknown,

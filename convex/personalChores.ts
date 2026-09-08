@@ -4,14 +4,14 @@ import {
   mutation,
   query,
 } from './_generated/server';
-import { requireCurrentChildAccess } from './lib/childAuthorization';
+import { requireCurrentChildAccess } from './lib/auth/childAuthorization';
 import {
   listPersonalOccurrencesForChild,
   submitPersonalOccurrence,
-} from './lib/personalChoreExecution';
+} from './lib/personal/execution';
 import {
   submitPersonalRedo,
-} from './lib/redoSubmission';
+} from './lib/redos/submission';
 
 /*
  * Child-facing Personal Chore view.

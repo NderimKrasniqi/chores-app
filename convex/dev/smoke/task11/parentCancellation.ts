@@ -6,19 +6,19 @@ import {
 } from '../../../_generated/server';
 import {
   claimClaimableOccurrence,
-} from '../../../lib/claimableChoreClaiming';
+} from '../../../lib/claims/claiming';
 import {
   cancelClaimableClaimForParent,
-} from '../../../lib/claimableChoreCancellation';
+} from '../../../lib/claims/cancellation';
 import {
   listHouseholdClaimedOccurrences,
-} from '../../../lib/claimableChoreVisibility';
+} from '../../../lib/claims/visibility';
 import {
   getWeeklyUnclaimUsageForChild,
-} from '../../../lib/claimUnclaimAccounting';
+} from '../../../lib/claims/unclaimAccounting';
 import {
   resolveLocalDateTimeToEpochMs,
-} from '../../../lib/choreScheduling';
+} from '../../../lib/scheduling/choreScheduling';
 
 function assert(
   condition:

@@ -6,16 +6,16 @@ import {
   mutation,
   query,
 } from './_generated/server';
-import { requireCurrentChildAccess } from './lib/childAuthorization';
-import { claimClaimableOccurrence } from './lib/claimableChoreClaiming';
+import { requireCurrentChildAccess } from './lib/auth/childAuthorization';
+import { claimClaimableOccurrence } from './lib/claims/claiming';
 import {
   listHouseholdClaimedOccurrences,
   listVisibleClaimableOccurrencesForChild,
-} from './lib/claimableChoreVisibility';
-import { getClaimUnclaimStatus } from './lib/claimCommitmentRules';
-import { getWeeklyUnclaimUsageForChild } from './lib/claimUnclaimAccounting';
-import { unclaimClaimableClaim } from './lib/claimableChoreUnclaiming';
-import { requireCurrentParentForHousehold } from './lib/parentAuthorization';
+} from './lib/claims/visibility';
+import { getClaimUnclaimStatus } from './lib/claims/commitmentRules';
+import { getWeeklyUnclaimUsageForChild } from './lib/claims/unclaimAccounting';
+import { unclaimClaimableClaim } from './lib/claims/unclaiming';
+import { requireCurrentParentForHousehold } from './lib/auth/parentAuthorization';
 
 type ActiveClaimState =
   | 'claimed'

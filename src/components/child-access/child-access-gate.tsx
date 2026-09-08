@@ -1,12 +1,12 @@
 import {
   getLocalChildContextByStoragePrefix,
   type LocalChildContext,
-} from '@/lib/child-local-access';
-import { rememberLocalChildGrant } from '@/lib/child-grant-status';
+} from '@/lib/child-access/local-access';
+import { rememberLocalChildGrant } from '@/lib/child-access/grant-status';
 import {
   consumeTrustedSingleChildAutoOpen,
   setChildExplicitlyLocked,
-} from '@/lib/child-unlock-policy';
+} from '@/lib/child-access/unlock-policy';
 import { useAuthRuntime } from '@/providers/auth-runtime-provider';
 import {
   useEffect,

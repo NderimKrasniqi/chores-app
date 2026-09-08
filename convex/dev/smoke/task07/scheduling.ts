@@ -3,7 +3,7 @@ import { internalQuery } from '../../../_generated/server';
 import {
   getScheduledLocalDates,
   resolveOccurrenceSchedule,
-} from '../../../lib/choreScheduling';
+} from '../../../lib/scheduling/choreScheduling';
 
 type SmokeTestResult = {
   label: string;

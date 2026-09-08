@@ -8,7 +8,7 @@ import type {
 import {
   query,
 } from './_generated/server';
-import { requireCurrentParentForHousehold } from './lib/parentAuthorization';
+import { requireCurrentParentForHousehold } from './lib/auth/parentAuthorization';
 
 type PendingRedoReview = {
   submissionId:

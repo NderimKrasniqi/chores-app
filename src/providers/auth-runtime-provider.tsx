@@ -12,7 +12,7 @@ import {
   type AppAuthClient,
   authClient,
   PARENT_AUTH_STORAGE_PREFIX,
-} from '@/lib/auth-client';
+} from '@/lib/auth/client';
 
 type AuthRuntimeContextValue = {
   authClient: AppAuthClient;

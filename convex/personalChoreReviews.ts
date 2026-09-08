@@ -6,19 +6,19 @@ import {
 } from './_generated/server';
 import {
   rejectInitialSubmission,
-} from './lib/initialChoreRejection';
-import { requireCurrentParentForHousehold } from './lib/parentAuthorization';
+} from './lib/reviews/initialRejection';
+import { requireCurrentParentForHousehold } from './lib/auth/parentAuthorization';
 import {
   approvePersonalSubmission,
   listPendingPersonalReviews,
-} from './lib/personalChoreReview';
+} from './lib/reviews/personal';
 import {
   approveRedoSubmission,
   rejectRedoSubmission,
-} from './lib/redoChoreReview';
+} from './lib/reviews/redo';
 import {
   scheduleRedoDeadlineFailure,
-} from './lib/redoDeadlineFailure';
+} from './lib/redos/deadlineFailure';
 
 export const listPending =
   query({

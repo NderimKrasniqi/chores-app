@@ -1,8 +1,8 @@
 import {
   internalMutation,
 } from '../../../_generated/server';
-import { getWeeklyUnclaimUsageForChild } from '../../../lib/claimUnclaimAccounting';
-import { resolveLocalDateTimeToEpochMs } from '../../../lib/choreScheduling';
+import { getWeeklyUnclaimUsageForChild } from '../../../lib/claims/unclaimAccounting';
+import { resolveLocalDateTimeToEpochMs } from '../../../lib/scheduling/choreScheduling';
 
 function assert(
   condition: unknown,

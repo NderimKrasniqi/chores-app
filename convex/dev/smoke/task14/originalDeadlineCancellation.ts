@@ -10,16 +10,16 @@ import {
 } from '../../../_generated/server';
 import {
   claimClaimableOccurrence,
-} from '../../../lib/claimableChoreClaiming';
+} from '../../../lib/claims/claiming';
 import {
   cancelClaimableClaimForParent,
-} from '../../../lib/claimableChoreCancellation';
+} from '../../../lib/claims/cancellation';
 import {
   submitClaimableClaim,
-} from '../../../lib/claimableChoreExecution';
+} from '../../../lib/claims/execution';
 import {
   reconcileOccurrenceLifecycle,
-} from '../../../lib/choreOccurrenceLifecycle';
+} from '../../../lib/occurrences/lifecycle';
 
 function assert(
   condition:

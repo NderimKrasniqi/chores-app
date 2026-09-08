@@ -1,7 +1,7 @@
 import {
   query,
 } from './_generated/server';
-import { requireCurrentChildAccess } from './lib/childAuthorization';
+import { requireCurrentChildAccess } from './lib/auth/childAuthorization';
 
 /*
  * Child-facing projection of durable

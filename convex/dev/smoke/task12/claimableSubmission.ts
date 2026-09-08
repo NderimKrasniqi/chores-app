@@ -4,9 +4,9 @@ import type {
 import {
   internalMutation,
 } from '../../../_generated/server';
-import { submitClaimableClaim } from '../../../lib/claimableChoreExecution';
-import { listHouseholdClaimedOccurrences } from '../../../lib/claimableChoreVisibility';
-import { resolveLocalDateTimeToEpochMs } from '../../../lib/choreScheduling';
+import { submitClaimableClaim } from '../../../lib/claims/execution';
+import { listHouseholdClaimedOccurrences } from '../../../lib/claims/visibility';
+import { resolveLocalDateTimeToEpochMs } from '../../../lib/scheduling/choreScheduling';
 
 function assert(
   condition: unknown,

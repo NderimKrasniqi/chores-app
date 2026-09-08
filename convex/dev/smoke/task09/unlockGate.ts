@@ -5,7 +5,7 @@ import {
 import {
   internalMutation,
 } from '../../../_generated/server';
-import { getClaimableAccessGateForChild } from '../../../lib/claimableAccessGate';
+import { getClaimableAccessGateForChild } from '../../../lib/claims/accessGate';
 
 type SmokeTestResult = {
   label: string;

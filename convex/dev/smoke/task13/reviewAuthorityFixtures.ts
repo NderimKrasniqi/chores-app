@@ -8,16 +8,16 @@ import {
 } from '../../../_generated/server';
 import {
   approveClaimableSubmission,
-} from '../../../lib/claimableChoreReview';
+} from '../../../lib/reviews/claimable';
 import {
   resolveLocalDateTimeToEpochMs,
-} from '../../../lib/choreScheduling';
+} from '../../../lib/scheduling/choreScheduling';
 import {
   rejectInitialSubmission,
-} from '../../../lib/initialChoreRejection';
+} from '../../../lib/reviews/initialRejection';
 import {
   approvePersonalSubmission,
-} from '../../../lib/personalChoreReview';
+} from '../../../lib/reviews/personal';
 
 const choreKindValidator =
   v.union(

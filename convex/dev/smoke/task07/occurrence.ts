@@ -5,8 +5,8 @@ import {
 import {
   internalMutation,
 } from '../../../_generated/server';
-import { generateOccurrencesForWindow } from '../../../lib/choreOccurrenceGeneration';
-import { reconcileOccurrenceLifecycle } from '../../../lib/choreOccurrenceLifecycle';
+import { generateOccurrencesForWindow } from '../../../lib/occurrences/generation';
+import { reconcileOccurrenceLifecycle } from '../../../lib/occurrences/lifecycle';
 
 type SmokeTestResult = {
   label: string;

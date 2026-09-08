@@ -2,7 +2,7 @@ import {
   getChildPinRequirements,
   verifyLocalChildPin,
   type LocalChildContext,
-} from '@/lib/child-local-access';
+} from '@/lib/child-access/local-access';
 import { useAuthRuntime } from '@/providers/auth-runtime-provider';
 import { useState } from 'react';
 import {

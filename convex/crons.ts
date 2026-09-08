@@ -27,7 +27,7 @@ crons.interval(
     minutes: 15,
   },
   internal
-    .choreOccurrenceMaintenance
+    .jobs.occurrences.maintenance
     .run,
 );
 

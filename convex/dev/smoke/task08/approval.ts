@@ -8,7 +8,7 @@ import {
 import {
   approvePersonalSubmission,
   listPendingPersonalReviews,
-} from '../../../lib/personalChoreReview';
+} from '../../../lib/reviews/personal';
 
 type SmokeTestResult = {
   label: string;

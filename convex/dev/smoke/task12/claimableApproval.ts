@@ -7,9 +7,9 @@ import {
 import {
   approveClaimableSubmission,
   listPendingClaimableReviews,
-} from '../../../lib/claimableChoreReview';
-import { listHouseholdClaimedOccurrences } from '../../../lib/claimableChoreVisibility';
-import { resolveLocalDateTimeToEpochMs } from '../../../lib/choreScheduling';
+} from '../../../lib/reviews/claimable';
+import { listHouseholdClaimedOccurrences } from '../../../lib/claims/visibility';
+import { resolveLocalDateTimeToEpochMs } from '../../../lib/scheduling/choreScheduling';
 
 function assert(
   condition: unknown,

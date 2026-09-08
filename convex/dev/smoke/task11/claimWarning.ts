@@ -4,8 +4,8 @@ import type {
 import {
   internalMutation,
 } from '../../../_generated/server';
-import { claimClaimableOccurrence } from '../../../lib/claimableChoreClaiming';
-import { resolveLocalDateTimeToEpochMs } from '../../../lib/choreScheduling';
+import { claimClaimableOccurrence } from '../../../lib/claims/claiming';
+import { resolveLocalDateTimeToEpochMs } from '../../../lib/scheduling/choreScheduling';
 
 function assert(
   condition: unknown,

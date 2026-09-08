@@ -7,7 +7,7 @@ import {
 } from '../../../_generated/server';
 import {
   runOccurrenceMaintenance,
-} from '../../../lib/choreOccurrenceMaintenance';
+} from '../../../lib/occurrences/maintenance';
 
 function assert(
   condition:

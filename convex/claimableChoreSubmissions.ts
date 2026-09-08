@@ -5,11 +5,11 @@ import {
 import {
   mutation,
 } from './_generated/server';
-import { requireCurrentChildAccess } from './lib/childAuthorization';
-import { submitClaimableClaim } from './lib/claimableChoreExecution';
+import { requireCurrentChildAccess } from './lib/auth/childAuthorization';
+import { submitClaimableClaim } from './lib/claims/execution';
 import {
   submitClaimableRedo,
-} from './lib/redoSubmission';
+} from './lib/redos/submission';
 
 /*
  * Attempt 1.

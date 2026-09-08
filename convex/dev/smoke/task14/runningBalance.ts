@@ -10,7 +10,7 @@ import {
 } from '../../../_generated/server';
 import {
   calculateRunningBalanceForChild,
-} from '../../../lib/runningBalance';
+} from '../../../lib/finance/runningBalance';
 
 function assert(
   condition:

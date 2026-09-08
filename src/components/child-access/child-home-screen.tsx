@@ -1,6 +1,6 @@
 import { ClaimableChoresCard } from '@/components/chores/claimable-chores-card';
 import { PersonalChoresCard } from '@/components/chores/personal-chores-card';
-import { setChildExplicitlyLocked } from '@/lib/child-unlock-policy';
+import { setChildExplicitlyLocked } from '@/lib/child-access/unlock-policy';
 import { useAuthRuntime } from '@/providers/auth-runtime-provider';
 import {
   Alert,

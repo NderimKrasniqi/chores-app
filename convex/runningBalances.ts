@@ -8,13 +8,13 @@ import {
 } from './_generated/server';
 import {
   requireCurrentChildAccess,
-} from './lib/childAuthorization';
+} from './lib/auth/childAuthorization';
 import {
   requireCurrentParentForHousehold,
-} from './lib/parentAuthorization';
+} from './lib/auth/parentAuthorization';
 import {
   calculateRunningBalanceForChild,
-} from './lib/runningBalance';
+} from './lib/finance/runningBalance';
 
 const runningBalanceResultValidator =
   v.object({

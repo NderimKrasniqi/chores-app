@@ -1,9 +1,9 @@
 import {
   getLocalChildContextByStoragePrefix,
   removeLocalChildContext,
-} from '@/lib/child-local-access';
-import { forgetLocalChildGrant } from '@/lib/child-grant-status';
-import { setChildExplicitlyLocked } from '@/lib/child-unlock-policy';
+} from '@/lib/child-access/local-access';
+import { forgetLocalChildGrant } from '@/lib/child-access/grant-status';
+import { setChildExplicitlyLocked } from '@/lib/child-access/unlock-policy';
 import { useAuthRuntime } from '@/providers/auth-runtime-provider';
 import {
   useEffect,

@@ -3,17 +3,17 @@ import {
   listLocalChildContexts,
   removeLocalChildContext,
   type LocalChildContext,
-} from '@/lib/child-local-access';
+} from '@/lib/child-access/local-access';
 import {
   forgetLocalChildGrant,
   listLocalChildGrantBindings,
   type LocalChildGrantBinding,
-} from '@/lib/child-grant-status';
+} from '@/lib/child-access/grant-status';
 import {
   isChildExplicitlyLocked,
   markTrustedSingleChildAutoOpen,
   setChildExplicitlyLocked,
-} from '@/lib/child-unlock-policy';
+} from '@/lib/child-access/unlock-policy';
 import { useAuthRuntime } from '@/providers/auth-runtime-provider';
 import { useQuery } from 'convex/react';
 import {

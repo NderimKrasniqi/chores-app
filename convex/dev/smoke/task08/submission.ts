@@ -8,7 +8,7 @@ import {
 import {
   listPersonalOccurrencesForChild,
   submitPersonalOccurrence,
-} from '../../../lib/personalChoreExecution';
+} from '../../../lib/personal/execution';
 
 type SmokeTestResult = {
   label: string;

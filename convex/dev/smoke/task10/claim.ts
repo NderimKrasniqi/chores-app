@@ -5,7 +5,7 @@ import {
 import {
   internalMutation,
 } from '../../../_generated/server';
-import { claimClaimableOccurrence } from '../../../lib/claimableChoreClaiming';
+import { claimClaimableOccurrence } from '../../../lib/claims/claiming';
 
 type SmokeTestResult = {
   label: string;

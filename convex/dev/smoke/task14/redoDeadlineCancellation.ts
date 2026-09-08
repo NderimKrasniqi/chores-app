@@ -10,13 +10,13 @@ import {
 } from '../../../_generated/server';
 import {
   cancelClaimableClaimForParent,
-} from '../../../lib/claimableChoreCancellation';
+} from '../../../lib/claims/cancellation';
 import {
   reconcileRedoDeadlineFailure,
-} from '../../../lib/redoDeadlineFailure';
+} from '../../../lib/redos/deadlineFailure';
 import {
   submitClaimableRedo,
-} from '../../../lib/redoSubmission';
+} from '../../../lib/redos/submission';
 
 function assert(
   condition:

@@ -5,8 +5,8 @@ import {
 import {
   mutation,
 } from './_generated/server';
-import { cancelClaimableClaimForParent } from './lib/claimableChoreCancellation';
-import { requireCurrentParentForHousehold } from './lib/parentAuthorization';
+import { cancelClaimableClaimForParent } from './lib/claims/cancellation';
+import { requireCurrentParentForHousehold } from './lib/auth/parentAuthorization';
 
 export const cancelForParent =
   mutation({

@@ -4,10 +4,10 @@ import type {
 import {
   internalMutation,
 } from '../../../_generated/server';
-import { claimClaimableOccurrence } from '../../../lib/claimableChoreClaiming';
-import { unclaimClaimableClaim } from '../../../lib/claimableChoreUnclaiming';
-import { getWeeklyUnclaimUsageForChild } from '../../../lib/claimUnclaimAccounting';
-import { resolveLocalDateTimeToEpochMs } from '../../../lib/choreScheduling';
+import { claimClaimableOccurrence } from '../../../lib/claims/claiming';
+import { unclaimClaimableClaim } from '../../../lib/claims/unclaiming';
+import { getWeeklyUnclaimUsageForChild } from '../../../lib/claims/unclaimAccounting';
+import { resolveLocalDateTimeToEpochMs } from '../../../lib/scheduling/choreScheduling';
 
 function assert(
   condition: unknown,

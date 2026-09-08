@@ -1,4 +1,4 @@
-import { authClient } from '@/lib/auth-client';
+import { authClient } from '@/lib/auth/client';
 import { useAction, useMutation } from 'convex/react';
 import { useState } from 'react';
 import {

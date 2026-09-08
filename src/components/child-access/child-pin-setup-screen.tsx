@@ -3,10 +3,10 @@ import {
   isValidChildPin,
   registerLocalChildContext,
   type LocalChildContext,
-} from '@/lib/child-local-access';
+} from '@/lib/child-access/local-access';
 import {
   PARENT_AUTH_STORAGE_PREFIX,
-} from '@/lib/auth-client';
+} from '@/lib/auth/client';
 import { useAuthRuntime } from '@/providers/auth-runtime-provider';
 import { useState } from 'react';
 import {

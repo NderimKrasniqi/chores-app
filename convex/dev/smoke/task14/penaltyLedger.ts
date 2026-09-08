@@ -10,7 +10,7 @@ import {
 } from '../../../_generated/server';
 import {
   ensureClaimableFailurePenalty,
-} from '../../../lib/claimableFailurePenalty';
+} from '../../../lib/finance/failurePenalty';
 
 function assert(
   condition:
