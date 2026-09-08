@@ -318,6 +318,31 @@ export const choreTables = {
         'personalChildId',
         'availabilityStartsAt',
       ],
+    )
+    .index(
+      'by_personal_child_state_availability',
+      [
+        'personalChildId',
+        'state',
+        'availabilityStartsAt',
+      ],
+    )
+    .index(
+      'by_household_kind_state_deadline',
+      [
+        'householdId',
+        'kind',
+        'state',
+        'deadlineAt',
+      ],
+    )
+    .index(
+      'by_household_state_availability',
+      [
+        'householdId',
+        'state',
+        'availabilityStartsAt',
+      ],
     ),
 
   /*

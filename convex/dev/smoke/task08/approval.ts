@@ -7,8 +7,10 @@ import {
 } from '../../../_generated/server';
 import {
   approvePersonalSubmission,
-  listPendingPersonalReviews,
 } from '../../../lib/reviews/personal';
+import {
+  listPendingPersonalReviews,
+} from '../../../lib/reviews/pendingPersonal';
 
 type SmokeTestResult = {
   label: string;

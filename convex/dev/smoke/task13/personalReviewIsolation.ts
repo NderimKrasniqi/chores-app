@@ -6,7 +6,7 @@ import {
 } from '../../../lib/reviews/initialRejection';
 import {
   listPendingPersonalReviews,
-} from '../../../lib/reviews/personal';
+} from '../../../lib/reviews/pendingPersonal';
 import {
   submitPersonalRedo,
 } from '../../../lib/redos/submission';

@@ -10,8 +10,10 @@ import {
 import { requireCurrentParentForHousehold } from './lib/auth/parentAuthorization';
 import {
   approvePersonalSubmission,
-  listPendingPersonalReviews,
 } from './lib/reviews/personal';
+import {
+  listPendingPersonalReviews,
+} from './lib/reviews/pendingPersonal';
 import {
   approveRedoSubmission,
   rejectRedoSubmission,

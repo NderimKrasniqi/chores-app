@@ -5,8 +5,12 @@ import type {
   MutationCtx,
   QueryCtx,
 } from '../../_generated/server';
-import { getClaimableAccessGateForChild } from './accessGate';
-import { findClaimPreventingReclaim } from './ownership';
+import {
+  getClaimableAccessGateForChild,
+} from './accessGate';
+import {
+  findClaimPreventingReclaim,
+} from './ownership';
 
 const visibleClaimStates = [
   'claimed',
@@ -40,21 +44,40 @@ export async function listVisibleClaimableOccurrencesForChild(
     };
   }
 
+  /*
+   * Operational pool only.
+   *
+   * Query currently unresolved Claimable
+   * occurrences whose deadlines are still
+   * in the future.
+   *
+   * Future scheduled work is excluded by
+   * state and stale overdue work is
+   * excluded by the deadline range.
+   */
   const candidates =
     await ctx.db
       .query(
         'choreOccurrences',
       )
       .withIndex(
-        'by_household_availability',
+        'by_household_kind_state_deadline',
         (q) =>
           q
             .eq(
               'householdId',
               householdId,
             )
-            .lte(
-              'availabilityStartsAt',
+            .eq(
+              'kind',
+              'claimable',
+            )
+            .eq(
+              'state',
+              'available',
+            )
+            .gt(
+              'deadlineAt',
               now,
             ),
       )
@@ -66,21 +89,22 @@ export async function listVisibleClaimableOccurrencesForChild(
     const occurrence of
     candidates
   ) {
+    /*
+     * undefined eligibleChildIds means
+     * every Child in the Household is
+     * eligible.
+     */
+    const isRestrictedAway =
+      occurrence.eligibleChildIds !==
+        undefined &&
+      !occurrence.eligibleChildIds.includes(
+        childId,
+      );
+
     if (
-      occurrence.kind !==
-        'claimable' ||
-      occurrence.state !==
-        'available' ||
-      occurrence
-        .availabilityStartsAt >
+      occurrence.availabilityStartsAt >
         now ||
-      now >=
-        occurrence.deadlineAt ||
-      occurrence
-        .eligibleChildIds
-        ?.includes(
-          childId,
-        ) !== true
+      isRestrictedAway
     ) {
       continue;
     }
@@ -108,7 +132,10 @@ export async function listVisibleClaimableOccurrencesForChild(
   }
 
   visible.sort(
-    (left, right) =>
+    (
+      left,
+      right,
+    ) =>
       left.deadlineAt -
       right.deadlineAt,
   );
@@ -127,36 +154,43 @@ export async function listHouseholdClaimedOccurrences(
   householdId:
     Id<'households'>,
 ) {
-  const claims =
-    await ctx.db
-      .query(
-        'choreClaims',
-      )
-      .withIndex(
-        'by_household_claimed_at',
-        (q) =>
-          q.eq(
-            'householdId',
-            householdId,
-          ),
-      )
-      .collect();
+  /*
+   * Active ownership is a current-state
+   * projection. Query the three active
+   * Claim states directly instead of
+   * scanning lifetime Household Claims.
+   */
+  const claimGroups =
+    await Promise.all(
+      visibleClaimStates.map(
+        (state) =>
+          ctx.db
+            .query(
+              'choreClaims',
+            )
+            .withIndex(
+              'by_household_state_claimed_at',
+              (q) =>
+                q
+                  .eq(
+                    'householdId',
+                    householdId,
+                  )
+                  .eq(
+                    'state',
+                    state,
+                  ),
+            )
+            .collect(),
+      ),
+    );
 
   const visible = [];
 
   for (
     const claim of
-    claims
+    claimGroups.flat()
   ) {
-    if (
-      !visibleClaimStates.includes(
-        claim.state as
-          (typeof visibleClaimStates)[number],
-      )
-    ) {
-      continue;
-    }
-
     const occurrence =
       await ctx.db.get(
         claim.occurrenceId,
@@ -193,7 +227,10 @@ export async function listHouseholdClaimedOccurrences(
   }
 
   visible.sort(
-    (left, right) =>
+    (
+      left,
+      right,
+    ) =>
       right.claim.claimedAt -
       left.claim.claimedAt,
   );

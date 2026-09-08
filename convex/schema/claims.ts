@@ -118,5 +118,13 @@ export const claimTables = {
         'householdId',
         'claimedAt',
       ],
+    )
+    .index(
+      'by_household_state_claimed_at',
+      [
+        'householdId',
+        'state',
+        'claimedAt',
+      ],
     ),
 };

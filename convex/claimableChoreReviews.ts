@@ -8,8 +8,10 @@ import {
 } from './_generated/server';
 import {
   approveClaimableSubmission,
-  listPendingClaimableReviews,
 } from './lib/reviews/claimable';
+import {
+  listPendingClaimableReviews,
+} from './lib/reviews/pendingClaimable';
 import {
   rejectInitialSubmission,
 } from './lib/reviews/initialRejection';

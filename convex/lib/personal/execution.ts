@@ -11,6 +11,36 @@ import {
   consumeEvidenceUploadIntent,
 } from '../evidence/submissionEvidence';
 
+const currentPersonalStates = [
+  'available',
+  'submitted',
+  'redo_required',
+] as const;
+
+const recentPersonalStates = [
+  'approved',
+  'missed',
+  'failed',
+  'cancelled',
+] as const;
+
+/*
+ * Operational Child projection.
+ *
+ * Do not rescan lifetime occurrence history.
+ *
+ * Return only:
+ *
+ * - unresolved current work;
+ * - the next scheduled occurrence for
+ *   each Chore Definition;
+ * - the three most recent terminal
+ *   outcomes across the Child.
+ *
+ * Full durable occurrence history remains
+ * stored and can be exposed separately
+ * through a paginated history surface.
+ */
 export async function listPersonalOccurrencesForChild(
   ctx:
     | MutationCtx
@@ -18,22 +48,150 @@ export async function listPersonalOccurrencesForChild(
   childId:
     Id<'children'>,
 ) {
-  const occurrences =
+  const currentGroups =
+    await Promise.all(
+      currentPersonalStates.map(
+        (state) =>
+          ctx.db
+            .query(
+              'choreOccurrences',
+            )
+            .withIndex(
+              'by_personal_child_state_availability',
+              (q) =>
+                q
+                  .eq(
+                    'personalChildId',
+                    childId,
+                  )
+                  .eq(
+                    'state',
+                    state,
+                  ),
+            )
+            .collect(),
+      ),
+    );
+
+  /*
+   * Scheduled occurrences are generated
+   * only through the bounded occurrence
+   * generation horizon.
+   *
+   * Reduce that short future window to
+   * one next occurrence per definition.
+   */
+  const scheduled =
     await ctx.db
       .query(
         'choreOccurrences',
       )
       .withIndex(
-        'by_personal_child_availability',
+        'by_personal_child_state_availability',
         (q) =>
-          q.eq(
-            'personalChildId',
-            childId,
-          ),
+          q
+            .eq(
+              'personalChildId',
+              childId,
+            )
+            .eq(
+              'state',
+              'scheduled',
+            ),
       )
       .collect();
 
-  return occurrences
+  const nextScheduledByDefinition =
+    new Map<
+      Id<'choreDefinitions'>,
+      (typeof scheduled)[number]
+    >();
+
+  for (
+    const occurrence of
+    scheduled
+  ) {
+    if (
+      occurrence.kind !==
+        'personal' ||
+      occurrence.personalChildId !==
+        childId ||
+      nextScheduledByDefinition.has(
+        occurrence.choreDefinitionId,
+      )
+    ) {
+      continue;
+    }
+
+    nextScheduledByDefinition.set(
+      occurrence.choreDefinitionId,
+      occurrence,
+    );
+  }
+
+  /*
+   * Each terminal-state query is capped
+   * at the number ultimately needed by
+   * the current presentation.
+   */
+  const recentGroups =
+    await Promise.all(
+      recentPersonalStates.map(
+        (state) =>
+          ctx.db
+            .query(
+              'choreOccurrences',
+            )
+            .withIndex(
+              'by_personal_child_state_availability',
+              (q) =>
+                q
+                  .eq(
+                    'personalChildId',
+                    childId,
+                  )
+                  .eq(
+                    'state',
+                    state,
+                  ),
+            )
+            .order(
+              'desc',
+            )
+            .take(
+              3,
+            ),
+      ),
+    );
+
+  const recent =
+    recentGroups
+      .flat()
+      .filter(
+        (occurrence) =>
+          occurrence.kind ===
+            'personal' &&
+          occurrence.personalChildId ===
+            childId,
+      )
+      .sort(
+        (
+          left,
+          right,
+        ) =>
+          right.availabilityStartsAt -
+          left.availabilityStartsAt,
+      )
+      .slice(
+        0,
+        3,
+      );
+
+  return [
+    ...currentGroups.flat(),
+    ...nextScheduledByDefinition.values(),
+    ...recent,
+  ]
     .filter(
       (occurrence) =>
         occurrence.kind ===
@@ -42,7 +200,10 @@ export async function listPersonalOccurrencesForChild(
           childId,
     )
     .sort(
-      (left, right) =>
+      (
+        left,
+        right,
+      ) =>
         left.availabilityStartsAt -
         right.availabilityStartsAt,
     );

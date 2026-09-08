@@ -6,8 +6,10 @@ import {
 } from '../../../_generated/server';
 import {
   approveClaimableSubmission,
-  listPendingClaimableReviews,
 } from '../../../lib/reviews/claimable';
+import {
+  listPendingClaimableReviews,
+} from '../../../lib/reviews/pendingClaimable';
 import { listHouseholdClaimedOccurrences } from '../../../lib/claims/visibility';
 import { resolveLocalDateTimeToEpochMs } from '../../../lib/scheduling/choreScheduling';
 

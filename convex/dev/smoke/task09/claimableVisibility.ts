@@ -734,6 +734,100 @@ export const run =
         );
 
         /*
+         * 8. undefined eligibleChildIds
+         * means every Household Child.
+         */
+        const unrestrictedOccurrenceId =
+          await ctx.db.insert(
+            'choreOccurrences',
+            {
+              householdId,
+
+              choreDefinitionId:
+                claimableDefinitionId,
+
+              kind:
+                'claimable',
+
+              title:
+                'Unrestricted Claimable',
+
+              valueSek:
+                70,
+
+              scheduledLocalDate:
+                '2030-01-15',
+
+              timezone:
+                'UTC',
+
+              deadlineLocalTime:
+                '19:00',
+
+              deadlineDayOffset:
+                0,
+
+              availabilityStartsAt:
+                now -
+                15 *
+                  60 *
+                  1000,
+
+              deadlineAt:
+                now +
+                7 *
+                  60 *
+                  60 *
+                  1000,
+
+              isUnlockChore:
+                false,
+
+              state:
+                'available',
+
+              createdAt:
+                now,
+            },
+          );
+
+        const unrestricted =
+          await listVisibleClaimableOccurrencesForChild(
+            ctx,
+            householdId,
+            childId,
+            now,
+          );
+
+        results.push(
+          result(
+            'Unrestricted Claimable is visible to the Household Child',
+            unrestricted
+              .occurrences.length ===
+              2 &&
+              unrestricted
+                .occurrences
+                .some(
+                  (
+                    occurrence,
+                  ) =>
+                    occurrence._id ===
+                    eligibleOccurrenceId,
+                ) &&
+              unrestricted
+                .occurrences
+                .some(
+                  (
+                    occurrence,
+                  ) =>
+                    occurrence._id ===
+                    unrestrictedOccurrenceId,
+                ),
+            `${unrestricted.occurrences.length} visible`,
+          ),
+        );
+
+        /*
          * Cleanup.
          */
         const occurrences =
