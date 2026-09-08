@@ -1,0 +1,29 @@
+appId: host.exp.Exponent
+---
+- openLink: "exp://127.0.0.1:8081/--/maestro-task15-parent"
+
+- extendedWaitUntil:
+    visible: "TASK-15 Payout Fixture"
+    timeout: 60000
+
+- assertVisible: "Payouts"
+- assertVisible: "70 kr to pay"
+- assertVisible: "1 unresolved chore outcome will be handled in a later payout."
+
+- assertVisible:
+    id: "task15-negative-carry"
+
+- assertVisible: "No payment due. Negative balance of -50 kr carries forward."
+
+- tapOn:
+    id: "task15-weekday-monday"
+
+- assertVisible: "Next payout weekday: monday"
+
+- tapOn:
+    id: "task15-mark-paid"
+
+- assertVisible:
+    id: "task15-paid-result"
+
+- assertVisible: "Latest payout paid: 70 kr"

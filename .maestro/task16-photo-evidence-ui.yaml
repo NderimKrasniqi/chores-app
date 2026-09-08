@@ -1,0 +1,48 @@
+appId: host.exp.Exponent
+---
+- openLink: "exp://127.0.0.1:8081/--/maestro-task16-evidence"
+
+- extendedWaitUntil:
+    visible: "TASK-16 Photo Evidence Fixture"
+    timeout: 60000
+
+- assertVisible:
+    id: "task16-photo-evidence-label"
+- assertVisible: "Take photo"
+- assertVisible: "Choose photo"
+- assertVisible: "Submit for review"
+
+- tapOn:
+    id: "task16-simulate-failure"
+
+- assertVisible:
+    id: "task16-recoverable-error"
+
+- assertVisible: "Photo not attached"
+- assertVisible: "You can try again or submit without a photo."
+
+- assertVisible:
+    id: "task16-submit"
+
+- tapOn:
+    id: "task16-attach-photo"
+
+- assertVisible:
+    id: "task16-photo-preview"
+
+- assertVisible: "Photo attached"
+- assertVisible: "Remove photo"
+
+- tapOn:
+    id: "task16-remove-photo"
+
+- assertVisible: "Take photo"
+- assertVisible: "Choose photo"
+
+- tapOn:
+    id: "task16-submit"
+
+- assertVisible:
+    id: "task16-submitted-result"
+
+- assertVisible: "Submitted without photo"
