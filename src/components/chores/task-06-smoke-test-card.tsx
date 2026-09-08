@@ -36,8 +36,8 @@ export function Task06SmokeTestCard({
 }: Task06SmokeTestCardProps) {
   const runTask06 =
     useAction(
-      api.task06SmokeTests
-        .runTask06,
+      api.dev.smoke.task06.choreDefinitions
+        .run,
     );
 
   const [
