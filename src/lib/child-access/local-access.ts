@@ -1,7 +1,10 @@
 import * as Crypto from 'expo-crypto';
 import * as SecureStore from 'expo-secure-store';
 
-import { PARENT_AUTH_STORAGE_PREFIX } from '@/lib/auth/client';
+import {
+  clearChildAuthStoragePrefix,
+  PARENT_AUTH_STORAGE_PREFIX,
+} from '@/lib/auth/client';
 
 const CHILD_CONTEXT_REGISTRY_KEY =
   'choresapp.child-context-registry.v1';
@@ -326,6 +329,16 @@ export async function registerLocalChildContext({
 
   const now = Date.now();
 
+  if (
+    existing &&
+    existing.authStoragePrefix !==
+      normalizedStoragePrefix
+  ) {
+    await clearChildAuthStoragePrefix(
+      existing.authStoragePrefix,
+    );
+  }
+
   const context: LocalChildContext =
     {
       contextId:
@@ -492,19 +505,35 @@ export async function removeLocalChildContext(
   const contexts =
     await readRegistry();
 
-  const nextContexts =
-    contexts.filter(
-      (context) =>
-        context.contextId !==
+  const context =
+    contexts.find(
+      (candidate) =>
+        candidate.contextId ===
         contextId,
     );
 
-  if (
-    nextContexts.length ===
-    contexts.length
-  ) {
+  if (!context) {
     return false;
   }
+
+  /*
+   * Remove the Better Auth cookie and
+   * cached session for this Child before
+   * forgetting the profile metadata.
+   *
+   * This intentionally cannot target the
+   * Parent auth namespace.
+   */
+  await clearChildAuthStoragePrefix(
+    context.authStoragePrefix,
+  );
+
+  const nextContexts =
+    contexts.filter(
+      (candidate) =>
+        candidate.contextId !==
+        contextId,
+    );
 
   if (
     nextContexts.length === 0

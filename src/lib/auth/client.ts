@@ -30,6 +30,112 @@ const appScheme = getAppScheme();
  */
 export const PARENT_AUTH_STORAGE_PREFIX = appScheme;
 
+const BETTER_AUTH_CHUNK_MARKER =
+  '\u0001ba-chunks:';
+
+function normalizeBetterAuthStorageKey(
+  key: string,
+) {
+  return key.replace(
+    /:/g,
+    '_',
+  );
+}
+
+async function deleteBetterAuthSecureStoreValue(
+  key: string,
+) {
+  const normalizedKey =
+    normalizeBetterAuthStorageKey(
+      key,
+    );
+
+  const stored =
+    await SecureStore.getItemAsync(
+      normalizedKey,
+    );
+
+  if (
+    stored?.startsWith(
+      BETTER_AUTH_CHUNK_MARKER,
+    )
+  ) {
+    const chunkCount =
+      Number(
+        stored.slice(
+          BETTER_AUTH_CHUNK_MARKER.length,
+        ),
+      );
+
+    if (
+      Number.isSafeInteger(
+        chunkCount,
+      ) &&
+      chunkCount > 0 &&
+      chunkCount <= 1024
+    ) {
+      for (
+        let index = 0;
+        index < chunkCount;
+        index += 1
+      ) {
+        await SecureStore.deleteItemAsync(
+          `${normalizedKey}.${index}`,
+        );
+      }
+    }
+  }
+
+  await SecureStore.deleteItemAsync(
+    normalizedKey,
+  );
+}
+
+export async function clearChildAuthStoragePrefix(
+  storagePrefix: string,
+) {
+  const normalized =
+    storagePrefix.trim();
+
+  if (!normalized) {
+    throw new Error(
+      'Child auth storage prefix cannot be empty.',
+    );
+  }
+
+  if (
+    normalized ===
+    PARENT_AUTH_STORAGE_PREFIX
+  ) {
+    throw new Error(
+      'Parent auth storage cannot be cleared as Child storage.',
+    );
+  }
+
+  const expectedChildPrefix =
+    `${PARENT_AUTH_STORAGE_PREFIX}-child-`;
+
+  if (
+    !normalized.startsWith(
+      expectedChildPrefix,
+    )
+  ) {
+    throw new Error(
+      'Invalid Child auth storage prefix.',
+    );
+  }
+
+  await Promise.all([
+    deleteBetterAuthSecureStoreValue(
+      `${normalized}_cookie`,
+    ),
+
+    deleteBetterAuthSecureStoreValue(
+      `${normalized}_session_data`,
+    ),
+  ]);
+}
+
 export function createAppAuthClient(storagePrefix: string) {
   return createAuthClient({
     baseURL: convexSiteUrl,
