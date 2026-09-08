@@ -5,6 +5,8 @@ import type { Id } from './_generated/dataModel';
 import { action, internalMutation, mutation, query } from './_generated/server';
 import {
   requireCurrentParentAuthUser,
+  requireCurrentParentForHousehold,
+  requireParentMembershipForHousehold,
 } from './lib/auth/parentAuthorization';
 
 function bytesToHex(bytes: Uint8Array) {
@@ -115,23 +117,10 @@ export const revokeActive = mutation({
   returns: v.number(),
 
   handler: async (ctx, args): Promise<number> => {
-    const authUser =
-      await requireCurrentParentAuthUser(
-        ctx,
-      );
-
-    const membership = await ctx.db
-      .query('householdMembers')
-      .withIndex('by_household_auth_user', (q) =>
-        q.eq('householdId', args.householdId).eq('authUserId', authUser._id),
-      )
-      .unique();
-
-    if (!membership || membership.role !== 'parent') {
-      throw new ConvexError(
-        'You are not authorized to revoke parent invites for this household.',
-      );
-    }
+    await requireCurrentParentForHousehold(
+      ctx,
+      args.householdId,
+    );
 
     const now = Date.now();
 
@@ -178,23 +167,10 @@ export const getActive = query({
   ),
 
   handler: async (ctx, args) => {
-    const authUser =
-      await requireCurrentParentAuthUser(
-        ctx,
-      );
-
-    const membership = await ctx.db
-      .query('householdMembers')
-      .withIndex('by_household_auth_user', (q) =>
-        q.eq('householdId', args.householdId).eq('authUserId', authUser._id),
-      )
-      .unique();
-
-    if (!membership || membership.role !== 'parent') {
-      throw new ConvexError(
-        'You are not authorized to view parent invites for this household.',
-      );
-    }
+    await requireCurrentParentForHousehold(
+      ctx,
+      args.householdId,
+    );
 
     const now = Date.now();
 
@@ -234,20 +210,12 @@ export const storeGeneratedInvite = internalMutation({
   returns: v.id('parentInvites'),
 
   handler: async (ctx, args): Promise<Id<'parentInvites'>> => {
-    const membership = await ctx.db
-      .query('householdMembers')
-      .withIndex('by_household_auth_user', (q) =>
-        q
-          .eq('householdId', args.householdId)
-          .eq('authUserId', args.actorAuthUserId),
-      )
-      .unique();
-
-    if (!membership || membership.role !== 'parent') {
-      throw new ConvexError(
-        'You are not authorized to invite a parent to this household.',
-      );
-    }
+    await requireParentMembershipForHousehold(
+      ctx,
+      args.householdId,
+      args.actorAuthUserId,
+      'You are not authorized to invite a parent to this household.',
+    );
 
     const now = Date.now();
 

@@ -13,6 +13,7 @@ import {
   authComponent,
 } from '../../auth';
 import {
+  findParentMembershipForHousehold,
   isAnonymousAuthUser,
 } from '../auth/parentAuthorization';
 import {
@@ -140,29 +141,15 @@ export async function createEvidenceViewToken(
       authUser,
     )
       ? null
-      : await ctx.db
-          .query(
-            'householdMembers',
-          )
-          .withIndex(
-            'by_household_auth_user',
-            (q) =>
-              q
-                .eq(
-                  'householdId',
-                  submission
-                    .householdId,
-                )
-                .eq(
-                  'authUserId',
-                  authUser._id,
-                ),
-          )
-          .unique();
+      : await findParentMembershipForHousehold(
+          ctx,
+          submission.householdId,
+          authUser._id,
+        );
 
   const hasParentAccess =
-    parentMembership?.role ===
-    'parent';
+    parentMembership !==
+    null;
 
   let viewerChildId:
     | Id<'children'>
@@ -326,31 +313,13 @@ export async function resolveEvidenceViewToken(
     undefined
   ) {
     const membership =
-      await ctx.db
-        .query(
-          'householdMembers',
-        )
-        .withIndex(
-          'by_household_auth_user',
-          (q) =>
-            q
-              .eq(
-                'householdId',
-                token.householdId,
-              )
-              .eq(
-                'authUserId',
-                token
-                  .viewerAuthUserId,
-              ),
-        )
-        .unique();
+      await findParentMembershipForHousehold(
+        ctx,
+        token.householdId,
+        token.viewerAuthUserId,
+      );
 
-    if (
-      !membership ||
-      membership.role !==
-        'parent'
-    ) {
+    if (!membership) {
       return null;
     }
   } else {

@@ -62,18 +62,15 @@ export async function requireCurrentParentAuthUser(
   );
 }
 
-export async function requireCurrentParentForHousehold(
+export async function findParentMembershipForHousehold(
   ctx:
     | MutationCtx
     | QueryCtx,
   householdId:
     Id<'households'>,
+  authUserId:
+    string,
 ) {
-  const authUser =
-    await requireCurrentParentAuthUser(
-      ctx,
-    );
-
   const membership =
     await ctx.db
       .query(
@@ -89,7 +86,7 @@ export async function requireCurrentParentForHousehold(
             )
             .eq(
               'authUserId',
-              authUser._id,
+              authUserId,
             ),
       )
       .unique();
@@ -99,10 +96,57 @@ export async function requireCurrentParentForHousehold(
     membership.role !==
       'parent'
   ) {
+    return null;
+  }
+
+  return membership;
+}
+
+export async function requireParentMembershipForHousehold(
+  ctx:
+    | MutationCtx
+    | QueryCtx,
+  householdId:
+    Id<'households'>,
+  authUserId:
+    string,
+  message =
+    'You are not authorized as a Parent for this Household.',
+) {
+  const membership =
+    await findParentMembershipForHousehold(
+      ctx,
+      householdId,
+      authUserId,
+    );
+
+  if (!membership) {
     throw new ConvexError(
-      'You are not authorized to review chores for this household.',
+      message,
     );
   }
+
+  return membership;
+}
+
+export async function requireCurrentParentForHousehold(
+  ctx:
+    | MutationCtx
+    | QueryCtx,
+  householdId:
+    Id<'households'>,
+) {
+  const authUser =
+    await requireCurrentParentAuthUser(
+      ctx,
+    );
+
+  const membership =
+    await requireParentMembershipForHousehold(
+      ctx,
+      householdId,
+      authUser._id,
+    );
 
   return {
     authUser,

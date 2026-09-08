@@ -7,6 +7,7 @@ import { authComponent } from './auth';
 import {
   requireCurrentParentAuthUser,
   requireCurrentParentForHousehold,
+  requireParentMembershipForHousehold,
 } from './lib/auth/parentAuthorization';
 import {
   findActiveChildAccessGrantForCredential,
@@ -345,20 +346,12 @@ export const storeGeneratedCredential = internalMutation({
     pairingCredentialId: Id<'childPairingCredentials'>;
     expiresAt: number;
   }> => {
-    const membership = await ctx.db
-      .query('householdMembers')
-      .withIndex('by_household_auth_user', (q) =>
-        q
-          .eq('householdId', args.householdId)
-          .eq('authUserId', args.actorAuthUserId),
-      )
-      .unique();
-
-    if (!membership || membership.role !== 'parent') {
-      throw new ConvexError(
-        'You are not authorized to pair child devices for this household.',
-      );
-    }
+    await requireParentMembershipForHousehold(
+      ctx,
+      args.householdId,
+      args.actorAuthUserId,
+      'You are not authorized to pair child devices for this household.',
+    );
 
     const child = await ctx.db.get(args.childId);
 
