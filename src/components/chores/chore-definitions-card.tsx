@@ -1,5 +1,5 @@
+import { useServerConfirmedMutation } from '@/hooks/use-server-confirmed-mutation';
 import {
-  useMutation,
   useQuery,
 } from 'convex/react';
 import { useState } from 'react';
@@ -223,21 +223,21 @@ export function ChoreDefinitionsCard({
     );
 
   const createDefinition =
-    useMutation(
+    useServerConfirmedMutation(
       api
         .choreDefinitions
         .create,
     );
 
   const updateDefinition =
-    useMutation(
+    useServerConfirmedMutation(
       api
         .choreDefinitions
         .update,
     );
 
   const archiveDefinition =
-    useMutation(
+    useServerConfirmedMutation(
       api
         .choreDefinitions
         .archive,

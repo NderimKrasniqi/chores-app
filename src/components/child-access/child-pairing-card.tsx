@@ -1,4 +1,8 @@
-import { useAction, useMutation, useQuery } from 'convex/react';
+import { useServerConfirmedMutation } from '@/hooks/use-server-confirmed-mutation';
+import {
+  useAction,
+  useQuery,
+} from 'convex/react';
 import { useState } from 'react';
 import { Pressable, Share, Text, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
@@ -40,7 +44,7 @@ export function ChildPairingCard({
 
   const createPairingCredential = useAction(api.childPairing.create);
 
-  const revokePairingCredential = useMutation(
+  const revokePairingCredential = useServerConfirmedMutation(
     api.childPairing.revokeCredential,
   );
 

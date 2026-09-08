@@ -1,6 +1,5 @@
-import {
-  useMutation,
-} from 'convex/react';
+import { useServerConfirmedMutation } from '@/hooks/use-server-confirmed-mutation';
+
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import {
@@ -68,21 +67,21 @@ export function ChildSubmissionActions({
   onSubmit,
 }: Props) {
   const generateUploadUrl =
-    useMutation(
+    useServerConfirmedMutation(
       api
         .submissionEvidence
         .generateUploadUrl,
     );
 
   const registerUpload =
-    useMutation(
+    useServerConfirmedMutation(
       api
         .submissionEvidence
         .registerUpload,
     );
 
   const discardUpload =
-    useMutation(
+    useServerConfirmedMutation(
       api
         .submissionEvidence
         .discardUpload,

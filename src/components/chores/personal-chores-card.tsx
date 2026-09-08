@@ -1,5 +1,5 @@
+import { useServerConfirmedMutation } from '@/hooks/use-server-confirmed-mutation';
 import {
-  useMutation,
   useQuery,
 } from 'convex/react';
 import {
@@ -281,12 +281,12 @@ export function PersonalChoresCard() {
     );
 
   const submit =
-    useMutation(
+    useServerConfirmedMutation(
       api.personalChores.submit,
     );
 
   const submitRedo =
-    useMutation(
+    useServerConfirmedMutation(
       api.personalChores.submitRedo,
     );
 

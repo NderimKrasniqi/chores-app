@@ -1,5 +1,8 @@
-import { authClient } from '@/lib/auth/client';
-import { useAction, useMutation } from 'convex/react';
+import { useServerConfirmedMutation } from '@/hooks/use-server-confirmed-mutation';
+import {
+  authClient } from '@/lib/auth/client';
+import { useAction,
+} from 'convex/react';
 import { useState } from 'react';
 import {
   KeyboardAvoidingView,
@@ -58,7 +61,7 @@ export function HouseholdSetupScreen() {
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const createHousehold = useMutation(api.households.create);
+  const createHousehold = useServerConfirmedMutation(api.households.create);
 
   const acceptParentInvite = useAction(api.parentInvites.accept);
 

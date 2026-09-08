@@ -1,0 +1,49 @@
+appId: host.exp.Exponent
+---
+- stopApp
+
+- openLink: "exp://127.0.0.1:8081/--/maestro-task19-offline"
+
+- extendedWaitUntil:
+    visible: "TASK-19 Offline Recovery Fixture"
+    timeout: 60000
+
+- assertVisible:
+    id: "task19-cached-data"
+- assertVisible: "Vacuum hallway"
+- assertVisible: "70 kr · due 18:00"
+
+- assertVisible: "Offline — showing last synced data. Changes are disabled until the server reconnects."
+
+- assertVisible: "Server calls: 0"
+
+- tapOn:
+    id: "task19-offline-action"
+
+- assertVisible: "Not queued — reconnect and try again."
+- assertVisible: "Server calls: 0"
+
+- tapOn:
+    id: "task19-reconnect"
+
+- assertVisible:
+    id: "task19-start-action"
+
+- tapOn:
+    id: "task19-start-action"
+
+- assertVisible:
+    id: "task19-checking-server"
+- assertVisible: "Checking server…"
+
+- tapOn:
+    id: "task19-drop-connection"
+
+- assertVisible: "Connection lost — checking whether your last change reached the server. Do not repeat the action."
+- assertVisible: "Server calls: 0"
+
+- tapOn:
+    id: "task19-restore-confirm"
+
+- assertVisible: "Server confirmed the action."
+- assertVisible: "Server calls: 1"

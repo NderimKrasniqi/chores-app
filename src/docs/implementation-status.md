@@ -1,7 +1,7 @@
 # Current Implementation Status
 
-**Current milestone:** TASK-15 complete  
-**Next milestone:** TASK-16 — Add optional private photo evidence with authorized upload/view and recoverable upload failure
+**Current milestone:** TASK-19 complete  
+**Next milestone:** TASK-20 — Verify the integrated first-release surface across all approved journeys
 
 ## Completed
 
@@ -975,3 +975,37 @@ Final Maestro regression coverage passes for:
 - Child-facing activity accepts no sibling Child ID and resolves Household access server-side.
 - TASK-17 backend privacy smoke coverage passed.
 - Dedicated TASK-17 Maestro celebration/activity coverage passed.
+
+### TASK-18 — Push notifications
+
+- Expo Notifications registration bridge implemented for authenticated Parent and Child device contexts.
+- Push registrations are server-authorized and bound to the active Better Auth identity.
+- Child registrations are bound to active Child access grants.
+- Shared-device Expo Push Tokens retain only one active actor registration to prevent Parent/Child notification crossover.
+- Durable notification events and delivery records implemented.
+- Parent notifications are created when a Child submits work requiring review.
+- Child notifications are created for relevant Claimable Chore availability, approvals, rejected work requiring Redo, upcoming deadlines, Redo deadlines, and pre-lock warnings.
+- Notification events are idempotent by immutable event key.
+- Scheduled reminders are revalidated against current authoritative state before delivery.
+- Stale notifications such as pre-lock reminders after unclaim are suppressed.
+- Expo Push delivery uses bounded batches, ticket persistence, receipt polling, transient retry/backoff, and `DeviceNotRegistered` token invalidation.
+- Push delivery remains advisory and cannot change chore, deadline, lock, review, or financial state.
+- TASK-18 notification infrastructure and orchestration smoke coverage passed.
+- Dedicated TASK-18 Maestro notification/recovery presentation coverage passed.
+- Physical APNs delivery remains deferred because no paid Apple Developer Program credentials are currently available.
+
+
+### TASK-19 — Offline fallback and server-confirmed actions
+
+- Consequential client mutations now pass through one shared server-confirmation guard.
+- Claim, unclaim, submission, review, settlement, and other existing Convex mutation surfaces refuse to start while the Convex WebSocket is disconnected.
+- Offline actions are not intentionally queued by the application for later replay or backdating.
+- Cached or last-synced data may remain visible while offline.
+- Offline presentation explicitly identifies displayed information as last-synced rather than authoritative current server state.
+- Initial connection, offline, online, and in-flight recovery states are distinguished centrally.
+- If connectivity is lost while a mutation is already unresolved, the UI treats the action as still awaiting server confirmation and warns against repeating it.
+- Successful UI state is shown only after the mutation promise receives Convex server confirmation.
+- Server-owned timestamps and domain revalidation continue to prevent delayed requests from crossing deadline or commitment-lock boundaries using stale client time.
+- A shared connection banner communicates when consequential changes are unavailable.
+- TASK-19 uses one dedicated development fixture and one Maestro flow.
+- Maestro verifies readable last-synced data, rejection of an offline action without starting a server call, reconnect recovery, unresolved-action presentation, and eventual server confirmation.

@@ -1,9 +1,10 @@
+import { useServerConfirmedMutation } from '@/hooks/use-server-confirmed-mutation';
 import {
   api,
-} from '../../../convex/_generated/api';
+  } from '../../../convex/_generated/api';
 import type {
   Id,
-} from '../../../convex/_generated/dataModel';
+  } from '../../../convex/_generated/dataModel';
 import {
   useMutation,
   useQuery,
@@ -59,19 +60,19 @@ export function PayoutsCard({
     );
 
   const ensureCurrent =
-    useMutation(
+    useServerConfirmedMutation(
       api.payouts
         .ensureCurrent,
     );
 
   const setPayoutWeekday =
-    useMutation(
+    useServerConfirmedMutation(
       api.households
         .setPayoutWeekday,
     );
 
   const markPaid =
-    useMutation(
+    useServerConfirmedMutation(
       api.payouts.markPaid,
     );
 

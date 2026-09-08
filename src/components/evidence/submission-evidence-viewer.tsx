@@ -1,6 +1,5 @@
-import {
-  useMutation,
-} from 'convex/react';
+import { useServerConfirmedMutation } from '@/hooks/use-server-confirmed-mutation';
+
 import {
   useState,
 } from 'react';
@@ -39,7 +38,7 @@ export function SubmissionEvidenceViewer({
     Id<'choreSubmissions'>;
 }) {
   const createViewToken =
-    useMutation(
+    useServerConfirmedMutation(
       api
         .submissionEvidence
         .createViewToken,

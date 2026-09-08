@@ -1,4 +1,8 @@
-import { useAction, useMutation, useQuery } from 'convex/react';
+import { useServerConfirmedMutation } from '@/hooks/use-server-confirmed-mutation';
+import {
+  useAction,
+  useQuery,
+} from 'convex/react';
 import { useState } from 'react';
 import { Pressable, Share, Text, View } from 'react-native';
 
@@ -16,7 +20,7 @@ export function ParentInviteCard({ householdId }: ParentInviteCardProps) {
 
   const createInvite = useAction(api.parentInvites.create);
 
-  const revokeActiveInvite = useMutation(api.parentInvites.revokeActive);
+  const revokeActiveInvite = useServerConfirmedMutation(api.parentInvites.revokeActive);
 
   const [rawToken, setRawToken] = useState<string | null>(null);
 

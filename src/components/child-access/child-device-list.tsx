@@ -1,4 +1,7 @@
-import { useMutation, useQuery } from 'convex/react';
+import { useServerConfirmedMutation } from '@/hooks/use-server-confirmed-mutation';
+import {
+  useQuery,
+} from 'convex/react';
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
@@ -21,7 +24,7 @@ export function ChildDeviceList({ childId }: ChildDeviceListProps) {
     childId,
   });
 
-  const revokeDevice = useMutation(api.childPairing.revokeDevice);
+  const revokeDevice = useServerConfirmedMutation(api.childPairing.revokeDevice);
 
   const [revokingGrantId, setRevokingGrantId] =
     useState<Id<'childDeviceAccessGrants'> | null>(null);

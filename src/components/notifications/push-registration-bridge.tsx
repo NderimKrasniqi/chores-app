@@ -1,8 +1,8 @@
+import { useServerConfirmedMutation } from '@/hooks/use-server-confirmed-mutation';
 import Constants from 'expo-constants';
 import * as Notifications from 'expo-notifications';
 import {
   useConvexAuth,
-  useMutation,
 } from 'convex/react';
 import {
   useEffect,
@@ -61,7 +61,7 @@ export function PushRegistrationBridge() {
     useConvexAuth();
 
   const registerDevice =
-    useMutation(
+    useServerConfirmedMutation(
       api
         .pushNotifications
         .registerCurrentDevice,

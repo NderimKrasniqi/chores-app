@@ -1,3 +1,4 @@
+import { ServerConnectionBanner } from '@/components/server-connection-banner';
 import { PushRegistrationBridge } from '@/components/notifications/push-registration-bridge';
 import { ConvexClientProvider } from '@/providers/convex-client-provider';
 import { AuthRuntimeProvider } from '@/providers/auth-runtime-provider';
@@ -30,6 +31,7 @@ export default function RootLayout() {
           }
         >
           <PushRegistrationBridge />
+          <ServerConnectionBanner />
           <AnimatedSplashOverlay />
           <Slot />
         </ThemeProvider>

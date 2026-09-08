@@ -1,5 +1,5 @@
+import { useServerConfirmedMutation } from '@/hooks/use-server-confirmed-mutation';
 import {
-  useMutation,
   useQuery,
 } from 'convex/react';
 
@@ -25,7 +25,7 @@ export function ActiveClaimableClaimsCard({
     );
 
   const cancelClaim =
-    useMutation(
+    useServerConfirmedMutation(
       api.claimableClaimCancellations
         .cancelForParent,
     );
