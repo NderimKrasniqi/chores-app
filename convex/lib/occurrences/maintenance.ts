@@ -16,6 +16,10 @@ import {
 import {
   getLocalDateForInstant,
 } from '../scheduling/householdTime';
+import {
+  listDueAvailableOccurrences,
+  listDueScheduledOccurrences,
+} from './maintenanceDue';
 
 export const
   occurrenceGenerationHorizonDays =
@@ -130,26 +134,22 @@ export async function runOccurrenceMaintenance(
           .collect();
 
   /*
-   * Smoke tests may provide a synthetic
-   * clock far in the future.
+   * When maintenance is explicitly scoped,
+   * every safety-net query must use that
+   * same Household scope at the index
+   * level.
    *
-   * If householdIds was supplied, that
-   * scope MUST also apply to lifecycle
-   * reconciliation.
-   *
-   * Otherwise a test using 2030 could
-   * accidentally reconcile real 2026
-   * application data.
+   * Production dispatch supplies exactly
+   * one Household ID per transaction.
    */
-  const householdScope =
-    options.householdIds
-      ? new Set(
-          households.map(
-            (household) =>
-              household._id,
-          ),
+  const maintenanceHouseholdIds =
+    options.householdIds !==
+      undefined
+      ? households.map(
+          (household) =>
+            household._id,
         )
-      : null;
+      : undefined;
 
   let createdCount = 0;
 
@@ -197,35 +197,12 @@ export async function runOccurrenceMaintenance(
    * Safety net for delayed availability
    * callbacks.
    */
-  const dueScheduled =
-    await ctx.db
-      .query(
-        'choreOccurrences',
-      )
-      .withIndex(
-        'by_state_availability',
-        (q) =>
-          q
-            .eq(
-              'state',
-              'scheduled',
-            )
-            .lte(
-              'availabilityStartsAt',
-              now,
-            ),
-      )
-      .collect();
-
   const scopedDueScheduled =
-    householdScope
-      ? dueScheduled.filter(
-          (occurrence) =>
-            householdScope.has(
-              occurrence.householdId,
-            ),
-        )
-      : dueScheduled;
+    await listDueScheduledOccurrences(
+      ctx,
+      now,
+      maintenanceHouseholdIds,
+    );
 
   let scheduledReconciledCount =
     0;
@@ -260,35 +237,12 @@ export async function runOccurrenceMaintenance(
    * Personal:
    * strictly after deadline => missed.
    */
-  const dueAvailable =
-    await ctx.db
-      .query(
-        'choreOccurrences',
-      )
-      .withIndex(
-        'by_state_deadline',
-        (q) =>
-          q
-            .eq(
-              'state',
-              'available',
-            )
-            .lte(
-              'deadlineAt',
-              now,
-            ),
-      )
-      .collect();
-
   const scopedDueAvailable =
-    householdScope
-      ? dueAvailable.filter(
-          (occurrence) =>
-            householdScope.has(
-              occurrence.householdId,
-            ),
-        )
-      : dueAvailable;
+    await listDueAvailableOccurrences(
+      ctx,
+      now,
+      maintenanceHouseholdIds,
+    );
 
   let claimableDeadlineReconciledCount =
     0;

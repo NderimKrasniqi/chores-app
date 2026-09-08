@@ -686,6 +686,25 @@ export async function getPayoutWindowForUsage(
   };
 }
 
+export async function maintainPayoutPeriodForHousehold(
+  ctx:
+    MutationCtx,
+  householdId:
+    Id<'households'>,
+  now =
+    Date.now(),
+) {
+  await ensureCurrentPayoutPeriod(
+    ctx,
+    householdId,
+    now,
+  );
+
+  return {
+    householdId,
+  };
+}
+
 export async function maintainPayoutPeriods(
   ctx: MutationCtx,
   now = Date.now(),
@@ -703,7 +722,7 @@ export async function maintainPayoutPeriods(
     const household of
     households
   ) {
-    await ensureCurrentPayoutPeriod(
+    await maintainPayoutPeriodForHousehold(
       ctx,
       household._id,
       now,

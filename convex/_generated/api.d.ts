@@ -63,6 +63,7 @@ import type * as dev_smoke_task22_claimCommitmentLock from "../dev/smoke/task22/
 import type * as dev_smoke_task22_evidenceRetention from "../dev/smoke/task22/evidenceRetention.js";
 import type * as dev_smoke_task22_evidenceRetentionFixture from "../dev/smoke/task22/evidenceRetentionFixture.js";
 import type * as dev_smoke_task22_financialProjection from "../dev/smoke/task22/financialProjection.js";
+import type * as dev_smoke_task22_maintenanceFanout from "../dev/smoke/task22/maintenanceFanout.js";
 import type * as dev_smoke_task22_parentPrincipalSeparation from "../dev/smoke/task22/parentPrincipalSeparation.js";
 import type * as dev_smoke_task22_unlockActivation from "../dev/smoke/task22/unlockActivation.js";
 import type * as health from "../health.js";
@@ -73,8 +74,10 @@ import type * as jobs_claims_transitions from "../jobs/claims/transitions.js";
 import type * as jobs_evidence_maintenance from "../jobs/evidence/maintenance.js";
 import type * as jobs_notifications_data from "../jobs/notifications/data.js";
 import type * as jobs_notifications_delivery from "../jobs/notifications/delivery.js";
+import type * as jobs_occurrences_householdMaintenance from "../jobs/occurrences/householdMaintenance.js";
 import type * as jobs_occurrences_maintenance from "../jobs/occurrences/maintenance.js";
 import type * as jobs_occurrences_transitions from "../jobs/occurrences/transitions.js";
+import type * as jobs_payouts_householdMaintenance from "../jobs/payouts/householdMaintenance.js";
 import type * as jobs_payouts_maintenance from "../jobs/payouts/maintenance.js";
 import type * as jobs_payouts_transitions from "../jobs/payouts/transitions.js";
 import type * as jobs_redos_deadlineTransitions from "../jobs/redos/deadlineTransitions.js";
@@ -103,6 +106,7 @@ import type * as lib_finance_payoutSettlement from "../lib/finance/payoutSettlem
 import type * as lib_finance_pendingOutcomes from "../lib/finance/pendingOutcomes.js";
 import type * as lib_finance_periodBalance from "../lib/finance/periodBalance.js";
 import type * as lib_finance_runningBalance from "../lib/finance/runningBalance.js";
+import type * as lib_maintenance_householdDispatch from "../lib/maintenance/householdDispatch.js";
 import type * as lib_notifications_events from "../lib/notifications/events.js";
 import type * as lib_notifications_orchestration from "../lib/notifications/orchestration.js";
 import type * as lib_notifications_recipients from "../lib/notifications/recipients.js";
@@ -110,6 +114,7 @@ import type * as lib_notifications_registration from "../lib/notifications/regis
 import type * as lib_occurrences_generation from "../lib/occurrences/generation.js";
 import type * as lib_occurrences_lifecycle from "../lib/occurrences/lifecycle.js";
 import type * as lib_occurrences_maintenance from "../lib/occurrences/maintenance.js";
+import type * as lib_occurrences_maintenanceDue from "../lib/occurrences/maintenanceDue.js";
 import type * as lib_personal_execution from "../lib/personal/execution.js";
 import type * as lib_redos_activeForChild from "../lib/redos/activeForChild.js";
 import type * as lib_redos_deadline from "../lib/redos/deadline.js";
@@ -140,6 +145,7 @@ import type * as schema_claims from "../schema/claims.js";
 import type * as schema_evidence from "../schema/evidence.js";
 import type * as schema_finance from "../schema/finance.js";
 import type * as schema_households from "../schema/households.js";
+import type * as schema_maintenance from "../schema/maintenance.js";
 import type * as schema_notifications from "../schema/notifications.js";
 import type * as schema_redos from "../schema/redos.js";
 import type * as submissionEvidence from "../submissionEvidence.js";
@@ -206,6 +212,7 @@ declare const fullApi: ApiFromModules<{
   "dev/smoke/task22/evidenceRetention": typeof dev_smoke_task22_evidenceRetention;
   "dev/smoke/task22/evidenceRetentionFixture": typeof dev_smoke_task22_evidenceRetentionFixture;
   "dev/smoke/task22/financialProjection": typeof dev_smoke_task22_financialProjection;
+  "dev/smoke/task22/maintenanceFanout": typeof dev_smoke_task22_maintenanceFanout;
   "dev/smoke/task22/parentPrincipalSeparation": typeof dev_smoke_task22_parentPrincipalSeparation;
   "dev/smoke/task22/unlockActivation": typeof dev_smoke_task22_unlockActivation;
   health: typeof health;
@@ -216,8 +223,10 @@ declare const fullApi: ApiFromModules<{
   "jobs/evidence/maintenance": typeof jobs_evidence_maintenance;
   "jobs/notifications/data": typeof jobs_notifications_data;
   "jobs/notifications/delivery": typeof jobs_notifications_delivery;
+  "jobs/occurrences/householdMaintenance": typeof jobs_occurrences_householdMaintenance;
   "jobs/occurrences/maintenance": typeof jobs_occurrences_maintenance;
   "jobs/occurrences/transitions": typeof jobs_occurrences_transitions;
+  "jobs/payouts/householdMaintenance": typeof jobs_payouts_householdMaintenance;
   "jobs/payouts/maintenance": typeof jobs_payouts_maintenance;
   "jobs/payouts/transitions": typeof jobs_payouts_transitions;
   "jobs/redos/deadlineTransitions": typeof jobs_redos_deadlineTransitions;
@@ -246,6 +255,7 @@ declare const fullApi: ApiFromModules<{
   "lib/finance/pendingOutcomes": typeof lib_finance_pendingOutcomes;
   "lib/finance/periodBalance": typeof lib_finance_periodBalance;
   "lib/finance/runningBalance": typeof lib_finance_runningBalance;
+  "lib/maintenance/householdDispatch": typeof lib_maintenance_householdDispatch;
   "lib/notifications/events": typeof lib_notifications_events;
   "lib/notifications/orchestration": typeof lib_notifications_orchestration;
   "lib/notifications/recipients": typeof lib_notifications_recipients;
@@ -253,6 +263,7 @@ declare const fullApi: ApiFromModules<{
   "lib/occurrences/generation": typeof lib_occurrences_generation;
   "lib/occurrences/lifecycle": typeof lib_occurrences_lifecycle;
   "lib/occurrences/maintenance": typeof lib_occurrences_maintenance;
+  "lib/occurrences/maintenanceDue": typeof lib_occurrences_maintenanceDue;
   "lib/personal/execution": typeof lib_personal_execution;
   "lib/redos/activeForChild": typeof lib_redos_activeForChild;
   "lib/redos/deadline": typeof lib_redos_deadline;
@@ -283,6 +294,7 @@ declare const fullApi: ApiFromModules<{
   "schema/evidence": typeof schema_evidence;
   "schema/finance": typeof schema_finance;
   "schema/households": typeof schema_households;
+  "schema/maintenance": typeof schema_maintenance;
   "schema/notifications": typeof schema_notifications;
   "schema/redos": typeof schema_redos;
   submissionEvidence: typeof submissionEvidence;
