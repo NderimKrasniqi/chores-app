@@ -3,49 +3,11 @@ import {
 } from 'convex/values';
 
 import {
-  mutation,
   query,
 } from './_generated/server';
 import {
   requireCurrentParentForHousehold,
 } from './lib/auth/parentAuthorization';
-import {
-  generateOccurrencesForWindow,
-} from './lib/occurrences/generation';
-
-export const generateForWindow =
-  mutation({
-    args: {
-      householdId:
-        v.id(
-          'households',
-        ),
-
-      fromLocalDate:
-        v.string(),
-
-      throughLocalDate:
-        v.string(),
-    },
-
-    handler: async (
-      ctx,
-      args,
-    ) => {
-      await requireCurrentParentForHousehold(
-        ctx,
-        args.householdId,
-      );
-
-      return await generateOccurrencesForWindow(
-        ctx,
-        args.householdId,
-        args.fromLocalDate,
-        args.throughLocalDate,
-      );
-    },
-  });
-
 export const listForHousehold =
   query({
     args: {
