@@ -36,6 +36,20 @@ export async function listPendingPersonalReviews(
     const submission of
     submissions
   ) {
+    /*
+     * Ordinary Personal review owns only
+     * the initial submission.
+     *
+     * Attempt 2 belongs exclusively to
+     * the Redo review flow.
+     */
+    if (
+      submission.attemptNumber !==
+      1
+    ) {
+      continue;
+    }
+
     const occurrence =
       await ctx.db.get(
         submission.occurrenceId,

@@ -40,6 +40,7 @@ import type * as dev_smoke_task11_unclaimAccounting from "../dev/smoke/task11/un
 import type * as dev_smoke_task12_claimableApproval from "../dev/smoke/task12/claimableApproval.js";
 import type * as dev_smoke_task12_claimableSubmission from "../dev/smoke/task12/claimableSubmission.js";
 import type * as dev_smoke_task13_initialRejection from "../dev/smoke/task13/initialRejection.js";
+import type * as dev_smoke_task13_personalReviewIsolation from "../dev/smoke/task13/personalReviewIsolation.js";
 import type * as dev_smoke_task13_redoDeadline from "../dev/smoke/task13/redoDeadline.js";
 import type * as dev_smoke_task13_redoDeadlineFailure from "../dev/smoke/task13/redoDeadlineFailure.js";
 import type * as dev_smoke_task13_redoReview from "../dev/smoke/task13/redoReview.js";
@@ -134,6 +135,7 @@ declare const fullApi: ApiFromModules<{
   "dev/smoke/task12/claimableApproval": typeof dev_smoke_task12_claimableApproval;
   "dev/smoke/task12/claimableSubmission": typeof dev_smoke_task12_claimableSubmission;
   "dev/smoke/task13/initialRejection": typeof dev_smoke_task13_initialRejection;
+  "dev/smoke/task13/personalReviewIsolation": typeof dev_smoke_task13_personalReviewIsolation;
   "dev/smoke/task13/redoDeadline": typeof dev_smoke_task13_redoDeadline;
   "dev/smoke/task13/redoDeadlineFailure": typeof dev_smoke_task13_redoDeadlineFailure;
   "dev/smoke/task13/redoReview": typeof dev_smoke_task13_redoReview;
