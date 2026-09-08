@@ -257,6 +257,23 @@ export const choreTables = {
       v.number(),
 
     /*
+     * Durable two-hour Claim commitment
+     * boundary.
+     *
+     * Present once server time has reached
+     * deadlineAt - 2 hours for a Claimable
+     * occurrence.
+     *
+     * The write exists primarily so Convex
+     * subscriptions react at the exact
+     * commitment boundary.
+     */
+    commitmentLockReachedAt:
+      v.optional(
+        v.number(),
+      ),
+
+    /*
      * Assignment and eligibility snapshots.
      */
     personalChildId:

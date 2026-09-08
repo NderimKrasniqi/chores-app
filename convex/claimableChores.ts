@@ -27,11 +27,15 @@ type ActiveClaimState =
 
 function getCommitmentStatus({
   deadlineAt,
+  commitmentLockReachedAt,
   now,
   allowance,
   usedUnclaims,
 }: {
   deadlineAt: number;
+
+  commitmentLockReachedAt?:
+    number;
 
   now: number;
 
@@ -50,8 +54,13 @@ function getCommitmentStatus({
       usedUnclaims,
     });
 
+  const isTimeLocked =
+    commitmentLockReachedAt !==
+      undefined ||
+    status.isTimeLocked;
+
   const isImmediatelyLocked =
-    status.isTimeLocked ||
+    isTimeLocked ||
     !status
       .hasUnclaimAllowance;
 
@@ -59,8 +68,7 @@ function getCommitmentStatus({
     lockAt:
       status.lockAt,
 
-    isTimeLocked:
-      status.isTimeLocked,
+    isTimeLocked,
 
     hasUnclaimAllowance:
       status
@@ -71,12 +79,14 @@ function getCommitmentStatus({
         .remainingUnclaims,
 
     canUnclaim:
-      status.canUnclaim,
+      !isTimeLocked &&
+      status
+        .hasUnclaimAllowance,
 
     isImmediatelyLocked,
 
     lockReason:
-      status.isTimeLocked
+      isTimeLocked
         ? 'time_window' as const
         : !status
               .hasUnclaimAllowance
@@ -248,6 +258,10 @@ export const listMine =
                     occurrence
                       .deadlineAt,
 
+                  commitmentLockReachedAt:
+                    occurrence
+                      .commitmentLockReachedAt,
+
                   now,
 
                   allowance:
@@ -278,6 +292,11 @@ export const listMine =
                         item
                           .occurrence
                           .deadlineAt,
+
+                      commitmentLockReachedAt:
+                        item
+                          .occurrence
+                          .commitmentLockReachedAt,
 
                       now,
 

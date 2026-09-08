@@ -153,10 +153,13 @@ export async function claimClaimableOccurrence(
 
   if (
     occurrence
+      .eligibleChildIds !==
+      undefined &&
+    !occurrence
       .eligibleChildIds
-      ?.includes(
+      .includes(
         childId,
-      ) !== true
+      )
   ) {
     throw new ConvexError(
       'This Child is not eligible for this Claimable Chore.',

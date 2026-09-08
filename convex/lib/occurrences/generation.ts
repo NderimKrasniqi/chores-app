@@ -13,6 +13,9 @@ import {
 import {
   scheduleOccurrenceNotifications,
 } from '../notifications/orchestration';
+import {
+  getClaimCommitmentLockAt,
+} from '../claims/commitmentRules';
 
 const millisecondsPerDay =
   24 * 60 * 60 * 1000;
@@ -373,6 +376,14 @@ export async function generateOccurrencesForWindow(
           now,
         );
 
+      const commitmentLockAt =
+        definition.kind ===
+          'claimable'
+          ? getClaimCommitmentLockAt(
+              schedule.deadlineAt,
+            )
+          : null;
+
       const occurrenceId =
         await ctx.db.insert(
           'choreOccurrences',
@@ -428,6 +439,16 @@ export async function generateOccurrencesForWindow(
 
             deadlineAt:
               schedule.deadlineAt,
+
+            ...(commitmentLockAt !==
+              null &&
+            commitmentLockAt <=
+              now
+              ? {
+                  commitmentLockReachedAt:
+                    commitmentLockAt,
+                }
+              : {}),
 
             ...(personalChildId !==
             undefined
@@ -489,6 +510,37 @@ export async function generateOccurrencesForWindow(
           internal
             .jobs.occurrences.transitions
             .reconcile,
+
+          {
+            occurrenceId,
+          },
+        );
+      }
+
+      /*
+       * Claim commitment lock boundary.
+       *
+       * This write does not change Chore or
+       * Claim lifecycle state. It exists so
+       * reactive clients receive an exact
+       * database invalidation at the
+       * two-hour commitment boundary.
+       */
+      if (
+        scheduleTransitions &&
+        definition.kind ===
+          'claimable' &&
+        commitmentLockAt !==
+          null &&
+        commitmentLockAt >
+          now
+      ) {
+        await ctx.scheduler.runAt(
+          commitmentLockAt,
+
+          internal
+            .jobs.claims.transitions
+            .reconcileCommitmentLock,
 
           {
             occurrenceId,
