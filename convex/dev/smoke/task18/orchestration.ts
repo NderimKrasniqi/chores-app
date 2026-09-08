@@ -297,6 +297,49 @@ export const run =
           },
         );
 
+      const unrestrictedClaimableDefinitionId =
+        await ctx.db.insert(
+          'choreDefinitions',
+          {
+            householdId,
+
+            kind:
+              'claimable',
+
+            title:
+              'TASK18 Claimable All Children',
+
+            valueSek:
+              60,
+
+            recurrence: {
+              kind:
+                'one_off',
+
+              scheduledDate:
+                '2030-01-01',
+            },
+
+            deadlineLocalTime:
+              '20:00',
+
+            deadlineDayOffset:
+              0,
+
+            isUnlockChore:
+              false,
+
+            createdByAuthUserId:
+              'task18-parent',
+
+            createdAt:
+              now,
+
+            updatedAt:
+              now,
+          },
+        );
+
       /*
        * Personal occurrence:
        * creates an upcoming deadline
@@ -425,6 +468,71 @@ export const run =
       await scheduleOccurrenceNotifications(
         ctx,
         availableClaimableOccurrenceId,
+        {
+          now,
+
+          scheduleDelivery:
+            false,
+        },
+      );
+
+      /*
+       * Unrestricted Claimable occurrence:
+       * undefined eligibility means all
+       * Children in the Household.
+       */
+      const unrestrictedClaimableOccurrenceId =
+        await ctx.db.insert(
+          'choreOccurrences',
+          {
+            householdId,
+
+            choreDefinitionId:
+              unrestrictedClaimableDefinitionId,
+
+            kind:
+              'claimable',
+
+            title:
+              'Wipe kitchen table',
+
+            valueSek:
+              60,
+
+            scheduledLocalDate:
+              '2030-01-01',
+
+            timezone:
+              'Europe/Stockholm',
+
+            deadlineLocalTime:
+              '20:00',
+
+            deadlineDayOffset:
+              0,
+
+            availabilityStartsAt:
+              now -
+              hour,
+
+            deadlineAt:
+              now +
+              4 * hour,
+
+            isUnlockChore:
+              false,
+
+            state:
+              'available',
+
+            createdAt:
+              now,
+          },
+        );
+
+      await scheduleOccurrenceNotifications(
+        ctx,
+        unrestrictedClaimableOccurrenceId,
         {
           now,
 
@@ -916,16 +1024,16 @@ export const run =
 
       assert(
         events.length ===
-          8,
-        `Expected 8 TASK-18 events, found ${events.length}.`,
+          9,
+        `Expected 9 TASK-18 events, found ${events.length}.`,
       );
 
       assert(
         countKind(
           'claimable_available',
         ) ===
-          1,
-        'Expected one Claimable availability notification.',
+          2,
+        'Expected restricted and unrestricted Claimable availability notifications.',
       );
 
       assert(
@@ -974,6 +1082,47 @@ export const run =
         ) ===
           1,
         'Expected one pre-lock warning.',
+      );
+
+      const unrestrictedClaimableEvent =
+        events.find(
+          (
+            event,
+          ) =>
+            event.kind ===
+              'claimable_available' &&
+            event.occurrenceId ===
+              unrestrictedClaimableOccurrenceId,
+        );
+
+      assert(
+        unrestrictedClaimableEvent,
+        'Unrestricted Claimable availability event missing.',
+      );
+
+      const unrestrictedClaimableDispatch =
+        await ctx.runQuery(
+          internal
+            .jobs.notifications.data
+            .loadDispatchContext,
+          {
+            eventId:
+              unrestrictedClaimableEvent._id,
+          },
+        );
+
+      assert(
+        unrestrictedClaimableDispatch !==
+          null &&
+        unrestrictedClaimableDispatch
+          .targets
+          .length ===
+          1 &&
+        unrestrictedClaimableDispatch
+          .targets[0]
+          .registrationId ===
+          childRegistrationId,
+        'Unrestricted Claimable notification must target every eligible Household Child.',
       );
 
       /*
@@ -1110,11 +1259,19 @@ export const run =
       );
 
       await ctx.db.delete(
+        unrestrictedClaimableOccurrenceId,
+      );
+
+      await ctx.db.delete(
         availableClaimableOccurrenceId,
       );
 
       await ctx.db.delete(
         personalOccurrenceId,
+      );
+
+      await ctx.db.delete(
+        unrestrictedClaimableDefinitionId,
       );
 
       await ctx.db.delete(

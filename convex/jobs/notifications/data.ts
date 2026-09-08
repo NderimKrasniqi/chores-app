@@ -313,11 +313,16 @@ async function isNotificationEventActionable(
         now ||
       now >=
         occurrence.deadlineAt ||
-      occurrence
-        .eligibleChildIds
-        ?.includes(
-          event.childId,
-        ) !== true
+      (
+        occurrence
+          .eligibleChildIds !==
+          undefined &&
+        !occurrence
+          .eligibleChildIds
+          .includes(
+            event.childId,
+          )
+      )
     ) {
       return false;
     }

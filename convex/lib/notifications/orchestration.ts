@@ -677,11 +677,32 @@ export async function scheduleOccurrenceNotifications(
     };
   }
 
+  const eligibleChildIds =
+    occurrence
+      .eligibleChildIds ??
+    (
+      await ctx.db
+        .query(
+          'children',
+        )
+        .withIndex(
+          'by_household',
+          (q) =>
+            q.eq(
+              'householdId',
+              occurrence
+                .householdId,
+            ),
+        )
+        .collect()
+    ).map(
+      (child) =>
+        child._id,
+    );
+
   for (
     const childId
-    of occurrence
-      .eligibleChildIds ??
-      []
+    of eligibleChildIds
   ) {
     const scheduledFor =
       Math.max(

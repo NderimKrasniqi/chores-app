@@ -1,5 +1,7 @@
 appId: host.exp.Exponent
 ---
+- stopApp
+
 - openLink: "exp://127.0.0.1:8081/--/maestro-task12"
 
 - extendedWaitUntil:
@@ -8,30 +10,47 @@ appId: host.exp.Exponent
 
 - tapOn: "Reset TASK-12 fixture"
 
-# Child begins with two available Claimable Chores.
 - assertVisible: "Claim Garage shelves"
 - assertVisible: "Claim Clean windows"
 
-# Claim one chore.
 - tapOn: "Claim Garage shelves"
 
 - assertVisible: "You claimed this"
-- assertVisible: "Submit Garage shelves for review"
 
-# Single active-Claim rule blocks another Claim.
+- assertVisible:
+    id: "claimable-submit-maestro-task12-garage-claim"
+
+- scrollUntilVisible:
+    element:
+      text: "Clean windows"
+    direction: DOWN
+    timeout: 10000
+
 - assertVisible: "Clean windows"
 - assertVisible: "Finish your current claimed chore before claiming another."
 
-# Child submits completed work.
-- tapOn: "Submit Garage shelves for review"
+- scrollUntilVisible:
+    element:
+      id: "claimable-submit-maestro-task12-garage-claim"
+    direction: UP
+    timeout: 10000
+
+- tapOn:
+    id: "claimable-submit-maestro-task12-garage-claim"
 
 - assertVisible: "Status: Waiting for parent approval"
 - assertVisible: "Waiting for parent approval"
 
-# Submission still occupies the active Claim slot.
+- scrollUntilVisible:
+    element:
+      text: "Clean windows"
+    direction: DOWN
+    timeout: 10000
+
 - assertVisible: "Clean windows"
 - assertVisible: "Finish your current claimed chore before claiming another."
 
-# Submitted work cannot be unclaimed or submitted twice.
 - assertNotVisible: "Unclaim Garage shelves"
-- assertNotVisible: "Submit Garage shelves for review"
+
+- assertNotVisible:
+    id: "claimable-submit-maestro-task12-garage-claim"

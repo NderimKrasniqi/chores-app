@@ -1,7 +1,7 @@
 # Current Implementation Status
 
-**Current milestone:** TASK-19 complete  
-**Next milestone:** TASK-20 — Verify the integrated first-release surface across all approved journeys
+**Current milestone:** TASK-20 complete — first-release verification passed
+**Next milestone:** First-release implementation plan complete
 
 ## Completed
 
@@ -1009,3 +1009,24 @@ Final Maestro regression coverage passes for:
 - A shared connection banner communicates when consequential changes are unavailable.
 - TASK-19 uses one dedicated development fixture and one Maestro flow.
 - Maestro verifies readable last-synced data, rejection of an offline action without starting a server call, reconnect recovery, unresolved-action presentation, and eventual server confirmation.
+
+### TASK-20 — Integrated first-release verification
+
+- Integrated first-release release gate completed.
+- TypeScript validation passed after the final production-code changes.
+- Convex deployment validation passed after the final production-code changes.
+- All 35 self-contained TASK-07 through TASK-17 backend regression smokes passed.
+- TASK-18 notification orchestration passed after release-gate hardening.
+- Unrestricted Claimable Chores now correctly notify all eligible Household Children when `eligibleChildIds` is undefined.
+- Notification dispatch validation now accepts unrestricted Claimable eligibility while retaining stale-event and recipient isolation checks.
+- Push-token registration background work is best-effort and no longer leaves unhandled rejected promises.
+- All 15 permanent Maestro release flows passed on the assigned iPhone 17 Pro simulator.
+- Maestro flows cold-start Expo Go before route navigation so fixtures do not inherit stale test state.
+- TASK-12 submission automation uses stable test IDs and deterministic scrolling.
+- TASK-16 photo-evidence automation uses stable test IDs for interactive controls.
+- The accidental root `Flow:` file was removed.
+- Existing TASK-06 authenticated smoke evidence remains part of the completed TASK-06 verification; its developer smoke requires real Parent, Household, and Child context and is intentionally not invoked as a zero-argument CLI smoke.
+- Existing TASK-18 notification-infrastructure smoke evidence remains part of the completed TASK-18 verification.
+- Physical iOS APNs end-to-end delivery remains deferred pending Apple Developer Program credentials.
+- The APNs credential limitation does not invalidate deterministic notification orchestration, recipient isolation, stale-event suppression, ticket/receipt handling, or notification UI verification.
+- No paid service was required to complete the TASK-20 simulator and backend release gate.

@@ -1,7 +1,7 @@
 # Implementation Plan
 **Status:** Approved — current
 
-**Implementation progress:** TASK-01 through TASK-19 complete. TASK-20 is next.
+**Implementation progress:** TASK-01 through TASK-20 complete. First-release verification complete.
 
 ## Phase 1 — Establish trusted household access
 - [x] TASK-01 Bootstrap the Expo, NativeWind, and Convex application with an unprotected connectivity seam
@@ -31,4 +31,4 @@
 
 ## Phase 5 — Harden and close the first release
 - [x] TASK-19 Enforce read-only offline fallback and server-confirmed recovery states across consequential actions
-- [ ] TASK-20 Verify the integrated first-release surface across all approved household, chore, review, financial, and notification journeys
+- [x] TASK-20 Verify the integrated first-release surface across all approved household, chore, review, financial, and notification journeys

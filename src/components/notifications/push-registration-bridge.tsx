@@ -171,12 +171,18 @@ export function PushRegistrationBridge() {
         Notifications
           .addPushTokenListener(
             () => {
-              void persistToken();
+              void persistToken()
+                .catch(
+                  () => {},
+                );
             },
           );
     }
 
-    void register();
+    void register()
+      .catch(
+        () => {},
+      );
 
     return () => {
       cancelled =
