@@ -16,6 +16,7 @@ import {
 import type { Id } from '../../../convex/_generated/dataModel';
 
 import { ParentInviteCard } from './parent-invite-card';
+import { PayoutsCard } from './payouts-card';
 
 export type PayoutWeekday =
   | 'monday'
@@ -60,6 +61,7 @@ type HouseholdSection =
   | 'overview'
   | 'chores'
   | 'reviews'
+  | 'payouts'
   | 'access';
 
 function formatWeekday(
@@ -162,6 +164,19 @@ export function HouseholdCard({
           onPress={() =>
             setSection(
               'reviews',
+            )
+          }
+        />
+
+        <SectionButton
+          active={
+            section ===
+            'payouts'
+          }
+          label="Payouts"
+          onPress={() =>
+            setSection(
+              'payouts',
             )
           }
         />
@@ -308,6 +323,18 @@ export function HouseholdCard({
           />
 
           <RedoChoreReviewsCard
+            householdId={
+              household
+                .householdId
+            }
+          />
+        </View>
+      )}
+
+      {section ===
+        'payouts' && (
+        <View className="mt-6">
+          <PayoutsCard
             householdId={
               household
                 .householdId

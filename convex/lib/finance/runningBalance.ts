@@ -27,6 +27,9 @@ export type RunningBalance = {
   penaltyTotalSek:
     number;
 
+  settledTotalSek:
+    number;
+
   balanceSek:
     number;
 
@@ -34,21 +37,21 @@ export type RunningBalance = {
     number;
 };
 
-/*
- * TASK-14 Running Balance.
- *
- * The Ledger is authoritative.
- *
- * No mutable balance field is stored.
- * Every calculation derives the current
- * balance from durable Ledger Entries for
- * exactly one Child.
- *
- * Until TASK-15 introduces settlement,
- * every existing Ledger Entry is
- * unsettled, so the current Running
- * Balance is their complete sum.
- */
+function requireSafeWholeSek(
+  value: number,
+  message: string,
+) {
+  if (
+    !Number.isSafeInteger(
+      value,
+    )
+  ) {
+    throw new ConvexError(
+      message,
+    );
+  }
+}
+
 export async function calculateRunningBalanceForChild(
   ctx:
     RunningBalanceCtx,
@@ -81,11 +84,8 @@ export async function calculateRunningBalanceForChild(
       )
       .collect();
 
-  let earningTotalSek =
-    0;
-
-  let penaltyTotalSek =
-    0;
+  let earningTotalSek = 0;
+  let penaltyTotalSek = 0;
 
   for (
     const entry of
@@ -100,15 +100,10 @@ export async function calculateRunningBalanceForChild(
       );
     }
 
-    if (
-      !Number.isSafeInteger(
-        entry.amountSek,
-      )
-    ) {
-      throw new ConvexError(
-        'Ledger Entry amount must be whole SEK.',
-      );
-    }
+    requireSafeWholeSek(
+      entry.amountSek,
+      'Ledger Entry amount must be whole SEK.',
+    );
 
     if (
       entry.kind ===
@@ -126,15 +121,10 @@ export async function calculateRunningBalanceForChild(
       earningTotalSek +=
         entry.amountSek;
 
-      if (
-        !Number.isSafeInteger(
-          earningTotalSek,
-        )
-      ) {
-        throw new ConvexError(
-          'Running earning total exceeds the supported whole-SEK range.',
-        );
-      }
+      requireSafeWholeSek(
+        earningTotalSek,
+        'Running earning total exceeds the supported whole-SEK range.',
+      );
 
       continue;
     }
@@ -155,44 +145,94 @@ export async function calculateRunningBalanceForChild(
       penaltyTotalSek +=
         entry.amountSek;
 
-      if (
-        !Number.isSafeInteger(
-          penaltyTotalSek,
-        )
-      ) {
-        throw new ConvexError(
-          'Running penalty total exceeds the supported whole-SEK range.',
-        );
-      }
+      requireSafeWholeSek(
+        penaltyTotalSek,
+        'Running penalty total exceeds the supported whole-SEK range.',
+      );
 
       continue;
     }
 
-    /*
-     * Defensive runtime guard.
-     *
-     * Current schema permits only earning
-     * and penalty, so normal typed code
-     * cannot reach this branch.
-     */
     throw new ConvexError(
       'Unsupported Ledger Entry kind.',
     );
   }
 
-  const balanceSek =
-    earningTotalSek +
-    penaltyTotalSek;
+  /*
+   * A paid Payout is the durable
+   * settlement record.
+   *
+   * Pending Payouts remain part of the
+   * Child's Running Balance until the
+   * Parent confirms the Swish payment.
+   */
+  const payouts =
+    await ctx.db
+      .query(
+        'payouts',
+      )
+      .withIndex(
+        'by_child',
+        (q) =>
+          q.eq(
+            'childId',
+            childId,
+          ),
+      )
+      .collect();
 
-  if (
-    !Number.isSafeInteger(
-      balanceSek,
-    )
+  let settledTotalSek = 0;
+
+  for (
+    const payout of
+    payouts
   ) {
-    throw new ConvexError(
-      'Running Balance exceeds the supported whole-SEK range.',
+    if (
+      payout.householdId !==
+      child.householdId
+    ) {
+      throw new ConvexError(
+        'Payout Household does not match its Child.',
+      );
+    }
+
+    if (
+      payout.status !==
+      'paid'
+    ) {
+      continue;
+    }
+
+    if (
+      !Number.isSafeInteger(
+        payout.amountDueSek,
+      ) ||
+      payout.amountDueSek <=
+        0
+    ) {
+      throw new ConvexError(
+        'Paid Payout amount must be positive whole SEK.',
+      );
+    }
+
+    settledTotalSek +=
+      payout.amountDueSek;
+
+    requireSafeWholeSek(
+      settledTotalSek,
+      'Settled payout total exceeds the supported whole-SEK range.',
     );
   }
+
+  const balanceSek =
+    earningTotalSek +
+    penaltyTotalSek -
+    settledTotalSek;
+
+  requireSafeWholeSek(
+    balanceSek,
+    'Running Balance exceeds the supported whole-SEK range.',
+  );
 
   return {
     childId:
@@ -204,6 +244,8 @@ export async function calculateRunningBalanceForChild(
     earningTotalSek,
 
     penaltyTotalSek,
+
+    settledTotalSek,
 
     balanceSek,
 

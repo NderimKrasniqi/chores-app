@@ -3,6 +3,8 @@ import { ConvexError, v } from 'convex/values';
 import type { Id } from './_generated/dataModel';
 import { mutation, query } from './_generated/server';
 import { authComponent } from './auth';
+import { requireCurrentParentForHousehold } from './lib/auth/parentAuthorization';
+import { ensureCurrentPayoutPeriod } from './lib/finance/payoutPeriods';
 
 const payoutWeekdayValidator = v.union(
   v.literal('monday'),
@@ -115,6 +117,12 @@ export const create = mutation({
       childIds.push(childId);
     }
 
+    await ensureCurrentPayoutPeriod(
+      ctx,
+      householdId,
+      now,
+    );
+
     return {
       householdId,
       membershipId,
@@ -184,3 +192,77 @@ export const listForCurrentParent = query({
     return result;
   },
 });
+
+
+export const setPayoutWeekday =
+  mutation({
+    args: {
+      householdId:
+        v.id('households'),
+
+      payoutWeekday:
+        payoutWeekdayValidator,
+    },
+
+    returns:
+      v.object({
+        householdId:
+          v.id('households'),
+
+        payoutWeekday:
+          payoutWeekdayValidator,
+
+        currentPeriodEndAt:
+          v.number(),
+      }),
+
+    handler: async (
+      ctx,
+      args,
+    ) => {
+      await requireCurrentParentForHousehold(
+        ctx,
+        args.householdId,
+      );
+
+      const now =
+        Date.now();
+
+      /*
+       * Persist the current period before
+       * changing the Household setting.
+       *
+       * Its existing end boundary is now
+       * immutable. The new weekday is used
+       * only when the next period is opened.
+       */
+      const currentPeriod =
+        await ensureCurrentPayoutPeriod(
+          ctx,
+          args.householdId,
+          now,
+        );
+
+      await ctx.db.patch(
+        args.householdId,
+        {
+          payoutWeekday:
+            args.payoutWeekday,
+
+          updatedAt:
+            now,
+        },
+      );
+
+      return {
+        householdId:
+          args.householdId,
+
+        payoutWeekday:
+          args.payoutWeekday,
+
+        currentPeriodEndAt:
+          currentPeriod.endAt,
+      };
+    },
+  });

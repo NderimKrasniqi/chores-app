@@ -6,7 +6,9 @@ import type {
   MutationCtx,
   QueryCtx,
 } from '../../_generated/server';
-import { getCurrentPayoutWeekWindow } from './commitmentRules';
+import {
+  getPayoutWindowForUsage,
+} from '../finance/payoutPeriods';
 
 type DatabaseCtx =
   | MutationCtx
@@ -21,24 +23,12 @@ export async function getWeeklyUnclaimUsageForChild(
   now = Date.now(),
 ) {
   const payoutWeek =
-    getCurrentPayoutWeekWindow({
+    await getPayoutWindowForUsage(
+      ctx,
+      household,
       now,
+    );
 
-      timezone:
-        household.timezone,
-
-      payoutWeekday:
-        household
-          .payoutWeekday,
-    });
-
-  /*
-   * Only successful Child-initiated
-   * unclaims carry unclaimedAt.
-   *
-   * Parent cancellation therefore cannot
-   * consume this allowance accidentally.
-   */
   const unclaims =
     await ctx.db
       .query(
@@ -63,11 +53,6 @@ export async function getWeeklyUnclaimUsageForChild(
       )
       .collect();
 
-  /*
-   * childId is Household-owned already,
-   * but retain the Household check as a
-   * defensive domain boundary.
-   */
   const usedUnclaims =
     unclaims.filter(
       (claim) =>

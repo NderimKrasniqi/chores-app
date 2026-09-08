@@ -31,4 +31,15 @@ crons.interval(
     .run,
 );
 
+
+crons.interval(
+  'maintain payout periods',
+  {
+    minutes: 15,
+  },
+  internal
+    .jobs.payouts.maintenance
+    .run,
+);
+
 export default crons;

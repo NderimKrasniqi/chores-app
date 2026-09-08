@@ -1,7 +1,7 @@
 # Current Implementation Status
 
-**Current milestone:** TASK-14 complete  
-**Next milestone:** TASK-15 — Implement payout periods, manual Swish settlement tracking, pending outcomes, and weekly resets
+**Current milestone:** TASK-15 complete  
+**Next milestone:** TASK-16 — Add optional private photo evidence with authorized upload/view and recoverable upload failure
 
 ## Completed
 
@@ -924,3 +924,22 @@ Final Maestro regression coverage passes for:
 - TASK-13 Parent initial rejection UI;
 - TASK-13 Parent Redo review UI;
 - TASK-14 Running Balance UI.
+
+
+### TASK-15 — Payout periods and manual settlement
+
+- Durable Household Payout Periods implemented with immutable timezone, payout-weekday, start, and end snapshots.
+- Existing open periods retain their configured closing boundary when the Household payout weekday changes.
+- A changed payout weekday governs the next period.
+- Exact Payout Period closure uses Convex scheduled internal functions with recurring maintenance reconciliation as a safety net.
+- Payout Period closure snapshots one financial outcome per Child.
+- Positive finalized unreserved balances create pending manual Swish payouts.
+- Parent confirmation marks a pending payout paid; paid payouts cannot be reopened.
+- Negative balances create no payment and carry into later periods.
+- Prior pending or paid payout amounts are reserved so the same earnings cannot appear in multiple payouts.
+- Financial effects finalized after a period cutoff enter a later payout.
+- Work still under review or Redo is surfaced as a pending outcome and is not backdated into a closed payout.
+- Running Balance now subtracts only confirmed paid payouts; pending payouts remain unsettled until Parent confirmation.
+- Weekly Child unclaim accounting now uses the durable Payout Period boundary and resets when the period closes.
+- Parent UI includes a dedicated Payouts section for current-period visibility, payout weekday configuration, manual Swish amounts, pending outcomes, negative carry, and Mark paid confirmation.
+- TASK-15 automated regression coverage verifies settlement, negative carry, later-period outcomes, payout-day changes, weekly reset behavior, TASK-14 Running Balance, and TASK-11 unclaim accounting.
