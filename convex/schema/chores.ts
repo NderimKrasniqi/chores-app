@@ -460,6 +460,12 @@ export const choreTables = {
         'householdId',
         'submittedAt',
       ],
+    )
+    .index(
+      'by_evidence_storage_id',
+      [
+        'evidenceStorageId',
+      ],
     ),
 
   /*

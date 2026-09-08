@@ -61,6 +61,18 @@ export const evidenceTables = {
           'occurrenceId',
           'attemptNumber',
         ],
+      )
+      .index(
+        'by_expires_at',
+        [
+          'expiresAt',
+        ],
+      )
+      .index(
+        'by_storage_id',
+        [
+          'storageId',
+        ],
       ),
 
   submissionEvidenceViewTokens:
@@ -103,6 +115,41 @@ export const evidenceTables = {
         'by_viewer_auth_user',
         [
           'viewerAuthUserId',
+        ],
+      )
+      .index(
+        'by_expires_at',
+        [
+          'expiresAt',
+        ],
+      )
+      .index(
+        'by_storage_id',
+        [
+          'storageId',
+        ],
+      ),
+
+  evidenceMaintenanceState:
+    defineTable({
+      key:
+        v.literal(
+          'storage_orphan_scan',
+        ),
+
+      storageCursor:
+        v.union(
+          v.string(),
+          v.null(),
+        ),
+
+      updatedAt:
+        v.number(),
+    })
+      .index(
+        'by_key',
+        [
+          'key',
         ],
       ),
 };

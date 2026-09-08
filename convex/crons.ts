@@ -42,4 +42,19 @@ crons.interval(
     .run,
 );
 
+/*
+ * Evidence cleanup is deliberately
+ * bounded and lower-frequency than
+ * occurrence lifecycle work.
+ */
+crons.interval(
+  'maintain evidence retention',
+  {
+    minutes: 60,
+  },
+  internal
+    .jobs.evidence.maintenance
+    .run,
+);
+
 export default crons;

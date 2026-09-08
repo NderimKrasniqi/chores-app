@@ -158,3 +158,11 @@ External services never bypass Convex domain authorization or mutate client stat
 - Final production Parent/Child UI/UX, navigation composition, design system, and presentation-component boundaries are intentionally unresolved. Existing client screens and development fixtures prove approved behavior but are not the final presentation architecture.
 - Final shared-device/profile-switch interaction details are UI implementation work; the server-side identity, access-grant, revocation, and sibling-privacy boundaries are already fixed and sufficient for implementation planning.
 - Final parent sign-in provider mix (email/password, Apple, Google) is configuration work unless a future product decision makes one mandatory.
+
+
+## Evidence retention
+
+Private Submission evidence uses bounded retention maintenance for abandoned
+uploads, expired view tokens, and conservatively identifiable Storage orphans.
+
+See `evidence-retention.md` for the retention and orphan-cleanup contract.

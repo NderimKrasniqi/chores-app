@@ -60,6 +60,8 @@ import type * as dev_smoke_task17_activity from "../dev/smoke/task17/activity.js
 import type * as dev_smoke_task18_notificationInfrastructure from "../dev/smoke/task18/notificationInfrastructure.js";
 import type * as dev_smoke_task18_orchestration from "../dev/smoke/task18/orchestration.js";
 import type * as dev_smoke_task22_claimCommitmentLock from "../dev/smoke/task22/claimCommitmentLock.js";
+import type * as dev_smoke_task22_evidenceRetention from "../dev/smoke/task22/evidenceRetention.js";
+import type * as dev_smoke_task22_evidenceRetentionFixture from "../dev/smoke/task22/evidenceRetentionFixture.js";
 import type * as dev_smoke_task22_financialProjection from "../dev/smoke/task22/financialProjection.js";
 import type * as dev_smoke_task22_parentPrincipalSeparation from "../dev/smoke/task22/parentPrincipalSeparation.js";
 import type * as dev_smoke_task22_unlockActivation from "../dev/smoke/task22/unlockActivation.js";
@@ -68,6 +70,7 @@ import type * as householdActivity from "../householdActivity.js";
 import type * as households from "../households.js";
 import type * as http from "../http.js";
 import type * as jobs_claims_transitions from "../jobs/claims/transitions.js";
+import type * as jobs_evidence_maintenance from "../jobs/evidence/maintenance.js";
 import type * as jobs_notifications_data from "../jobs/notifications/data.js";
 import type * as jobs_notifications_delivery from "../jobs/notifications/delivery.js";
 import type * as jobs_occurrences_maintenance from "../jobs/occurrences/maintenance.js";
@@ -89,6 +92,7 @@ import type * as lib_claims_submittedClaim from "../lib/claims/submittedClaim.js
 import type * as lib_claims_unclaimAccounting from "../lib/claims/unclaimAccounting.js";
 import type * as lib_claims_unclaiming from "../lib/claims/unclaiming.js";
 import type * as lib_claims_visibility from "../lib/claims/visibility.js";
+import type * as lib_evidence_maintenance from "../lib/evidence/maintenance.js";
 import type * as lib_evidence_submissionEvidence from "../lib/evidence/submissionEvidence.js";
 import type * as lib_evidence_viewEvidence from "../lib/evidence/viewEvidence.js";
 import type * as lib_finance_failurePenalty from "../lib/finance/failurePenalty.js";
@@ -199,6 +203,8 @@ declare const fullApi: ApiFromModules<{
   "dev/smoke/task18/notificationInfrastructure": typeof dev_smoke_task18_notificationInfrastructure;
   "dev/smoke/task18/orchestration": typeof dev_smoke_task18_orchestration;
   "dev/smoke/task22/claimCommitmentLock": typeof dev_smoke_task22_claimCommitmentLock;
+  "dev/smoke/task22/evidenceRetention": typeof dev_smoke_task22_evidenceRetention;
+  "dev/smoke/task22/evidenceRetentionFixture": typeof dev_smoke_task22_evidenceRetentionFixture;
   "dev/smoke/task22/financialProjection": typeof dev_smoke_task22_financialProjection;
   "dev/smoke/task22/parentPrincipalSeparation": typeof dev_smoke_task22_parentPrincipalSeparation;
   "dev/smoke/task22/unlockActivation": typeof dev_smoke_task22_unlockActivation;
@@ -207,6 +213,7 @@ declare const fullApi: ApiFromModules<{
   households: typeof households;
   http: typeof http;
   "jobs/claims/transitions": typeof jobs_claims_transitions;
+  "jobs/evidence/maintenance": typeof jobs_evidence_maintenance;
   "jobs/notifications/data": typeof jobs_notifications_data;
   "jobs/notifications/delivery": typeof jobs_notifications_delivery;
   "jobs/occurrences/maintenance": typeof jobs_occurrences_maintenance;
@@ -228,6 +235,7 @@ declare const fullApi: ApiFromModules<{
   "lib/claims/unclaimAccounting": typeof lib_claims_unclaimAccounting;
   "lib/claims/unclaiming": typeof lib_claims_unclaiming;
   "lib/claims/visibility": typeof lib_claims_visibility;
+  "lib/evidence/maintenance": typeof lib_evidence_maintenance;
   "lib/evidence/submissionEvidence": typeof lib_evidence_submissionEvidence;
   "lib/evidence/viewEvidence": typeof lib_evidence_viewEvidence;
   "lib/finance/failurePenalty": typeof lib_finance_failurePenalty;
