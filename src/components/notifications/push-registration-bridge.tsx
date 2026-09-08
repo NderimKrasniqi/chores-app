@@ -1,4 +1,7 @@
 import { useServerConfirmedMutation } from '@/hooks/use-server-confirmed-mutation';
+import {
+  reportPushRegistrationFailure,
+} from '@/lib/notifications/push-observability';
 import Constants from 'expo-constants';
 import * as Notifications from 'expo-notifications';
 import {
@@ -135,6 +138,10 @@ export function PushRegistrationBridge() {
         getExpoProjectId();
 
       if (!projectId) {
+        reportPushRegistrationFailure(
+          'missing_project_id',
+        );
+
         return;
       }
 
@@ -143,26 +150,43 @@ export function PushRegistrationBridge() {
         projectId;
 
       async function persistToken() {
-        const token =
-          await Notifications
-            .getExpoPushTokenAsync({
-              projectId:
-                resolvedProjectId,
-            });
+        let token:
+          Notifications.ExpoPushToken;
+
+        try {
+          token =
+            await Notifications
+              .getExpoPushTokenAsync({
+                projectId:
+                  resolvedProjectId,
+              });
+        } catch {
+          reportPushRegistrationFailure(
+            'token_acquisition',
+          );
+
+          return;
+        }
 
         if (cancelled) {
           return;
         }
 
-        await registerDevice({
-          expoPushToken:
-            token.data,
+        try {
+          await registerDevice({
+            expoPushToken:
+              token.data,
 
-          platform:
-            Platform.OS as
-              | 'ios'
-              | 'android',
-        });
+            platform:
+              Platform.OS as
+                | 'ios'
+                | 'android',
+          });
+        } catch {
+          reportPushRegistrationFailure(
+            'backend_registration',
+          );
+        }
       }
 
       await persistToken();
@@ -173,7 +197,11 @@ export function PushRegistrationBridge() {
             () => {
               void persistToken()
                 .catch(
-                  () => {},
+                  () => {
+                    reportPushRegistrationFailure(
+                      'token_refresh',
+                    );
+                  },
                 );
             },
           );
@@ -181,7 +209,11 @@ export function PushRegistrationBridge() {
 
     void register()
       .catch(
-        () => {},
+        () => {
+          reportPushRegistrationFailure(
+            'setup',
+          );
+        },
       );
 
     return () => {

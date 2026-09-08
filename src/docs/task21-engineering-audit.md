@@ -189,11 +189,16 @@ Consolidate them behind the authoritative Parent auth helper.
 
 ### P2-05 — Local Child PIN verifier
 
+**Disposition:** Deferred to TASK-26 security hardening.
+
 The PIN is local device gating rather than backend authentication, and the
 verifier is stored in SecureStore.
 
 A deliberately slow password/PIN derivation mechanism would nevertheless
 provide stronger offline resistance than a single salted SHA-256 digest.
+
+This is not a production authorization boundary, so the migration cost is
+intentionally deferred until distribution/security hardening.
 
 ### P2-06 — Push observability
 
