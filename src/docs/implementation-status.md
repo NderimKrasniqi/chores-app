@@ -1,29 +1,9 @@
 # Current Implementation Status
 
-**Current milestone:** TASK-22 — Approved critical fixes and architectural stabilization
-**Next milestone:** TASK-23 — Production UX architecture
+**Current milestone:** TASK-23 — Production UX architecture
+**Next milestone:** TASK-24 — Production UI/UX implementation
 
 ## Planned
-
-### TASK-21 — Full engineering audit
-
-- Complete repository audit performed across authentication, authorization, Child-device access, chores, Claims, reviews, Redos, finance, evidence, activity, notifications, offline behavior, scheduled work, test architecture, and foundational frontend infrastructure.
-- Findings are persisted in `src/docs/task21-engineering-audit.md`.
-- One P0 Parent/Child principal-separation issue was identified.
-- P1 findings include lifetime-history operational reads, financial aggregation cost, time-driven reactive state, global maintenance fan-out, evidence retention/orphans, unnecessary public backend capabilities, and missing automated CI verification.
-- High-value P2 hardening opportunities were recorded separately from production UI work.
-- Temporary presentation refactoring is explicitly deferred to TASK-23/TASK-24 unless required by foundational stabilization.
-
-### TASK-22 — Critical fixes and architectural stabilization
-
-- Resolve approved P0 correctness/security/data-integrity findings.
-- Resolve approved P1 architectural and reliability findings that materially affect the production foundation.
-- Apply selected high-value P2 maintainability improvements where the benefit exceeds migration churn.
-- Prefer explicit domain/backend/application boundaries and small stable interfaces that the production UI can consume.
-- Consolidate duplicated authoritative business rules where appropriate.
-- Preserve server-authoritative deadlines, claims, reviews, financial state, authorization, and offline-confirmation semantics.
-- Avoid spending substantial effort polishing temporary presentation code that TASK-24 will replace.
-- Add or strengthen focused regression coverage for every consequential refactor.
 
 ### TASK-23 — Production UX architecture
 
@@ -60,6 +40,33 @@
 - Physical iOS APNs end-to-end verification remains credential-dependent and belongs in this distribution phase rather than blocking engineering/UX work before it.
 
 ## Completed
+
+### TASK-22 — Critical fixes and architectural stabilization
+
+- Enforced strict Parent/Child principal separation so anonymous Child device identities cannot exercise Parent authority.
+- Added adversarial Parent authorization regression coverage.
+- Replaced lifetime-history operational reads with bounded Personal, Claimable, review, and Redo read models.
+- Added bounded Child financial balance projections and settlement support rather than repeatedly aggregating unbounded ledger history.
+- Made Claim commitment locks and Unlock availability transitions durable and reactive through exact scheduled state transitions.
+- Added bounded evidence retention/orphan cleanup with recurring maintenance.
+- Replaced global Household maintenance fan-out with bounded dispatch state and capped Household batches.
+- Removed unnecessary public occurrence-generation capability.
+- Added the deterministic backend verification gate and GitHub CI workflow.
+- Added bounded active Child-grant lookup with fail-closed duplicate detection.
+- Revoked Child profiles now clear their isolated Better Auth SecureStore namespace instead of leaving stale Child authentication material behind.
+- Consolidated Parent Household authorization behind the authoritative shared Parent authorization helpers.
+- Added explicit `returns` validators to every production Convex query, mutation, action, and internal function.
+- Removed the unused raw Better Auth `getCurrentUser` public Convex query.
+- Added privacy-safe Push registration observability while preserving best-effort notification behavior.
+- P2-05 local Child PIN KDF hardening is explicitly deferred to TASK-26 because the PIN is a local device gate rather than a backend authorization boundary.
+- Production presentation refactoring remains deferred to TASK-23/TASK-24.
+
+### TASK-21 — Full engineering audit
+
+- Completed repository-wide engineering audit across authentication, authorization, Child-device access, chores, Claims, reviews, Redos, finance, evidence, activity, notifications, offline behavior, scheduled work, test architecture, and foundational frontend infrastructure.
+- Persisted prioritized findings in `src/docs/task21-engineering-audit.md`.
+- Classified correctness/security/data-integrity findings separately from architecture, maintainability, and presentation concerns.
+- Explicitly deferred temporary presentation refactoring until the production UX architecture and implementation milestones.
 
 ### TASK-01 — Application foundation
 

@@ -9,8 +9,9 @@ npm run verify
 It performs:
 
 1. TypeScript verification with `tsc --noEmit`.
-2. Convex code generation and function validation.
-1. The curated zero-argument backend regression and security smoke manifest.
+2. Static verification that every production Convex query, mutation, action, and internal function declares an explicit `returns` contract.
+3. Convex code generation and function validation.
+4. The curated zero-argument backend regression and security smoke manifest.
 
 The backend manifest is explicit in `scripts/verify-backend.mjs`. New smoke functions are not silently added to the release gate; they must be added deliberately after confirming that they are self-contained and accept no required arguments.
 
@@ -24,7 +25,7 @@ Successful backend smoke output is intentionally suppressed. The runner prints d
 
 `.github/workflows/verify.yml` runs the same `npm run verify` command for pull requests and pushes to `main`.
 
-In a non-interactive runner with no Convex deployment configured and no dCONVEX_DEPLOY_KEY` set, the Convex CLI provisions an anonymous local backend. The CI gate therefore does not require production credentials or access to production data.
+In a non-interactive runner with no Convex deployment configured and no `CONVEX_DEPLOY_KEY` set, the Convex CLI provisions an anonymous local backend. The CI gate therefore does not require production credentials or access to production data.
 
 ## Mobile regression
 

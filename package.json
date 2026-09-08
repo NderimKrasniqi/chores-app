@@ -60,7 +60,8 @@
     "typecheck": "tsc --noEmit",
     "verify:backend": "node ./scripts/verify-backend.mjs",
     "verify:convex": "npx convex dev --once --typecheck=disable --start \"node ./scripts/verify-backend.mjs\"",
-    "verify": "npm run typecheck && npm run verify:convex"
+    "verify": "npm run typecheck && npm run verify:contracts && npm run verify:convex",
+    "verify:contracts": "node ./scripts/verify-convex-contracts.mjs"
   },
   "private": true
 }
