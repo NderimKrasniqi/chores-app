@@ -1,3 +1,4 @@
+import { ChildHouseholdActivity } from '@/components/activity/child-household-activity';
 import { ClaimableChoresCard } from '@/components/chores/claimable-chores-card';
 import { PersonalChoresCard } from '@/components/chores/personal-chores-card';
 import { setChildExplicitlyLocked } from '@/lib/child-access/unlock-policy';
@@ -101,6 +102,12 @@ export function ChildHomeScreen({
       </Text>
 
       <ChildRunningBalanceCard />
+
+      <ChildHouseholdActivity
+        viewerChildId={
+          access.childId
+        }
+      />
 
       <View className="p-5 mt-8 border rounded-2xl border-green-900 bg-slate-900">
         <Text className="font-semibold text-green-400">

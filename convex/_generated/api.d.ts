@@ -56,7 +56,9 @@ import type * as dev_smoke_task14_runningBalance from "../dev/smoke/task14/runni
 import type * as dev_smoke_task15_settlement from "../dev/smoke/task15/settlement.js";
 import type * as dev_smoke_task16_evidence from "../dev/smoke/task16/evidence.js";
 import type * as dev_smoke_task16_evidenceFixture from "../dev/smoke/task16/evidenceFixture.js";
+import type * as dev_smoke_task17_activity from "../dev/smoke/task17/activity.js";
 import type * as health from "../health.js";
+import type * as householdActivity from "../householdActivity.js";
 import type * as households from "../households.js";
 import type * as http from "../http.js";
 import type * as jobs_occurrences_maintenance from "../jobs/occurrences/maintenance.js";
@@ -64,6 +66,7 @@ import type * as jobs_occurrences_transitions from "../jobs/occurrences/transiti
 import type * as jobs_payouts_maintenance from "../jobs/payouts/maintenance.js";
 import type * as jobs_payouts_transitions from "../jobs/payouts/transitions.js";
 import type * as jobs_redos_deadlineTransitions from "../jobs/redos/deadlineTransitions.js";
+import type * as lib_activity_approvalActivity from "../lib/activity/approvalActivity.js";
 import type * as lib_auth_childAuthorization from "../lib/auth/childAuthorization.js";
 import type * as lib_auth_parentAuthorization from "../lib/auth/parentAuthorization.js";
 import type * as lib_claims_accessGate from "../lib/claims/accessGate.js";
@@ -164,7 +167,9 @@ declare const fullApi: ApiFromModules<{
   "dev/smoke/task15/settlement": typeof dev_smoke_task15_settlement;
   "dev/smoke/task16/evidence": typeof dev_smoke_task16_evidence;
   "dev/smoke/task16/evidenceFixture": typeof dev_smoke_task16_evidenceFixture;
+  "dev/smoke/task17/activity": typeof dev_smoke_task17_activity;
   health: typeof health;
+  householdActivity: typeof householdActivity;
   households: typeof households;
   http: typeof http;
   "jobs/occurrences/maintenance": typeof jobs_occurrences_maintenance;
@@ -172,6 +177,7 @@ declare const fullApi: ApiFromModules<{
   "jobs/payouts/maintenance": typeof jobs_payouts_maintenance;
   "jobs/payouts/transitions": typeof jobs_payouts_transitions;
   "jobs/redos/deadlineTransitions": typeof jobs_redos_deadlineTransitions;
+  "lib/activity/approvalActivity": typeof lib_activity_approvalActivity;
   "lib/auth/childAuthorization": typeof lib_auth_childAuthorization;
   "lib/auth/parentAuthorization": typeof lib_auth_parentAuthorization;
   "lib/claims/accessGate": typeof lib_claims_accessGate;

@@ -943,3 +943,35 @@ Final Maestro regression coverage passes for:
 - Weekly Child unclaim accounting now uses the durable Payout Period boundary and resets when the period closes.
 - Parent UI includes a dedicated Payouts section for current-period visibility, payout weekday configuration, manual Swish amounts, pending outcomes, negative carry, and Mark paid confirmation.
 - TASK-15 automated regression coverage verifies settlement, negative carry, later-period outcomes, payout-day changes, weekly reset behavior, TASK-14 Running Balance, and TASK-11 unclaim accounting.
+
+
+### TASK-16 — Private photo evidence
+
+- Optional Child photo evidence implemented for initial and redo submissions.
+- Evidence is stored privately in Convex File Storage.
+- Child upload authorization is bound to Household, Child, occurrence, and submission attempt.
+- JPEG MIME and size validation are enforced server-side.
+- Upload failure is recoverable; the Child may retry or submit without a photo.
+- Parent review can view attached evidence.
+- Children can view only their own evidence.
+- Evidence bytes are served through short-lived authorized view tokens rather than public storage URLs.
+- Authorization is re-checked when evidence is resolved.
+- Revoked Parent or Child access cannot continue viewing evidence.
+- Redo evidence is independent from initial-attempt evidence.
+- Backend smoke tests and dedicated Maestro coverage passed.
+
+
+### TASK-17 — Household approval activity
+
+- Approved chores now produce shared Household activity.
+- Activity identifies the Child, immutable chore title, chore type, approved value, and approval time.
+- Shared activity is derived from authoritative approved reviews and matching earnings rather than duplicated financial state.
+- Rejected submissions and penalties do not appear as approval celebrations.
+- Historical activity uses immutable Chore Occurrence snapshots even after a Chore Definition is edited.
+- Parent and Child Household activity surfaces implemented.
+- Reactive new approvals produce lightweight Household celebrations.
+- Siblings may see another Child's approved chore and that individual chore value.
+- Sibling Running Balances, penalties, payouts, and detailed financial history remain private.
+- Child-facing activity accepts no sibling Child ID and resolves Household access server-side.
+- TASK-17 backend privacy smoke coverage passed.
+- Dedicated TASK-17 Maestro celebration/activity coverage passed.

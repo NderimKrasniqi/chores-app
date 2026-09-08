@@ -1,7 +1,7 @@
 # Implementation Plan
 **Status:** Approved — current
 
-**Implementation progress:** TASK-01 through TASK-15 complete. TASK-16 is next.
+**Implementation progress:** TASK-01 through TASK-17 complete. TASK-18 is next.
 
 ## Phase 1 — Establish trusted household access
 - [x] TASK-01 Bootstrap the Expo, NativeWind, and Convex application with an unprotected connectivity seam
@@ -25,8 +25,8 @@
 
 ## Phase 4 — Complete settlement, evidence, and household engagement
 - [x] TASK-15 Implement payout periods, manual Swish settlement tracking, pending outcomes, and weekly resets
-- [ ] TASK-16 Add optional private photo evidence with authorized upload/view and recoverable upload failure
-- [ ] TASK-17 Add household approval celebrations and activity history with sibling financial privacy
+- [x] TASK-16 Add optional private photo evidence with authorized upload/view and recoverable upload failure
+- [x] TASK-17 Add household approval celebrations and activity history with sibling financial privacy
 - [ ] TASK-18 Add Expo push registration and notifications for chore, review, redo, deadline, and pre-lock events
 
 ## Phase 5 — Harden and close the first release

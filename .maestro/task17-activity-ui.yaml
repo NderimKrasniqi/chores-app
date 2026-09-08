@@ -1,0 +1,26 @@
+appId: host.exp.Exponent
+---
+- openLink: "exp://127.0.0.1:8081/--/maestro-task17-activity"
+
+- extendedWaitUntil:
+    visible: "TASK-17 Activity Fixture"
+    timeout: 60000
+
+- assertVisible:
+    id: "household-approval-activity"
+
+- assertVisible: "Household activity"
+- assertVisible: "Sam completed Vacuum living room"
+- assertVisible: "+90 kr"
+- assertVisible: "This shared feed shows individual approved chore values, not sibling running balances, penalties, payouts, or detailed financial history."
+
+- tapOn:
+    id: "task17-simulate-approval"
+
+- assertVisible:
+    id: "household-approval-celebration"
+
+- assertVisible:
+    id: "household-approval-celebration-title"
+- assertVisible: "You completed Load dishwasher"
+- assertVisible: "+60 kr approved"

@@ -1,3 +1,4 @@
+import { ParentHouseholdActivity } from '@/components/activity/parent-household-activity';
 import { ChildDeviceList } from '@/components/child-access/child-device-list';
 import { ChildPairingCard } from '@/components/child-access/child-pairing-card';
 import { ActiveClaimableClaimsCard } from '@/components/chores/active-claimable-claims-card';
@@ -194,6 +195,17 @@ export function HouseholdCard({
           }
         />
       </View>
+
+      <ParentHouseholdActivity
+        householdId={
+          household
+            .householdId
+        }
+        showHistory={
+          section ===
+          'overview'
+        }
+      />
 
       {section ===
         'overview' && (
