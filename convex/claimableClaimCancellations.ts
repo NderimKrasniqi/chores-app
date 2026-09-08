@@ -11,6 +11,35 @@ export const cancelForParent = mutation({
     claimId: v.id('choreClaims'),
   },
 
+  returns:
+    v.object({
+      claimId:
+        v.id(
+          'choreClaims',
+        ),
+
+      occurrenceId:
+        v.id(
+          'choreOccurrences',
+        ),
+
+      childId:
+        v.id(
+          'children',
+        ),
+
+      state:
+        v.literal(
+          'cancelled',
+        ),
+
+      cancelledAt:
+        v.number(),
+
+      cancelledByAuthUserId:
+        v.string(),
+    }),
+
   handler: async (ctx, args) => {
     /*
      * Equal Parent authority is checked

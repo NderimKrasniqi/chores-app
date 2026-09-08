@@ -5,6 +5,37 @@ import {
 } from '../../_generated/server';
 import { reconcileOccurrenceLifecycle } from '../../lib/occurrences/lifecycle';
 
+const occurrenceStateValidator =
+  v.union(
+    v.literal(
+      'scheduled',
+    ),
+    v.literal(
+      'available',
+    ),
+    v.literal(
+      'submitted',
+    ),
+    v.literal(
+      'redo_required',
+    ),
+    v.literal(
+      'approved',
+    ),
+    v.literal(
+      'missed',
+    ),
+    v.literal(
+      'failed',
+    ),
+    v.literal(
+      'cancelled',
+    ),
+    v.literal(
+      'expired_unclaimed',
+    ),
+  );
+
 /*
  * Durable scheduled transition seam.
  *
@@ -20,6 +51,25 @@ export const reconcile =
           'choreOccurrences',
         ),
     },
+
+    returns:
+      v.object({
+        found:
+          v.boolean(),
+
+        changed:
+          v.boolean(),
+
+        previousState:
+          v.optional(
+            occurrenceStateValidator,
+          ),
+
+        nextState:
+          v.optional(
+            occurrenceStateValidator,
+          ),
+      }),
 
     handler: async (
       ctx,

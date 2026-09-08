@@ -8,6 +8,7 @@ import {
 import {
   requireCurrentParentForHousehold,
 } from './lib/auth/parentAuthorization';
+import schema from './schema';
 export const listForHousehold =
   query({
     args: {
@@ -16,6 +17,13 @@ export const listForHousehold =
           'households',
         ),
     },
+
+    returns:
+      v.array(
+        schema.doc(
+          'choreOccurrences',
+        ),
+      ),
 
     handler: async (
       ctx,

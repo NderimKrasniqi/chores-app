@@ -7,10 +7,16 @@ import {
 import {
   listActiveRedosForChild,
 } from './lib/redos/activeForChild';
+import {
+  activeRedosForChildValidator,
+} from './lib/api/choreContracts';
 
 export const listMine =
   query({
     args: {},
+
+    returns:
+      activeRedosForChildValidator,
 
     handler: async (
       ctx,

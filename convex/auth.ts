@@ -6,7 +6,6 @@ import { anonymous } from 'better-auth/plugins';
 
 import { components } from './_generated/api';
 import type { DataModel } from './_generated/dataModel';
-import { query } from './_generated/server';
 import authConfig from './auth.config';
 
 export const authComponent = createClient<DataModel>(components.betterAuth);
@@ -30,11 +29,3 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
     plugins: [anonymous(), expo(), convex({ authConfig })],
   });
 };
-
-export const getCurrentUser = query({
-  args: {},
-
-  handler: async (ctx) => {
-    return await authComponent.getAuthUser(ctx);
-  },
-});

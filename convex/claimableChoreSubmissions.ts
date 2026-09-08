@@ -13,6 +13,10 @@ import {
 import {
   notifyParentsOfSubmission,
 } from './lib/notifications/orchestration';
+import {
+  claimableInitialSubmissionResultValidator,
+  claimableRedoSubmissionResultValidator,
+} from './lib/api/choreContracts';
 
 /*
  * Attempt 1.
@@ -32,6 +36,9 @@ export const submit =
           ),
         ),
     },
+
+    returns:
+      claimableInitialSubmissionResultValidator,
 
     handler: async (
       ctx,
@@ -83,6 +90,9 @@ export const submitRedo =
           ),
         ),
     },
+
+    returns:
+      claimableRedoSubmissionResultValidator,
 
     handler: async (
       ctx,

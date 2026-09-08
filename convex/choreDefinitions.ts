@@ -56,6 +56,67 @@ const choreRecurrenceValidator = v.union(
   }),
 );
 
+const activeChoreDefinitionValidator =
+  v.object({
+    choreDefinitionId:
+      v.id(
+        'choreDefinitions',
+      ),
+
+    kind:
+      choreKindValidator,
+
+    title:
+      v.string(),
+
+    description:
+      v.optional(
+        v.string(),
+      ),
+
+    valueSek:
+      v.number(),
+
+    recurrence:
+      choreRecurrenceValidator,
+
+    availabilityLocalTime:
+      v.optional(
+        v.string(),
+      ),
+
+    deadlineLocalTime:
+      v.string(),
+
+    deadlineDayOffset:
+      v.number(),
+
+    personalChildId:
+      v.optional(
+        v.id(
+          'children',
+        ),
+      ),
+
+    eligibleChildIds:
+      v.optional(
+        v.array(
+          v.id(
+            'children',
+          ),
+        ),
+      ),
+
+    isUnlockChore:
+      v.boolean(),
+
+    createdAt:
+      v.number(),
+
+    updatedAt:
+      v.number(),
+  });
+
 type Weekday =
   | 'monday'
   | 'tuesday'
@@ -1057,6 +1118,11 @@ export const listActiveForHousehold =
           'households',
         ),
     },
+
+    returns:
+      v.array(
+        activeChoreDefinitionValidator,
+      ),
 
     handler: async (
       ctx,

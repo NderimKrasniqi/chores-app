@@ -83,6 +83,7 @@ import type * as jobs_payouts_maintenance from "../jobs/payouts/maintenance.js";
 import type * as jobs_payouts_transitions from "../jobs/payouts/transitions.js";
 import type * as jobs_redos_deadlineTransitions from "../jobs/redos/deadlineTransitions.js";
 import type * as lib_activity_approvalActivity from "../lib/activity/approvalActivity.js";
+import type * as lib_api_choreContracts from "../lib/api/choreContracts.js";
 import type * as lib_auth_childAuthorization from "../lib/auth/childAuthorization.js";
 import type * as lib_auth_parentAuthorization from "../lib/auth/parentAuthorization.js";
 import type * as lib_childAccess_activeGrants from "../lib/childAccess/activeGrants.js";
@@ -234,6 +235,7 @@ declare const fullApi: ApiFromModules<{
   "jobs/payouts/transitions": typeof jobs_payouts_transitions;
   "jobs/redos/deadlineTransitions": typeof jobs_redos_deadlineTransitions;
   "lib/activity/approvalActivity": typeof lib_activity_approvalActivity;
+  "lib/api/choreContracts": typeof lib_api_choreContracts;
   "lib/auth/childAuthorization": typeof lib_auth_childAuthorization;
   "lib/auth/parentAuthorization": typeof lib_auth_parentAuthorization;
   "lib/childAccess/activeGrants": typeof lib_childAccess_activeGrants;

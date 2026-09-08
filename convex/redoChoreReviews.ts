@@ -11,6 +11,9 @@ import {
 import {
   listPendingRedoReviews,
 } from './lib/reviews/pendingRedo';
+import {
+  pendingRedoReviewsValidator,
+} from './lib/api/choreContracts';
 
 export const listPending =
   query({
@@ -20,6 +23,9 @@ export const listPending =
           'households',
         ),
     },
+
+    returns:
+      pendingRedoReviewsValidator,
 
     handler: async (
       ctx,

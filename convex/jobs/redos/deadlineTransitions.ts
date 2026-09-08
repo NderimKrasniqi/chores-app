@@ -9,6 +9,37 @@ import {
   reconcileRedoDeadlineFailure,
 } from '../../lib/redos/deadlineFailure';
 
+const occurrenceStateValidator =
+  v.union(
+    v.literal(
+      'scheduled',
+    ),
+    v.literal(
+      'available',
+    ),
+    v.literal(
+      'submitted',
+    ),
+    v.literal(
+      'redo_required',
+    ),
+    v.literal(
+      'approved',
+    ),
+    v.literal(
+      'missed',
+    ),
+    v.literal(
+      'failed',
+    ),
+    v.literal(
+      'cancelled',
+    ),
+    v.literal(
+      'expired_unclaimed',
+    ),
+  );
+
 /*
  * Internal exact-time Redo deadline seam.
  *
@@ -23,6 +54,39 @@ export const reconcile =
           'choreRedos',
         ),
     },
+
+    returns:
+      v.object({
+        found:
+          v.boolean(),
+
+        changed:
+          v.boolean(),
+
+        previousState:
+          v.optional(
+            occurrenceStateValidator,
+          ),
+
+        nextState:
+          v.optional(
+            occurrenceStateValidator,
+          ),
+
+        occurrenceId:
+          v.optional(
+            v.id(
+              'choreOccurrences',
+            ),
+          ),
+
+        claimId:
+          v.optional(
+            v.id(
+              'choreClaims',
+            ),
+          ),
+      }),
 
     handler: async (
       ctx,

@@ -23,6 +23,49 @@ import {
 import {
   resolveNotificationTargets,
 } from '../../lib/notifications/recipients';
+import schema from '../../schema';
+
+const notificationTargetValidator =
+  v.object({
+    registrationId:
+      v.id(
+        'pushRegistrations',
+      ),
+
+    expoPushToken:
+      v.string(),
+  });
+
+const dispatchContextValidator =
+  v.union(
+    v.null(),
+
+    v.object({
+      event:
+        schema.doc(
+          'notificationEvents',
+        ),
+
+      targets:
+        v.array(
+          notificationTargetValidator,
+        ),
+    }),
+  );
+
+const pendingReceiptValidator =
+  v.object({
+    deliveryId:
+      v.id(
+        'pushDeliveries',
+      ),
+
+    ticketId:
+      v.string(),
+
+    createdAt:
+      v.number(),
+  });
 
 async function hasBlockingClaim(
   ctx:
@@ -359,6 +402,9 @@ export const loadDispatchContext =
         ),
     },
 
+    returns:
+      dispatchContextValidator,
+
     handler: async (
       ctx,
       args,
@@ -442,6 +488,9 @@ export const beginDispatchAttempt =
         ),
     },
 
+    returns:
+      v.number(),
+
     handler: async (
       ctx,
       args,
@@ -513,6 +562,9 @@ export const recordDeliveryTicket =
           v.string(),
         ),
     },
+
+    returns:
+      v.id('pushDeliveries'),
 
     handler: async (
       ctx,
@@ -623,6 +675,9 @@ export const finishDispatch =
         ),
     },
 
+    returns:
+      v.union(v.null(), v.number()),
+
     handler: async (
       ctx,
       args,
@@ -670,6 +725,9 @@ export const recordDispatchFailure =
         v.boolean(),
     },
 
+    returns:
+      v.union(v.null(), v.number()),
+
     handler: async (
       ctx,
       args,
@@ -716,6 +774,9 @@ export const loadPendingReceipts =
           'notificationEvents',
         ),
     },
+
+    returns:
+      v.array(pendingReceiptValidator),
 
     handler: async (
       ctx,
@@ -793,6 +854,9 @@ export const recordReceipt =
           v.string(),
         ),
     },
+
+    returns:
+      v.union(v.null(), v.number()),
 
     handler: async (
       ctx,

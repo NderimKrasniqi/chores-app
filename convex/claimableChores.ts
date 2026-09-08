@@ -19,6 +19,12 @@ import { requireCurrentParentForHousehold } from './lib/auth/parentAuthorization
 import {
   scheduleClaimNotifications,
 } from './lib/notifications/orchestration';
+import {
+  activeClaimsForParentValidator,
+  claimableChoreListValidator,
+  claimResultValidator,
+  unclaimResultValidator,
+} from './lib/api/choreContracts';
 
 type ActiveClaimState =
   | 'claimed'
@@ -98,6 +104,9 @@ function getCommitmentStatus({
 export const listMine =
   query({
     args: {},
+
+    returns:
+      claimableChoreListValidator,
 
     handler: async (
       ctx,
@@ -374,6 +383,9 @@ export const listActiveForParent =
         ),
     },
 
+    returns:
+      activeClaimsForParentValidator,
+
     handler: async (
       ctx,
       args,
@@ -467,6 +479,9 @@ export const claim =
         ),
     },
 
+    returns:
+      claimResultValidator,
+
     handler: async (
       ctx,
       args,
@@ -513,6 +528,9 @@ export const unclaim =
           'choreClaims',
         ),
     },
+
+    returns:
+      unclaimResultValidator,
 
     handler: async (
       ctx,

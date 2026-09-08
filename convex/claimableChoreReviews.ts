@@ -27,6 +27,13 @@ import {
   notifyChildOfApproval,
   notifyChildRedoRequired,
 } from './lib/notifications/orchestration';
+import {
+  claimableApprovalResultValidator,
+  initialRejectionResultValidator,
+  pendingClaimableReviewsValidator,
+  redoApprovalResultValidator,
+  redoRejectionResultValidator,
+} from './lib/api/choreContracts';
 
 export const listPending =
   query({
@@ -36,6 +43,9 @@ export const listPending =
           'households',
         ),
     },
+
+    returns:
+      pendingClaimableReviewsValidator,
 
     handler: async (
       ctx,
@@ -61,6 +71,9 @@ export const approve =
           'choreSubmissions',
         ),
     },
+
+    returns:
+      claimableApprovalResultValidator,
 
     handler: async (
       ctx,
@@ -115,6 +128,9 @@ export const reject =
       redoDeadlineLocalTime:
         v.string(),
     },
+
+    returns:
+      initialRejectionResultValidator,
 
     handler: async (
       ctx,
@@ -173,6 +189,9 @@ export const approveRedo =
         ),
     },
 
+    returns:
+      redoApprovalResultValidator,
+
     handler: async (
       ctx,
       args,
@@ -221,6 +240,9 @@ export const rejectRedo =
           'choreSubmissions',
         ),
     },
+
+    returns:
+      redoRejectionResultValidator,
 
     handler: async (
       ctx,

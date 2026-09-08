@@ -163,25 +163,50 @@ export async function listHouseholdClaimedOccurrences(
   const claimGroups =
     await Promise.all(
       visibleClaimStates.map(
-        (state) =>
-          ctx.db
-            .query(
-              'choreClaims',
-            )
-            .withIndex(
-              'by_household_state_claimed_at',
-              (q) =>
-                q
-                  .eq(
-                    'householdId',
-                    householdId,
-                  )
-                  .eq(
-                    'state',
-                    state,
-                  ),
-            )
-            .collect(),
+        async (
+          state,
+        ) => {
+          const claims =
+            await ctx.db
+              .query(
+                'choreClaims',
+              )
+              .withIndex(
+                'by_household_state_claimed_at',
+                (q) =>
+                  q
+                    .eq(
+                      'householdId',
+                      householdId,
+                    )
+                    .eq(
+                      'state',
+                      state,
+                    ),
+              )
+              .collect();
+
+          /*
+           * The indexed equality above is
+           * the runtime guarantee that
+           * narrows this operational
+           * projection to active ownership
+           * states.
+           *
+           * Re-attach the queried state so
+           * TypeScript carries that
+           * invariant to public API
+           * validators.
+           */
+          return claims.map(
+            (
+              claim,
+            ) => ({
+              ...claim,
+              state,
+            }),
+          );
+        },
       ),
     );
 

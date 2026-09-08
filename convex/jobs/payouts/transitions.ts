@@ -18,6 +18,32 @@ export const reconcile =
         ),
     },
 
+    returns:
+      v.object({
+        status:
+          v.union(
+            v.literal(
+              'not_due',
+            ),
+            v.literal(
+              'closed',
+            ),
+          ),
+
+        payoutPeriodId:
+          v.id(
+            'payoutPeriods',
+          ),
+
+        nextPayoutPeriodId:
+          v.union(
+            v.null(),
+            v.id(
+              'payoutPeriods',
+            ),
+          ),
+      }),
+
     handler: async (
       ctx,
       args,

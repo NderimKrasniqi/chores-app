@@ -15,6 +15,11 @@ import {
 import {
   notifyParentsOfSubmission,
 } from './lib/notifications/orchestration';
+import {
+  personalChoreListValidator,
+  personalInitialSubmissionResultValidator,
+  personalRedoSubmissionResultValidator,
+} from './lib/api/choreContracts';
 
 /*
  * Child-facing Personal Chore view.
@@ -31,6 +36,9 @@ import {
 export const listMine =
   query({
     args: {},
+
+    returns:
+      personalChoreListValidator,
 
     handler: async (
       ctx,
@@ -125,6 +133,9 @@ export const submit =
         ),
     },
 
+    returns:
+      personalInitialSubmissionResultValidator,
+
     handler: async (
       ctx,
       args,
@@ -177,6 +188,9 @@ export const submitRedo =
           ),
         ),
     },
+
+    returns:
+      personalRedoSubmissionResultValidator,
 
     handler: async (
       ctx,
