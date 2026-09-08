@@ -8,10 +8,12 @@ import { evidenceTables } from './schema/evidence';
 import { claimTables } from './schema/claims';
 import { choreTables } from './schema/chores';
 import { householdTables } from './schema/households';
+import { notificationTables } from './schema/notifications';
 import { redoTables } from './schema/redos';
 
 export default defineSchema({
   ...householdTables,
+  ...notificationTables,
   ...childAccessTables,
   ...evidenceTables,
   ...financeTables,

@@ -19,6 +19,10 @@ import {
 import {
   scheduleRedoDeadlineFailure,
 } from './lib/redos/deadlineFailure';
+import {
+  notifyChildOfApproval,
+  notifyChildRedoRequired,
+} from './lib/notifications/orchestration';
 
 export const listPending =
   query({
@@ -77,11 +81,19 @@ export const approve =
           submission.householdId,
         );
 
-      return await approvePersonalSubmission(
+      const result =
+        await approvePersonalSubmission(
+          ctx,
+          submission._id,
+          authUser._id,
+        );
+
+      await notifyChildOfApproval(
         ctx,
-        submission._id,
-        authUser._id,
+        result.reviewId,
       );
+
+      return result;
     },
   });
 
@@ -139,6 +151,11 @@ export const reject =
         result.redoDeadlineAt,
       );
 
+      await notifyChildRedoRequired(
+        ctx,
+        result.redoId,
+      );
+
       return result;
     },
   });
@@ -175,12 +192,20 @@ export const approveRedo =
           submission.householdId,
         );
 
-      return await approveRedoSubmission(
+      const result =
+        await approveRedoSubmission(
+          ctx,
+          submission._id,
+          authUser._id,
+          'personal',
+        );
+
+      await notifyChildOfApproval(
         ctx,
-        submission._id,
-        authUser._id,
-        'personal',
+        result.reviewId,
       );
+
+      return result;
     },
   });
 

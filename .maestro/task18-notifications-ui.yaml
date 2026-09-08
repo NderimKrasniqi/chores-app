@@ -1,0 +1,50 @@
+appId: host.exp.Exponent
+---
+- stopApp
+
+- openLink: "exp://127.0.0.1:8081/--/maestro-task18-notifications"
+
+- extendedWaitUntil:
+    visible: "TASK-18 Notifications Fixture"
+    timeout: 60000
+
+- assertVisible:
+    id: "task18-claimable-available"
+- assertVisible: "New claimable chore"
+- assertVisible: "Vacuum hallway · 70 kr"
+
+- assertVisible:
+    id: "task18-approved"
+- assertVisible: "Chore approved"
+- assertVisible: "Make bed earned 35 kr."
+
+- assertVisible:
+    id: "task18-redo-required"
+- assertVisible: "Redo requested"
+
+- assertVisible:
+    id: "task18-deadline"
+- assertVisible: "Deadline coming up"
+
+- assertVisible: "Claim locks soon"
+- assertVisible: "Take out recycling becomes locked in about 30 minutes."
+
+- assertVisible:
+    id: "task18-simulate-unclaim"
+
+- tapOn:
+    id: "task18-simulate-unclaim"
+
+- assertVisible:
+    id: "task18-stale-suppressed"
+- assertVisible: "Stale reminder suppressed"
+
+- scrollUntilVisible:
+    element:
+      id: "task18-parent-review"
+    direction: DOWN
+
+- assertVisible:
+    id: "task18-parent-review"
+- assertVisible: "Review needed"
+- assertVisible: "Alex submitted Load dishwasher."

@@ -10,6 +10,9 @@ import {
   getScheduledLocalDates,
   resolveOccurrenceSchedule,
 } from '../scheduling/choreScheduling';
+import {
+  scheduleOccurrenceNotifications,
+} from '../notifications/orchestration';
 
 const millisecondsPerDay =
   24 * 60 * 60 * 1000;
@@ -450,6 +453,26 @@ export async function generateOccurrencesForWindow(
               now,
           },
         );
+
+      /*
+       * TASK-18 notifications are advisory
+       * scheduled side effects.
+       *
+       * Smoke generation disables
+       * transition scheduling, so it also
+       * avoids leaving notification jobs.
+       */
+      if (
+        scheduleTransitions
+      ) {
+        await scheduleOccurrenceNotifications(
+          ctx,
+          occurrenceId,
+          {
+            now,
+          },
+        );
+      }
 
       /*
        * Availability transition.

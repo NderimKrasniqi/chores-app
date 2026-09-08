@@ -48,7 +48,8 @@
           "cameraPermission": "Allow Chores App to scan child pairing QR codes and take chore evidence photos.",
           "microphonePermission": false
         }
-      ]
+      ],
+      "expo-notifications"
     ],
     "experiments": {
       "typedRoutes": true,

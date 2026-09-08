@@ -1,3 +1,4 @@
+import { PushRegistrationBridge } from '@/components/notifications/push-registration-bridge';
 import { ConvexClientProvider } from '@/providers/convex-client-provider';
 import { AuthRuntimeProvider } from '@/providers/auth-runtime-provider';
 import {
@@ -28,6 +29,7 @@ export default function RootLayout() {
               : DefaultTheme
           }
         >
+          <PushRegistrationBridge />
           <AnimatedSplashOverlay />
           <Slot />
         </ThemeProvider>

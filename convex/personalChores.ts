@@ -12,6 +12,9 @@ import {
 import {
   submitPersonalRedo,
 } from './lib/redos/submission';
+import {
+  notifyParentsOfSubmission,
+} from './lib/notifications/orchestration';
 
 /*
  * Child-facing Personal Chore view.
@@ -133,14 +136,22 @@ export const submit =
           ctx,
         );
 
-      return await submitPersonalOccurrence(
+      const result =
+        await submitPersonalOccurrence(
+          ctx,
+          args.occurrenceId,
+          child._id,
+          Date.now(),
+          args
+            .evidenceUploadIntentId,
+        );
+
+      await notifyParentsOfSubmission(
         ctx,
-        args.occurrenceId,
-        child._id,
-        Date.now(),
-        args
-          .evidenceUploadIntentId,
+        result.submissionId,
       );
+
+      return result;
     },
   });
 
@@ -178,13 +189,21 @@ export const submitRedo =
           ctx,
         );
 
-      return await submitPersonalRedo(
+      const result =
+        await submitPersonalRedo(
+          ctx,
+          args.occurrenceId,
+          child._id,
+          Date.now(),
+          args
+            .evidenceUploadIntentId,
+        );
+
+      await notifyParentsOfSubmission(
         ctx,
-        args.occurrenceId,
-        child._id,
-        Date.now(),
-        args
-          .evidenceUploadIntentId,
+        result.submissionId,
       );
+
+      return result;
     },
   });

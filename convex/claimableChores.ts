@@ -16,6 +16,9 @@ import { getClaimUnclaimStatus } from './lib/claims/commitmentRules';
 import { getWeeklyUnclaimUsageForChild } from './lib/claims/unclaimAccounting';
 import { unclaimClaimableClaim } from './lib/claims/unclaiming';
 import { requireCurrentParentForHousehold } from './lib/auth/parentAuthorization';
+import {
+  scheduleClaimNotifications,
+} from './lib/notifications/orchestration';
 
 type ActiveClaimState =
   | 'claimed'
@@ -457,15 +460,29 @@ export const claim =
           ctx,
         );
 
-      return await claimClaimableOccurrence(
+      const now =
+        Date.now();
+
+      const result =
+        await claimClaimableOccurrence(
+          ctx,
+          household._id,
+          child._id,
+          args.occurrenceId,
+          now,
+          args.acceptImmediateLock ??
+            false,
+        );
+
+      await scheduleClaimNotifications(
         ctx,
-        household._id,
-        child._id,
-        args.occurrenceId,
-        Date.now(),
-        args.acceptImmediateLock ??
-          false,
+        result.claimId,
+        {
+          now,
+        },
       );
+
+      return result;
     },
   });
 

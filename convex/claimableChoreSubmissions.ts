@@ -10,6 +10,9 @@ import { submitClaimableClaim } from './lib/claims/execution';
 import {
   submitClaimableRedo,
 } from './lib/redos/submission';
+import {
+  notifyParentsOfSubmission,
+} from './lib/notifications/orchestration';
 
 /*
  * Attempt 1.
@@ -42,15 +45,23 @@ export const submit =
           ctx,
         );
 
-      return await submitClaimableClaim(
+      const result =
+        await submitClaimableClaim(
+          ctx,
+          household._id,
+          child._id,
+          args.claimId,
+          Date.now(),
+          args
+            .evidenceUploadIntentId,
+        );
+
+      await notifyParentsOfSubmission(
         ctx,
-        household._id,
-        child._id,
-        args.claimId,
-        Date.now(),
-        args
-          .evidenceUploadIntentId,
+        result.submissionId,
       );
+
+      return result;
     },
   });
 
@@ -85,14 +96,22 @@ export const submitRedo =
           ctx,
         );
 
-      return await submitClaimableRedo(
+      const result =
+        await submitClaimableRedo(
+          ctx,
+          household._id,
+          child._id,
+          args.claimId,
+          Date.now(),
+          args
+            .evidenceUploadIntentId,
+        );
+
+      await notifyParentsOfSubmission(
         ctx,
-        household._id,
-        child._id,
-        args.claimId,
-        Date.now(),
-        args
-          .evidenceUploadIntentId,
+        result.submissionId,
       );
+
+      return result;
     },
   });
