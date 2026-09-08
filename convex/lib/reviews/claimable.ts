@@ -199,6 +199,11 @@ export async function listPendingClaimableReviews(
 
       timezone:
         occurrence.timezone,
+
+      hasEvidence:
+        submission
+          .evidenceStorageId !==
+        undefined,
     });
   }
 

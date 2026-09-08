@@ -11,6 +11,7 @@ import type {
   Id,
 } from '../../../convex/_generated/dataModel';
 import { RedoDeadlineRejectControls } from './redo-deadline-reject-controls';
+import { SubmissionEvidenceViewer } from '../evidence/submission-evidence-viewer';
 
 export type ClaimableChoreReviewViewModel = {
   submissionId:
@@ -48,6 +49,9 @@ export type ClaimableChoreReviewViewModel = {
 
   timezone:
     string;
+
+  hasEvidence?:
+    boolean;
 };
 
 type ReviewAction =
@@ -413,6 +417,15 @@ export function ClaimableChoreReviewsView({
                       }
                     </Text>
                   </View>
+
+                  {submission.hasEvidence ? (
+                    <SubmissionEvidenceViewer
+                      submissionId={
+                        submission
+                          .submissionId
+                      }
+                    />
+                  ) : null}
 
                   <Text className="mt-3 text-xs leading-5 text-slate-500">
                     Approval creates the{' '}

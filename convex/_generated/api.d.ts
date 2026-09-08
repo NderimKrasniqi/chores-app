@@ -54,6 +54,8 @@ import type * as dev_smoke_task14_penaltyLedger from "../dev/smoke/task14/penalt
 import type * as dev_smoke_task14_redoDeadlineCancellation from "../dev/smoke/task14/redoDeadlineCancellation.js";
 import type * as dev_smoke_task14_runningBalance from "../dev/smoke/task14/runningBalance.js";
 import type * as dev_smoke_task15_settlement from "../dev/smoke/task15/settlement.js";
+import type * as dev_smoke_task16_evidence from "../dev/smoke/task16/evidence.js";
+import type * as dev_smoke_task16_evidenceFixture from "../dev/smoke/task16/evidenceFixture.js";
 import type * as health from "../health.js";
 import type * as households from "../households.js";
 import type * as http from "../http.js";
@@ -73,6 +75,8 @@ import type * as lib_claims_ownership from "../lib/claims/ownership.js";
 import type * as lib_claims_unclaimAccounting from "../lib/claims/unclaimAccounting.js";
 import type * as lib_claims_unclaiming from "../lib/claims/unclaiming.js";
 import type * as lib_claims_visibility from "../lib/claims/visibility.js";
+import type * as lib_evidence_submissionEvidence from "../lib/evidence/submissionEvidence.js";
+import type * as lib_evidence_viewEvidence from "../lib/evidence/viewEvidence.js";
 import type * as lib_finance_failurePenalty from "../lib/finance/failurePenalty.js";
 import type * as lib_finance_payoutPeriods from "../lib/finance/payoutPeriods.js";
 import type * as lib_finance_payoutSettlement from "../lib/finance/payoutSettlement.js";
@@ -99,9 +103,11 @@ import type * as runningBalances from "../runningBalances.js";
 import type * as schema_childAccess from "../schema/childAccess.js";
 import type * as schema_chores from "../schema/chores.js";
 import type * as schema_claims from "../schema/claims.js";
+import type * as schema_evidence from "../schema/evidence.js";
 import type * as schema_finance from "../schema/finance.js";
 import type * as schema_households from "../schema/households.js";
 import type * as schema_redos from "../schema/redos.js";
+import type * as submissionEvidence from "../submissionEvidence.js";
 
 import type {
   ApiFromModules,
@@ -156,6 +162,8 @@ declare const fullApi: ApiFromModules<{
   "dev/smoke/task14/redoDeadlineCancellation": typeof dev_smoke_task14_redoDeadlineCancellation;
   "dev/smoke/task14/runningBalance": typeof dev_smoke_task14_runningBalance;
   "dev/smoke/task15/settlement": typeof dev_smoke_task15_settlement;
+  "dev/smoke/task16/evidence": typeof dev_smoke_task16_evidence;
+  "dev/smoke/task16/evidenceFixture": typeof dev_smoke_task16_evidenceFixture;
   health: typeof health;
   households: typeof households;
   http: typeof http;
@@ -175,6 +183,8 @@ declare const fullApi: ApiFromModules<{
   "lib/claims/unclaimAccounting": typeof lib_claims_unclaimAccounting;
   "lib/claims/unclaiming": typeof lib_claims_unclaiming;
   "lib/claims/visibility": typeof lib_claims_visibility;
+  "lib/evidence/submissionEvidence": typeof lib_evidence_submissionEvidence;
+  "lib/evidence/viewEvidence": typeof lib_evidence_viewEvidence;
   "lib/finance/failurePenalty": typeof lib_finance_failurePenalty;
   "lib/finance/payoutPeriods": typeof lib_finance_payoutPeriods;
   "lib/finance/payoutSettlement": typeof lib_finance_payoutSettlement;
@@ -201,9 +211,11 @@ declare const fullApi: ApiFromModules<{
   "schema/childAccess": typeof schema_childAccess;
   "schema/chores": typeof schema_chores;
   "schema/claims": typeof schema_claims;
+  "schema/evidence": typeof schema_evidence;
   "schema/finance": typeof schema_finance;
   "schema/households": typeof schema_households;
   "schema/redos": typeof schema_redos;
+  submissionEvidence: typeof submissionEvidence;
 }>;
 
 /**

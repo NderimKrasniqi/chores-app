@@ -4,6 +4,13 @@ import {
   View,
 } from 'react-native';
 
+import type {
+  Id,
+} from '../../../convex/_generated/dataModel';
+import {
+  ChildSubmissionActions,
+} from '../evidence/child-submission-actions';
+
 function formatDeadline(
   timestamp: number,
   timezone: string,
@@ -34,6 +41,7 @@ function formatDeadline(
 }
 
 export function ChildRedoRequiredCard({
+  occurrenceId,
   title,
   description,
   valueSek,
@@ -45,6 +53,16 @@ export function ChildRedoRequiredCard({
   submitTestID,
   onSubmit,
 }: {
+  /*
+   * Optional only so the older deterministic
+   * Maestro fixture can keep rendering this
+   * reusable component without a real DB ID.
+   *
+   * Production chore screens always provide it.
+   */
+  occurrenceId?:
+    Id<'choreOccurrences'>;
+
   title:
     string;
 
@@ -72,8 +90,10 @@ export function ChildRedoRequiredCard({
   submitTestID?:
     string;
 
-  onSubmit: () =>
-    Promise<void>;
+  onSubmit: (
+    evidenceUploadIntentId?:
+      Id<'submissionEvidenceUploads'>,
+  ) => Promise<void>;
 }) {
   return (
     <View className="p-5 mt-4 border rounded-2xl border-amber-900 bg-slate-900">
@@ -127,7 +147,37 @@ export function ChildRedoRequiredCard({
         </Text>
       ) : null}
 
-      {canSubmit ? (
+      {canSubmit &&
+      occurrenceId ? (
+        <ChildSubmissionActions
+          occurrenceId={
+            occurrenceId
+          }
+          attemptNumber={
+            2
+          }
+          disabled={
+            submitting
+          }
+          submitting={
+            submitting
+          }
+          submitTestID={
+            submitTestID
+          }
+          submitLabel="Submit Redo for review"
+          submittingLabel="Submitting Redo…"
+          onSubmit={
+            onSubmit
+          }
+        />
+      ) : canSubmit ? (
+        /*
+         * Dev/Maestro fixture fallback.
+         * No real occurrence exists there,
+         * so evidence upload is intentionally
+         * unavailable.
+         */
         <Pressable
           testID={
             submitTestID

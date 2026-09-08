@@ -7,6 +7,9 @@ import type {
   MutationCtx,
   QueryCtx,
 } from '../../_generated/server';
+import {
+  consumeEvidenceUploadIntent,
+} from '../evidence/submissionEvidence';
 
 export async function listPersonalOccurrencesForChild(
   ctx:
@@ -52,6 +55,8 @@ export async function submitPersonalOccurrence(
   childId:
     Id<'children'>,
   now = Date.now(),
+  evidenceUploadIntentId?:
+    Id<'submissionEvidenceUploads'>,
 ) {
   const occurrence =
     await ctx.db.get(
@@ -142,6 +147,25 @@ export async function submitPersonalOccurrence(
     );
   }
 
+  const evidenceStorageId =
+    await consumeEvidenceUploadIntent(
+      ctx,
+      evidenceUploadIntentId,
+      {
+        householdId:
+          occurrence.householdId,
+
+        childId,
+
+        occurrenceId:
+          occurrence._id,
+
+        attemptNumber:
+          1,
+      },
+      now,
+    );
+
   const submissionId =
     await ctx.db.insert(
       'choreSubmissions',
@@ -162,6 +186,13 @@ export async function submitPersonalOccurrence(
          */
         submittedAt:
           now,
+
+        ...(evidenceStorageId !==
+        undefined
+          ? {
+              evidenceStorageId,
+            }
+          : {}),
       },
     );
 

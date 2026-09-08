@@ -8,7 +8,6 @@ import {
 } from 'react';
 import {
   Alert,
-  Pressable,
   Text,
   View,
 } from 'react-native';
@@ -18,6 +17,7 @@ import type {
   Id,
 } from '../../../convex/_generated/dataModel';
 import { ChildRedoRequiredCard } from './child-redo-required-card';
+import { ChildSubmissionActions } from '../evidence/child-submission-actions';
 
 type OccurrenceState =
   | 'scheduled'
@@ -169,7 +169,9 @@ function ChoreCard({
         Id<'choreOccurrences'>,
       title:
         string,
-    ) => void;
+      evidenceUploadIntentId?:
+        Id<'submissionEvidenceUploads'>,
+    ) => Promise<void>;
 
   compact?:
     boolean;
@@ -236,34 +238,32 @@ function ChoreCard({
 
       {occurrence.canSubmit &&
       !compact ? (
-        <Pressable
-          className={
-            submitting
-              ? 'px-4 py-3 mt-4 rounded-xl bg-slate-700'
-              : 'px-4 py-3 mt-4 bg-white rounded-xl'
+        <ChildSubmissionActions
+          occurrenceId={
+            occurrence.occurrenceId
+          }
+          attemptNumber={
+            1
           }
           disabled={
             submitting
           }
-          onPress={() =>
-            onSubmit(
+          submitting={
+            submitting
+          }
+          submitTestID={`personal-submit-${occurrence.occurrenceId}`}
+          submitLabel="I finished this"
+          submittingLabel="Submitting…"
+          onSubmit={async (
+            evidenceUploadIntentId,
+          ) => {
+            await onSubmit(
               occurrence.occurrenceId,
               occurrence.title,
-            )
-          }
-        >
-          <Text
-            className={
-              submitting
-                ? 'font-semibold text-center text-slate-400'
-                : 'font-semibold text-center text-slate-950'
-            }
-          >
-            {submitting
-              ? 'Submitting…'
-              : 'I finished this'}
-          </Text>
-        </Pressable>
+              evidenceUploadIntentId,
+            );
+          }}
+        />
       ) : null}
     </View>
   );
@@ -510,6 +510,8 @@ export function PersonalChoresCard() {
       Id<'choreOccurrences'>,
     title:
       string,
+    evidenceUploadIntentId?:
+      Id<'submissionEvidenceUploads'>,
   ) {
     setSubmittingId(
       occurrenceId,
@@ -518,6 +520,8 @@ export function PersonalChoresCard() {
     try {
       await submit({
         occurrenceId,
+
+        evidenceUploadIntentId,
       });
 
       Alert.alert(
@@ -546,6 +550,8 @@ export function PersonalChoresCard() {
       Id<'choreOccurrences'>,
     title:
       string,
+    evidenceUploadIntentId?:
+      Id<'submissionEvidenceUploads'>,
   ) {
     setSubmittingId(
       occurrenceId,
@@ -554,6 +560,8 @@ export function PersonalChoresCard() {
     try {
       await submitRedo({
         occurrenceId,
+
+        evidenceUploadIntentId,
       });
 
       Alert.alert(
@@ -643,6 +651,10 @@ export function PersonalChoresCard() {
               ) {
                 return (
                   <ChildRedoRequiredCard
+                    occurrenceId={
+                      occurrence
+                        .occurrenceId
+                    }
                     key={
                       occurrence
                         .occurrenceId
@@ -674,11 +686,14 @@ export function PersonalChoresCard() {
                         .occurrenceId
                     }
                     submitTestID={`personal-redo-submit-${occurrence.occurrenceId}`}
-                    onSubmit={async () => {
+                    onSubmit={async (
+                      evidenceUploadIntentId,
+                    ) => {
                       await handleSubmitRedo(
                         occurrence
                           .occurrenceId,
                         occurrence.title,
+                        evidenceUploadIntentId,
                       );
                     }}
                   />

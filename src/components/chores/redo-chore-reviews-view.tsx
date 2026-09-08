@@ -10,6 +10,7 @@ import {
 import type {
   Id,
 } from '../../../convex/_generated/dataModel';
+import { SubmissionEvidenceViewer } from '../evidence/submission-evidence-viewer';
 
 export type RedoChoreReviewViewModel = {
   submissionId:
@@ -47,6 +48,9 @@ export type RedoChoreReviewViewModel = {
     string;
 
   isUnlockChore:
+    boolean;
+
+  hasEvidence?:
     boolean;
 };
 
@@ -408,6 +412,15 @@ export function RedoChoreReviewsView({
                       )}
                     </Text>
                   </View>
+
+                  {submission.hasEvidence ? (
+                    <SubmissionEvidenceViewer
+                      submissionId={
+                        submission
+                          .submissionId
+                      }
+                    />
+                  ) : null}
 
                   <Pressable
                     testID={`redo-review-approve-${submission.submissionId}`}

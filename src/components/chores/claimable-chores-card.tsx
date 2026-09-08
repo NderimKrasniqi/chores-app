@@ -121,6 +121,10 @@ export function ClaimableChoresCard() {
 
     return (
       <ChildRedoRequiredCard
+        occurrenceId={
+          myRedoClaim
+            .occurrenceId
+        }
         title={
           myRedoClaim.title
         }
@@ -145,7 +149,9 @@ export function ClaimableChoresCard() {
           myRedoClaim.claimId
         }
         submitTestID={`claimable-redo-submit-${myRedoClaim.claimId}`}
-        onSubmit={async () => {
+        onSubmit={async (
+          evidenceUploadIntentId,
+        ) => {
           setSubmittingRedoClaimId(
             myRedoClaim.claimId,
           );
@@ -154,6 +160,8 @@ export function ClaimableChoresCard() {
             await submitRedo({
               claimId:
                 myRedoClaim.claimId,
+
+              evidenceUploadIntentId,
             });
 
             Alert.alert(
@@ -203,9 +211,12 @@ export function ClaimableChoresCard() {
       }}
       onSubmit={async (
         claimId,
+        evidenceUploadIntentId,
       ) => {
         await submit({
           claimId,
+
+          evidenceUploadIntentId,
         });
       }}
     />

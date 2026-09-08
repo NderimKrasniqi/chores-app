@@ -8,6 +8,9 @@ import type {
 import type {
   MutationCtx,
 } from '../../_generated/server';
+import {
+  consumeEvidenceUploadIntent,
+} from '../evidence/submissionEvidence';
 
 export async function submitClaimableClaim(
   ctx: MutationCtx,
@@ -18,6 +21,8 @@ export async function submitClaimableClaim(
   claimId:
     Id<'choreClaims'>,
   now = Date.now(),
+  evidenceUploadIntentId?:
+    Id<'submissionEvidenceUploads'>,
 ) {
   const claim =
     await ctx.db.get(
@@ -153,6 +158,24 @@ export async function submitClaimableClaim(
     );
   }
 
+  const evidenceStorageId =
+    await consumeEvidenceUploadIntent(
+      ctx,
+      evidenceUploadIntentId,
+      {
+        householdId,
+
+        childId,
+
+        occurrenceId:
+          occurrence._id,
+
+        attemptNumber:
+          1,
+      },
+      now,
+    );
+
   const submissionId =
     await ctx.db.insert(
       'choreSubmissions',
@@ -173,6 +196,13 @@ export async function submitClaimableClaim(
          */
         submittedAt:
           now,
+
+        ...(evidenceStorageId !==
+        undefined
+          ? {
+              evidenceStorageId,
+            }
+          : {}),
       },
     );
 

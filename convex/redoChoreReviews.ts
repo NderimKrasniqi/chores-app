@@ -47,6 +47,9 @@ type PendingRedoReview = {
 
   isUnlockChore:
     boolean;
+
+  hasEvidence:
+    boolean;
 };
 
 /*
@@ -251,6 +254,11 @@ export const listPending =
 
           isUnlockChore:
             occurrence.isUnlockChore,
+
+          hasEvidence:
+            submission
+              .evidenceStorageId !==
+            undefined,
         });
       }
 

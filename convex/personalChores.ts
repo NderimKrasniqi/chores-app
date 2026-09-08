@@ -113,6 +113,13 @@ export const submit =
         v.id(
           'choreOccurrences',
         ),
+
+      evidenceUploadIntentId:
+        v.optional(
+          v.id(
+            'submissionEvidenceUploads',
+          ),
+        ),
     },
 
     handler: async (
@@ -130,6 +137,9 @@ export const submit =
         ctx,
         args.occurrenceId,
         child._id,
+        Date.now(),
+        args
+          .evidenceUploadIntentId,
       );
     },
   });
@@ -148,6 +158,13 @@ export const submitRedo =
         v.id(
           'choreOccurrences',
         ),
+
+      evidenceUploadIntentId:
+        v.optional(
+          v.id(
+            'submissionEvidenceUploads',
+          ),
+        ),
     },
 
     handler: async (
@@ -165,6 +182,9 @@ export const submitRedo =
         ctx,
         args.occurrenceId,
         child._id,
+        Date.now(),
+        args
+          .evidenceUploadIntentId,
       );
     },
   });

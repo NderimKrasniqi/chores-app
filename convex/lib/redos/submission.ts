@@ -8,6 +8,9 @@ import type {
 import type {
   MutationCtx,
 } from '../../_generated/server';
+import {
+  consumeEvidenceUploadIntent,
+} from '../evidence/submissionEvidence';
 
 type ChoreKind =
   | 'personal'
@@ -208,6 +211,8 @@ export async function submitPersonalRedo(
   childId:
     Id<'children'>,
   now = Date.now(),
+  evidenceUploadIntentId?:
+    Id<'submissionEvidenceUploads'>,
 ) {
   const {
     occurrence,
@@ -218,6 +223,25 @@ export async function submitPersonalRedo(
       occurrenceId,
       childId,
       'personal',
+      now,
+    );
+
+  const evidenceStorageId =
+    await consumeEvidenceUploadIntent(
+      ctx,
+      evidenceUploadIntentId,
+      {
+        householdId:
+          occurrence.householdId,
+
+        childId,
+
+        occurrenceId:
+          occurrence._id,
+
+        attemptNumber:
+          2,
+      },
       now,
     );
 
@@ -238,6 +262,13 @@ export async function submitPersonalRedo(
 
         submittedAt:
           now,
+
+        ...(evidenceStorageId !==
+        undefined
+          ? {
+              evidenceStorageId,
+            }
+          : {}),
       },
     );
 
@@ -280,6 +311,8 @@ export async function submitClaimableRedo(
   claimId:
     Id<'choreClaims'>,
   now = Date.now(),
+  evidenceUploadIntentId?:
+    Id<'submissionEvidenceUploads'>,
 ) {
   const claim =
     await ctx.db.get(
@@ -340,6 +373,24 @@ export async function submitClaimableRedo(
     );
   }
 
+  const evidenceStorageId =
+    await consumeEvidenceUploadIntent(
+      ctx,
+      evidenceUploadIntentId,
+      {
+        householdId,
+
+        childId,
+
+        occurrenceId:
+          occurrence._id,
+
+        attemptNumber:
+          2,
+      },
+      now,
+    );
+
   const submissionId =
     await ctx.db.insert(
       'choreSubmissions',
@@ -356,6 +407,13 @@ export async function submitClaimableRedo(
 
         submittedAt:
           now,
+
+        ...(evidenceStorageId !==
+        undefined
+          ? {
+              evidenceStorageId,
+            }
+          : {}),
       },
     );
 

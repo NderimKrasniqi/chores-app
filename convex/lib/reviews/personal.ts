@@ -132,6 +132,11 @@ export async function listPendingPersonalReviews(
       isUnlockChore:
         occurrence
           .isUnlockChore,
+
+      hasEvidence:
+        submission
+          .evidenceStorageId !==
+        undefined,
     });
   }
 

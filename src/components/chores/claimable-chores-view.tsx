@@ -10,6 +10,7 @@ import {
 import type {
   Id,
 } from '../../../convex/_generated/dataModel';
+import { ChildSubmissionActions } from '../evidence/child-submission-actions';
 
 type UnlockState =
   | 'scheduled'
@@ -351,6 +352,8 @@ function ClaimedChoresSection({
     (
       claimId:
         Id<'choreClaims'>,
+      evidenceUploadIntentId?:
+        Id<'submissionEvidenceUploads'>,
     ) => Promise<void>;
 }) {
   if (
@@ -554,36 +557,33 @@ function ClaimedChoresSection({
                     kr.
                   </Text>
 
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={`Submit ${occurrence.title} for review`}
+                  <ChildSubmissionActions
+                    occurrenceId={
+                      occurrence
+                        .occurrenceId
+                    }
+                    attemptNumber={
+                      1
+                    }
                     disabled={
                       actionsBusy
                     }
-                    onPress={() =>
-                      void onSubmit(
+                    submitting={
+                      isSubmitting
+                    }
+                    submitTestID={`claimable-submit-${occurrence.claimId}`}
+                    submitLabel="Submit for review"
+                    submittingLabel="Submitting…"
+                    onSubmit={async (
+                      evidenceUploadIntentId,
+                    ) => {
+                      await onSubmit(
                         occurrence
                           .claimId,
-                      )
-                    }
-                    className={
-                      actionsBusy
-                        ? 'items-center px-4 py-3 mt-3 rounded-xl bg-slate-800'
-                        : 'items-center px-4 py-3 mt-3 bg-white rounded-xl'
-                    }
-                  >
-                    <Text
-                      className={
-                        actionsBusy
-                          ? 'font-semibold text-slate-500'
-                          : 'font-semibold text-slate-950'
-                      }
-                    >
-                      {isSubmitting
-                        ? 'Submitting…'
-                        : 'Submit for review'}
-                    </Text>
-                  </Pressable>
+                        evidenceUploadIntentId,
+                      );
+                    }}
+                  />
                 </View>
               ) : null}
             </View>
@@ -619,6 +619,8 @@ export function ClaimableChoresView({
     (
       claimId:
         Id<'choreClaims'>,
+      evidenceUploadIntentId?:
+        Id<'submissionEvidenceUploads'>,
     ) => Promise<void>;
 }) {
   const {
@@ -797,6 +799,8 @@ export function ClaimableChoresView({
   async function handleSubmit(
     claimId:
       Id<'choreClaims'>,
+    evidenceUploadIntentId?:
+      Id<'submissionEvidenceUploads'>,
   ) {
     if (
       actionsBusy ||
@@ -816,6 +820,7 @@ export function ClaimableChoresView({
     try {
       await onSubmit(
         claimId,
+        evidenceUploadIntentId,
       );
     } catch (
       error

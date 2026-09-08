@@ -359,6 +359,17 @@ export const choreTables = {
      */
     submittedAt:
       v.number(),
+
+    /*
+     * Optional private TASK-16 photo.
+     *
+     * The storage ID is never exposed as
+     * a public file URL.
+     */
+    evidenceStorageId:
+      v.optional(
+        v.id('_storage'),
+      ),
   })
     .index(
       'by_occurrence',

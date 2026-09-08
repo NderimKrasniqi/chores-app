@@ -17,6 +17,7 @@ import type {
   Id,
 } from '../../../convex/_generated/dataModel';
 import { RedoDeadlineRejectControls } from './redo-deadline-reject-controls';
+import { SubmissionEvidenceViewer } from '../evidence/submission-evidence-viewer';
 
 type PersonalChoreReviewsCardProps = {
   householdId:
@@ -339,6 +340,15 @@ export function PersonalChoreReviewsCard({
                       )}
                     </Text>
                   </View>
+
+                  {submission.hasEvidence ? (
+                    <SubmissionEvidenceViewer
+                      submissionId={
+                        submission
+                          .submissionId
+                      }
+                    />
+                  ) : null}
 
                   <Pressable
                     accessibilityRole="button"

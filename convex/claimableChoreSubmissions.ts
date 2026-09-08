@@ -21,6 +21,13 @@ export const submit =
         v.id(
           'choreClaims',
         ),
+
+      evidenceUploadIntentId:
+        v.optional(
+          v.id(
+            'submissionEvidenceUploads',
+          ),
+        ),
     },
 
     handler: async (
@@ -40,6 +47,9 @@ export const submit =
         household._id,
         child._id,
         args.claimId,
+        Date.now(),
+        args
+          .evidenceUploadIntentId,
       );
     },
   });
@@ -53,6 +63,13 @@ export const submitRedo =
       claimId:
         v.id(
           'choreClaims',
+        ),
+
+      evidenceUploadIntentId:
+        v.optional(
+          v.id(
+            'submissionEvidenceUploads',
+          ),
         ),
     },
 
@@ -73,6 +90,9 @@ export const submitRedo =
         household._id,
         child._id,
         args.claimId,
+        Date.now(),
+        args
+          .evidenceUploadIntentId,
       );
     },
   });

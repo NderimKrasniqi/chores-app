@@ -37,8 +37,16 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Allow Chores App to scan child pairing QR codes.",
+          "cameraPermission": "Allow Chores App to scan child pairing QR codes and take chore evidence photos.",
           "barcodeScannerEnabled": true
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Chores App to choose chore evidence photos.",
+          "cameraPermission": "Allow Chores App to scan child pairing QR codes and take chore evidence photos.",
+          "microphonePermission": false
         }
       ]
     ],
