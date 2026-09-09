@@ -2,538 +2,203 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1"
-  >
+  <title>Child Home v5 — Concept E — Chores</title>
 
-  <title>
-    Child Home — Concept E — Chores
-  </title>
-
-  <link
-    rel="stylesheet"
-    href="../../styles/tokens.css"
-  >
-
-  <link
-    rel="stylesheet"
-    href="../../styles/base.css"
-  >
-
-  <link
-    rel="stylesheet"
-    href="../../styles/phone.css"
-  >
-
-  <link
-    rel="stylesheet"
-    href="../../styles/components.css"
-  >
+  <link rel="stylesheet" href="../../styles/tokens.css">
+  <link rel="stylesheet" href="../../styles/base.css">
+  <link rel="stylesheet" href="../../styles/phone.css">
+  <link rel="stylesheet" href="../../styles/child-home.css">
 </head>
 
 <body
   data-screen="child-home"
   data-design-status="review"
-  data-version="3"
+  data-version="5"
   data-visual-direction="concept-e"
 >
-
-  <!-- Inline artwork keeps this screen self-contained and easy to review. -->
-  <svg
-    class="svg-defs"
-    xmlns="http://www.w3.org/2000/svg"
-    aria-hidden="true"
-    focusable="false"
-  >
-    <defs>
-      <symbol id="icon-alex" viewBox="0 0 100 100">
-        <path
-          d="M29 96c1-17 9-28 25-32 15 3 25 13 28 32H29Z"
-          fill="#4389a8"
-        />
-        <path
-          d="M56 61c-9 0-19-7-21-19-2-13 5-25 18-27 13-2 24 6 26 19 1 11-5 24-16 27H56Z"
-          fill="#f1b27c"
-        />
-        <path
-          d="M37 30c1-14 10-22 23-21 11 1 19 8 20 20-5-4-9-7-13-8-6 8-18 12-30 9Z"
-          fill="#493023"
-        />
-        <path
-          d="M38 30c-4-7-1-16 7-20-1 5 1 8 4 11 5-7 12-10 21-8-5 2-7 6-8 10 8-3 14-1 19 3"
-          fill="none"
-          stroke="#493023"
-          stroke-linecap="round"
-          stroke-width="5"
-        />
-        <path
-          d="M51 43c2 2 4 3 7 3m8-3c2-1 3-2 5-4"
-          fill="none"
-          stroke="#2a2722"
-          stroke-linecap="round"
-          stroke-width="2"
-        />
-        <circle cx="51" cy="37" r="2" fill="#2a2722" />
-        <circle cx="70" cy="35" r="2" fill="#2a2722" />
-        <path
-          d="M55 50c4 3 8 3 12 0"
-          fill="none"
-          stroke="#ad4f4a"
-          stroke-linecap="round"
-          stroke-width="2"
-        />
-        <path
-          d="M35 65c-10-4-15-12-17-23l-1-16"
-          fill="none"
-          stroke="#f1b27c"
-          stroke-linecap="round"
-          stroke-width="10"
-        />
-        <path
-          d="M17 28c-6-2-8-6-6-10 2-3 5-3 8-1 1-4 4-5 6-3 3 2 2 6 0 10-2 4-4 6-8 4Z"
-          fill="#f1b27c"
-        />
-        <path
-          d="M46 67c7 5 17 6 27 1"
-          fill="none"
-          stroke="#28637f"
-          stroke-linecap="round"
-          stroke-width="4"
-        />
-      </symbol>
-
-      <symbol id="icon-vacuum" viewBox="0 0 70 56">
-        <path
-          d="m17 45 11-25 8 4-10 22H17Z"
-          fill="#32444b"
-        />
-        <path
-          d="m27 20 13-12c3-3 8-1 8 3v8"
-          fill="none"
-          stroke="#263840"
-          stroke-linecap="round"
-          stroke-width="4"
-        />
-        <path
-          d="M47 18c6-2 11 1 13 7l2 9"
-          fill="none"
-          stroke="#263840"
-          stroke-linecap="round"
-          stroke-width="3"
-        />
-        <path
-          d="M47 31c4 0 8 2 10 5l-2 9H40l-2-9c1-3 5-5 9-5Z"
-          fill="#e66e5f"
-        />
-        <path
-          d="M42 35h10"
-          fill="none"
-          stroke="#ffb0a0"
-          stroke-linecap="round"
-          stroke-width="2"
-        />
-        <circle cx="24" cy="48" r="5" fill="#1e2c33" />
-        <circle cx="55" cy="48" r="5" fill="#1e2c33" />
-        <path
-          d="M11 51h52"
-          fill="none"
-          stroke="#1e2c33"
-          stroke-linecap="round"
-          stroke-width="2"
-        />
-      </symbol>
-
-      <symbol id="icon-recycling" viewBox="0 0 62 58">
-        <path
-          d="M17 15h28l-3 35H20l-3-35Z"
-          fill="#57a771"
-        />
-        <path
-          d="M14 13h34M23 8h16l3 5H20l3-5Z"
-          fill="#38845e"
-          stroke="#1d5d44"
-          stroke-linejoin="round"
-          stroke-width="2"
-        />
-        <path
-          d="m25 23 4 7-4 7m12-14-4 7 4 7m-15-7h8m4 0h8"
-          fill="none"
-          stroke="#eff8e9"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="2.5"
-        />
-        <path
-          d="M21 50h20"
-          fill="none"
-          stroke="#1d5d44"
-          stroke-linecap="round"
-          stroke-width="2"
-        />
-      </symbol>
-
-      <symbol id="icon-bed" viewBox="0 0 66 58">
-        <path
-          d="M10 20v29m45-29v29M10 38h45"
-          fill="none"
-          stroke="#5a7395"
-          stroke-linecap="round"
-          stroke-width="2.5"
-        />
-        <path
-          d="M12 21h42v18H12z"
-          fill="#6ea9cf"
-        />
-        <path
-          d="M12 21h19v12H12z"
-          fill="#e7b3a0"
-        />
-        <rect x="16" y="23" width="12" height="7" rx="3" fill="#fff4d4" />
-        <path
-          d="M12 36h42"
-          fill="none"
-          stroke="#5a7395"
-          stroke-linecap="round"
-          stroke-width="2.5"
-        />
-        <path
-          d="M17 42v7m32-7v7"
-          fill="none"
-          stroke="#5a7395"
-          stroke-linecap="round"
-          stroke-width="2.5"
-        />
-      </symbol>
-
-      <symbol id="icon-paw" viewBox="0 0 64 58">
-        <ellipse cx="32" cy="38" rx="16" ry="12" fill="#b86c35" />
-        <ellipse cx="16" cy="25" rx="6" ry="9" transform="rotate(-29 16 25)" fill="#b86c35" />
-        <ellipse cx="27" cy="17" rx="6" ry="9" transform="rotate(-9 27 17)" fill="#b86c35" />
-        <ellipse cx="40" cy="17" rx="6" ry="9" transform="rotate(11 40 17)" fill="#b86c35" />
-        <ellipse cx="51" cy="26" rx="6" ry="9" transform="rotate(29 51 26)" fill="#b86c35" />
-        <path
-          d="M22 40c3-8 17-11 22-1 2 5-2 10-10 10-8 0-14-4-12-9Z"
-          fill="#c57c42"
-        />
-      </symbol>
-
-      <symbol id="icon-corgi" viewBox="0 0 112 100">
-        <path
-          d="M19 100c-5-18-1-34 13-44 12-9 40-10 55 0 13 8 20 23 21 44H19Z"
-          fill="#c8753d"
-        />
-        <path
-          d="M23 48C16 39 12 19 19 7c10 4 17 12 21 22m48 19c9-9 13-30 6-41-11 4-17 12-21 23"
-          fill="#b86734"
-        />
-        <path
-          d="M26 45c3-17 15-28 31-28 18 0 30 12 31 30 1 21-13 37-31 37-19 0-34-16-31-39Z"
-          fill="#dd934e"
-        />
-        <path
-          d="M56 18c-4 10-5 20-2 29 2 7 6 12 9 16l7-4c-6-8-8-18-6-30l-2-10c-2-1-4-1-6-1Z"
-          fill="#fff0d4"
-          opacity="0.9"
-        />
-        <path
-          d="M40 63c3-10 24-13 34-3 7 7 2 21-11 23-13 2-27-9-23-20Z"
-          fill="#fff0d4"
-        />
-        <ellipse cx="44" cy="51" rx="4" ry="5" fill="#1c2a27" />
-        <ellipse cx="72" cy="51" rx="4" ry="5" fill="#1c2a27" />
-        <circle cx="45" cy="49" r="1.4" fill="white" />
-        <circle cx="73" cy="49" r="1.4" fill="white" />
-        <path d="M53 65c3-3 8-3 11 0-1 5-10 5-11 0Z" fill="#1c2a27" />
-        <path
-          d="M55 72c4 4 9 4 14 0"
-          fill="none"
-          stroke="#ae4d43"
-          stroke-linecap="round"
-          stroke-width="2"
-        />
-        <path
-          d="M30 91c11-5 39-5 53 2"
-          fill="none"
-          stroke="#f3b66d"
-          stroke-linecap="round"
-          stroke-width="5"
-        />
-      </symbol>
-
-      <symbol id="icon-due" viewBox="0 0 24 24">
-        <path
-          d="M7 8h10v11H7zM9 5h6v3H9z"
-          fill="none"
-          stroke="currentColor"
-          stroke-linejoin="round"
-          stroke-width="1.8"
-        />
-        <path
-          d="M12 11v3l2 1"
-          fill="none"
-          stroke="currentColor"
-          stroke-linecap="round"
-          stroke-width="1.7"
-        />
-      </symbol>
-
-      <symbol id="icon-home" viewBox="0 0 24 24">
-        <path
-          d="m4 10 8-6.5 8 6.5v9H4v-9Z"
-          fill="currentColor"
-        />
-        <path
-          d="M9 19v-5h6v5"
-          fill="none"
-          stroke="#fffefa"
-          stroke-width="1.6"
-        />
-      </symbol>
-
-      <symbol id="icon-extras" viewBox="0 0 24 24">
-        <circle cx="12" cy="12" r="3.2" fill="currentColor" />
-        <circle cx="12" cy="4.5" r="2.7" fill="currentColor" />
-        <circle cx="19" cy="12" r="2.7" fill="currentColor" />
-        <circle cx="12" cy="19.5" r="2.7" fill="currentColor" />
-        <circle cx="5" cy="12" r="2.7" fill="currentColor" />
-      </symbol>
-
-      <symbol id="icon-rewards" viewBox="0 0 24 24">
-        <path
-          d="M12 19.5 4.7 12.2C1.4 8.9 3.6 4 8 4c1.9 0 3.2 1 4 2.2C12.8 5 14.1 4 16 4c4.4 0 6.6 4.9 3.3 8.2L12 19.5Z"
-          fill="currentColor"
-        />
-        <path d="M8 9.5h8" stroke="#fffefa" stroke-linecap="round" stroke-width="1.4" />
-      </symbol>
-
-      <symbol id="icon-profile" viewBox="0 0 24 24">
-        <circle cx="12" cy="7" r="3.5" fill="currentColor" />
-        <path
-          d="M5 20c.5-4.1 3-6.3 7-6.3s6.5 2.2 7 6.3H5Z"
-          fill="currentColor"
-        />
-      </symbol>
-    </defs>
-  </svg>
-
   <main class="design-page">
     <div class="design-shell">
       <header class="design-header">
-        <div class="design-eyebrow">
-          Child / Home / Concept E
-        </div>
-
-        <h1 class="design-title">
-          Child Home v3
-        </h1>
-
+        <div class="design-eyebrow">Child / Home / Concept E</div>
+        <h1 class="design-title">Child Home v5</h1>
         <p class="design-subtitle">
-          A visual reconstruction of the selected Concept E Child Home:
-          warm, motivating and expressive while keeping responsibilities,
-          deadlines and real SEK clear.
+          Concept E translated into the actual product UX: Personal chores,
+          the designated Unlock Chore, real SEK, and the agreed Child navigation.
         </p>
       </header>
 
       <div class="review-layout">
         <section>
           <div class="phone-wrap">
-            <div class="phone">
+            <div class="phone child-home">
               <div class="phone-island"></div>
 
               <div class="phone-screen">
                 <div class="safe-top"></div>
 
-                <header class="app-header">
-                  <div class="header-row">
-                    <div class="profile-block">
-                      <div class="avatar" aria-label="Alex profile">
-                        <svg aria-hidden="true" viewBox="0 0 100 100">
-                          <use href="#icon-alex"></use>
-                        </svg>
-                      </div>
-
-                      <div class="header-copy">
-                        <h1 class="greeting">Hey Alex!</h1>
-                        <p class="encouragement">You've got this!</p>
-                      </div>
+                <div class="child-home__content">
+                  <header class="child-home__header">
+                    <div class="child-home__avatar-wrap" aria-hidden="true">
+                      <img
+                        class="child-home__avatar"
+                        src="../../assets/concept-e/alex.png"
+                        alt=""
+                      >
                     </div>
 
-                    <div class="header-balance" aria-label="Running balance 240 Swedish kronor">
-                      <span class="coin" aria-hidden="true">kr</span>
+                    <div class="child-home__hello">
+                      <h1>Hey Alex!</h1>
+                      <p>You've got this!</p>
+                    </div>
+
+                    <div
+                      class="child-home__balance"
+                      aria-label="Current balance 240 Swedish kronor"
+                    >
+                      <span class="child-home__kr" aria-hidden="true">kr</span>
                       <span>240 kr</span>
                     </div>
-                  </div>
-                </header>
+                  </header>
 
-                <div class="app-content">
-                  <div class="day-switch" aria-label="Home view">
+                  <div class="child-home__switch" aria-label="Chore status filter">
                     <button class="active" type="button">To do</button>
                     <button type="button">Done</button>
-                    <button type="button">Rewards</button>
                   </div>
 
-                  <section class="chores-section" aria-labelledby="todo-heading">
-                    <h2 id="todo-heading" class="home-title">What do I need to do?</h2>
-                    <p class="home-copy">
-                      Finish your chores to earn, build skills, and<br>
-                      help out at home!
+                  <section class="child-home__intro">
+                    <h2>What do I need to do?</h2>
+                    <p>
+                      Take care of today's responsibilities, earn real SEK,
+                      and keep things moving at home.
                     </p>
+                  </section>
 
-                    <div class="chore-list">
-                      <article class="chore-card urgent">
-                        <div class="chore-art">
-                          <svg class="object-icon" aria-hidden="true" viewBox="0 0 70 56">
-                            <use href="#icon-vacuum"></use>
-                          </svg>
+                  <section class="child-home__list" aria-label="Current personal chores">
+                    <article class="home-chore home-chore--unlock home-chore--urgent">
+                      <img
+                        class="home-chore__art"
+                        src="../../assets/concept-e/vacuum.png"
+                        alt=""
+                      >
+
+                      <div class="home-chore__copy">
+                        <div class="home-chore__kicker">
+                          <span class="home-chore__star">★</span>
+                          Unlock chore
                         </div>
-
-                        <div class="chore-copy">
-                          <h3 class="chore-title">Vacuum living room</h3>
-                          <div class="chore-meta">
-                            <span class="chip chip-danger">
-                              <svg class="chip-icon" aria-hidden="true" viewBox="0 0 24 24">
-                                <use href="#icon-due"></use>
-                              </svg>
-                              Due today
-                            </span>
-                            <span class="value-chip">
-                              <span class="coin" aria-hidden="true">kr</span>
-                              40 kr
-                            </span>
-                          </div>
-                        </div>
-
-                        <span class="card-chevron" aria-hidden="true">›</span>
-                      </article>
-
-                      <article class="chore-card">
-                        <div class="chore-art">
-                          <svg class="object-icon" aria-hidden="true" viewBox="0 0 62 58">
-                            <use href="#icon-recycling"></use>
-                          </svg>
-                        </div>
-
-                        <div class="chore-copy">
-                          <h3 class="chore-title">Take out recycling</h3>
-                          <div class="chore-meta">
-                            <span class="chip chip-danger">
-                              <svg class="chip-icon" aria-hidden="true" viewBox="0 0 24 24">
-                                <use href="#icon-due"></use>
-                              </svg>
-                              Due today
-                            </span>
-                            <span class="value-chip">
-                              <span class="coin" aria-hidden="true">kr</span>
-                              20 kr
-                            </span>
-                          </div>
-                        </div>
-
-                        <span class="card-chevron" aria-hidden="true">›</span>
-                      </article>
-
-                      <article class="chore-card">
-                        <div class="chore-art">
-                          <svg class="object-icon" aria-hidden="true" viewBox="0 0 66 58">
-                            <use href="#icon-bed"></use>
-                          </svg>
-                        </div>
-
-                        <div class="chore-copy">
-                          <h3 class="chore-title">Clean your room</h3>
-                          <div class="chore-meta">
-                            <span class="chip chip-neutral">
-                              <svg class="chip-icon" aria-hidden="true" viewBox="0 0 24 24">
-                                <use href="#icon-due"></use>
-                              </svg>
-                              Due Fri, Apr 25
-                            </span>
-                            <span class="value-chip">
-                              <span class="coin" aria-hidden="true">kr</span>
-                              30 kr
-                            </span>
-                          </div>
-                        </div>
-
-                        <span class="card-chevron" aria-hidden="true">›</span>
-                      </article>
-
-                      <article class="chore-card">
-                        <div class="chore-art">
-                          <svg class="object-icon" aria-hidden="true" viewBox="0 0 64 58">
-                            <use href="#icon-paw"></use>
-                          </svg>
-                        </div>
-
-                        <div class="chore-copy">
-                          <h3 class="chore-title">Feed the dog</h3>
-                          <div class="chore-meta">
-                            <span class="chip chip-neutral">
-                              <svg class="chip-icon" aria-hidden="true" viewBox="0 0 24 24">
-                                <use href="#icon-due"></use>
-                              </svg>
-                              Due Fri, Apr 25
-                            </span>
-                            <span class="value-chip">
-                              <span class="coin" aria-hidden="true">kr</span>
-                              10 kr
-                            </span>
-                          </div>
-                        </div>
-
-                        <span class="card-chevron" aria-hidden="true">›</span>
-                      </article>
-                    </div>
-
-                    <article class="encouragement-card">
-                      <div class="encouragement-art">
-                        <svg class="object-icon" aria-hidden="true" viewBox="0 0 112 100">
-                          <use href="#icon-corgi"></use>
-                        </svg>
-                      </div>
-
-                      <div class="encouragement-copy">
-                        <h2 class="encouragement-title">Small steps.<br>Big progress!</h2>
-                        <div class="mini-progress" aria-label="Three of five chores complete">
-                          <span></span>
-                          <span></span>
-                          <span></span>
+                        <h3 class="home-chore__title">Vacuum living room</h3>
+                        <p class="home-chore__unlock-note">Opens claiming in Extras after Parent approval</p>
+                        <div class="home-chore__meta">
+                          <span class="home-chip home-chip--danger">Due today</span>
+                          <span class="home-chip home-chip--money">40 kr</span>
                         </div>
                       </div>
+
+                      <span class="home-chore__chevron" aria-hidden="true">›</span>
+                    </article>
+
+                    <article class="home-chore home-chore--urgent">
+                      <img
+                        class="home-chore__art"
+                        src="../../assets/concept-e/recycling.png"
+                        alt=""
+                      >
+
+                      <div class="home-chore__copy">
+                        <h3 class="home-chore__title">Take out recycling</h3>
+                        <div class="home-chore__meta">
+                          <span class="home-chip home-chip--danger">Due today</span>
+                          <span class="home-chip home-chip--money">20 kr</span>
+                        </div>
+                      </div>
+
+                      <span class="home-chore__chevron" aria-hidden="true">›</span>
+                    </article>
+
+                    <article class="home-chore">
+                      <img
+                        class="home-chore__art"
+                        src="../../assets/concept-e/bed.png"
+                        alt=""
+                      >
+
+                      <div class="home-chore__copy">
+                        <h3 class="home-chore__title">Clean your room</h3>
+                        <div class="home-chore__meta">
+                          <span class="home-chip home-chip--neutral">Due Fri, Apr 25</span>
+                          <span class="home-chip home-chip--money">30 kr</span>
+                        </div>
+                      </div>
+
+                      <span class="home-chore__chevron" aria-hidden="true">›</span>
+                    </article>
+
+                    <article class="home-chore">
+                      <img
+                        class="home-chore__art"
+                        src="../../assets/concept-e/paw.png"
+                        alt=""
+                      >
+
+                      <div class="home-chore__copy">
+                        <h3 class="home-chore__title">Feed the dog</h3>
+                        <div class="home-chore__meta">
+                          <span class="home-chip home-chip--neutral">Due Fri, Apr 25</span>
+                          <span class="home-chip home-chip--money">10 kr</span>
+                        </div>
+                      </div>
+
+                      <span class="home-chore__chevron" aria-hidden="true">›</span>
                     </article>
                   </section>
+
+                  <article class="child-home__encouragement">
+                    <img
+                      class="child-home__corgi"
+                      src="../../assets/concept-e/corgi.png"
+                      alt=""
+                    >
+
+                    <div class="child-home__encouragement-copy">
+                      <h3>Small steps.<br>Big progress!</h3>
+                      <p>One responsibility at a time.</p>
+                      <div class="child-home__progress" aria-hidden="true">
+                        <span></span><span></span><span></span>
+                      </div>
+                    </div>
+                  </article>
                 </div>
               </div>
 
-              <nav class="bottom-nav" aria-label="Child navigation">
-                <button class="nav-item active" type="button">
-                  <span class="nav-icon">
-                    <svg aria-hidden="true" viewBox="0 0 24 24"><use href="#icon-home"></use></svg>
+              <nav class="child-home__nav" aria-label="Child navigation">
+                <button class="active" type="button">
+                  <span class="child-home__nav-icon">
+                    <img src="../../assets/icons/home.svg" alt="">
                   </span>
-                  <span>Home</span>
+                  Home
                 </button>
 
-                <button class="nav-item" type="button">
-                  <span class="nav-icon">
-                    <svg aria-hidden="true" viewBox="0 0 24 24"><use href="#icon-extras"></use></svg>
+                <button type="button">
+                  <span class="child-home__nav-icon">
+                    <img src="../../assets/icons/extras.svg" alt="">
                   </span>
-                  <span>Extras</span>
+                  Extras
                 </button>
 
-                <button class="nav-item" type="button">
-                  <span class="nav-icon">
-                    <svg aria-hidden="true" viewBox="0 0 24 24"><use href="#icon-rewards"></use></svg>
+                <button type="button">
+                  <span class="child-home__nav-icon">
+                    <img src="../../assets/icons/activity.svg" alt="">
                   </span>
-                  <span>Rewards</span>
+                  Activity
                 </button>
 
-                <button class="nav-item" type="button">
-                  <span class="nav-icon">
-                    <svg aria-hidden="true" viewBox="0 0 24 24"><use href="#icon-profile"></use></svg>
+                <button type="button">
+                  <span class="child-home__nav-icon">
+                    <img src="../../assets/icons/money.svg" alt="">
                   </span>
-                  <span>Profile</span>
+                  Money
                 </button>
               </nav>
             </div>
@@ -541,70 +206,41 @@
         </section>
 
         <aside class="review-panel">
-          <div class="status-review">
-            <span aria-hidden="true">●</span> Review
-          </div>
+          <div class="status-review">● Review</div>
 
           <section class="review-section">
-            <h2>Direction</h2>
+            <h2>What changed in v5</h2>
+            <ul>
+              <li>Removed the inline hand-built SVG illustration system.</li>
+              <li>Uses dedicated Concept E character and chore assets.</li>
+              <li>Replaced Rewards/Profile navigation with Activity/Money.</li>
+              <li>Made the designated Unlock Chore a first-class Home treatment.</li>
+              <li>Kept real SEK visible without introducing a separate game currency.</li>
+            </ul>
+          </section>
+
+          <section class="review-section">
+            <h2>Unlock behavior</h2>
+            <div class="review-callout">
+              <strong>Approval is the gate.</strong>
+              The Child may always browse Extras. Claiming becomes available only after
+              the current Unlock Chore is approved by a Parent.
+            </div>
+          </section>
+
+          <section class="review-section">
+            <h2>Next Home variant</h2>
             <p>
-              This pass follows the selected Concept E Child Home reference
-              closely: a compact task-first screen with warm surfaces, bold
-              rounded type, friendly artwork and a small encouragement moment.
+              After this base layout is visually accepted, add the Home variant that
+              surfaces an unresolved Extra commitment without redesigning the screen.
             </p>
-          </section>
-
-          <section class="review-section">
-            <h2>Reconstruction focus</h2>
-            <ul>
-              <li>Illustrated Child greeting with a compact running-balance pill.</li>
-              <li>Green three-part segmented control.</li>
-              <li>Task-first hierarchy with four compact chore cards.</li>
-              <li>Coral urgency treatment for the most time-sensitive chore.</li>
-              <li>Inline status and real-SEK value chips on every card.</li>
-              <li>Friendly corgi progress banner and restrained sticker-like type.</li>
-              <li>Simple labeled bottom navigation.</li>
-            </ul>
-          </section>
-
-          <section class="review-section">
-            <h2>Behavioral truth preserved</h2>
-            <ul>
-              <li>Personal responsibilities remain the primary Home content.</li>
-              <li>Values are shown as chore values, not fake game currency.</li>
-              <li>Dates and urgency are explicit rather than color-only.</li>
-              <li>No active Claimable commitment is invented for this reference state.</li>
-              <li>The running balance remains compact and separate from chore values.</li>
-            </ul>
-          </section>
-
-          <section class="review-section">
-            <h2>Age-range check</h2>
-            <p>
-              The playful tone comes from the character and object artwork,
-              color and one handwritten banner. Functional copy stays short
-              and direct enough for both younger children and teens.
-            </p>
-          </section>
-
-          <section class="review-section">
-            <h2>Next states after review</h2>
-            <ul>
-              <li>Waiting for review</li>
-              <li>Claim locks soon / Claim locked</li>
-              <li>Extras locked by Unlock Chore</li>
-              <li>No active claim</li>
-              <li>Negative balance</li>
-              <li>Offline and server-confirmed pending</li>
-            </ul>
           </section>
 
           <section class="review-section">
             <h2>Approval gate</h2>
             <p>
-              Status remains <strong>Review</strong>. Explicit human approval
-              is still required before this screen becomes the visual source
-              of truth for React Native implementation.
+              This screen remains <strong>Review</strong>. Do not propagate its exact
+              visual treatment to other screens until explicitly approved.
             </p>
           </section>
         </aside>
