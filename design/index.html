@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Chores — Design Review</title>
+
+  <link rel="stylesheet" href="./styles/tokens.css">
+  <link rel="stylesheet" href="./styles/base.css">
+
+  <style>
+    .board {
+      display: grid;
+      gap: 28px;
+    }
+
+    .group {
+      background: rgba(255,255,255,0.72);
+      border: 1px solid rgba(255,255,255,0.9);
+      border-radius: 24px;
+      padding: 24px;
+    }
+
+    .group-title {
+      margin: 0 0 18px;
+      font-size: 22px;
+    }
+
+    .screen-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .screen-row {
+      display: grid;
+      grid-template-columns: 1.3fr 110px 70px 1.5fr auto;
+      gap: 14px;
+      align-items: center;
+      min-height: 64px;
+      padding: 12px 14px;
+      background: white;
+      border: 1px solid var(--color-border);
+      border-radius: 14px;
+    }
+
+    .screen-name {
+      font-weight: 800;
+    }
+
+    .screen-purpose {
+      color: var(--color-text-soft);
+      font-size: 13px;
+    }
+
+    .badge {
+      display: inline-flex;
+      width: fit-content;
+      align-items: center;
+      border-radius: 999px;
+      padding: 6px 9px;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .badge-review {
+      color: var(--color-warning);
+      background: var(--color-warning-soft);
+    }
+
+    .badge-exploration {
+      color: var(--color-text-soft);
+      background: var(--color-surface-muted);
+    }
+
+    .open-link {
+      font-size: 13px;
+      font-weight: 800;
+      text-decoration: none;
+    }
+
+    @media (max-width: 850px) {
+      .screen-row {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="design-page">
+    <div class="design-shell">
+      <header class="design-header">
+        <div class="design-eyebrow">Chores / Design Source of Truth</div>
+        <h1 class="design-title">Design review board</h1>
+        <p class="design-subtitle">
+          Product and domain documentation define what is true.
+          Approved HTML defines how that truth should look.
+        </p>
+      </header>
+
+      <div class="board">
+        <section class="group">
+          <h2 class="group-title">Child experience</h2>
+
+          <div class="screen-list">
+            <article class="screen-row">
+              <div class="screen-name">Child Home</div>
+              <span class="badge badge-review">Review</span>
+              <div>v1</div>
+              <div class="screen-purpose">
+                Responsibilities, urgency, active commitment, Extras and balance.
+              </div>
+              <a class="open-link" href="./screens/child/home.html">
+                Open →
+              </a>
+            </article>
+
+            <article class="screen-row">
+              <div class="screen-name">Child Extras</div>
+              <span class="badge badge-exploration">Exploration</span>
+              <div>—</div>
+              <div class="screen-purpose">Browse and claim extra chores.</div>
+              <div>—</div>
+            </article>
+
+            <article class="screen-row">
+              <div class="screen-name">Claim Detail</div>
+              <span class="badge badge-exploration">Exploration</span>
+              <div>—</div>
+              <div class="screen-purpose">Manage an active commitment.</div>
+              <div>—</div>
+            </article>
+
+            <article class="screen-row">
+              <div class="screen-name">Activity</div>
+              <span class="badge badge-exploration">Exploration</span>
+              <div>—</div>
+              <div class="screen-purpose">Household progress and celebrations.</div>
+              <div>—</div>
+            </article>
+
+            <article class="screen-row">
+              <div class="screen-name">Money</div>
+              <span class="badge badge-exploration">Exploration</span>
+              <div>—</div>
+              <div class="screen-purpose">Private balance and financial history.</div>
+              <div>—</div>
+            </article>
+          </div>
+        </section>
+
+        <section class="group">
+          <h2 class="group-title">Parent experience</h2>
+
+          <div class="screen-list">
+            <article class="screen-row">
+              <div class="screen-name">Parent Home</div>
+              <span class="badge badge-exploration">Exploration</span>
+              <div>—</div>
+              <div class="screen-purpose">Operational household overview.</div>
+              <div>—</div>
+            </article>
+
+            <article class="screen-row">
+              <div class="screen-name">Chores</div>
+              <span class="badge badge-exploration">Exploration</span>
+              <div>—</div>
+              <div class="screen-purpose">Create and manage chore definitions.</div>
+              <div>—</div>
+            </article>
+
+            <article class="screen-row">
+              <div class="screen-name">Reviews</div>
+              <span class="badge badge-exploration">Exploration</span>
+              <div>—</div>
+              <div class="screen-purpose">Approve work or request redo.</div>
+              <div>—</div>
+            </article>
+
+            <article class="screen-row">
+              <div class="screen-name">Money</div>
+              <span class="badge badge-exploration">Exploration</span>
+              <div>—</div>
+              <div class="screen-purpose">Payouts and household settlement.</div>
+              <div>—</div>
+            </article>
+
+            <article class="screen-row">
+              <div class="screen-name">Household</div>
+              <span class="badge badge-exploration">Exploration</span>
+              <div>—</div>
+              <div class="screen-purpose">Children, parents, access and settings.</div>
+              <div>—</div>
+            </article>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

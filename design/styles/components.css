@@ -1,0 +1,513 @@
+/* ==========================================================
+   CHILD HOME — CONCEPT E VISUAL RECONSTRUCTION
+   ========================================================== */
+
+.svg-defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+/* ==========================================================
+   APP HEADER
+   ========================================================== */
+
+.app-header {
+  padding: 8px var(--content-gutter) 9px;
+}
+
+.header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 7px;
+}
+
+.profile-block {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+}
+
+.avatar {
+  position: relative;
+
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+
+  width: 103px;
+  height: 82px;
+  overflow: visible;
+
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+
+  font-family: var(--font-display);
+  font-size: 0;
+}
+
+.avatar svg {
+  width: 106px;
+  height: 88px;
+}
+
+.header-copy {
+  min-width: 0;
+}
+
+.greeting {
+  margin: 0;
+
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 900;
+  line-height: 1.05;
+  letter-spacing: -0.045em;
+  white-space: nowrap;
+}
+
+.encouragement {
+  margin: 5px 0 0;
+
+  color: var(--ink-soft);
+  font-size: 11px;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+.header-balance {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 5px;
+
+  min-height: 35px;
+  padding: 6px 9px;
+
+  border: 1px solid #e7e2d8;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 3px 10px rgba(34, 42, 36, 0.08);
+
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.coin {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+
+  width: 17px;
+  height: 17px;
+
+  border: 1px solid rgba(185, 120, 8, 0.32);
+  border-radius: 50%;
+  background: var(--yellow-500);
+  box-shadow: inset 0 0 0 2px rgba(255, 232, 139, 0.55);
+
+  color: #fffdf3;
+  font-size: 7px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+/* ==========================================================
+   SCREEN CONTENT AND SEGMENTED CONTROL
+   ========================================================== */
+
+.app-content {
+  padding: 0 var(--content-gutter) 72px;
+}
+
+.day-switch {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+
+  height: 38px;
+  margin-top: 0;
+  padding: 0;
+
+  border-radius: var(--radius-pill);
+  background: #efefec;
+}
+
+.day-switch button {
+  height: 38px;
+
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.day-switch button.active {
+  background: var(--green-600);
+  box-shadow: 0 3px 8px rgba(45, 118, 87, 0.2);
+  color: white;
+}
+
+/* ==========================================================
+   PERSONAL CHORES INTRO
+   ========================================================== */
+
+.chores-section {
+  margin-top: 17px;
+}
+
+.home-title {
+  margin: 0;
+
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 900;
+  line-height: 1.08;
+  letter-spacing: -0.045em;
+}
+
+.home-copy {
+  max-width: 286px;
+  margin: 5px 0 0;
+
+  color: var(--ink-soft);
+  font-size: 12px;
+  line-height: 1.36;
+}
+
+/* ==========================================================
+   CHORE CARDS
+   ========================================================== */
+
+.chore-list {
+  display: grid;
+  gap: 9px;
+  margin-top: 12px;
+}
+
+.chore-card {
+  position: relative;
+
+  display: grid;
+  grid-template-columns: 63px minmax(0, 1fr) 14px;
+  gap: 7px;
+  align-items: center;
+
+  min-height: 70px;
+  padding: 8px 9px;
+
+  border: 1px solid #ebe8e1;
+  border-radius: 15px;
+  background: #fffefa;
+  box-shadow: 0 3px 8px rgba(38, 47, 41, 0.055);
+}
+
+.chore-card.urgent {
+  border-color: var(--coral-500);
+  background: #ffdedd;
+  box-shadow: 0 4px 10px rgba(234, 114, 94, 0.12);
+}
+
+.chore-card.urgent::before {
+  content: "";
+
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+
+  width: 5px;
+  border-radius: 15px 0 0 15px;
+  background: var(--coral-500);
+}
+
+.chore-art {
+  display: grid;
+  place-items: center;
+
+  width: 63px;
+  height: 53px;
+}
+
+.object-icon {
+  width: 58px;
+  height: 58px;
+}
+
+.chore-art .object-icon {
+  width: 59px;
+  height: 55px;
+}
+
+.chore-copy {
+  min-width: 0;
+}
+
+.chore-title {
+  margin: 0;
+
+  overflow: hidden;
+
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chore-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+
+  margin-top: 5px;
+
+  color: var(--ink-soft);
+  font-size: 10px;
+  line-height: 1;
+}
+
+.chip,
+.value-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+
+  min-height: 19px;
+  padding: 3px 6px;
+
+  border-radius: 8px;
+  font-size: 9px;
+  font-weight: 850;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.chip-danger {
+  color: #b83e3b;
+  background: #ffc2bf;
+}
+
+.chip-neutral {
+  color: #39433f;
+  background: #eceeea;
+}
+
+.chip-warning {
+  color: #815708;
+  background: #fff0bf;
+}
+
+.chip-icon {
+  width: 12px;
+  height: 12px;
+}
+
+.chip-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  background: currentColor;
+}
+
+.value-chip {
+  color: var(--ink);
+  background: #f0eee8;
+}
+
+.value-chip .coin {
+  width: 14px;
+  height: 14px;
+  border-width: 1px;
+  box-shadow: inset 0 0 0 1px rgba(255, 232, 139, 0.55);
+  font-size: 6px;
+}
+
+.card-chevron {
+  align-self: center;
+
+  color: var(--ink);
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 1;
+}
+
+/* ==========================================================
+   ENCOURAGEMENT BANNER
+   ========================================================== */
+
+.encouragement-card {
+  position: relative;
+
+  display: grid;
+  grid-template-columns: 115px minmax(0, 1fr);
+  align-items: center;
+
+  min-height: 90px;
+  margin-top: 4px;
+  overflow: hidden;
+
+  border: 1px solid #b7d9b4;
+  border-radius: 19px;
+  background: linear-gradient(110deg, #cbe7c6 0%, #d9efd2 100%);
+}
+
+.encouragement-art {
+  position: absolute;
+  bottom: -5px;
+  left: 0;
+
+  width: 115px;
+  height: 105px;
+}
+
+.encouragement-art .object-icon {
+  width: 115px;
+  height: 105px;
+}
+
+.encouragement-copy {
+  position: relative;
+  z-index: 1;
+
+  grid-column: 2;
+
+  padding: 9px 9px 8px 5px;
+}
+
+.encouragement-title {
+  max-width: 155px;
+  margin: 0;
+
+  color: #18251e;
+  font-family: "Bradley Hand", "Comic Sans MS", cursive;
+  font-size: 17px;
+  font-style: italic;
+  font-weight: 700;
+  line-height: 1.04;
+  letter-spacing: -0.025em;
+  transform: rotate(-2deg);
+}
+
+.mini-progress {
+  display: flex;
+  gap: 3px;
+
+  height: 11px;
+  margin-top: 8px;
+}
+
+.mini-progress span {
+  display: block;
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.75);
+}
+
+.mini-progress span:first-child {
+  width: 76px;
+  background: var(--green-700);
+}
+
+.mini-progress span:nth-child(2) {
+  width: 39px;
+}
+
+.mini-progress span:last-child {
+  width: 28px;
+  background: #8bc293;
+}
+
+/* ==========================================================
+   BOTTOM NAVIGATION
+   ========================================================== */
+
+.bottom-nav {
+  position: absolute;
+  z-index: 20;
+
+  right: 0;
+  bottom: 0;
+  left: 0;
+
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+
+  height: 61px;
+  padding: 6px 8px 7px;
+
+  border-top: 1px solid rgba(220, 221, 214, 0.92);
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 -5px 16px rgba(32, 45, 37, 0.06);
+  backdrop-filter: blur(12px);
+}
+
+.nav-item {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 2px;
+
+  min-width: 0;
+  padding: 0;
+
+  border: 0;
+  background: transparent;
+
+  color: #7a898e;
+  font-size: 9px;
+  font-weight: 750;
+  line-height: 1;
+}
+
+.nav-icon {
+  display: grid;
+  place-items: center;
+
+  width: 29px;
+  height: 26px;
+  border-radius: 12px;
+}
+
+.nav-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.nav-item.active {
+  color: var(--green-800);
+}
+
+.nav-item.active .nav-icon {
+  background: var(--green-100);
+}
+
+.nav-item.active::after {
+  content: "";
+
+  width: 18px;
+  height: 3px;
+  margin-top: 1px;
+
+  border-radius: var(--radius-pill);
+  background: var(--green-600);
+}
+
+/* Review-panel copy stays intentionally quiet beside the visual target. */
+.review-panel strong {
+  color: var(--ink);
+}
