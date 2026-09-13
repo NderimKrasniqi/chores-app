@@ -1,7 +1,6 @@
-import * as SecureStore from 'expo-secure-store';
+import * as SecureStore from "expo-secure-store";
 
-const CHILD_EXPLICIT_LOCK_KEY_PREFIX =
-  'choresapp.child-explicit-lock.v1.';
+const CHILD_EXPLICIT_LOCK_KEY_PREFIX = "choresapp.child-explicit-lock.v1.";
 
 /*
  * This set deliberately exists only for the
@@ -18,73 +17,43 @@ const CHILD_EXPLICIT_LOCK_KEY_PREFIX =
  * A manually selected Child is never marked,
  * so multi-Child devices always require PIN.
  */
-const trustedSingleChildStoragePrefixes =
-  new Set<string>();
+const trustedSingleChildStoragePrefixes = new Set<string>();
 
-function explicitLockKey(
-  childId: string,
-) {
+function explicitLockKey(childId: string) {
   return `${CHILD_EXPLICIT_LOCK_KEY_PREFIX}${childId}`;
 }
 
-export function markTrustedSingleChildAutoOpen(
-  authStoragePrefix: string,
-) {
-  trustedSingleChildStoragePrefixes.add(
-    authStoragePrefix,
-  );
+export function markTrustedSingleChildAutoOpen(authStoragePrefix: string) {
+  trustedSingleChildStoragePrefixes.add(authStoragePrefix);
 }
 
-export function consumeTrustedSingleChildAutoOpen(
-  authStoragePrefix: string,
-) {
-  if (
-    !trustedSingleChildStoragePrefixes.has(
-      authStoragePrefix,
-    )
-  ) {
+export function consumeTrustedSingleChildAutoOpen(authStoragePrefix: string) {
+  if (!trustedSingleChildStoragePrefixes.has(authStoragePrefix)) {
     return false;
   }
 
-  trustedSingleChildStoragePrefixes.delete(
-    authStoragePrefix,
-  );
+  trustedSingleChildStoragePrefixes.delete(authStoragePrefix);
 
   return true;
 }
 
-export async function isChildExplicitlyLocked(
-  childId: string,
-) {
-  const stored =
-    await SecureStore.getItemAsync(
-      explicitLockKey(
-        childId,
-      ),
-    );
+export async function isChildExplicitlyLocked(childId: string) {
+  const stored = await SecureStore.getItemAsync(explicitLockKey(childId));
 
-  return stored === '1';
+  return stored === "1";
 }
 
 export async function setChildExplicitlyLocked(
   childId: string,
   locked: boolean,
 ) {
-  const key =
-    explicitLockKey(
-      childId,
-    );
+  const key = explicitLockKey(childId);
 
   if (locked) {
-    await SecureStore.setItemAsync(
-      key,
-      '1',
-    );
+    await SecureStore.setItemAsync(key, "1");
 
     return;
   }
 
-  await SecureStore.deleteItemAsync(
-    key,
-  );
+  await SecureStore.deleteItemAsync(key);
 }

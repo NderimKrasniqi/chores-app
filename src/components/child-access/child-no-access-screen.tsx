@@ -1,74 +1,40 @@
 import {
   getLocalChildContextByStoragePrefix,
   removeLocalChildContext,
-} from '@/lib/child-access/local-access';
-import { forgetLocalChildGrant } from '@/lib/child-access/grant-status';
-import { setChildExplicitlyLocked } from '@/lib/child-access/unlock-policy';
-import { useAuthRuntime } from '@/providers/auth-runtime-provider';
-import {
-  useEffect,
-  useState,
-} from 'react';
-import {
-  ActivityIndicator,
-  Pressable,
-  Text,
-  View,
-} from 'react-native';
+} from "@/lib/child-access/local-access";
+import { forgetLocalChildGrant } from "@/lib/child-access/grant-status";
+import { setChildExplicitlyLocked } from "@/lib/child-access/unlock-policy";
+import { useAuthRuntime } from "@/providers/auth-runtime-provider";
+import { DirectionCIcon } from "@/components/ui/direction-c-icon";
+import { DirectionC } from "@/constants/direction-c";
+import { ActionButton, AppText } from "@/design-system";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, View } from "react-native";
 
-import { ChildJoinScreen } from './child-join-screen';
+import { ChildJoinScreen } from "./child-join-screen";
 
-type CleanupState =
-  | 'checking'
-  | 'join'
-  | 'cleaning'
-  | 'error';
+type CleanupState = "checking" | "join" | "cleaning" | "error";
 
 export function ChildNoAccessScreen() {
-  const {
-    authClient,
-    storagePrefix,
-    activateParentStorage,
-  } = useAuthRuntime();
+  const { authClient, storagePrefix, activateParentStorage } = useAuthRuntime();
 
-  const [
-    cleanupState,
-    setCleanupState,
-  ] =
-    useState<CleanupState>(
-      'checking',
-    );
+  const [cleanupState, setCleanupState] = useState<CleanupState>("checking");
 
-  const [
-    cleanupAttempt,
-    setCleanupAttempt,
-  ] = useState(0);
+  const [cleanupAttempt, setCleanupAttempt] = useState(0);
 
-  const [
-    errorMessage,
-    setErrorMessage,
-  ] = useState<
-    string | null
-  >(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    let cancelled =
-      false;
+    let cancelled = false;
 
     async function reconcileAccess() {
-      setCleanupState(
-        'checking',
-      );
+      setCleanupState("checking");
 
-      setErrorMessage(
-        null,
-      );
+      setErrorMessage(null);
 
       try {
         const localContext =
-          await getLocalChildContextByStoragePrefix(
-            storagePrefix,
-          );
+          await getLocalChildContextByStoragePrefix(storagePrefix);
 
         if (cancelled) {
           return;
@@ -79,9 +45,7 @@ export function ChildNoAccessScreen() {
          * nothing has been paired locally yet.
          */
         if (!localContext) {
-          setCleanupState(
-            'join',
-          );
+          setCleanupState("join");
 
           return;
         }
@@ -91,35 +55,22 @@ export function ChildNoAccessScreen() {
          * Convex says the active device grant
          * is gone or revoked.
          */
-        setCleanupState(
-          'cleaning',
-        );
+        setCleanupState("cleaning");
 
-        const signOutResult =
-          await authClient.signOut();
+        const signOutResult = await authClient.signOut();
 
-        if (
-          signOutResult.error
-        ) {
+        if (signOutResult.error) {
           throw new Error(
-            signOutResult.error
-              .message ??
-              'Could not clear revoked Child session.',
+            signOutResult.error.message ??
+              "Could not clear revoked Child session.",
           );
         }
 
-        await removeLocalChildContext(
-          localContext.contextId,
-        );
+        await removeLocalChildContext(localContext.contextId);
 
-        await forgetLocalChildGrant(
-          localContext.contextId,
-        );
+        await forgetLocalChildGrant(localContext.contextId);
 
-        await setChildExplicitlyLocked(
-          localContext.childId,
-          false,
-        );
+        await setChildExplicitlyLocked(localContext.childId, false);
 
         if (cancelled) {
           return;
@@ -131,14 +82,12 @@ export function ChildNoAccessScreen() {
           return;
         }
 
-        setCleanupState(
-          'error',
-        );
+        setCleanupState("error");
 
         setErrorMessage(
           error instanceof Error
             ? error.message
-            : 'Could not remove revoked Child access.',
+            : "Could not remove revoked Child access.",
         );
       }
     }
@@ -146,70 +95,72 @@ export function ChildNoAccessScreen() {
     void reconcileAccess();
 
     return () => {
-      cancelled =
-        true;
+      cancelled = true;
     };
-  }, [
-    authClient,
-    storagePrefix,
-    activateParentStorage,
-    cleanupAttempt,
-  ]);
+  }, [authClient, storagePrefix, activateParentStorage, cleanupAttempt]);
 
-  if (
-    cleanupState ===
-    'join'
-  ) {
-    return (
-      <ChildJoinScreen />
-    );
+  if (cleanupState === "join") {
+    return <ChildJoinScreen />;
   }
 
-  if (
-    cleanupState ===
-    'error'
-  ) {
+  if (cleanupState === "error") {
     return (
-      <View className="justify-center flex-1 px-6 bg-slate-950">
-        <Text className="text-2xl font-bold text-white">
-          Could not clear
-          Child access
-        </Text>
-
-        <Text className="mt-3 leading-6 text-red-400">
-          {errorMessage}
-        </Text>
-
-        <Pressable
-          className="px-4 py-4 mt-6 bg-white rounded-xl"
-          onPress={() =>
-            setCleanupAttempt(
-              (
-                current,
-              ) =>
-                current +
-                1,
-            )
-          }
+      <View className="flex-1 items-center justify-center bg-canvas px-5">
+        <View className="h-48 w-48 items-center justify-center rounded-full bg-urgencySoft">
+          <DirectionCIcon
+            name="brokenLink"
+            color={DirectionC.color.coral}
+            size={82}
+          />
+        </View>
+        <AppText
+          variant="label"
+          color="urgency"
+          className="mt-7 uppercase tracking-widest"
         >
-          <Text className="font-semibold text-center text-slate-950">
-            Retry cleanup
-          </Text>
-        </Pressable>
+          Access update
+        </AppText>
+        <AppText variant="display" className="mt-3 text-center">
+          Could not clear Child access
+        </AppText>
+        <AppText color="ink-muted" className="mt-4 text-center">
+          This device couldn’t finish removing the revoked Child profile. No
+          Child access is available until cleanup succeeds.
+        </AppText>
+        {errorMessage ? (
+          <AppText
+            variant="caption"
+            color="urgency"
+            className="mt-3 text-center"
+          >
+            {errorMessage}
+          </AppText>
+        ) : null}
+        <ActionButton
+          className="mt-8 w-full"
+          label="Retry cleanup"
+          onPress={() => setCleanupAttempt((current) => current + 1)}
+        />
+        <AppText
+          variant="bodySmall"
+          color="ink-muted"
+          className="mt-6 text-center"
+        >
+          Keep this app open while access is updated.
+        </AppText>
       </View>
     );
   }
 
   return (
-    <View className="items-center justify-center flex-1 px-6 bg-slate-950">
-      <ActivityIndicator />
+    <View className="flex-1 items-center justify-center bg-canvas px-6">
+      <ActivityIndicator color={DirectionC.color.green} />
 
-      <Text className="mt-3 text-center text-slate-400">
-        {cleanupState ===
-        'cleaning'
-          ? 'Removing revoked Child access...'
-          : 'Checking Child access...'}
-      </Text>
+      <AppText color="ink-muted" className="mt-3 text-center">
+        {cleanupState === "cleaning"
+          ? "Removing revoked Child access…"
+          : "Checking Child access…"}
+      </AppText>
     </View>
   );
 }

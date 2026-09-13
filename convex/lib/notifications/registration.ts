@@ -1,53 +1,27 @@
-import {
-  ConvexError,
-} from 'convex/values';
+import { ConvexError } from "convex/values";
 
-import type {
-  MutationCtx,
-} from '../../_generated/server';
-import {
-  authComponent,
-} from '../../auth';
-import {
-  requireCurrentChildAccess,
-} from '../auth/childAuthorization';
+import type { MutationCtx } from "../../_generated/server";
+import { authComponent } from "../../auth";
+import { requireCurrentChildAccess } from "../auth/childAuthorization";
 
-export type PushPlatform =
-  | 'ios'
-  | 'android';
+export type PushPlatform = "ios" | "android";
 
-function isAnonymousAuthUser(
-  user: object,
-) {
-  return (
-    'isAnonymous' in user &&
-    user.isAnonymous ===
-      true
-  );
+function isAnonymousAuthUser(user: object) {
+  return "isAnonymous" in user && user.isAnonymous === true;
 }
 
-function validateExpoPushToken(
-  value: string,
-) {
-  const token =
-    value.trim();
+function validateExpoPushToken(value: string) {
+  const token = value.trim();
 
   if (
     !(
-      token.startsWith(
-        'ExponentPushToken[',
-      ) ||
-      token.startsWith(
-        'ExpoPushToken[',
-      )
+      token.startsWith("ExponentPushToken[") ||
+      token.startsWith("ExpoPushToken[")
     ) ||
-    !token.endsWith(']') ||
-    token.length >
-      512
+    !token.endsWith("]") ||
+    token.length > 512
   ) {
-    throw new ConvexError(
-      'Invalid Expo Push Token.',
-    );
+    throw new ConvexError("Invalid Expo Push Token.");
   }
 
   return token;
@@ -56,61 +30,33 @@ function validateExpoPushToken(
 export async function registerCurrentPushDevice(
   ctx: MutationCtx,
   expoPushToken: string,
-  platform:
-    PushPlatform,
+  platform: PushPlatform,
   now = Date.now(),
 ) {
-  const authUser =
-    await authComponent.safeGetAuthUser(
-      ctx,
-    );
+  const authUser = await authComponent.safeGetAuthUser(ctx);
 
   if (!authUser) {
-    throw new ConvexError(
-      'Authentication required.',
-    );
+    throw new ConvexError("Authentication required.");
   }
 
-  const token =
-    validateExpoPushToken(
-      expoPushToken,
-    );
+  const token = validateExpoPushToken(expoPushToken);
 
   let childAccessGrantId:
     | Awaited<
-        ReturnType<
-          typeof requireCurrentChildAccess
-        >
-      >['accessGrant']['_id']
+        ReturnType<typeof requireCurrentChildAccess>
+      >["accessGrant"]["_id"]
     | undefined;
 
   let childId:
-    | Awaited<
-        ReturnType<
-          typeof requireCurrentChildAccess
-        >
-      >['child']['_id']
+    | Awaited<ReturnType<typeof requireCurrentChildAccess>>["child"]["_id"]
     | undefined;
 
-  if (
-    isAnonymousAuthUser(
-      authUser,
-    )
-  ) {
-    const childAccess =
-      await requireCurrentChildAccess(
-        ctx,
-      );
+  if (isAnonymousAuthUser(authUser)) {
+    const childAccess = await requireCurrentChildAccess(ctx);
 
-    childAccessGrantId =
-      childAccess
-        .accessGrant
-        ._id;
+    childAccessGrantId = childAccess.accessGrant._id;
 
-    childId =
-      childAccess
-        .child
-        ._id;
+    childId = childAccess.child._id;
   }
 
   /*
@@ -124,147 +70,92 @@ export async function registerCurrentPushDevice(
    * that could expose Parent notifications
    * while a Child is using the device.
    */
-  const registrationsForToken =
-    await ctx.db
-      .query(
-        'pushRegistrations',
-      )
-      .withIndex(
-        'by_expo_push_token',
-        (q) =>
-          q.eq(
-            'expoPushToken',
-            token,
-          ),
-      )
-      .collect();
+  const registrationsForToken = await ctx.db
+    .query("pushRegistrations")
+    .withIndex("by_expo_push_token", (q) => q.eq("expoPushToken", token))
+    .collect();
 
-  for (
-    const registration
-    of registrationsForToken
-  ) {
+  for (const registration of registrationsForToken) {
     if (
-      registration.authUserId ===
-        authUser._id ||
-      registration.disabledAt !==
-        undefined
+      registration.authUserId === authUser._id ||
+      registration.disabledAt !== undefined
     ) {
       continue;
     }
 
-    await ctx.db.patch(
-      registration._id,
-      {
-        disabledAt:
-          now,
+    await ctx.db.patch(registration._id, {
+      disabledAt: now,
 
-        updatedAt:
-          now,
-      },
-    );
+      updatedAt: now,
+    });
   }
 
-  const existing =
-    await ctx.db
-      .query(
-        'pushRegistrations',
-      )
-      .withIndex(
-        'by_auth_user_and_expo_push_token',
-        (q) =>
-          q
-            .eq(
-              'authUserId',
-              authUser._id,
-            )
-            .eq(
-              'expoPushToken',
-              token,
-            ),
-      )
-      .unique();
+  const existing = await ctx.db
+    .query("pushRegistrations")
+    .withIndex("by_auth_user_and_expo_push_token", (q) =>
+      q.eq("authUserId", authUser._id).eq("expoPushToken", token),
+    )
+    .unique();
 
   if (existing) {
-    await ctx.db.replace(
-      existing._id,
-      {
-        authUserId:
-          authUser._id,
+    await ctx.db.replace(existing._id, {
+      authUserId: authUser._id,
 
-        expoPushToken:
-          token,
+      expoPushToken: token,
 
-        platform,
+      platform,
 
-        ...(childAccessGrantId !==
-        undefined
-          ? {
-              childAccessGrantId,
-            }
-          : {}),
+      ...(childAccessGrantId !== undefined
+        ? {
+            childAccessGrantId,
+          }
+        : {}),
 
-        ...(childId !==
-        undefined
-          ? {
-              childId,
-            }
-          : {}),
+      ...(childId !== undefined
+        ? {
+            childId,
+          }
+        : {}),
 
-        createdAt:
-          existing.createdAt,
+      createdAt: existing.createdAt,
 
-        updatedAt:
-          now,
-      },
-    );
+      updatedAt: now,
+    });
 
     return {
-      registrationId:
-        existing._id,
+      registrationId: existing._id,
 
-      created:
-        false,
+      created: false,
     };
   }
 
-  const registrationId =
-    await ctx.db.insert(
-      'pushRegistrations',
-      {
-        authUserId:
-          authUser._id,
+  const registrationId = await ctx.db.insert("pushRegistrations", {
+    authUserId: authUser._id,
 
-        expoPushToken:
-          token,
+    expoPushToken: token,
 
-        platform,
+    platform,
 
-        ...(childAccessGrantId !==
-        undefined
-          ? {
-              childAccessGrantId,
-            }
-          : {}),
+    ...(childAccessGrantId !== undefined
+      ? {
+          childAccessGrantId,
+        }
+      : {}),
 
-        ...(childId !==
-        undefined
-          ? {
-              childId,
-            }
-          : {}),
+    ...(childId !== undefined
+      ? {
+          childId,
+        }
+      : {}),
 
-        createdAt:
-          now,
+    createdAt: now,
 
-        updatedAt:
-          now,
-      },
-    );
+    updatedAt: now,
+  });
 
   return {
     registrationId,
-    created:
-      true,
+    created: true,
   };
 }
 
@@ -273,63 +164,35 @@ export async function disableCurrentPushDevice(
   expoPushToken: string,
   now = Date.now(),
 ) {
-  const authUser =
-    await authComponent.safeGetAuthUser(
-      ctx,
-    );
+  const authUser = await authComponent.safeGetAuthUser(ctx);
 
   if (!authUser) {
-    throw new ConvexError(
-      'Authentication required.',
-    );
+    throw new ConvexError("Authentication required.");
   }
 
-  const token =
-    validateExpoPushToken(
-      expoPushToken,
-    );
+  const token = validateExpoPushToken(expoPushToken);
 
-  const registration =
-    await ctx.db
-      .query(
-        'pushRegistrations',
-      )
-      .withIndex(
-        'by_auth_user_and_expo_push_token',
-        (q) =>
-          q
-            .eq(
-              'authUserId',
-              authUser._id,
-            )
-            .eq(
-              'expoPushToken',
-              token,
-            ),
-      )
-      .unique();
+  const registration = await ctx.db
+    .query("pushRegistrations")
+    .withIndex("by_auth_user_and_expo_push_token", (q) =>
+      q.eq("authUserId", authUser._id).eq("expoPushToken", token),
+    )
+    .unique();
 
   if (!registration) {
     return {
-      disabled:
-        false,
+      disabled: false,
     };
   }
 
-  await ctx.db.patch(
-    registration._id,
-    {
-      disabledAt:
-        now,
+  await ctx.db.patch(registration._id, {
+    disabledAt: now,
 
-      updatedAt:
-        now,
-    },
-  );
+    updatedAt: now,
+  });
 
   return {
-    disabled:
-      true,
+    disabled: true,
   };
 }
 
@@ -341,58 +204,31 @@ export async function disableCurrentPushDevice(
  */
 export async function disableExpoPushTokenGlobally(
   ctx: MutationCtx,
-  expoPushToken:
-    string,
+  expoPushToken: string,
   now = Date.now(),
 ) {
-  const registrations =
-    await ctx.db
-      .query(
-        'pushRegistrations',
-      )
-      .withIndex(
-        'by_expo_push_token',
-        (q) =>
-          q.eq(
-            'expoPushToken',
-            expoPushToken,
-          ),
-      )
-      .collect();
+  const registrations = await ctx.db
+    .query("pushRegistrations")
+    .withIndex("by_expo_push_token", (q) =>
+      q.eq("expoPushToken", expoPushToken),
+    )
+    .collect();
 
-  for (
-    const registration
-    of registrations
-  ) {
-    if (
-      registration
-        .disabledAt !==
-      undefined
-    ) {
+  for (const registration of registrations) {
+    if (registration.disabledAt !== undefined) {
       continue;
     }
 
-    await ctx.db.patch(
-      registration._id,
-      {
-        disabledAt:
-          now,
+    await ctx.db.patch(registration._id, {
+      disabledAt: now,
 
-        updatedAt:
-          now,
-      },
-    );
+      updatedAt: now,
+    });
   }
 
   return {
-    disabledCount:
-      registrations.filter(
-        (
-          registration,
-        ) =>
-          registration
-            .disabledAt ===
-          undefined,
-      ).length,
+    disabledCount: registrations.filter(
+      (registration) => registration.disabledAt === undefined,
+    ).length,
   };
 }

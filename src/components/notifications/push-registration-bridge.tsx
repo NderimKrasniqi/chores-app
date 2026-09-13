@@ -1,169 +1,95 @@
-import { useServerConfirmedMutation } from '@/hooks/use-server-confirmed-mutation';
-import {
-  reportPushRegistrationFailure,
-} from '@/lib/notifications/push-observability';
-import Constants from 'expo-constants';
-import * as Notifications from 'expo-notifications';
-import {
-  useConvexAuth,
-} from 'convex/react';
-import {
-  useEffect,
-} from 'react';
-import {
-  Platform,
-} from 'react-native';
+import { useServerConfirmedMutation } from "@/hooks/use-server-confirmed-mutation";
+import { reportPushRegistrationFailure } from "@/lib/notifications/push-observability";
+import Constants from "expo-constants";
+import * as Notifications from "expo-notifications";
+import { useConvexAuth } from "convex/react";
+import { useEffect } from "react";
+import { Platform } from "react-native";
 
-import {
-  api,
-} from '../../../convex/_generated/api';
+import { api } from "../../../convex/_generated/api";
 
 Notifications.setNotificationHandler({
-  handleNotification:
-    async () => ({
-      shouldPlaySound:
-        false,
+  handleNotification: async () => ({
+    shouldPlaySound: false,
 
-      shouldSetBadge:
-        false,
+    shouldSetBadge: false,
 
-      shouldShowBanner:
-        true,
+    shouldShowBanner: true,
 
-      shouldShowList:
-        true,
-    }),
+    shouldShowList: true,
+  }),
 });
 
 function getExpoProjectId() {
-  const extra =
-    Constants.expoConfig
-      ?.extra as
-      | {
-          eas?: {
-            projectId?:
-              string;
-          };
-        }
-      | undefined;
+  const extra = Constants.expoConfig?.extra as
+    | {
+        eas?: {
+          projectId?: string;
+        };
+      }
+    | undefined;
 
-  return (
-    extra?.eas
-      ?.projectId ??
-    Constants.easConfig
-      ?.projectId ??
-    null
-  );
+  return extra?.eas?.projectId ?? Constants.easConfig?.projectId ?? null;
 }
 
 export function PushRegistrationBridge() {
-  const {
-    isAuthenticated,
-    isLoading,
-  } =
-    useConvexAuth();
+  const { isAuthenticated, isLoading } = useConvexAuth();
 
-  const registerDevice =
-    useServerConfirmedMutation(
-      api
-        .pushNotifications
-        .registerCurrentDevice,
-    );
+  const registerDevice = useServerConfirmedMutation(
+    api.pushNotifications.registerCurrentDevice,
+  );
 
   useEffect(() => {
-    if (
-      isLoading ||
-      !isAuthenticated
-    ) {
+    if (isLoading || !isAuthenticated) {
       return;
     }
 
-    let cancelled =
-      false;
+    let cancelled = false;
 
-    let tokenSubscription:
-      Notifications.EventSubscription |
-      undefined;
+    let tokenSubscription: Notifications.EventSubscription | undefined;
 
     async function register() {
-      if (
-        Platform.OS !==
-          'ios' &&
-        Platform.OS !==
-          'android'
-      ) {
+      if (Platform.OS !== "ios" && Platform.OS !== "android") {
         return;
       }
 
-      if (
-        Platform.OS ===
-        'android'
-      ) {
-        await Notifications
-          .setNotificationChannelAsync(
-            'default',
-            {
-              name:
-                'Chores',
+      if (Platform.OS === "android") {
+        await Notifications.setNotificationChannelAsync("default", {
+          name: "Chores",
 
-              importance:
-                Notifications
-                  .AndroidImportance
-                  .DEFAULT,
-            },
-          );
+          importance: Notifications.AndroidImportance.DEFAULT,
+        });
       }
 
-      let permissions =
-        await Notifications
-          .getPermissionsAsync();
+      let permissions = await Notifications.getPermissionsAsync();
 
-      if (
-        !permissions.granted &&
-        permissions.status ===
-          'undetermined'
-      ) {
-        permissions =
-          await Notifications
-            .requestPermissionsAsync();
+      if (!permissions.granted && permissions.status === "undetermined") {
+        permissions = await Notifications.requestPermissionsAsync();
       }
 
-      if (
-        !permissions.granted
-      ) {
+      if (!permissions.granted) {
         return;
       }
 
-      const projectId =
-        getExpoProjectId();
+      const projectId = getExpoProjectId();
 
       if (!projectId) {
-        reportPushRegistrationFailure(
-          'missing_project_id',
-        );
+        reportPushRegistrationFailure("missing_project_id");
 
         return;
       }
 
-      const resolvedProjectId:
-        string =
-        projectId;
+      const resolvedProjectId: string = projectId;
 
       async function persistToken() {
-        let token:
-          Notifications.ExpoPushToken;
+        let token: Notifications.ExpoPushToken;
 
         try {
-          token =
-            await Notifications
-              .getExpoPushTokenAsync({
-                projectId:
-                  resolvedProjectId,
-              });
+          token = await Notifications.getExpoPushTokenAsync({
+            projectId: resolvedProjectId,
+          });
         } catch {
-          reportPushRegistrationFailure(
-            'token_acquisition',
-          );
+          reportPushRegistrationFailure("token_acquisition");
 
           return;
         }
@@ -174,60 +100,34 @@ export function PushRegistrationBridge() {
 
         try {
           await registerDevice({
-            expoPushToken:
-              token.data,
+            expoPushToken: token.data,
 
-            platform:
-              Platform.OS as
-                | 'ios'
-                | 'android',
+            platform: Platform.OS as "ios" | "android",
           });
         } catch {
-          reportPushRegistrationFailure(
-            'backend_registration',
-          );
+          reportPushRegistrationFailure("backend_registration");
         }
       }
 
       await persistToken();
 
-      tokenSubscription =
-        Notifications
-          .addPushTokenListener(
-            () => {
-              void persistToken()
-                .catch(
-                  () => {
-                    reportPushRegistrationFailure(
-                      'token_refresh',
-                    );
-                  },
-                );
-            },
-          );
+      tokenSubscription = Notifications.addPushTokenListener(() => {
+        void persistToken().catch(() => {
+          reportPushRegistrationFailure("token_refresh");
+        });
+      });
     }
 
-    void register()
-      .catch(
-        () => {
-          reportPushRegistrationFailure(
-            'setup',
-          );
-        },
-      );
+    void register().catch(() => {
+      reportPushRegistrationFailure("setup");
+    });
 
     return () => {
-      cancelled =
-        true;
+      cancelled = true;
 
-      tokenSubscription
-        ?.remove();
+      tokenSubscription?.remove();
     };
-  }, [
-    isAuthenticated,
-    isLoading,
-    registerDevice,
-  ]);
+  }, [isAuthenticated, isLoading, registerDevice]);
 
   return null;
 }

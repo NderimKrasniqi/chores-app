@@ -1,19 +1,10 @@
-import {
-  useQuery,
-} from 'convex/react';
-import {
-  Text,
-  View,
-} from 'react-native';
+import { useQuery } from "convex/react";
+import { Text, View } from "react-native";
 
-import {
-  api,
-} from '../../../convex/_generated/api';
+import { api } from "../../../convex/_generated/api";
 
 type ChildRunningBalanceCardViewProps = {
-  balanceSek:
-    number |
-    undefined;
+  balanceSek: number | undefined;
 };
 
 export function ChildRunningBalanceCardView({
@@ -21,49 +12,33 @@ export function ChildRunningBalanceCardView({
 }: ChildRunningBalanceCardViewProps) {
   return (
     <View
-      className="p-5 mt-8 border rounded-2xl border-slate-800 bg-slate-900"
+      className="mt-8 rounded-2xl border border-slate-800 bg-slate-900 p-5"
       testID="task14-running-balance-card"
     >
-      <Text className="text-sm font-semibold tracking-wider uppercase text-slate-500">
+      <Text className="text-sm font-semibold uppercase tracking-wider text-slate-500">
         Running balance
       </Text>
 
-      {balanceSek ===
-      undefined ? (
-        <Text className="mt-2 text-3xl font-bold text-slate-500">
-          …
-        </Text>
+      {balanceSek === undefined ? (
+        <Text className="mt-2 text-3xl font-bold text-slate-500">…</Text>
       ) : (
         <Text
           className="mt-2 text-3xl font-bold text-white"
           testID="task14-running-balance-value"
         >
-          {
-            balanceSek
-          }{' '}
-          kr
+          {balanceSek} kr
         </Text>
       )}
 
       <Text className="mt-2 text-sm leading-5 text-slate-400">
-        Approved earnings and Claimable
-        penalties update this total.
+        Approved earnings and Claimable penalties update this total.
       </Text>
     </View>
   );
 }
 
 export function ChildRunningBalanceCard() {
-  const balance =
-    useQuery(
-      api.runningBalances.getMine,
-    );
+  const balance = useQuery(api.runningBalances.getMine);
 
-  return (
-    <ChildRunningBalanceCardView
-      balanceSek={
-        balance?.balanceSek
-      }
-    />
-  );
+  return <ChildRunningBalanceCardView balanceSek={balance?.balanceSek} />;
 }

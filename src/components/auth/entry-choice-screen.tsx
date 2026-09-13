@@ -3,35 +3,35 @@ import {
   listLocalChildContexts,
   removeLocalChildContext,
   type LocalChildContext,
-} from '@/lib/child-access/local-access';
+} from "@/lib/child-access/local-access";
 import {
   forgetLocalChildGrant,
   listLocalChildGrantBindings,
   type LocalChildGrantBinding,
-} from '@/lib/child-access/grant-status';
+} from "@/lib/child-access/grant-status";
 import {
   isChildExplicitlyLocked,
   markTrustedSingleChildAutoOpen,
   setChildExplicitlyLocked,
-} from '@/lib/child-access/unlock-policy';
-import { useAuthRuntime } from '@/providers/auth-runtime-provider';
-import { useQuery } from 'convex/react';
-import {
-  useEffect,
-  useState,
-} from 'react';
-import {
-  ActivityIndicator,
-  Pressable,
-  Text,
-  View,
-} from 'react-native';
+} from "@/lib/child-access/unlock-policy";
+import { DirectionCIcon } from "@/components/ui/direction-c-icon";
+import { DirectionC } from "@/constants/direction-c";
+import { AppText, Surface } from "@/design-system";
+import { useAuthRuntime } from "@/providers/auth-runtime-provider";
+import { useQuery } from "convex/react";
+import { Image } from "expo-image";
+import { StatusBar } from "expo-status-bar";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-import { api } from '../../../convex/_generated/api';
+import { api } from "../../../convex/_generated/api";
+
+const childAvatar = require("../../../assets/images/direction-c/alex-avatar.png");
+const chooserHero = require("../../../assets/images/direction-c/parent-access-hero.png");
 
 type EntryChoiceScreenProps = {
-  onChooseParent:
-    () => void;
+  onChooseParent: () => void;
 };
 
 /*
@@ -44,81 +44,45 @@ type EntryChoiceScreenProps = {
  * removing one Child never automatically
  * opens another Child in the same session.
  */
-let automaticallyOpenedSingleChild =
-  false;
+let automaticallyOpenedSingleChild = false;
 
-export function EntryChoiceScreen({
-  onChooseParent,
-}: EntryChoiceScreenProps) {
-  const {
-    activateParentStorage,
-    activateStoragePrefix,
-  } = useAuthRuntime();
+export function EntryChoiceScreen({ onChooseParent }: EntryChoiceScreenProps) {
+  const { activateParentStorage, activateStoragePrefix } = useAuthRuntime();
 
-  const [
-    localChildContexts,
-    setLocalChildContexts,
-  ] = useState<
+  const [localChildContexts, setLocalChildContexts] = useState<
     LocalChildContext[]
   >([]);
 
-  const [
-    grantBindings,
-    setGrantBindings,
-  ] = useState<
-    LocalChildGrantBinding[]
-  >([]);
+  const [grantBindings, setGrantBindings] = useState<LocalChildGrantBinding[]>(
+    [],
+  );
 
-  const [
-    loadingContexts,
-    setLoadingContexts,
-  ] = useState(true);
+  const [loadingContexts, setLoadingContexts] = useState(true);
 
-  const [
-    cleaningRevokedProfiles,
-    setCleaningRevokedProfiles,
-  ] = useState(false);
+  const [cleaningRevokedProfiles, setCleaningRevokedProfiles] = useState(false);
 
-  const [
-    switchingContextId,
-    setSwitchingContextId,
-  ] = useState<
-    string | null
-  >(null);
+  const [switchingContextId, setSwitchingContextId] = useState<string | null>(
+    null,
+  );
 
-  const [
-    startingChildSession,
-    setStartingChildSession,
-  ] = useState(false);
+  const [startingChildSession, setStartingChildSession] = useState(false);
 
-  const [
-    errorMessage,
-    setErrorMessage,
-  ] = useState<
-    string | null
-  >(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   /*
    * Live Convex subscription for the
    * opaque device-grant IDs already known
    * to this physical device.
    */
-  const grantStatuses =
-    useQuery(
-      api.childAccess
-        .getLocalGrantStatuses,
+  const grantStatuses = useQuery(
+    api.childAccess.getLocalGrantStatuses,
 
-      grantBindings.length >
-        0
-        ? {
-            accessGrantIds:
-              grantBindings.map(
-                (binding) =>
-                  binding.accessGrantId,
-              ),
-          }
-        : 'skip',
-    );
+    grantBindings.length > 0
+      ? {
+          accessGrantIds: grantBindings.map((binding) => binding.accessGrantId),
+        }
+      : "skip",
+  );
 
   /*
    * Derive revocation directly from the
@@ -128,102 +92,61 @@ export function EntryChoiceScreen({
    * grant, the chooser is hidden before
    * cleanup begins.
    */
-  const detectedRevokedGrantIds =
-    new Set(
-      grantStatuses
-        ?.filter(
-          (status) =>
-            !status.isActive,
-        )
-        .map(
-          (status) =>
-            status.accessGrantId,
-        ) ?? [],
-    );
+  const detectedRevokedGrantIds = new Set(
+    grantStatuses
+      ?.filter((status) => !status.isActive)
+      .map((status) => status.accessGrantId) ?? [],
+  );
 
-  const hasDetectedRevocation =
-    detectedRevokedGrantIds
-      .size > 0;
+  const hasDetectedRevocation = detectedRevokedGrantIds.size > 0;
 
-  const updatingAccess =
-    hasDetectedRevocation ||
-    cleaningRevokedProfiles;
+  const updatingAccess = hasDetectedRevocation || cleaningRevokedProfiles;
 
   /*
    * Read saved Child profiles and their
    * local grant bindings from SecureStore.
    */
   useEffect(() => {
-    let cancelled =
-      false;
+    let cancelled = false;
 
     async function loadContexts() {
-      setLoadingContexts(
-        true,
-      );
+      setLoadingContexts(true);
 
-      setErrorMessage(
-        null,
-      );
+      setErrorMessage(null);
 
       try {
-        const [
-          contexts,
-          bindings,
-        ] =
-          await Promise.all([
-            listLocalChildContexts(),
-            listLocalChildGrantBindings(),
-          ]);
+        const [contexts, bindings] = await Promise.all([
+          listLocalChildContexts(),
+          listLocalChildGrantBindings(),
+        ]);
 
         if (cancelled) {
           return;
         }
 
-        const contextIds =
-          new Set(
-            contexts.map(
-              (context) =>
-                context.contextId,
-            ),
-          );
+        const contextIds = new Set(
+          contexts.map((context) => context.contextId),
+        );
 
-        const validBindings =
-          bindings.filter(
-            (binding) =>
-              contextIds.has(
-                binding.contextId,
-              ),
-          );
+        const validBindings = bindings.filter((binding) =>
+          contextIds.has(binding.contextId),
+        );
 
-        const staleBindings =
-          bindings.filter(
-            (binding) =>
-              !contextIds.has(
-                binding.contextId,
-              ),
-          );
+        const staleBindings = bindings.filter(
+          (binding) => !contextIds.has(binding.contextId),
+        );
 
-        for (
-          const binding of
-          staleBindings
-        ) {
-          await forgetLocalChildGrant(
-            binding.contextId,
-          );
+        for (const binding of staleBindings) {
+          await forgetLocalChildGrant(binding.contextId);
         }
 
         if (cancelled) {
           return;
         }
 
-        setLocalChildContexts(
-          contexts,
-        );
+        setLocalChildContexts(contexts);
 
-        setGrantBindings(
-          validBindings,
-        );
+        setGrantBindings(validBindings);
       } catch (error) {
         if (cancelled) {
           return;
@@ -232,13 +155,11 @@ export function EntryChoiceScreen({
         setErrorMessage(
           error instanceof Error
             ? error.message
-            : 'Could not load saved child profiles.',
+            : "Could not load saved child profiles.",
         );
       } finally {
         if (!cancelled) {
-          setLoadingContexts(
-            false,
-          );
+          setLoadingContexts(false);
         }
       }
     }
@@ -246,8 +167,7 @@ export function EntryChoiceScreen({
     void loadContexts();
 
     return () => {
-      cancelled =
-        true;
+      cancelled = true;
     };
   }, []);
 
@@ -268,38 +188,21 @@ export function EntryChoiceScreen({
    * state, leaving "Updating access..." stuck.
    */
   useEffect(() => {
-    if (
-      grantStatuses ===
-      undefined
-    ) {
+    if (grantStatuses === undefined) {
       return;
     }
 
-    const revokedGrantIds =
-      new Set(
-        grantStatuses
-          .filter(
-            (status) =>
-              !status.isActive,
-          )
-          .map(
-            (status) =>
-              status.accessGrantId,
-          ),
-      );
+    const revokedGrantIds = new Set(
+      grantStatuses
+        .filter((status) => !status.isActive)
+        .map((status) => status.accessGrantId),
+    );
 
-    const revokedBindings =
-      grantBindings.filter(
-        (binding) =>
-          revokedGrantIds.has(
-            binding.accessGrantId,
-          ),
-      );
+    const revokedBindings = grantBindings.filter((binding) =>
+      revokedGrantIds.has(binding.accessGrantId),
+    );
 
-    if (
-      revokedBindings.length ===
-      0
-    ) {
+    if (revokedBindings.length === 0) {
       return;
     }
 
@@ -307,50 +210,28 @@ export function EntryChoiceScreen({
      * Do not automatically enter another
      * Child profile after revocation.
      */
-    automaticallyOpenedSingleChild =
-      true;
+    automaticallyOpenedSingleChild = true;
 
-    let cancelled =
-      false;
+    let cancelled = false;
 
     async function removeRevokedProfiles() {
-      setCleaningRevokedProfiles(
-        true,
-      );
+      setCleaningRevokedProfiles(true);
 
       try {
-        const revokedContextIds =
-          new Set(
-            revokedBindings.map(
-              (binding) =>
-                binding.contextId,
-            ),
-          );
+        const revokedContextIds = new Set(
+          revokedBindings.map((binding) => binding.contextId),
+        );
 
-        const revokedContexts =
-          localChildContexts.filter(
-            (context) =>
-              revokedContextIds.has(
-                context.contextId,
-              ),
-          );
+        const revokedContexts = localChildContexts.filter((context) =>
+          revokedContextIds.has(context.contextId),
+        );
 
-        for (
-          const context of
-          revokedContexts
-        ) {
-          await removeLocalChildContext(
-            context.contextId,
-          );
+        for (const context of revokedContexts) {
+          await removeLocalChildContext(context.contextId);
 
-          await forgetLocalChildGrant(
-            context.contextId,
-          );
+          await forgetLocalChildGrant(context.contextId);
 
-          await setChildExplicitlyLocked(
-            context.childId,
-            false,
-          );
+          await setChildExplicitlyLocked(context.childId, false);
         }
 
         /*
@@ -358,20 +239,13 @@ export function EntryChoiceScreen({
          * local context disappeared before
          * its binding did.
          */
-        for (
-          const binding of
-          revokedBindings
-        ) {
+        for (const binding of revokedBindings) {
           if (
             !revokedContexts.some(
-              (context) =>
-                context.contextId ===
-                binding.contextId,
+              (context) => context.contextId === binding.contextId,
             )
           ) {
-            await forgetLocalChildGrant(
-              binding.contextId,
-            );
+            await forgetLocalChildGrant(binding.contextId);
           }
         }
 
@@ -379,24 +253,16 @@ export function EntryChoiceScreen({
           return;
         }
 
-        setLocalChildContexts(
-          (current) =>
-            current.filter(
-              (context) =>
-                !revokedContextIds.has(
-                  context.contextId,
-                ),
-            ),
+        setLocalChildContexts((current) =>
+          current.filter(
+            (context) => !revokedContextIds.has(context.contextId),
+          ),
         );
 
-        setGrantBindings(
-          (current) =>
-            current.filter(
-              (binding) =>
-                !revokedContextIds.has(
-                  binding.contextId,
-                ),
-            ),
+        setGrantBindings((current) =>
+          current.filter(
+            (binding) => !revokedContextIds.has(binding.contextId),
+          ),
         );
       } catch (error) {
         if (cancelled) {
@@ -406,7 +272,7 @@ export function EntryChoiceScreen({
         setErrorMessage(
           error instanceof Error
             ? error.message
-            : 'Could not remove revoked Child profile.',
+            : "Could not remove revoked Child profile.",
         );
       } finally {
         /*
@@ -416,9 +282,7 @@ export function EntryChoiceScreen({
          * clear the spinner.
          */
         if (!cancelled) {
-          setCleaningRevokedProfiles(
-            false,
-          );
+          setCleaningRevokedProfiles(false);
         }
       }
     }
@@ -426,14 +290,9 @@ export function EntryChoiceScreen({
     void removeRevokedProfiles();
 
     return () => {
-      cancelled =
-        true;
+      cancelled = true;
     };
-  }, [
-    grantBindings,
-    grantStatuses,
-    localChildContexts,
-  ]);
+  }, [grantBindings, grantStatuses, localChildContexts]);
 
   /*
    * Fresh app launch with exactly one
@@ -451,33 +310,24 @@ export function EntryChoiceScreen({
     if (
       loadingContexts ||
       updatingAccess ||
-      localChildContexts.length !==
-        1 ||
+      localChildContexts.length !== 1 ||
       automaticallyOpenedSingleChild
     ) {
       return;
     }
 
-    const onlyChild =
-      localChildContexts[0];
+    const onlyChild = localChildContexts[0];
 
-    const onlyChildBinding =
-      grantBindings.find(
-        (binding) =>
-          binding.contextId ===
-          onlyChild.contextId,
-      );
+    const onlyChildBinding = grantBindings.find(
+      (binding) => binding.contextId === onlyChild.contextId,
+    );
 
     /*
      * Existing migrated profile:
      * wait for Convex to confirm the known
      * grant before auto-opening it.
      */
-    if (
-      onlyChildBinding &&
-      grantStatuses ===
-        undefined
-    ) {
+    if (onlyChildBinding && grantStatuses === undefined) {
       return;
     }
 
@@ -487,61 +337,45 @@ export function EntryChoiceScreen({
      */
     if (
       onlyChildBinding &&
-      detectedRevokedGrantIds.has(
-        onlyChildBinding.accessGrantId,
-      )
+      detectedRevokedGrantIds.has(onlyChildBinding.accessGrantId)
     ) {
       return;
     }
 
-    let cancelled =
-      false;
+    let cancelled = false;
 
     async function autoOpenSingleChild() {
-      automaticallyOpenedSingleChild =
-        true;
+      automaticallyOpenedSingleChild = true;
 
       try {
-        const explicitlyLocked =
-          await isChildExplicitlyLocked(
-            onlyChild.childId,
-          );
+        const explicitlyLocked = await isChildExplicitlyLocked(
+          onlyChild.childId,
+        );
 
         if (cancelled) {
           return;
         }
 
-        if (
-          !explicitlyLocked
-        ) {
-          markTrustedSingleChildAutoOpen(
-            onlyChild.authStoragePrefix,
-          );
+        if (!explicitlyLocked) {
+          markTrustedSingleChildAutoOpen(onlyChild.authStoragePrefix);
         }
 
-        setSwitchingContextId(
-          onlyChild.contextId,
-        );
+        setSwitchingContextId(onlyChild.contextId);
 
-        activateStoragePrefix(
-          onlyChild.authStoragePrefix,
-        );
+        activateStoragePrefix(onlyChild.authStoragePrefix);
       } catch (error) {
         if (cancelled) {
           return;
         }
 
-        automaticallyOpenedSingleChild =
-          false;
+        automaticallyOpenedSingleChild = false;
 
-        setSwitchingContextId(
-          null,
-        );
+        setSwitchingContextId(null);
 
         setErrorMessage(
           error instanceof Error
             ? error.message
-            : 'Could not open child profile.',
+            : "Could not open child profile.",
         );
       }
     }
@@ -549,8 +383,7 @@ export function EntryChoiceScreen({
     void autoOpenSingleChild();
 
     return () => {
-      cancelled =
-        true;
+      cancelled = true;
     };
   }, [
     activateStoragePrefix,
@@ -563,76 +396,48 @@ export function EntryChoiceScreen({
   ]);
 
   function handleChooseParent() {
-    setErrorMessage(
-      null,
-    );
+    setErrorMessage(null);
 
     activateParentStorage();
 
     onChooseParent();
   }
 
-  function handleChooseSavedChild(
-    context:
-      LocalChildContext,
-  ) {
-    setErrorMessage(
-      null,
-    );
+  function handleChooseSavedChild(context: LocalChildContext) {
+    setErrorMessage(null);
 
-    setSwitchingContextId(
-      context.contextId,
-    );
+    setSwitchingContextId(context.contextId);
 
     try {
-      activateStoragePrefix(
-        context.authStoragePrefix,
-      );
+      activateStoragePrefix(context.authStoragePrefix);
     } catch (error) {
-      setSwitchingContextId(
-        null,
-      );
+      setSwitchingContextId(null);
 
       setErrorMessage(
         error instanceof Error
           ? error.message
-          : 'Could not open child profile.',
+          : "Could not open child profile.",
       );
     }
   }
 
   async function handleAddChild() {
-    setStartingChildSession(
-      true,
-    );
+    setStartingChildSession(true);
 
-    setErrorMessage(
-      null,
-    );
+    setErrorMessage(null);
 
     try {
-      const childStoragePrefix =
-        createChildAuthStoragePrefix();
+      const childStoragePrefix = createChildAuthStoragePrefix();
 
-      const childAuthClient =
-        activateStoragePrefix(
-          childStoragePrefix,
-        );
+      const childAuthClient = activateStoragePrefix(childStoragePrefix);
 
-      const result =
-        await childAuthClient
-          .signIn
-          .anonymous();
+      const result = await childAuthClient.signIn.anonymous();
 
-      if (
-        result.error
-      ) {
+      if (result.error) {
         activateParentStorage();
 
         setErrorMessage(
-          result.error
-            .message ??
-            'Could not start child session.',
+          result.error.message ?? "Could not start child session.",
         );
       }
     } catch (error) {
@@ -641,12 +446,10 @@ export function EntryChoiceScreen({
       setErrorMessage(
         error instanceof Error
           ? error.message
-          : 'Could not start child session.',
+          : "Could not start child session.",
       );
     } finally {
-      setStartingChildSession(
-        false,
-      );
+      setStartingChildSession(false);
     }
   }
 
@@ -655,140 +458,168 @@ export function EntryChoiceScreen({
    * cleanup, or an active profile switch
    * gets a full-screen spinner.
    */
-  if (
-    loadingContexts ||
-    updatingAccess ||
-    switchingContextId !==
-      null
-  ) {
-    let message =
-      'Loading profiles...';
+  if (loadingContexts || updatingAccess || switchingContextId !== null) {
+    let message = "Loading profiles...";
 
-    if (
-      updatingAccess
-    ) {
-      message =
-        'Updating access...';
+    if (updatingAccess) {
+      message = "Updating access...";
     }
 
-    if (
-      switchingContextId !==
-      null
-    ) {
-      message =
-        'Opening child profile...';
+    if (switchingContextId !== null) {
+      message = "Opening child profile...";
     }
 
     return (
-      <View className="items-center justify-center flex-1 px-6 bg-slate-950">
-        <ActivityIndicator />
-
-        <Text className="mt-3 text-slate-400">
+      <View className="flex-1 items-center justify-center bg-canvas px-6">
+        <ActivityIndicator color={DirectionC.color.green} />
+        <AppText color="ink-muted" className="mt-3">
           {message}
-        </Text>
+        </AppText>
       </View>
     );
   }
 
   return (
-    <View className="justify-center flex-1 px-6 bg-slate-950">
-      <Text className="text-sm font-semibold tracking-wider uppercase text-slate-500">
-        Chores App
-      </Text>
-
-      <Text className="mt-3 text-4xl font-bold text-white">
-        Who&apos;s using this
-        device?
-      </Text>
-
-      <Text className="mt-3 text-base leading-6 text-slate-400">
-        Choose a saved Child
-        profile, sign in as a
-        Parent, or pair another
-        Child.
-      </Text>
-
-      {localChildContexts.length >
-        0 && (
-        <View className="mt-8">
-          <Text className="text-sm font-semibold tracking-wider uppercase text-slate-500">
-            Saved child profiles
-          </Text>
-
-          {localChildContexts.map(
-            (
-              context,
-            ) => (
-              <Pressable
-                key={
-                  context.contextId
-                }
-                className="px-5 py-5 mt-3 border rounded-2xl border-slate-700 bg-slate-900"
-                onPress={() =>
-                  handleChooseSavedChild(
-                    context,
-                  )
-                }
-              >
-                <Text className="text-lg font-semibold text-white">
-                  {
-                    context.childDisplayName
-                  }
-                </Text>
-
-                <Text className="mt-1 text-sm text-slate-400">
-                  {
-                    context.householdName
-                  }
-                </Text>
-              </Pressable>
-            ),
-          )}
+    <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-canvas">
+      <StatusBar style="dark" />
+      <ScrollView
+        contentContainerClassName="flex-grow px-5 pb-6 pt-10"
+        showsVerticalScrollIndicator={false}
+      >
+        <View className="min-h-[250px]">
+          <AppText
+            variant="label"
+            color="ink-faint"
+            className="uppercase tracking-widest"
+          >
+            Chores App
+          </AppText>
+          <AppText variant="display" className="mt-4 w-[70%]">
+            Who’s using this device?
+          </AppText>
+          <AppText className="mt-3 w-[72%]">
+            Choose a saved Child profile, sign in as a Parent, or pair another
+            Child.
+          </AppText>
+          <Image
+            source={chooserHero}
+            className="absolute -right-12 top-4 h-64 w-52"
+            contentFit="contain"
+            accessible={false}
+          />
         </View>
-      )}
 
-      <Pressable
-        className="px-5 py-5 mt-8 bg-white rounded-2xl"
-        onPress={
-          handleChooseParent
-        }
-      >
-        <Text className="text-lg font-semibold text-center text-slate-950">
-          I&apos;m a parent
-        </Text>
+        {localChildContexts.length > 0 ? (
+          <View className="mt-2">
+            <AppText
+              variant="label"
+              color="ink-faint"
+              className="uppercase tracking-widest"
+            >
+              Saved Child profiles
+            </AppText>
 
-        <Text className="mt-1 text-sm text-center text-slate-600">
-          Sign in or open the
-          Parent account
-        </Text>
-      </Pressable>
+            {localChildContexts.map((context) => (
+              <Pressable
+                key={context.contextId}
+                className="mt-3 min-h-[92px] flex-row items-center rounded-large bg-surface p-3 shadow-md"
+                onPress={() => handleChooseSavedChild(context)}
+              >
+                <Image
+                  source={childAvatar}
+                  className="h-[76px] w-[76px] rounded-full"
+                  contentFit="contain"
+                  accessible={false}
+                />
+                <View className="ml-4 flex-1">
+                  <AppText variant="sectionTitle">
+                    {context.childDisplayName}
+                  </AppText>
+                  <AppText color="ink-muted">{context.householdName}</AppText>
+                </View>
+                <DirectionCIcon
+                  name="chevron"
+                  color={DirectionC.color.ink}
+                  size={24}
+                />
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
 
-      <Pressable
-        className="px-5 py-5 mt-4 border rounded-2xl border-slate-700 bg-slate-900"
-        disabled={
-          startingChildSession
-        }
-        onPress={
-          handleAddChild
-        }
-      >
-        <Text className="text-lg font-semibold text-center text-white">
-          {startingChildSession
-            ? 'Starting child setup...'
-            : 'Add another child'}
-        </Text>
+        <Pressable
+          className="mt-6 min-h-[94px] flex-row items-center rounded-large bg-actionSoft p-4"
+          onPress={handleChooseParent}
+        >
+          <View className="h-14 w-14 items-center justify-center rounded-full bg-actionSoftStrong">
+            <DirectionCIcon
+              name="person"
+              color={DirectionC.color.greenDeep}
+              size={28}
+            />
+          </View>
+          <View className="ml-4 flex-1">
+            <AppText variant="cardTitle">I’m a parent</AppText>
+            <AppText variant="bodySmall" color="ink-muted" className="mt-1">
+              Sign in or open the Parent account.
+            </AppText>
+          </View>
+          <DirectionCIcon
+            name="chevron"
+            color={DirectionC.color.ink}
+            size={24}
+          />
+        </Pressable>
 
-        <Text className="mt-1 text-sm text-center text-slate-400">
-          Pair another Child
-          profile to this device
-        </Text>
-      </Pressable>
+        <Pressable
+          className="mt-4 min-h-[94px] flex-row items-center rounded-large border-2 border-infoSoftStrong bg-surface p-4"
+          disabled={startingChildSession}
+          onPress={handleAddChild}
+        >
+          <View className="h-14 w-14 items-center justify-center rounded-full bg-infoSoft">
+            <DirectionCIcon
+              name="devices"
+              color={DirectionC.color.ink}
+              size={28}
+            />
+          </View>
+          <View className="ml-4 flex-1">
+            <AppText variant="cardTitle">
+              {startingChildSession
+                ? "Starting Child setup…"
+                : "Pair another child"}
+            </AppText>
+            <AppText variant="bodySmall" color="ink-muted" className="mt-1">
+              Add another Child profile to this device.
+            </AppText>
+          </View>
+          <DirectionCIcon
+            name="chevron"
+            color={DirectionC.color.ink}
+            size={24}
+          />
+        </Pressable>
 
-      {errorMessage && (
-        <Text className="mt-5 text-center text-red-400">
-          {errorMessage}
-        </Text>
-      )}
-    </View>
+        {errorMessage ? (
+          <Surface tone="coral" elevated={false} className="mt-4 p-3">
+            <AppText
+              variant="bodySmall"
+              color="urgency"
+              className="text-center"
+            >
+              {errorMessage}
+            </AppText>
+          </Surface>
+        ) : null}
+
+        <AppText
+          variant="caption"
+          color="ink-muted"
+          className="mt-8 text-center"
+        >
+          Saved profiles stay private on this device.
+        </AppText>
+      </ScrollView>
+    </SafeAreaView>
   );
 }

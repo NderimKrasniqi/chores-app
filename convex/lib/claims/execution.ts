@@ -1,56 +1,29 @@
-import {
-  ConvexError,
-} from 'convex/values';
+import { ConvexError } from "convex/values";
 
-import type {
-  Id,
-} from '../../_generated/dataModel';
-import type {
-  MutationCtx,
-} from '../../_generated/server';
-import {
-  consumeEvidenceUploadIntent,
-} from '../evidence/submissionEvidence';
+import type { Id } from "../../_generated/dataModel";
+import type { MutationCtx } from "../../_generated/server";
+import { consumeEvidenceUploadIntent } from "../evidence/submissionEvidence";
 
 export async function submitClaimableClaim(
   ctx: MutationCtx,
-  householdId:
-    Id<'households'>,
-  childId:
-    Id<'children'>,
-  claimId:
-    Id<'choreClaims'>,
+  householdId: Id<"households">,
+  childId: Id<"children">,
+  claimId: Id<"choreClaims">,
   now = Date.now(),
-  evidenceUploadIntentId?:
-    Id<'submissionEvidenceUploads'>,
+  evidenceUploadIntentId?: Id<"submissionEvidenceUploads">,
 ) {
-  const claim =
-    await ctx.db.get(
-      claimId,
-    );
+  const claim = await ctx.db.get(claimId);
 
   if (!claim) {
-    throw new ConvexError(
-      'Claim not found.',
-    );
+    throw new ConvexError("Claim not found.");
   }
 
-  if (
-    claim.householdId !==
-    householdId
-  ) {
-    throw new ConvexError(
-      'This Claim does not belong to this Household.',
-    );
+  if (claim.householdId !== householdId) {
+    throw new ConvexError("This Claim does not belong to this Household.");
   }
 
-  if (
-    claim.childId !==
-    childId
-  ) {
-    throw new ConvexError(
-      'This Claim belongs to another Child.',
-    );
+  if (claim.childId !== childId) {
+    throw new ConvexError("This Claim belongs to another Child.");
   }
 
   /*
@@ -62,41 +35,25 @@ export async function submitClaimableClaim(
    * neither may create another attempt-1
    * submission.
    */
-  if (
-    claim.state !==
-    'claimed'
-  ) {
-    throw new ConvexError(
-      'Only an active unsubmitted Claim can be submitted.',
-    );
+  if (claim.state !== "claimed") {
+    throw new ConvexError("Only an active unsubmitted Claim can be submitted.");
   }
 
-  const occurrence =
-    await ctx.db.get(
-      claim.occurrenceId,
-    );
+  const occurrence = await ctx.db.get(claim.occurrenceId);
 
   if (!occurrence) {
+    throw new ConvexError("Claimable Chore occurrence not found.");
+  }
+
+  if (occurrence.householdId !== householdId) {
     throw new ConvexError(
-      'Claimable Chore occurrence not found.',
+      "This Claimable Chore does not belong to this Household.",
     );
   }
 
-  if (
-    occurrence.householdId !==
-    householdId
-  ) {
+  if (occurrence.kind !== "claimable") {
     throw new ConvexError(
-      'This Claimable Chore does not belong to this Household.',
-    );
-  }
-
-  if (
-    occurrence.kind !==
-    'claimable'
-  ) {
-    throw new ConvexError(
-      'Only Claimable Chores can be submitted through this flow.',
+      "Only Claimable Chores can be submitted through this flow.",
     );
   }
 
@@ -106,12 +63,9 @@ export async function submitClaimableClaim(
    * Claimable occurrence remains available
    * until submission.
    */
-  if (
-    occurrence.state !==
-    'available'
-  ) {
+  if (occurrence.state !== "available") {
     throw new ConvexError(
-      'This Claimable Chore is not available for submission.',
+      "This Claimable Chore is not available for submission.",
     );
   }
 
@@ -123,88 +77,57 @@ export async function submitClaimableClaim(
    * the immutable occurrence deadline is
    * rejected.
    */
-  if (
-    now >
-    occurrence.deadlineAt
-  ) {
-    throw new ConvexError(
-      'The Claimable Chore deadline has passed.',
-    );
+  if (now > occurrence.deadlineAt) {
+    throw new ConvexError("The Claimable Chore deadline has passed.");
   }
 
-  const existingSubmission =
-    await ctx.db
-      .query(
-        'choreSubmissions',
-      )
-      .withIndex(
-        'by_occurrence_attempt',
-        (q) =>
-          q
-            .eq(
-              'occurrenceId',
-              occurrence._id,
-            )
-            .eq(
-              'attemptNumber',
-              1,
-            ),
-      )
-      .unique();
+  const existingSubmission = await ctx.db
+    .query("choreSubmissions")
+    .withIndex("by_occurrence_attempt", (q) =>
+      q.eq("occurrenceId", occurrence._id).eq("attemptNumber", 1),
+    )
+    .unique();
 
   if (existingSubmission) {
-    throw new ConvexError(
-      'This Claimable Chore has already been submitted.',
-    );
+    throw new ConvexError("This Claimable Chore has already been submitted.");
   }
 
-  const evidenceStorageId =
-    await consumeEvidenceUploadIntent(
-      ctx,
-      evidenceUploadIntentId,
-      {
-        householdId,
+  const evidenceStorageId = await consumeEvidenceUploadIntent(
+    ctx,
+    evidenceUploadIntentId,
+    {
+      householdId,
 
-        childId,
+      childId,
 
-        occurrenceId:
-          occurrence._id,
+      occurrenceId: occurrence._id,
 
-        attemptNumber:
-          1,
-      },
-      now,
-    );
+      attemptNumber: 1,
+    },
+    now,
+  );
 
-  const submissionId =
-    await ctx.db.insert(
-      'choreSubmissions',
-      {
-        householdId,
+  const submissionId = await ctx.db.insert("choreSubmissions", {
+    householdId,
 
-        occurrenceId:
-          occurrence._id,
+    occurrenceId: occurrence._id,
 
-        childId,
+    childId,
 
-        attemptNumber:
-          1,
+    attemptNumber: 1,
 
-        /*
-         * Convex server time is
-         * authoritative.
-         */
-        submittedAt:
-          now,
+    /*
+     * Convex server time is
+     * authoritative.
+     */
+    submittedAt: now,
 
-        ...(evidenceStorageId !==
-        undefined
-          ? {
-              evidenceStorageId,
-            }
-          : {}),
-      },
-    );
+    ...(evidenceStorageId !== undefined
+      ? {
+          evidenceStorageId,
+        }
+      : {}),
+  });
 
   /*
    * Submission keeps the commitment
@@ -215,40 +138,27 @@ export async function submitClaimableClaim(
    * occupy the Child's single Claim slot
    * while Parent review is pending.
    */
-  await ctx.db.patch(
-    claim._id,
-    {
-      state:
-        'submitted',
-    },
-  );
+  await ctx.db.patch(claim._id, {
+    state: "submitted",
+  });
 
-  await ctx.db.patch(
-    occurrence._id,
-    {
-      state:
-        'submitted',
-    },
-  );
+  await ctx.db.patch(occurrence._id, {
+    state: "submitted",
+  });
 
   return {
     submissionId,
 
-    claimId:
-      claim._id,
+    claimId: claim._id,
 
-    occurrenceId:
-      occurrence._id,
+    occurrenceId: occurrence._id,
 
     childId,
 
-    submittedAt:
-      now,
+    submittedAt: now,
 
-    attemptNumber:
-      1 as const,
+    attemptNumber: 1 as const,
 
-    state:
-      'submitted' as const,
+    state: "submitted" as const,
   };
 }

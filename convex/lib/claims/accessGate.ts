@@ -1,48 +1,36 @@
-import type {
-  Id,
-} from '../../_generated/dataModel';
-import type {
-  MutationCtx,
-  QueryCtx,
-} from '../../_generated/server';
+import type { Id } from "../../_generated/dataModel";
+import type { MutationCtx, QueryCtx } from "../../_generated/server";
 
 export type ClaimableAccessGateReason =
-  | 'no_current_unlock'
-  | 'current_unlock_approved'
-  | 'current_unlock_not_approved';
+  | "no_current_unlock"
+  | "current_unlock_approved"
+  | "current_unlock_not_approved";
 
 export type ClaimableAccessGate = {
   canAccessClaimables: boolean;
 
-  reason:
-    ClaimableAccessGateReason;
+  reason: ClaimableAccessGateReason;
 
-  currentUnlockOccurrence:
-    | {
-        occurrenceId:
-          Id<'choreOccurrences'>;
+  currentUnlockOccurrence: {
+    occurrenceId: Id<"choreOccurrences">;
 
-        state:
-          | 'scheduled'
-          | 'available'
-          | 'submitted'
-          | 'redo_required'
-          | 'approved'
-          | 'missed'
-          | 'failed'
-          | 'cancelled'
-          | 'expired_unclaimed';
+    state:
+      | "scheduled"
+      | "available"
+      | "submitted"
+      | "redo_required"
+      | "approved"
+      | "missed"
+      | "failed"
+      | "cancelled"
+      | "expired_unclaimed";
 
-        scheduledLocalDate:
-          string;
+    scheduledLocalDate: string;
 
-        availabilityStartsAt:
-          number;
+    availabilityStartsAt: number;
 
-        deadlineAt:
-          number;
-      }
-    | null;
+    deadlineAt: number;
+  } | null;
 };
 
 /*
@@ -64,11 +52,8 @@ export type ClaimableAccessGate = {
  * applicable, there is no active gate.
  */
 export async function getClaimableAccessGateForChild(
-  ctx:
-    | MutationCtx
-    | QueryCtx,
-  childId:
-    Id<'children'>,
+  ctx: MutationCtx | QueryCtx,
+  childId: Id<"children">,
   _now = Date.now(),
 ): Promise<ClaimableAccessGate> {
   /*
@@ -81,43 +66,26 @@ export async function getClaimableAccessGateForChild(
    * occurrence into this indexed range and
    * invalidates reactive subscriptions.
    */
-  const currentUnlock =
-    await ctx.db
-      .query(
-        'choreOccurrences',
-      )
-      .withIndex(
-        'by_personal_child_is_unlock_chore_availability_reached_at',
-        (q) =>
-          q
-            .eq(
-              'personalChildId',
-              childId,
-            )
-            .eq(
-              'isUnlockChore',
-              true,
-            )
-            .gte(
-              'availabilityReachedAt',
-              0,
-            ),
-      )
-      .order(
-        'desc',
-      )
-      .first();
+  const currentUnlock = await ctx.db
+    .query("choreOccurrences")
+    .withIndex(
+      "by_personal_child_is_unlock_chore_availability_reached_at",
+      (q) =>
+        q
+          .eq("personalChildId", childId)
+          .eq("isUnlockChore", true)
+          .gte("availabilityReachedAt", 0),
+    )
+    .order("desc")
+    .first();
 
   if (!currentUnlock) {
     return {
-      canAccessClaimables:
-        true,
+      canAccessClaimables: true,
 
-      reason:
-        'no_current_unlock',
+      reason: "no_current_unlock",
 
-      currentUnlockOccurrence:
-        null,
+      currentUnlockOccurrence: null,
     };
   }
 
@@ -128,74 +96,47 @@ export async function getClaimableAccessGateForChild(
    * defensive.
    */
   if (
-    currentUnlock.kind !==
-      'personal' ||
-    currentUnlock
-      .personalChildId !==
-      childId
+    currentUnlock.kind !== "personal" ||
+    currentUnlock.personalChildId !== childId
   ) {
     return {
-      canAccessClaimables:
-        false,
+      canAccessClaimables: false,
 
-      reason:
-        'current_unlock_not_approved',
+      reason: "current_unlock_not_approved",
 
-      currentUnlockOccurrence:
-        {
-          occurrenceId:
-            currentUnlock._id,
+      currentUnlockOccurrence: {
+        occurrenceId: currentUnlock._id,
 
-          state:
-            currentUnlock.state,
+        state: currentUnlock.state,
 
-          scheduledLocalDate:
-            currentUnlock
-              .scheduledLocalDate,
+        scheduledLocalDate: currentUnlock.scheduledLocalDate,
 
-          availabilityStartsAt:
-            currentUnlock
-              .availabilityStartsAt,
+        availabilityStartsAt: currentUnlock.availabilityStartsAt,
 
-          deadlineAt:
-            currentUnlock
-              .deadlineAt,
-        },
+        deadlineAt: currentUnlock.deadlineAt,
+      },
     };
   }
 
-  const approved =
-    currentUnlock.state ===
-    'approved';
+  const approved = currentUnlock.state === "approved";
 
   return {
-    canAccessClaimables:
-      approved,
+    canAccessClaimables: approved,
 
-    reason:
-      approved
-        ? 'current_unlock_approved'
-        : 'current_unlock_not_approved',
+    reason: approved
+      ? "current_unlock_approved"
+      : "current_unlock_not_approved",
 
-    currentUnlockOccurrence:
-      {
-        occurrenceId:
-          currentUnlock._id,
+    currentUnlockOccurrence: {
+      occurrenceId: currentUnlock._id,
 
-        state:
-          currentUnlock.state,
+      state: currentUnlock.state,
 
-        scheduledLocalDate:
-          currentUnlock
-            .scheduledLocalDate,
+      scheduledLocalDate: currentUnlock.scheduledLocalDate,
 
-        availabilityStartsAt:
-          currentUnlock
-            .availabilityStartsAt,
+      availabilityStartsAt: currentUnlock.availabilityStartsAt,
 
-        deadlineAt:
-          currentUnlock
-            .deadlineAt,
-      },
+      deadlineAt: currentUnlock.deadlineAt,
+    },
   };
 }

@@ -19,6 +19,7 @@ import type * as claimableChoreSubmissions from "../claimableChoreSubmissions.js
 import type * as claimableChores from "../claimableChores.js";
 import type * as claimableClaimCancellations from "../claimableClaimCancellations.js";
 import type * as crons from "../crons.js";
+import type * as dev_smoke_householdSettings from "../dev/smoke/householdSettings.js";
 import type * as dev_smoke_task06_choreDefinitions from "../dev/smoke/task06/choreDefinitions.js";
 import type * as dev_smoke_task07_maintenance from "../dev/smoke/task07/maintenance.js";
 import type * as dev_smoke_task07_maintenanceIsolation from "../dev/smoke/task07/maintenanceIsolation.js";
@@ -109,6 +110,7 @@ import type * as lib_finance_payoutSettlement from "../lib/finance/payoutSettlem
 import type * as lib_finance_pendingOutcomes from "../lib/finance/pendingOutcomes.js";
 import type * as lib_finance_periodBalance from "../lib/finance/periodBalance.js";
 import type * as lib_finance_runningBalance from "../lib/finance/runningBalance.js";
+import type * as lib_householdSettings from "../lib/householdSettings.js";
 import type * as lib_maintenance_householdDispatch from "../lib/maintenance/householdDispatch.js";
 import type * as lib_notifications_events from "../lib/notifications/events.js";
 import type * as lib_notifications_orchestration from "../lib/notifications/orchestration.js";
@@ -171,6 +173,7 @@ declare const fullApi: ApiFromModules<{
   claimableChores: typeof claimableChores;
   claimableClaimCancellations: typeof claimableClaimCancellations;
   crons: typeof crons;
+  "dev/smoke/householdSettings": typeof dev_smoke_householdSettings;
   "dev/smoke/task06/choreDefinitions": typeof dev_smoke_task06_choreDefinitions;
   "dev/smoke/task07/maintenance": typeof dev_smoke_task07_maintenance;
   "dev/smoke/task07/maintenanceIsolation": typeof dev_smoke_task07_maintenanceIsolation;
@@ -261,6 +264,7 @@ declare const fullApi: ApiFromModules<{
   "lib/finance/pendingOutcomes": typeof lib_finance_pendingOutcomes;
   "lib/finance/periodBalance": typeof lib_finance_periodBalance;
   "lib/finance/runningBalance": typeof lib_finance_runningBalance;
+  "lib/householdSettings": typeof lib_householdSettings;
   "lib/maintenance/householdDispatch": typeof lib_maintenance_householdDispatch;
   "lib/notifications/events": typeof lib_notifications_events;
   "lib/notifications/orchestration": typeof lib_notifications_orchestration;

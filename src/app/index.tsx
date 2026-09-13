@@ -1,193 +1,142 @@
-import { EntryChoiceScreen } from '@/components/auth/entry-choice-screen';
-import { ParentAuthScreen } from '@/components/auth/parent-auth-screen';
-import { ChildAccessGate } from '@/components/child-access/child-access-gate';
-import { ChildNoAccessScreen } from '@/components/child-access/child-no-access-screen';
-import { HouseholdListScreen } from '@/components/household/household-list-screen';
-import { HouseholdSetupScreen } from '@/components/household/household-setup-screen';
-import { authClient } from '@/lib/auth/client';
-import {
-  useConvexAuth,
-  useQuery,
-} from 'convex/react';
-import { useState } from 'react';
-import {
-  ActivityIndicator,
-  Text,
-  View,
-} from 'react-native';
+import { EntryChoiceScreen } from "@/components/auth/entry-choice-screen";
+import { ParentAuthScreen } from "@/components/auth/parent-auth-screen";
+import { ChildAccessGate } from "@/components/child-access/child-access-gate";
+import { ChildNoAccessScreen } from "@/components/child-access/child-no-access-screen";
+import { HouseholdListScreen } from "@/components/household/household-list-screen";
+import { HouseholdSetupScreen } from "@/components/household/household-setup-screen";
+import { OnboardingScreen } from "@/components/onboarding/onboarding-screen";
+import { authClient } from "@/lib/auth/client";
+import { hasCompletedOnboarding } from "@/lib/onboarding";
+import { useConvexAuth, useQuery } from "convex/react";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, Text, View } from "react-native";
 
-import { api } from '../../convex/_generated/api';
+import { api } from "../../convex/_generated/api";
 
-type EntryMode =
-  | 'choose'
-  | 'parent';
+type EntryMode = "choose" | "parent";
 
-function isAnonymousUser(
-  user: object,
-) {
-  return (
-    'isAnonymous' in user &&
-    user.isAnonymous === true
-  );
+type OnboardingState = "loading" | "required" | "complete";
+
+function isAnonymousUser(user: object) {
+  return "isAnonymous" in user && user.isAnonymous === true;
 }
 
-function LoadingScreen({
-  message,
-}: {
-  message: string;
-}) {
+function LoadingScreen({ message }: { message: string }) {
   return (
-    <View className="items-center justify-center flex-1 bg-slate-950">
+    <View className="flex-1 items-center justify-center bg-slate-950">
       <ActivityIndicator />
 
-      <Text className="mt-3 text-slate-400">
-        {message}
-      </Text>
+      <Text className="mt-3 text-slate-400">{message}</Text>
     </View>
   );
 }
 
 export default function HomeScreen() {
-  const [
-    entryMode,
-    setEntryMode,
-  ] =
-    useState<EntryMode>(
-      'choose',
-    );
+  const [onboardingState, setOnboardingState] =
+    useState<OnboardingState>("loading");
 
-  const {
-    data: session,
-    isPending: sessionPending,
-  } = authClient.useSession();
+  const [entryMode, setEntryMode] = useState<EntryMode>("choose");
 
-  const {
-    isAuthenticated,
-    isLoading: convexAuthLoading,
-  } = useConvexAuth();
+  useEffect(() => {
+    let cancelled = false;
 
-  const hasSession =
-    session?.user !== undefined;
+    async function loadOnboardingState() {
+      try {
+        const complete = await hasCompletedOnboarding();
 
-  const anonymousSession =
-    session?.user
-      ? isAnonymousUser(
-          session.user,
-        )
-      : false;
+        if (!cancelled) {
+          setOnboardingState(complete ? "complete" : "required");
+        }
+      } catch {
+        if (!cancelled) setOnboardingState("required");
+      }
+    }
+
+    void loadOnboardingState();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const { data: session, isPending: sessionPending } = authClient.useSession();
+
+  const { isAuthenticated, isLoading: convexAuthLoading } = useConvexAuth();
+
+  const hasSession = session?.user !== undefined;
+
+  const anonymousSession = session?.user
+    ? isAnonymousUser(session.user)
+    : false;
 
   const households = useQuery(
     api.households.listForCurrentParent,
 
-    isAuthenticated &&
-      hasSession &&
-      !anonymousSession
-      ? {}
-      : 'skip',
+    isAuthenticated && hasSession && !anonymousSession ? {} : "skip",
   );
 
   const childAccess = useQuery(
     api.childAccess.getCurrentChildAccess,
 
-    isAuthenticated &&
-      hasSession &&
-      anonymousSession
-      ? {}
-      : 'skip',
+    isAuthenticated && hasSession && anonymousSession ? {} : "skip",
   );
 
-  if (
-    sessionPending ||
-    convexAuthLoading
-  ) {
+  if (onboardingState === "loading" || sessionPending || convexAuthLoading) {
+    return <LoadingScreen message="Checking session..." />;
+  }
+
+  if (onboardingState === "required") {
     return (
-      <LoadingScreen message="Checking session..." />
+      <OnboardingScreen
+        onChooseParent={() => {
+          setEntryMode("parent");
+          setOnboardingState("complete");
+        }}
+        onChooseChild={() => {
+          setEntryMode("choose");
+          setOnboardingState("complete");
+        }}
+      />
     );
   }
 
   if (!session?.user) {
-    if (
-      entryMode === 'parent'
-    ) {
-      return (
-        <ParentAuthScreen
-          onBack={() =>
-            setEntryMode(
-              'choose',
-            )
-          }
-        />
-      );
+    if (entryMode === "parent") {
+      return <ParentAuthScreen onBack={() => setEntryMode("choose")} />;
     }
 
-    return (
-      <EntryChoiceScreen
-        onChooseParent={() =>
-          setEntryMode(
-            'parent',
-          )
-        }
-      />
-    );
+    return <EntryChoiceScreen onChooseParent={() => setEntryMode("parent")} />;
   }
 
   if (!isAuthenticated) {
-    return (
-      <LoadingScreen message="Connecting secure session..." />
-    );
+    return <LoadingScreen message="Connecting secure session..." />;
   }
 
   if (anonymousSession) {
-    if (
-      childAccess === undefined
-    ) {
-      return (
-        <LoadingScreen message="Checking child access..." />
-      );
+    if (childAccess === undefined) {
+      return <LoadingScreen message="Checking child access..." />;
     }
 
-    if (
-      childAccess === null
-    ) {
-      return (
-        <ChildNoAccessScreen />
-      );
+    if (childAccess === null) {
+      return <ChildNoAccessScreen />;
     }
 
-    return (
-      <ChildAccessGate
-        access={childAccess}
-      />
-    );
+    return <ChildAccessGate access={childAccess} />;
   }
 
-  if (
-    households === undefined
-  ) {
-    return (
-      <LoadingScreen message="Loading household..." />
-    );
+  if (households === undefined) {
+    return <LoadingScreen message="Loading household..." />;
   }
 
-  if (
-    households.length > 0
-  ) {
+  if (households.length > 0) {
     return (
       <HouseholdListScreen
-        parentName={
-          session.user.name
-        }
-        parentEmail={
-          session.user.email
-        }
-        households={
-          households
-        }
+        parentName={session.user.name}
+        parentEmail={session.user.email}
+        households={households}
       />
     );
   }
 
-  return (
-    <HouseholdSetupScreen />
-  );
+  return <HouseholdSetupScreen />;
 }

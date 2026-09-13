@@ -159,7 +159,6 @@ External services never bypass Convex domain authorization or mutate client stat
 - Final shared-device/profile-switch interaction details are UI implementation work; the server-side identity, access-grant, revocation, and sibling-privacy boundaries are already fixed and sufficient for implementation planning.
 - Final parent sign-in provider mix (email/password, Apple, Google) is configuration work unless a future product decision makes one mandatory.
 
-
 ## Evidence retention
 
 Private Submission evidence uses bounded retention maintenance for abandoned

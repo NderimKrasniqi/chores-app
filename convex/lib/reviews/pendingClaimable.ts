@@ -1,185 +1,92 @@
-import {
-  ConvexError,
-} from 'convex/values';
+import { ConvexError } from "convex/values";
 
-import type {
-  Id,
-} from '../../_generated/dataModel';
-import type {
-  MutationCtx,
-  QueryCtx,
-} from '../../_generated/server';
-import {
-  findSubmittedClaimForSubmission,
-} from '../claims/submittedClaim';
+import type { Id } from "../../_generated/dataModel";
+import type { MutationCtx, QueryCtx } from "../../_generated/server";
+import { findSubmittedClaimForSubmission } from "../claims/submittedClaim";
 
-type DatabaseCtx =
-  | MutationCtx
-  | QueryCtx;
+type DatabaseCtx = MutationCtx | QueryCtx;
 
 export async function listPendingClaimableReviews(
   ctx: DatabaseCtx,
-  householdId:
-    Id<'households'>,
+  householdId: Id<"households">,
 ) {
-  const occurrences =
-    await ctx.db
-      .query(
-        'choreOccurrences',
-      )
-      .withIndex(
-        'by_household_kind_state_deadline',
-        (q) =>
-          q
-            .eq(
-              'householdId',
-              householdId,
-            )
-            .eq(
-              'kind',
-              'claimable',
-            )
-            .eq(
-              'state',
-              'submitted',
-            ),
-      )
-      .collect();
+  const occurrences = await ctx.db
+    .query("choreOccurrences")
+    .withIndex("by_household_kind_state_deadline", (q) =>
+      q
+        .eq("householdId", householdId)
+        .eq("kind", "claimable")
+        .eq("state", "submitted"),
+    )
+    .collect();
 
   const pending = [];
 
-  for (
-    const occurrence of
-    occurrences
-  ) {
-    const submission =
-      await ctx.db
-        .query(
-          'choreSubmissions',
-        )
-        .withIndex(
-          'by_occurrence_attempt',
-          (q) =>
-            q
-              .eq(
-                'occurrenceId',
-                occurrence._id,
-              )
-              .eq(
-                'attemptNumber',
-                1,
-              ),
-        )
-        .unique();
+  for (const occurrence of occurrences) {
+    const submission = await ctx.db
+      .query("choreSubmissions")
+      .withIndex("by_occurrence_attempt", (q) =>
+        q.eq("occurrenceId", occurrence._id).eq("attemptNumber", 1),
+      )
+      .unique();
 
-    if (
-      !submission ||
-      submission.submittedAt >
-        occurrence.deadlineAt
-    ) {
+    if (!submission || submission.submittedAt > occurrence.deadlineAt) {
       continue;
     }
 
-    const review =
-      await ctx.db
-        .query(
-          'choreReviews',
-        )
-        .withIndex(
-          'by_submission',
-          (q) =>
-            q.eq(
-              'submissionId',
-              submission._id,
-            ),
-        )
-        .unique();
+    const review = await ctx.db
+      .query("choreReviews")
+      .withIndex("by_submission", (q) => q.eq("submissionId", submission._id))
+      .unique();
 
     if (review) {
       continue;
     }
 
-    const claim =
-      await findSubmittedClaimForSubmission(
-        ctx,
-        occurrence._id,
-        submission.childId,
-      );
+    const claim = await findSubmittedClaimForSubmission(
+      ctx,
+      occurrence._id,
+      submission.childId,
+    );
 
-    if (
-      !claim ||
-      claim.householdId !==
-        householdId
-    ) {
+    if (!claim || claim.householdId !== householdId) {
       continue;
     }
 
-    const child =
-      await ctx.db.get(
-        submission.childId,
-      );
+    const child = await ctx.db.get(submission.childId);
 
-    if (
-      !child ||
-      child.householdId !==
-        householdId
-    ) {
-      throw new ConvexError(
-        'Submission Child profile no longer exists.',
-      );
+    if (!child || child.householdId !== householdId) {
+      throw new ConvexError("Submission Child profile no longer exists.");
     }
 
     pending.push({
-      submissionId:
-        submission._id,
+      submissionId: submission._id,
 
-      claimId:
-        claim._id,
+      claimId: claim._id,
 
-      occurrenceId:
-        occurrence._id,
+      occurrenceId: occurrence._id,
 
-      childId:
-        child._id,
+      childId: child._id,
 
-      childDisplayName:
-        child.displayName,
+      childDisplayName: child.displayName,
 
-      title:
-        occurrence.title,
+      title: occurrence.title,
 
-      description:
-        occurrence.description,
+      description: occurrence.description,
 
-      valueSek:
-        occurrence.valueSek,
+      valueSek: occurrence.valueSek,
 
-      scheduledLocalDate:
-        occurrence
-          .scheduledLocalDate,
+      scheduledLocalDate: occurrence.scheduledLocalDate,
 
-      submittedAt:
-        submission.submittedAt,
+      submittedAt: submission.submittedAt,
 
-      deadlineAt:
-        occurrence.deadlineAt,
+      deadlineAt: occurrence.deadlineAt,
 
-      timezone:
-        occurrence.timezone,
+      timezone: occurrence.timezone,
 
-      hasEvidence:
-        submission
-          .evidenceStorageId !==
-        undefined,
+      hasEvidence: submission.evidenceStorageId !== undefined,
     });
   }
 
-  return pending.sort(
-    (
-      left,
-      right,
-    ) =>
-      left.submittedAt -
-      right.submittedAt,
-  );
+  return pending.sort((left, right) => left.submittedAt - right.submittedAt);
 }

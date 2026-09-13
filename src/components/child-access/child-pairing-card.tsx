@@ -1,23 +1,20 @@
-import { useServerConfirmedMutation } from '@/hooks/use-server-confirmed-mutation';
-import {
-  useAction,
-  useQuery,
-} from 'convex/react';
-import { useState } from 'react';
-import { Pressable, Share, Text, View } from 'react-native';
-import QRCode from 'react-native-qrcode-svg';
+import { useServerConfirmedMutation } from "@/hooks/use-server-confirmed-mutation";
+import { useAction, useQuery } from "convex/react";
+import { useState } from "react";
+import { Pressable, Share, Text, View } from "react-native";
+import QRCode from "react-native-qrcode-svg";
 
-import { api } from '../../../convex/_generated/api';
-import type { Id } from '../../../convex/_generated/dataModel';
+import { api } from "../../../convex/_generated/api";
+import type { Id } from "../../../convex/_generated/dataModel";
 
 type ChildPairingCardProps = {
-  householdId: Id<'households'>;
-  childId: Id<'children'>;
+  householdId: Id<"households">;
+  childId: Id<"children">;
   childDisplayName: string;
 };
 
 type GeneratedPairingCredential = {
-  pairingCredentialId: Id<'childPairingCredentials'>;
+  pairingCredentialId: Id<"childPairingCredentials">;
   qrToken: string;
   manualCode: string;
   expiresAt: number;
@@ -25,8 +22,8 @@ type GeneratedPairingCredential = {
 
 function formatDateTime(timestamp: number) {
   return new Intl.DateTimeFormat(undefined, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
+    dateStyle: "medium",
+    timeStyle: "short",
   }).format(new Date(timestamp));
 }
 
@@ -54,7 +51,7 @@ export function ChildPairingCard({
   const [generating, setGenerating] = useState(false);
 
   const [revokingCredentialId, setRevokingCredentialId] =
-    useState<Id<'childPairingCredentials'> | null>(null);
+    useState<Id<"childPairingCredentials"> | null>(null);
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -78,7 +75,7 @@ export function ChildPairingCard({
       setErrorMessage(
         error instanceof Error
           ? error.message
-          : 'Could not create child pairing credential.',
+          : "Could not create child pairing credential.",
       );
     } finally {
       setGenerating(false);
@@ -86,7 +83,7 @@ export function ChildPairingCard({
   }
 
   async function handleRevoke(
-    pairingCredentialId: Id<'childPairingCredentials'>,
+    pairingCredentialId: Id<"childPairingCredentials">,
   ) {
     setRevokingCredentialId(pairingCredentialId);
 
@@ -104,7 +101,7 @@ export function ChildPairingCard({
       setErrorMessage(
         error instanceof Error
           ? error.message
-          : 'Could not revoke pairing credential.',
+          : "Could not revoke pairing credential.",
       );
     } finally {
       setRevokingCredentialId(null);
@@ -122,18 +119,18 @@ export function ChildPairingCard({
       await Share.share({
         message: [
           `Pair ${childDisplayName}'s device with Chores App.`,
-          '',
-          'Manual pairing code:',
+          "",
+          "Manual pairing code:",
           generatedCredential.manualCode,
-          '',
+          "",
           `Expires: ${formatDateTime(generatedCredential.expiresAt)}`,
-        ].join('\n'),
+        ].join("\n"),
       });
     } catch (error) {
       setErrorMessage(
         error instanceof Error
           ? error.message
-          : 'Could not share pairing code.',
+          : "Could not share pairing code.",
       );
     }
   }
@@ -142,7 +139,7 @@ export function ChildPairingCard({
     generatedCredential !== null && generatedCredential.expiresAt <= Date.now();
 
   return (
-    <View className="pt-5 mt-5 border-t border-slate-700">
+    <View className="mt-5 border-t border-slate-700 pt-5">
       <Text className="font-semibold text-white">Device pairing</Text>
 
       <Text className="mt-1 text-sm leading-5 text-slate-400">
@@ -151,7 +148,7 @@ export function ChildPairingCard({
       </Text>
 
       {generatedCredential && (
-        <View className="p-4 mt-4 rounded-xl bg-slate-950">
+        <View className="mt-4 rounded-xl bg-slate-950 p-4">
           <Text className="font-semibold text-white">Pairing credential</Text>
 
           {generatedCredentialExpired ? (
@@ -160,7 +157,7 @@ export function ChildPairingCard({
             </Text>
           ) : (
             <>
-              <View className="items-center p-4 mt-4 bg-white rounded-xl">
+              <View className="mt-4 items-center rounded-xl bg-white p-4">
                 <QRCode
                   value={generatedCredential.qrToken}
                   size={200}
@@ -174,7 +171,7 @@ export function ChildPairingCard({
 
               <Text
                 selectable
-                className="mt-2 text-2xl font-bold tracking-widest text-center text-white"
+                className="mt-2 text-center text-2xl font-bold tracking-widest text-white"
               >
                 {generatedCredential.manualCode}
               </Text>
@@ -190,10 +187,10 @@ export function ChildPairingCard({
               </Text>
 
               <Pressable
-                className="px-4 py-3 mt-4 bg-white rounded-xl"
+                className="mt-4 rounded-xl bg-white px-4 py-3"
                 onPress={handleShareManualCode}
               >
-                <Text className="font-semibold text-center text-slate-950">
+                <Text className="text-center font-semibold text-slate-950">
                   Share manual code
                 </Text>
               </Pressable>
@@ -201,7 +198,7 @@ export function ChildPairingCard({
           )}
 
           <Pressable
-            className="px-4 py-3 mt-3 border border-red-900 rounded-xl"
+            className="mt-3 rounded-xl border border-red-900 px-4 py-3"
             disabled={
               revokingCredentialId === generatedCredential.pairingCredentialId
             }
@@ -209,26 +206,26 @@ export function ChildPairingCard({
               handleRevoke(generatedCredential.pairingCredentialId)
             }
           >
-            <Text className="font-semibold text-center text-red-400">
+            <Text className="text-center font-semibold text-red-400">
               {revokingCredentialId === generatedCredential.pairingCredentialId
-                ? 'Revoking...'
-                : 'Revoke credential'}
+                ? "Revoking..."
+                : "Revoke credential"}
             </Text>
           </Pressable>
         </View>
       )}
 
       <Pressable
-        className="px-4 py-3 mt-4 border rounded-xl border-slate-600"
+        className="mt-4 rounded-xl border border-slate-600 px-4 py-3"
         disabled={generating}
         onPress={handleGenerate}
       >
-        <Text className="font-semibold text-center text-white">
+        <Text className="text-center font-semibold text-white">
           {generating
-            ? 'Generating...'
+            ? "Generating..."
             : generatedCredential
-              ? 'Generate another credential'
-              : 'Generate pairing credential'}
+              ? "Generate another credential"
+              : "Generate pairing credential"}
         </Text>
       </Pressable>
 
@@ -254,12 +251,12 @@ export function ChildPairingCard({
             return (
               <View
                 key={credential.pairingCredentialId}
-                className="p-3 mt-3 border rounded-xl border-slate-700"
+                className="mt-3 rounded-xl border border-slate-700 p-3"
               >
                 <Text className="text-sm text-white">
                   {isLatestGenerated
-                    ? 'Latest generated credential'
-                    : 'Active credential'}
+                    ? "Latest generated credential"
+                    : "Active credential"}
                 </Text>
 
                 <Text className="mt-1 text-xs text-slate-500">
@@ -278,7 +275,7 @@ export function ChildPairingCard({
                     </Text>
 
                     <Pressable
-                      className="px-3 py-2 mt-3 border border-red-900 rounded-lg"
+                      className="mt-3 rounded-lg border border-red-900 px-3 py-2"
                       disabled={
                         revokingCredentialId === credential.pairingCredentialId
                       }
@@ -286,10 +283,10 @@ export function ChildPairingCard({
                         handleRevoke(credential.pairingCredentialId)
                       }
                     >
-                      <Text className="font-semibold text-center text-red-400">
+                      <Text className="text-center font-semibold text-red-400">
                         {revokingCredentialId === credential.pairingCredentialId
-                          ? 'Revoking...'
-                          : 'Revoke'}
+                          ? "Revoking..."
+                          : "Revoke"}
                       </Text>
                     </Pressable>
                   </>

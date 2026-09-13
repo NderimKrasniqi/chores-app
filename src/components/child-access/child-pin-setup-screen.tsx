@@ -1,47 +1,40 @@
+import { DirectionCIcon } from "@/components/ui/direction-c-icon";
+import { DirectionC } from "@/constants/direction-c";
+import { ActionButton, AppText, Surface } from "@/design-system";
+import { PARENT_AUTH_STORAGE_PREFIX } from "@/lib/auth/client";
 import {
   getChildPinRequirements,
   isValidChildPin,
   registerLocalChildContext,
   type LocalChildContext,
-} from '@/lib/child-access/local-access';
-import {
-  PARENT_AUTH_STORAGE_PREFIX,
-} from '@/lib/auth/client';
-import { useAuthRuntime } from '@/providers/auth-runtime-provider';
-import { useState } from 'react';
+} from "@/lib/child-access/local-access";
+import { useAuthRuntime } from "@/providers/auth-runtime-provider";
+import { Image } from "expo-image";
+import { StatusBar } from "expo-status-bar";
+import { useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
-  Pressable,
-  Text,
+  ScrollView,
   TextInput,
   View,
-} from 'react-native';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 type ChildPinSetupScreenProps = {
   householdId: string;
   householdName: string;
-
   childId: string;
   childDisplayName: string;
-
   authStoragePrefix: string;
-
-  onComplete: (
-    context: LocalChildContext,
-  ) => void;
+  onComplete: (context: LocalChildContext) => void;
 };
 
-function normalizePinInput(
-  value: string,
-) {
-  const {
-    maxLength,
-  } = getChildPinRequirements();
+const childAvatar = require("../../../assets/images/direction-c/alex-avatar.png");
 
-  return value
-    .replace(/\D/g, '')
-    .slice(0, maxLength);
+function normalizePinInput(value: string) {
+  const { maxLength } = getChildPinRequirements();
+  return value.replace(/\D/g, "").slice(0, maxLength);
 }
 
 export function ChildPinSetupScreen({
@@ -52,70 +45,28 @@ export function ChildPinSetupScreen({
   authStoragePrefix,
   onComplete,
 }: ChildPinSetupScreenProps) {
-  const {
-    authClient,
-    activateParentStorage,
-  } = useAuthRuntime();
-
-  const [
-    pin,
-    setPin,
-  ] = useState('');
-
-  const [
-    confirmPin,
-    setConfirmPin,
-  ] = useState('');
-
-  const [
-    saving,
-    setSaving,
-  ] = useState(false);
-
-  const [
-    restarting,
-    setRestarting,
-  ] = useState(false);
-
-  const [
-    errorMessage,
-    setErrorMessage,
-  ] = useState<string | null>(null);
-
-  const {
-    minLength,
-    maxLength,
-  } = getChildPinRequirements();
-
+  const { authClient, activateParentStorage } = useAuthRuntime();
+  const [pin, setPin] = useState("");
+  const [confirmPin, setConfirmPin] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [restarting, setRestarting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const { minLength, maxLength } = getChildPinRequirements();
   const isLegacyParentStorage =
-    authStoragePrefix ===
-    PARENT_AUTH_STORAGE_PREFIX;
+    authStoragePrefix === PARENT_AUTH_STORAGE_PREFIX;
 
   async function handleRestartChildSetup() {
     setRestarting(true);
     setErrorMessage(null);
 
     try {
-      /*
-       * Clear only the currently active legacy
-       * Better Auth session first.
-       */
       await authClient.signOut();
-
-      /*
-       * Return the app to its normal/default
-       * authentication context.
-       *
-       * The next time "I'm a child" is selected,
-       * EntryChoiceScreen will generate a unique
-       * Child SecureStore namespace.
-       */
       activateParentStorage();
     } catch (error) {
       setErrorMessage(
         error instanceof Error
           ? error.message
-          : 'Could not restart child setup.',
+          : "Could not restart child setup.",
       );
     } finally {
       setRestarting(false);
@@ -127,57 +78,38 @@ export function ChildPinSetupScreen({
 
     if (isLegacyParentStorage) {
       setErrorMessage(
-        'This child session must be paired again using its own secure device context.',
+        "This Child session must be paired again using its own secure device context.",
       );
-
       return;
     }
 
     if (!isValidChildPin(pin)) {
-      setErrorMessage(
-        `PIN must contain ${minLength} to ${maxLength} digits.`,
-      );
-
+      setErrorMessage(`PIN must contain ${minLength} to ${maxLength} digits.`);
       return;
     }
 
     if (pin !== confirmPin) {
-      setErrorMessage(
-        'PINs do not match.',
-      );
-
+      setErrorMessage("PINs do not match.");
       return;
     }
 
     setSaving(true);
 
     try {
-      const context =
-        await registerLocalChildContext({
-          householdId,
-          householdName,
-
-          childId,
-          childDisplayName,
-
-          authStoragePrefix,
-
-          pin,
-        });
-
-      /*
-       * Raw PIN values are deliberately cleared
-       * immediately after creating the verifier.
-       */
-      setPin('');
-      setConfirmPin('');
-
+      const context = await registerLocalChildContext({
+        householdId,
+        householdName,
+        childId,
+        childDisplayName,
+        authStoragePrefix,
+        pin,
+      });
+      setPin("");
+      setConfirmPin("");
       onComplete(context);
     } catch (error) {
       setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : 'Could not save child PIN.',
+        error instanceof Error ? error.message : "Could not save Child PIN.",
       );
     } finally {
       setSaving(false);
@@ -186,158 +118,154 @@ export function ChildPinSetupScreen({
 
   if (isLegacyParentStorage) {
     return (
-      <View className="justify-center flex-1 px-6 bg-slate-950">
-        <Text className="text-sm font-semibold tracking-wider uppercase text-amber-500">
-          Pairing update required
-        </Text>
-
-        <Text className="mt-3 text-3xl font-bold text-white">
-          Pair {childDisplayName} again
-        </Text>
-
-        <Text className="mt-3 text-base leading-6 text-slate-400">
-          This Child session was created before
-          shared-device secure profiles were enabled.
-          It is using the app&apos;s old default
-          authentication context.
-        </Text>
-
-        <View className="p-4 mt-6 border rounded-xl border-amber-900 bg-slate-900">
-          <Text className="font-semibold text-amber-400">
-            No PIN has been saved
-          </Text>
-
-          <Text className="mt-2 text-sm leading-5 text-slate-400">
-            We will not attach a Child PIN to the
-            Parent/default SecureStore context.
-            Restart Child setup and pair this profile
-            again using a fresh pairing code.
-          </Text>
+      <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-canvas px-5">
+        <StatusBar style="dark" />
+        <View className="flex-1 justify-center">
+          <AppText
+            variant="label"
+            color="urgency"
+            className="uppercase tracking-widest"
+          >
+            Pairing update required
+          </AppText>
+          <AppText variant="screenTitle" className="mt-3">
+            Pair {childDisplayName} again
+          </AppText>
+          <AppText color="ink-muted" className="mt-3">
+            This older Child session must be moved into its own secure device
+            profile before a local PIN can be saved.
+          </AppText>
+          <Surface tone="reward" elevated={false} className="mt-6 p-4">
+            <AppText variant="cardTitle">No PIN has been saved</AppText>
+            <AppText variant="bodySmall" color="ink-muted" className="mt-2">
+              Restart Child setup and pair this profile again using a fresh
+              pairing code.
+            </AppText>
+          </Surface>
+          {errorMessage ? (
+            <AppText color="urgency" className="mt-4">
+              {errorMessage}
+            </AppText>
+          ) : null}
+          <ActionButton
+            className="mt-7"
+            label="Restart Child setup"
+            loading={restarting}
+            onPress={() => void handleRestartChildSetup()}
+          />
         </View>
-
-        {errorMessage && (
-          <Text className="mt-5 text-red-400">
-            {errorMessage}
-          </Text>
-        )}
-
-        <Pressable
-          className="px-4 py-4 mt-7 bg-white rounded-xl"
-          disabled={restarting}
-          onPress={handleRestartChildSetup}
-        >
-          <Text className="font-semibold text-center text-slate-950">
-            {restarting
-              ? 'Restarting...'
-              : 'Restart child setup'}
-          </Text>
-        </Pressable>
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <KeyboardAvoidingView
-      className="justify-center flex-1 px-6 bg-slate-950"
-      behavior={
-        Platform.OS === 'ios'
-          ? 'padding'
-          : undefined
-      }
-    >
-      <View>
-        <Text className="text-sm font-semibold tracking-wider uppercase text-green-500">
-          Pairing complete
-        </Text>
-
-        <Text className="mt-3 text-3xl font-bold text-white">
-          Protect {childDisplayName}
-        </Text>
-
-        <Text className="mt-3 text-base leading-6 text-slate-400">
-          Create a local PIN for this child
-          profile. The PIN will be required
-          when selecting this profile on a
-          shared device.
-        </Text>
-
-        <View className="p-4 mt-6 border rounded-xl border-slate-800 bg-slate-900">
-          <Text className="font-semibold text-white">
-            {householdName}
-          </Text>
-
-          <Text className="mt-1 text-sm text-slate-400">
-            {childDisplayName}
-          </Text>
-        </View>
-
-        <Text className="mt-8 font-semibold text-white">
-          Create PIN
-        </Text>
-
-        <TextInput
-          className="px-4 py-4 mt-2 text-xl font-semibold tracking-widest text-center text-white border rounded-xl border-slate-700 bg-slate-900"
-          placeholder="••••"
-          placeholderTextColor="#64748b"
-          value={pin}
-          onChangeText={(value) =>
-            setPin(
-              normalizePinInput(value),
-            )
-          }
-          keyboardType="number-pad"
-          secureTextEntry
-          maxLength={maxLength}
-        />
-
-        <Text className="mt-2 text-xs leading-5 text-slate-500">
-          Use {minLength} to {maxLength} digits.
-          This PIN only protects the local
-          profile on this device.
-        </Text>
-
-        <Text className="mt-6 font-semibold text-white">
-          Confirm PIN
-        </Text>
-
-        <TextInput
-          className="px-4 py-4 mt-2 text-xl font-semibold tracking-widest text-center text-white border rounded-xl border-slate-700 bg-slate-900"
-          placeholder="••••"
-          placeholderTextColor="#64748b"
-          value={confirmPin}
-          onChangeText={(value) =>
-            setConfirmPin(
-              normalizePinInput(value),
-            )
-          }
-          keyboardType="number-pad"
-          secureTextEntry
-          maxLength={maxLength}
-        />
-
-        {errorMessage && (
-          <Text className="mt-4 text-red-400">
-            {errorMessage}
-          </Text>
-        )}
-
-        <Pressable
-          className="px-4 py-4 mt-7 bg-white rounded-xl"
-          disabled={saving}
-          onPress={handleSavePin}
+    <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-canvas">
+      <StatusBar style="dark" />
+      <KeyboardAvoidingView
+        className="flex-1"
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+        <ScrollView
+          contentContainerClassName="flex-grow px-5 pb-5 pt-7"
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          <Text className="font-semibold text-center text-slate-950">
-            {saving
-              ? 'Saving PIN...'
-              : 'Save PIN'}
-          </Text>
-        </Pressable>
+          <AppText
+            variant="label"
+            color="action"
+            className="uppercase tracking-widest"
+          >
+            Pairing complete
+          </AppText>
+          <AppText variant="display" className="mt-3">
+            Protect {childDisplayName}
+          </AppText>
+          <AppText color="ink-muted" className="mt-2">
+            Create a local PIN for this Child profile. You’ll use it when
+            selecting {childDisplayName} on a shared device.
+          </AppText>
 
-        <Text className="mt-5 text-xs leading-5 text-center text-slate-500">
-          The raw PIN is never stored and is
-          never sent to the server.
-        </Text>
-      </View>
-    </KeyboardAvoidingView>
+          <Surface className="mt-5 flex-row items-center p-3">
+            <Image
+              source={childAvatar}
+              className="h-[84px] w-[84px] rounded-full"
+              contentFit="contain"
+              accessible={false}
+            />
+            <View className="ml-4 flex-1">
+              <AppText variant="sectionTitle">{childDisplayName}</AppText>
+              <AppText color="ink-muted">{householdName}</AppText>
+            </View>
+            <View className="h-12 w-12 items-center justify-center rounded-full bg-actionSoftStrong">
+              <DirectionCIcon
+                name="check"
+                color={DirectionC.color.green}
+                size={26}
+              />
+            </View>
+          </Surface>
+
+          <AppText variant="sectionTitle" className="mt-6">
+            Create PIN
+          </AppText>
+          <TextInput
+            className="mt-2 min-h-[72px] rounded-control border-2 border-infoSoftStrong bg-surface text-center font-rounded text-[28px] font-black tracking-[12px] text-ink"
+            placeholder="••••"
+            placeholderTextColor="#8D73BC"
+            value={pin}
+            onChangeText={(value) => setPin(normalizePinInput(value))}
+            keyboardType="number-pad"
+            secureTextEntry
+            maxLength={maxLength}
+          />
+          <AppText variant="bodySmall" color="ink-muted" className="mt-2">
+            Use {minLength} to {maxLength} digits. This PIN only protects the
+            local profile on this device.
+          </AppText>
+
+          <AppText variant="sectionTitle" className="mt-6">
+            Confirm PIN
+          </AppText>
+          <TextInput
+            className="mt-2 min-h-[72px] rounded-control border-2 border-infoSoftStrong bg-surface text-center font-rounded text-[28px] font-black tracking-[12px] text-ink"
+            placeholder="••••"
+            placeholderTextColor="#8D73BC"
+            value={confirmPin}
+            onChangeText={(value) => setConfirmPin(normalizePinInput(value))}
+            keyboardType="number-pad"
+            secureTextEntry
+            maxLength={maxLength}
+          />
+
+          {errorMessage ? (
+            <AppText color="urgency" className="mt-4">
+              {errorMessage}
+            </AppText>
+          ) : null}
+
+          <ActionButton
+            className="mt-6"
+            label="Save PIN"
+            loading={saving}
+            onPress={() => void handleSavePin()}
+          />
+
+          <View className="mt-5 flex-row items-center justify-center">
+            <DirectionCIcon
+              name="checkShield"
+              color={DirectionC.color.green}
+              size={26}
+            />
+            <AppText
+              variant="caption"
+              color="ink-muted"
+              className="ml-2 flex-1"
+            >
+              Your PIN is never stored as typed or sent to the server.
+            </AppText>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }

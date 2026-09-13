@@ -1,158 +1,90 @@
-import {
-  useState,
-} from 'react';
-import {
-  Pressable,
-  ScrollView,
-  Text,
-} from 'react-native';
+import { useState } from "react";
+import { Pressable, ScrollView, Text } from "react-native";
 
-import type {
-  Id,
-} from '../../../convex/_generated/dataModel';
+import type { Id } from "../../../convex/_generated/dataModel";
 import {
   ClaimableChoresView,
   type ClaimableChoresViewModel,
-} from '../chores/claimable-chores-view';
+} from "../chores/claimable-chores-view";
 
-const CHILD_ID =
-  'maestro-task11-child' as Id<'children'>;
+const CHILD_ID = "maestro-task11-child" as Id<"children">;
 
 const DOG_WALK_OCCURRENCE_ID =
-  'maestro-task11-dog-walk-occurrence' as Id<'choreOccurrences'>;
+  "maestro-task11-dog-walk-occurrence" as Id<"choreOccurrences">;
 
-const DOG_WALK_CLAIM_ID =
-  'maestro-task11-dog-walk-claim' as Id<'choreClaims'>;
+const DOG_WALK_CLAIM_ID = "maestro-task11-dog-walk-claim" as Id<"choreClaims">;
 
 const LATE_CLEANUP_OCCURRENCE_ID =
-  'maestro-task11-late-cleanup-occurrence' as Id<'choreOccurrences'>;
+  "maestro-task11-late-cleanup-occurrence" as Id<"choreOccurrences">;
 
 const LATE_CLEANUP_CLAIM_ID =
-  'maestro-task11-late-cleanup-claim' as Id<'choreClaims'>;
+  "maestro-task11-late-cleanup-claim" as Id<"choreClaims">;
 
-const deadlineAt =
-  Date.UTC(
-    2030,
-    0,
-    15,
-    18,
-    0,
-    0,
-  );
+const deadlineAt = Date.UTC(2030, 0, 15, 18, 0, 0);
 
-const lockAt =
-  deadlineAt -
-  2 *
-    60 *
-    60 *
-    1000;
+const lockAt = deadlineAt - 2 * 60 * 60 * 1000;
 
 const ordinaryCommitment = {
   lockAt,
 
-  isTimeLocked:
-    false,
+  isTimeLocked: false,
 
-  hasUnclaimAllowance:
-    true,
+  hasUnclaimAllowance: true,
 
-  remainingUnclaims:
-    2,
+  remainingUnclaims: 2,
 
-  canUnclaim:
-    true,
+  canUnclaim: true,
 
-  isImmediatelyLocked:
-    false,
+  isImmediatelyLocked: false,
 
-  lockReason:
-    null,
+  lockReason: null,
 } as const;
 
 const lockedCommitment = {
   lockAt,
 
-  isTimeLocked:
-    true,
+  isTimeLocked: true,
 
-  hasUnclaimAllowance:
-    true,
+  hasUnclaimAllowance: true,
 
-  remainingUnclaims:
-    2,
+  remainingUnclaims: 2,
 
-  canUnclaim:
-    false,
+  canUnclaim: false,
 
-  isImmediatelyLocked:
-    true,
+  isImmediatelyLocked: true,
 
-  lockReason:
-    'time_window',
+  lockReason: "time_window",
 } as const;
 
-type ActiveFixtureClaim =
-  | 'dog_walk'
-  | 'late_cleanup'
-  | null;
+type ActiveFixtureClaim = "dog_walk" | "late_cleanup" | null;
 
 export function Task11MaestroFixtureScreen() {
-  const [
-    activeClaim,
-    setActiveClaim,
-  ] =
-    useState<ActiveFixtureClaim>(
-      null,
-    );
+  const [activeClaim, setActiveClaim] = useState<ActiveFixtureClaim>(null);
 
-  const [
-    successfulUnclaims,
-    setSuccessfulUnclaims,
-  ] =
-    useState(
-      0,
-    );
+  const [successfulUnclaims, setSuccessfulUnclaims] = useState(0);
 
   function reset() {
-    setActiveClaim(
-      null,
-    );
+    setActiveClaim(null);
 
-    setSuccessfulUnclaims(
-      0,
-    );
+    setSuccessfulUnclaims(0);
   }
 
-  const remainingUnclaims =
-    Math.max(
-      2 -
-        successfulUnclaims,
-      0,
-    );
+  const remainingUnclaims = Math.max(2 - successfulUnclaims, 0);
 
-  const claimableOccurrences:
-    ClaimableChoresViewModel['claimableOccurrences'] =
+  const claimableOccurrences: ClaimableChoresViewModel["claimableOccurrences"] =
     [];
 
-  if (
-    activeClaim !==
-    'dog_walk'
-  ) {
+  if (activeClaim !== "dog_walk") {
     claimableOccurrences.push({
-      occurrenceId:
-        DOG_WALK_OCCURRENCE_ID,
+      occurrenceId: DOG_WALK_OCCURRENCE_ID,
 
-      title:
-        'Dog walk',
+      title: "Dog walk",
 
-      description:
-        'Take the dog for an afternoon walk.',
+      description: "Take the dog for an afternoon walk.",
 
-      valueSek:
-        70,
+      valueSek: 70,
 
-      timezone:
-        'Europe/Stockholm',
+      timezone: "Europe/Stockholm",
 
       deadlineAt,
 
@@ -164,25 +96,17 @@ export function Task11MaestroFixtureScreen() {
     });
   }
 
-  if (
-    activeClaim !==
-    'late_cleanup'
-  ) {
+  if (activeClaim !== "late_cleanup") {
     claimableOccurrences.push({
-      occurrenceId:
-        LATE_CLEANUP_OCCURRENCE_ID,
+      occurrenceId: LATE_CLEANUP_OCCURRENCE_ID,
 
-      title:
-        'Late cleanup',
+      title: "Late cleanup",
 
-      description:
-        'Help clean up before the deadline.',
+      description: "Help clean up before the deadline.",
 
-      valueSek:
-        120,
+      valueSek: 120,
 
-      timezone:
-        'Europe/Stockholm',
+      timezone: "Europe/Stockholm",
 
       deadlineAt,
 
@@ -194,59 +118,35 @@ export function Task11MaestroFixtureScreen() {
     });
   }
 
-  const claimedOccurrences:
-    ClaimableChoresViewModel['claimedOccurrences'] =
-    [];
+  const claimedOccurrences: ClaimableChoresViewModel["claimedOccurrences"] = [];
 
-  if (
-    activeClaim ===
-    'dog_walk'
-  ) {
+  if (activeClaim === "dog_walk") {
     claimedOccurrences.push({
-      claimId:
-        DOG_WALK_CLAIM_ID,
+      claimId: DOG_WALK_CLAIM_ID,
 
-      occurrenceId:
-        DOG_WALK_OCCURRENCE_ID,
+      occurrenceId: DOG_WALK_OCCURRENCE_ID,
 
-      childId:
-        CHILD_ID,
+      childId: CHILD_ID,
 
-      claimedByDisplayName:
-        'Fixture Child',
+      claimedByDisplayName: "Fixture Child",
 
-      claimState:
-        'claimed',
+      claimState: "claimed",
 
-      claimedAt:
-        Date.UTC(
-          2030,
-          0,
-          15,
-          12,
-          0,
-          0,
-        ),
+      claimedAt: Date.UTC(2030, 0, 15, 12, 0, 0),
 
-      title:
-        'Dog walk',
+      title: "Dog walk",
 
-      description:
-        'Take the dog for an afternoon walk.',
+      description: "Take the dog for an afternoon walk.",
 
-      valueSek:
-        70,
+      valueSek: 70,
 
-      scheduledLocalDate:
-        '2030-01-15',
+      scheduledLocalDate: "2030-01-15",
 
-      timezone:
-        'Europe/Stockholm',
+      timezone: "Europe/Stockholm",
 
       deadlineAt,
 
-      isMine:
-        true,
+      isMine: true,
 
       commitment: {
         ...ordinaryCommitment,
@@ -256,55 +156,33 @@ export function Task11MaestroFixtureScreen() {
     });
   }
 
-  if (
-    activeClaim ===
-    'late_cleanup'
-  ) {
+  if (activeClaim === "late_cleanup") {
     claimedOccurrences.push({
-      claimId:
-        LATE_CLEANUP_CLAIM_ID,
+      claimId: LATE_CLEANUP_CLAIM_ID,
 
-      occurrenceId:
-        LATE_CLEANUP_OCCURRENCE_ID,
+      occurrenceId: LATE_CLEANUP_OCCURRENCE_ID,
 
-      childId:
-        CHILD_ID,
+      childId: CHILD_ID,
 
-      claimedByDisplayName:
-        'Fixture Child',
+      claimedByDisplayName: "Fixture Child",
 
-      claimState:
-        'claimed',
+      claimState: "claimed",
 
-      claimedAt:
-        Date.UTC(
-          2030,
-          0,
-          15,
-          16,
-          30,
-          0,
-        ),
+      claimedAt: Date.UTC(2030, 0, 15, 16, 30, 0),
 
-      title:
-        'Late cleanup',
+      title: "Late cleanup",
 
-      description:
-        'Help clean up before the deadline.',
+      description: "Help clean up before the deadline.",
 
-      valueSek:
-        120,
+      valueSek: 120,
 
-      scheduledLocalDate:
-        '2030-01-15',
+      scheduledLocalDate: "2030-01-15",
 
-      timezone:
-        'Europe/Stockholm',
+      timezone: "Europe/Stockholm",
 
       deadlineAt,
 
-      isMine:
-        true,
+      isMine: true,
 
       commitment: {
         ...lockedCommitment,
@@ -314,59 +192,35 @@ export function Task11MaestroFixtureScreen() {
     });
   }
 
-  const result:
-    ClaimableChoresViewModel =
-    {
-      gate: {
-        canAccessClaimables:
-          true,
+  const result: ClaimableChoresViewModel = {
+    gate: {
+      canAccessClaimables: true,
 
-        currentUnlockOccurrence:
-          null,
+      currentUnlockOccurrence: null,
+    },
+
+    unclaimAllowance: {
+      allowance: 2,
+
+      usedUnclaims: successfulUnclaims,
+
+      remainingUnclaims,
+
+      payoutWeek: {
+        startLocalDate: "2030-01-11",
+
+        endLocalDate: "2030-01-18",
+
+        startAt: Date.UTC(2030, 0, 10, 23, 0, 0),
+
+        endAt: Date.UTC(2030, 0, 17, 23, 0, 0),
       },
+    },
 
-      unclaimAllowance: {
-        allowance:
-          2,
+    claimableOccurrences,
 
-        usedUnclaims:
-          successfulUnclaims,
-
-        remainingUnclaims,
-
-        payoutWeek: {
-          startLocalDate:
-            '2030-01-11',
-
-          endLocalDate:
-            '2030-01-18',
-
-          startAt:
-            Date.UTC(
-              2030,
-              0,
-              10,
-              23,
-              0,
-              0,
-            ),
-
-          endAt:
-            Date.UTC(
-              2030,
-              0,
-              17,
-              23,
-              0,
-              0,
-            ),
-        },
-      },
-
-      claimableOccurrences,
-
-      claimedOccurrences,
-    };
+    claimedOccurrences,
+  };
 
   return (
     <ScrollView
@@ -382,17 +236,14 @@ export function Task11MaestroFixtureScreen() {
       </Text>
 
       <Text className="mt-2 text-sm leading-5 text-slate-400">
-        Deterministic unclaim and
-        commitment-lock journeys.
+        Deterministic unclaim and commitment-lock journeys.
       </Text>
 
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Reset TASK-11 fixture"
-        onPress={
-          reset
-        }
-        className="items-center px-4 py-3 mt-4 rounded-xl bg-purple-900"
+        onPress={reset}
+        className="mt-4 items-center rounded-xl bg-purple-900 px-4 py-3"
       >
         <Text className="font-semibold text-purple-200">
           Reset TASK-11 fixture
@@ -400,89 +251,44 @@ export function Task11MaestroFixtureScreen() {
       </Pressable>
 
       <ClaimableChoresView
-        result={
-          result
-        }
-        onClaim={async (
-          occurrenceId,
-          acceptImmediateLock,
-        ) => {
-          if (
-            activeClaim !==
-            null
-          ) {
-            throw new Error(
-              'Fixture Child already has an active Claim.',
-            );
+        result={result}
+        onClaim={async (occurrenceId, acceptImmediateLock) => {
+          if (activeClaim !== null) {
+            throw new Error("Fixture Child already has an active Claim.");
           }
 
-          if (
-            occurrenceId ===
-            DOG_WALK_OCCURRENCE_ID
-          ) {
-            if (
-              acceptImmediateLock
-            ) {
+          if (occurrenceId === DOG_WALK_OCCURRENCE_ID) {
+            if (acceptImmediateLock) {
               throw new Error(
-                'Dog walk should not require locked acknowledgement.',
+                "Dog walk should not require locked acknowledgement.",
               );
             }
 
-            setActiveClaim(
-              'dog_walk',
-            );
+            setActiveClaim("dog_walk");
 
             return;
           }
 
-          if (
-            occurrenceId ===
-            LATE_CLEANUP_OCCURRENCE_ID
-          ) {
-            if (
-              !acceptImmediateLock
-            ) {
-              throw new Error(
-                'Late cleanup requires locked acknowledgement.',
-              );
+          if (occurrenceId === LATE_CLEANUP_OCCURRENCE_ID) {
+            if (!acceptImmediateLock) {
+              throw new Error("Late cleanup requires locked acknowledgement.");
             }
 
-            setActiveClaim(
-              'late_cleanup',
-            );
+            setActiveClaim("late_cleanup");
 
             return;
           }
 
-          throw new Error(
-            'Unknown TASK-11 fixture occurrence.',
-          );
+          throw new Error("Unknown TASK-11 fixture occurrence.");
         }}
-        onUnclaim={async (
-          claimId,
-        ) => {
-          if (
-            activeClaim !==
-              'dog_walk' ||
-            claimId !==
-              DOG_WALK_CLAIM_ID
-          ) {
-            throw new Error(
-              'Only Dog walk can be unclaimed in this fixture.',
-            );
+        onUnclaim={async (claimId) => {
+          if (activeClaim !== "dog_walk" || claimId !== DOG_WALK_CLAIM_ID) {
+            throw new Error("Only Dog walk can be unclaimed in this fixture.");
           }
 
-          setActiveClaim(
-            null,
-          );
+          setActiveClaim(null);
 
-          setSuccessfulUnclaims(
-            (
-              current,
-            ) =>
-              current +
-              1,
-          );
+          setSuccessfulUnclaims((current) => current + 1);
         }}
       />
     </ScrollView>

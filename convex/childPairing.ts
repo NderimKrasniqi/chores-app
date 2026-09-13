@@ -1,18 +1,18 @@
-import { ConvexError, v } from 'convex/values';
+import { ConvexError, v } from "convex/values";
 
-import { internal } from './_generated/api';
-import type { Id } from './_generated/dataModel';
-import { action, internalMutation, mutation } from './_generated/server';
-import { authComponent } from './auth';
+import { internal } from "./_generated/api";
+import type { Id } from "./_generated/dataModel";
+import { action, internalMutation, mutation } from "./_generated/server";
+import { authComponent } from "./auth";
 import {
   requireCurrentParentAuthUser,
   requireCurrentParentForHousehold,
   requireParentMembershipForHousehold,
-} from './lib/auth/parentAuthorization';
+} from "./lib/auth/parentAuthorization";
 import {
   findActiveChildAccessGrantForCredential,
   getUniqueActiveChildAccessGrantForAuthUser,
-} from './lib/childAccess/activeGrants';
+} from "./lib/childAccess/activeGrants";
 
 const PAIRING_LIFETIME_MS = 15 * 60 * 1000;
 
@@ -23,32 +23,32 @@ const MANUAL_ATTEMPT_WINDOW_MS = 10 * 60 * 1000;
 const MAX_MANUAL_ATTEMPTS_PER_WINDOW = 5;
 const MANUAL_BLOCK_DURATION_MS = 15 * 60 * 1000;
 
-const MANUAL_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const MANUAL_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
 type RedemptionSuccess = {
-  householdId: Id<'households'>;
-  childId: Id<'children'>;
-  accessGrantId: Id<'childDeviceAccessGrants'>;
+  householdId: Id<"households">;
+  childId: Id<"children">;
+  accessGrantId: Id<"childDeviceAccessGrants">;
 };
 
 type ManualRedemptionResult =
   | {
-      status: 'success';
-      householdId: Id<'households'>;
-      childId: Id<'children'>;
-      accessGrantId: Id<'childDeviceAccessGrants'>;
+      status: "success";
+      householdId: Id<"households">;
+      childId: Id<"children">;
+      accessGrantId: Id<"childDeviceAccessGrants">;
     }
   | {
-      status: 'invalid';
+      status: "invalid";
     }
   | {
-      status: 'rate_limited';
+      status: "rate_limited";
       retryAt: number;
     };
 
 function bytesToHex(bytes: Uint8Array) {
-  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join(
-    '',
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join(
+    "",
   );
 }
 
@@ -70,37 +70,37 @@ function generateManualCode() {
     (byte) => MANUAL_CODE_ALPHABET[byte & (MANUAL_CODE_ALPHABET.length - 1)],
   );
 
-  return `${characters.slice(0, 5).join('')}-${characters.slice(5).join('')}`;
+  return `${characters.slice(0, 5).join("")}-${characters.slice(5).join("")}`;
 }
 
 function normalizeManualCode(code: string) {
   return code
     .trim()
     .toUpperCase()
-    .replace(/[^A-Z0-9]/g, '');
+    .replace(/[^A-Z0-9]/g, "");
 }
 
 async function hashSecret(secret: string) {
   const encoded = new TextEncoder().encode(secret);
 
-  const digest = await crypto.subtle.digest('SHA-256', encoded);
+  const digest = await crypto.subtle.digest("SHA-256", encoded);
 
   return bytesToHex(new Uint8Array(digest));
 }
 
 function isAnonymousAuthUser(user: object) {
-  return 'isAnonymous' in user && user.isAnonymous === true;
+  return "isAnonymous" in user && user.isAnonymous === true;
 }
 
 export const create = action({
   args: {
-    householdId: v.id('households'),
-    childId: v.id('children'),
+    householdId: v.id("households"),
+    childId: v.id("children"),
   },
 
   returns: v.object({
-    pairingCredentialId: v.id('childPairingCredentials'),
-    childId: v.id('children'),
+    pairingCredentialId: v.id("childPairingCredentials"),
+    childId: v.id("children"),
     qrToken: v.string(),
     manualCode: v.string(),
     expiresAt: v.number(),
@@ -110,16 +110,13 @@ export const create = action({
     ctx,
     args,
   ): Promise<{
-    pairingCredentialId: Id<'childPairingCredentials'>;
-    childId: Id<'children'>;
+    pairingCredentialId: Id<"childPairingCredentials">;
+    childId: Id<"children">;
     qrToken: string;
     manualCode: string;
     expiresAt: number;
   }> => {
-    const authUser =
-      await requireCurrentParentAuthUser(
-        ctx,
-      );
+    const authUser = await requireCurrentParentAuthUser(ctx);
 
     const qrToken = generateQrToken();
     const manualCode = generateManualCode();
@@ -129,7 +126,7 @@ export const create = action({
     const manualCodeHash = await hashSecret(normalizeManualCode(manualCode));
 
     const stored: {
-      pairingCredentialId: Id<'childPairingCredentials'>;
+      pairingCredentialId: Id<"childPairingCredentials">;
       expiresAt: number;
     } = await ctx.runMutation(internal.childPairing.storeGeneratedCredential, {
       householdId: args.householdId,
@@ -155,28 +152,28 @@ export const redeemQr = action({
   },
 
   returns: v.object({
-    householdId: v.id('households'),
-    childId: v.id('children'),
-    accessGrantId: v.id('childDeviceAccessGrants'),
+    householdId: v.id("households"),
+    childId: v.id("children"),
+    accessGrantId: v.id("childDeviceAccessGrants"),
   }),
 
   handler: async (ctx, args): Promise<RedemptionSuccess> => {
     const authUser = await authComponent.safeGetAuthUser(ctx);
 
     if (!authUser) {
-      throw new ConvexError('Not authenticated.');
+      throw new ConvexError("Not authenticated.");
     }
 
     if (!isAnonymousAuthUser(authUser)) {
       throw new ConvexError(
-        'Child pairing requires an anonymous device session.',
+        "Child pairing requires an anonymous device session.",
       );
     }
 
     const qrToken = args.qrToken.trim();
 
     if (!qrToken) {
-      throw new ConvexError('QR pairing token is required.');
+      throw new ConvexError("QR pairing token is required.");
     }
 
     const qrTokenHash = await hashSecret(qrToken);
@@ -199,21 +196,21 @@ export const redeemManual = action({
   },
 
   returns: v.object({
-    householdId: v.id('households'),
-    childId: v.id('children'),
-    accessGrantId: v.id('childDeviceAccessGrants'),
+    householdId: v.id("households"),
+    childId: v.id("children"),
+    accessGrantId: v.id("childDeviceAccessGrants"),
   }),
 
   handler: async (ctx, args): Promise<RedemptionSuccess> => {
     const authUser = await authComponent.safeGetAuthUser(ctx);
 
     if (!authUser) {
-      throw new ConvexError('Not authenticated.');
+      throw new ConvexError("Not authenticated.");
     }
 
     if (!isAnonymousAuthUser(authUser)) {
       throw new ConvexError(
-        'Child pairing requires an anonymous device session.',
+        "Child pairing requires an anonymous device session.",
       );
     }
 
@@ -229,7 +226,7 @@ export const redeemManual = action({
       },
     );
 
-    if (result.status === 'rate_limited') {
+    if (result.status === "rate_limited") {
       throw new ConvexError(
         `Too many manual pairing attempts. Try again after ${new Date(
           result.retryAt,
@@ -237,8 +234,8 @@ export const redeemManual = action({
       );
     }
 
-    if (result.status === 'invalid') {
-      throw new ConvexError('Invalid or unavailable child pairing code.');
+    if (result.status === "invalid") {
+      throw new ConvexError("Invalid or unavailable child pairing code.");
     }
 
     return {
@@ -251,7 +248,7 @@ export const redeemManual = action({
 
 export const revokeCredential = mutation({
   args: {
-    pairingCredentialId: v.id('childPairingCredentials'),
+    pairingCredentialId: v.id("childPairingCredentials"),
   },
 
   returns: v.boolean(),
@@ -260,18 +257,17 @@ export const revokeCredential = mutation({
     const credential = await ctx.db.get(args.pairingCredentialId);
 
     if (!credential) {
-      throw new ConvexError('Pairing credential not found.');
+      throw new ConvexError("Pairing credential not found.");
     }
 
-    const { authUser } =
-      await requireCurrentParentForHousehold(
-        ctx,
-        credential.householdId,
-      );
+    const { authUser } = await requireCurrentParentForHousehold(
+      ctx,
+      credential.householdId,
+    );
 
     if (credential.redeemedAt !== undefined) {
       throw new ConvexError(
-        'This pairing credential has already been redeemed. Revoke the child device instead.',
+        "This pairing credential has already been redeemed. Revoke the child device instead.",
       );
     }
 
@@ -294,7 +290,7 @@ export const revokeCredential = mutation({
 
 export const revokeDevice = mutation({
   args: {
-    accessGrantId: v.id('childDeviceAccessGrants'),
+    accessGrantId: v.id("childDeviceAccessGrants"),
   },
 
   returns: v.boolean(),
@@ -303,14 +299,13 @@ export const revokeDevice = mutation({
     const grant = await ctx.db.get(args.accessGrantId);
 
     if (!grant) {
-      throw new ConvexError('Child device access grant not found.');
+      throw new ConvexError("Child device access grant not found.");
     }
 
-    const { authUser } =
-      await requireCurrentParentForHousehold(
-        ctx,
-        grant.householdId,
-      );
+    const { authUser } = await requireCurrentParentForHousehold(
+      ctx,
+      grant.householdId,
+    );
 
     if (grant.revokedAt !== undefined) {
       return false;
@@ -327,15 +322,15 @@ export const revokeDevice = mutation({
 
 export const storeGeneratedCredential = internalMutation({
   args: {
-    householdId: v.id('households'),
-    childId: v.id('children'),
+    householdId: v.id("households"),
+    childId: v.id("children"),
     actorAuthUserId: v.string(),
     qrTokenHash: v.string(),
     manualCodeHash: v.string(),
   },
 
   returns: v.object({
-    pairingCredentialId: v.id('childPairingCredentials'),
+    pairingCredentialId: v.id("childPairingCredentials"),
     expiresAt: v.number(),
   }),
 
@@ -343,20 +338,20 @@ export const storeGeneratedCredential = internalMutation({
     ctx,
     args,
   ): Promise<{
-    pairingCredentialId: Id<'childPairingCredentials'>;
+    pairingCredentialId: Id<"childPairingCredentials">;
     expiresAt: number;
   }> => {
     await requireParentMembershipForHousehold(
       ctx,
       args.householdId,
       args.actorAuthUserId,
-      'You are not authorized to pair child devices for this household.',
+      "You are not authorized to pair child devices for this household.",
     );
 
     const child = await ctx.db.get(args.childId);
 
     if (!child || child.householdId !== args.householdId) {
-      throw new ConvexError('Child does not belong to this household.');
+      throw new ConvexError("Child does not belong to this household.");
     }
 
     /*
@@ -365,28 +360,28 @@ export const storeGeneratedCredential = internalMutation({
      * lookup assumptions used during redemption.
      */
     const existingQrCredential = await ctx.db
-      .query('childPairingCredentials')
-      .withIndex('by_qr_token_hash', (q) =>
-        q.eq('qrTokenHash', args.qrTokenHash),
+      .query("childPairingCredentials")
+      .withIndex("by_qr_token_hash", (q) =>
+        q.eq("qrTokenHash", args.qrTokenHash),
       )
       .first();
 
     if (existingQrCredential) {
       throw new ConvexError(
-        'Generated QR pairing credential collision. Generate a new credential.',
+        "Generated QR pairing credential collision. Generate a new credential.",
       );
     }
 
     const existingManualCredential = await ctx.db
-      .query('childPairingCredentials')
-      .withIndex('by_manual_code_hash', (q) =>
-        q.eq('manualCodeHash', args.manualCodeHash),
+      .query("childPairingCredentials")
+      .withIndex("by_manual_code_hash", (q) =>
+        q.eq("manualCodeHash", args.manualCodeHash),
       )
       .first();
 
     if (existingManualCredential) {
       throw new ConvexError(
-        'Generated manual pairing credential collision. Generate a new credential.',
+        "Generated manual pairing credential collision. Generate a new credential.",
       );
     }
 
@@ -398,7 +393,7 @@ export const storeGeneratedCredential = internalMutation({
      */
     const expiresAt = now + PAIRING_LIFETIME_MS;
 
-    const pairingCredentialId = await ctx.db.insert('childPairingCredentials', {
+    const pairingCredentialId = await ctx.db.insert("childPairingCredentials", {
       householdId: args.householdId,
       childId: args.childId,
 
@@ -427,27 +422,27 @@ export const consumeQrCredential = internalMutation({
   },
 
   returns: v.object({
-    householdId: v.id('households'),
-    childId: v.id('children'),
-    accessGrantId: v.id('childDeviceAccessGrants'),
+    householdId: v.id("households"),
+    childId: v.id("children"),
+    accessGrantId: v.id("childDeviceAccessGrants"),
   }),
 
   handler: async (ctx, args): Promise<RedemptionSuccess> => {
     const credential = await ctx.db
-      .query('childPairingCredentials')
-      .withIndex('by_qr_token_hash', (q) =>
-        q.eq('qrTokenHash', args.qrTokenHash),
+      .query("childPairingCredentials")
+      .withIndex("by_qr_token_hash", (q) =>
+        q.eq("qrTokenHash", args.qrTokenHash),
       )
       .unique();
 
     if (!credential) {
-      throw new ConvexError('Invalid or unavailable QR pairing token.');
+      throw new ConvexError("Invalid or unavailable QR pairing token.");
     }
 
     const now = Date.now();
 
     if (credential.revokedAt !== undefined) {
-      throw new ConvexError('Invalid or unavailable QR pairing token.');
+      throw new ConvexError("Invalid or unavailable QR pairing token.");
     }
 
     /*
@@ -457,18 +452,17 @@ export const consumeQrCredential = internalMutation({
      */
     if (credential.redeemedAt !== undefined) {
       if (credential.redeemedByAuthUserId !== args.actorAuthUserId) {
-        throw new ConvexError('Invalid or unavailable QR pairing token.');
+        throw new ConvexError("Invalid or unavailable QR pairing token.");
       }
 
-      const existingGrant =
-        await findActiveChildAccessGrantForCredential(
-          ctx,
-          args.actorAuthUserId,
-          credential._id,
-        );
+      const existingGrant = await findActiveChildAccessGrantForCredential(
+        ctx,
+        args.actorAuthUserId,
+        credential._id,
+      );
 
       if (!existingGrant) {
-        throw new ConvexError('Invalid or unavailable QR pairing token.');
+        throw new ConvexError("Invalid or unavailable QR pairing token.");
       }
 
       return {
@@ -479,22 +473,21 @@ export const consumeQrCredential = internalMutation({
     }
 
     if (credential.expiresAt <= now) {
-      throw new ConvexError('Invalid or unavailable QR pairing token.');
+      throw new ConvexError("Invalid or unavailable QR pairing token.");
     }
 
-    const activeGrant =
-      await getUniqueActiveChildAccessGrantForAuthUser(
-        ctx,
-        args.actorAuthUserId,
-      );
+    const activeGrant = await getUniqueActiveChildAccessGrantForAuthUser(
+      ctx,
+      args.actorAuthUserId,
+    );
 
     if (activeGrant) {
       throw new ConvexError(
-        'This anonymous device identity is already paired to a child profile.',
+        "This anonymous device identity is already paired to a child profile.",
       );
     }
 
-    const accessGrantId = await ctx.db.insert('childDeviceAccessGrants', {
+    const accessGrantId = await ctx.db.insert("childDeviceAccessGrants", {
       householdId: credential.householdId,
       childId: credential.childId,
 
@@ -526,18 +519,18 @@ export const consumeManualCredential = internalMutation({
 
   returns: v.union(
     v.object({
-      status: v.literal('success'),
-      householdId: v.id('households'),
-      childId: v.id('children'),
-      accessGrantId: v.id('childDeviceAccessGrants'),
+      status: v.literal("success"),
+      householdId: v.id("households"),
+      childId: v.id("children"),
+      accessGrantId: v.id("childDeviceAccessGrants"),
     }),
 
     v.object({
-      status: v.literal('invalid'),
+      status: v.literal("invalid"),
     }),
 
     v.object({
-      status: v.literal('rate_limited'),
+      status: v.literal("rate_limited"),
       retryAt: v.number(),
     }),
   ),
@@ -546,9 +539,9 @@ export const consumeManualCredential = internalMutation({
     const now = Date.now();
 
     let attemptBucket = await ctx.db
-      .query('childPairingManualAttemptBuckets')
-      .withIndex('by_auth_user', (q) =>
-        q.eq('authUserId', args.actorAuthUserId),
+      .query("childPairingManualAttemptBuckets")
+      .withIndex("by_auth_user", (q) =>
+        q.eq("authUserId", args.actorAuthUserId),
       )
       .unique();
 
@@ -561,7 +554,7 @@ export const consumeManualCredential = internalMutation({
       attemptBucket.blockedUntil > now
     ) {
       return {
-        status: 'rate_limited',
+        status: "rate_limited",
         retryAt: attemptBucket.blockedUntil,
       };
     }
@@ -591,9 +584,9 @@ export const consumeManualCredential = internalMutation({
     }
 
     const credential = await ctx.db
-      .query('childPairingCredentials')
-      .withIndex('by_manual_code_hash', (q) =>
-        q.eq('manualCodeHash', args.manualCodeHash),
+      .query("childPairingCredentials")
+      .withIndex("by_manual_code_hash", (q) =>
+        q.eq("manualCodeHash", args.manualCodeHash),
       )
       .unique();
 
@@ -607,12 +600,11 @@ export const consumeManualCredential = internalMutation({
       credential.redeemedAt !== undefined &&
       credential.redeemedByAuthUserId === args.actorAuthUserId
     ) {
-      const existingGrant =
-        await findActiveChildAccessGrantForCredential(
-          ctx,
-          args.actorAuthUserId,
-          credential._id,
-        );
+      const existingGrant = await findActiveChildAccessGrantForCredential(
+        ctx,
+        args.actorAuthUserId,
+        credential._id,
+      );
 
       if (existingGrant) {
         if (attemptBucket) {
@@ -620,7 +612,7 @@ export const consumeManualCredential = internalMutation({
         }
 
         return {
-          status: 'success',
+          status: "success",
           householdId: existingGrant.householdId,
           childId: existingGrant.childId,
           accessGrantId: existingGrant._id,
@@ -635,14 +627,13 @@ export const consumeManualCredential = internalMutation({
       credential.expiresAt > now;
 
     if (credentialIsAvailable) {
-      const activeGrant =
-        await getUniqueActiveChildAccessGrantForAuthUser(
-          ctx,
-          args.actorAuthUserId,
-        );
+      const activeGrant = await getUniqueActiveChildAccessGrantForAuthUser(
+        ctx,
+        args.actorAuthUserId,
+      );
 
       if (!activeGrant) {
-        const accessGrantId = await ctx.db.insert('childDeviceAccessGrants', {
+        const accessGrantId = await ctx.db.insert("childDeviceAccessGrants", {
           householdId: credential.householdId,
           childId: credential.childId,
 
@@ -669,7 +660,7 @@ export const consumeManualCredential = internalMutation({
         }
 
         return {
-          status: 'success',
+          status: "success",
           householdId: credential.householdId,
           childId: credential.childId,
           accessGrantId,
@@ -714,7 +705,7 @@ export const consumeManualCredential = internalMutation({
         updatedAt: now,
       });
     } else {
-      await ctx.db.insert('childPairingManualAttemptBuckets', {
+      await ctx.db.insert("childPairingManualAttemptBuckets", {
         authUserId: args.actorAuthUserId,
 
         windowStartedAt: now,
@@ -728,13 +719,13 @@ export const consumeManualCredential = internalMutation({
 
     if (shouldBlock) {
       return {
-        status: 'rate_limited',
+        status: "rate_limited",
         retryAt: blockedUntil as number,
       };
     }
 
     return {
-      status: 'invalid',
+      status: "invalid",
     };
   },
 });

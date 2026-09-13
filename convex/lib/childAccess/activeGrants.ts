@@ -1,18 +1,9 @@
-import {
-  ConvexError,
-} from 'convex/values';
+import { ConvexError } from "convex/values";
 
-import type {
-  Id,
-} from '../../_generated/dataModel';
-import type {
-  MutationCtx,
-  QueryCtx,
-} from '../../_generated/server';
+import type { Id } from "../../_generated/dataModel";
+import type { MutationCtx, QueryCtx } from "../../_generated/server";
 
-type DatabaseCtx =
-  | MutationCtx
-  | QueryCtx;
+type DatabaseCtx = MutationCtx | QueryCtx;
 
 /*
  * Revoked grants remain durable history.
@@ -25,80 +16,46 @@ type DatabaseCtx =
  * the fail-closed uniqueness invariant.
  */
 export async function listActiveChildAccessGrantsForAuthUser(
-  ctx:
-    DatabaseCtx,
-  authUserId:
-    string,
+  ctx: DatabaseCtx,
+  authUserId: string,
 ) {
   return await ctx.db
-    .query(
-      'childDeviceAccessGrants',
+    .query("childDeviceAccessGrants")
+    .withIndex("by_auth_user_revoked_at", (q) =>
+      q.eq("authUserId", authUserId).eq("revokedAt", undefined),
     )
-    .withIndex(
-      'by_auth_user_revoked_at',
-      (q) =>
-        q
-          .eq(
-            'authUserId',
-            authUserId,
-          )
-          .eq(
-            'revokedAt',
-            undefined,
-          ),
-    )
-    .take(
-      2,
-    );
+    .take(2);
 }
 
 export async function getUniqueActiveChildAccessGrantForAuthUser(
-  ctx:
-    DatabaseCtx,
-  authUserId:
-    string,
+  ctx: DatabaseCtx,
+  authUserId: string,
 ) {
-  const activeGrants =
-    await listActiveChildAccessGrantsForAuthUser(
-      ctx,
-      authUserId,
-    );
+  const activeGrants = await listActiveChildAccessGrantsForAuthUser(
+    ctx,
+    authUserId,
+  );
 
-  if (
-    activeGrants.length >
-    1
-  ) {
+  if (activeGrants.length > 1) {
     throw new ConvexError(
-      'Child device identity has multiple active access grants.',
+      "Child device identity has multiple active access grants.",
     );
   }
 
-  return (
-    activeGrants[0] ??
-    null
-  );
+  return activeGrants[0] ?? null;
 }
 
 export async function findActiveChildAccessGrantForCredential(
-  ctx:
-    DatabaseCtx,
-  authUserId:
-    string,
-  pairingCredentialId:
-    Id<'childPairingCredentials'>,
+  ctx: DatabaseCtx,
+  authUserId: string,
+  pairingCredentialId: Id<"childPairingCredentials">,
 ) {
-  const activeGrant =
-    await getUniqueActiveChildAccessGrantForAuthUser(
-      ctx,
-      authUserId,
-    );
+  const activeGrant = await getUniqueActiveChildAccessGrantForAuthUser(
+    ctx,
+    authUserId,
+  );
 
-  if (
-    !activeGrant ||
-    activeGrant
-      .pairingCredentialId !==
-      pairingCredentialId
-  ) {
+  if (!activeGrant || activeGrant.pairingCredentialId !== pairingCredentialId) {
     return null;
   }
 

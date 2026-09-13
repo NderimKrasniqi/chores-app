@@ -1,102 +1,63 @@
+import { DirectionCIcon } from "@/components/ui/direction-c-icon";
+import { DirectionC } from "@/constants/direction-c";
+import { ActionButton, AppText } from "@/design-system";
 import {
   getChildPinRequirements,
   verifyLocalChildPin,
   type LocalChildContext,
-} from '@/lib/child-access/local-access';
-import { useAuthRuntime } from '@/providers/auth-runtime-provider';
-import { useState } from 'react';
-import {
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+} from "@/lib/child-access/local-access";
+import { useAuthRuntime } from "@/providers/auth-runtime-provider";
+import { Image } from "expo-image";
+import { StatusBar } from "expo-status-bar";
+import { useState } from "react";
+import { KeyboardAvoidingView, Platform, TextInput, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 type ChildPinUnlockScreenProps = {
   context: LocalChildContext;
   onUnlocked: () => void;
 };
 
-function normalizePinInput(
-  value: string,
-) {
-  const {
-    maxLength,
-  } = getChildPinRequirements();
+const childAvatar = require("../../../assets/images/direction-c/alex-avatar.png");
 
-  return value
-    .replace(/\D/g, '')
-    .slice(0, maxLength);
+function normalizePinInput(value: string) {
+  const { maxLength } = getChildPinRequirements();
+  return value.replace(/\D/g, "").slice(0, maxLength);
 }
 
 export function ChildPinUnlockScreen({
   context,
   onUnlocked,
 }: ChildPinUnlockScreenProps) {
-  const {
-    activateParentStorage,
-  } = useAuthRuntime();
-
-  const [
-    pin,
-    setPin,
-  ] = useState('');
-
-  const [
-    checkingPin,
-    setCheckingPin,
-  ] = useState(false);
-
-  const [
-    errorMessage,
-    setErrorMessage,
-  ] = useState<string | null>(null);
-
-  const {
-    minLength,
-    maxLength,
-  } = getChildPinRequirements();
+  const { activateParentStorage } = useAuthRuntime();
+  const [pin, setPin] = useState("");
+  const [checkingPin, setCheckingPin] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const { minLength, maxLength } = getChildPinRequirements();
 
   async function handleUnlock() {
     setErrorMessage(null);
 
-    if (
-      pin.length < minLength
-    ) {
-      setErrorMessage(
-        `Enter your ${minLength} to ${maxLength} digit PIN.`,
-      );
-
+    if (pin.length < minLength) {
+      setErrorMessage(`Enter your ${minLength} to ${maxLength} digit PIN.`);
       return;
     }
 
     setCheckingPin(true);
 
     try {
-      const valid =
-        await verifyLocalChildPin(
-          context.contextId,
-          pin,
-        );
-
-      setPin('');
+      const valid = await verifyLocalChildPin(context.contextId, pin);
+      setPin("");
 
       if (!valid) {
-        setErrorMessage(
-          'Incorrect PIN.',
-        );
-
+        setErrorMessage("Incorrect PIN.");
         return;
       }
 
       onUnlocked();
     } catch (error) {
       setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : 'Could not verify PIN.',
+        error instanceof Error ? error.message : "Could not verify PIN.",
       );
     } finally {
       setCheckingPin(false);
@@ -104,100 +65,96 @@ export function ChildPinUnlockScreen({
   }
 
   function handleSwitchProfile() {
-    setPin('');
+    setPin("");
     setErrorMessage(null);
-
     activateParentStorage();
   }
 
   return (
-    <KeyboardAvoidingView
-      className="justify-center flex-1 px-6 bg-slate-950"
-      behavior={
-        Platform.OS === 'ios'
-          ? 'padding'
-          : undefined
-      }
-    >
-      <View>
-        <Text className="text-sm font-semibold tracking-wider uppercase text-slate-500">
-          Child profile
-        </Text>
+    <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-canvas">
+      <StatusBar style="dark" />
+      <KeyboardAvoidingView
+        className="flex-1 px-5"
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+        <View className="flex-1 justify-center">
+          <AppText
+            variant="label"
+            color="ink-faint"
+            className="uppercase tracking-widest"
+          >
+            Child profile
+          </AppText>
+          <AppText variant="display" className="mt-3">
+            Hi, {context.childDisplayName}
+          </AppText>
+          <AppText color="ink-muted" className="mt-2">
+            Enter your local PIN to unlock this Child profile.
+          </AppText>
 
-        <Text className="mt-3 text-3xl font-bold text-white">
-          Hi, {context.childDisplayName}
-        </Text>
+          <View className="my-6 items-center">
+            <Image
+              source={childAvatar}
+              className="h-32 w-32 rounded-full"
+              contentFit="contain"
+              accessible={false}
+            />
+            <AppText variant="sectionTitle" className="mt-2">
+              {context.childDisplayName}
+            </AppText>
+            <AppText color="ink-muted">{context.householdName}</AppText>
+          </View>
 
-        <Text className="mt-3 text-base leading-6 text-slate-400">
-          Enter your local PIN to unlock
-          this Child profile.
-        </Text>
+          <AppText variant="sectionTitle">PIN</AppText>
+          <TextInput
+            className="mt-2 min-h-[72px] rounded-control border-2 border-infoSoftStrong bg-surface text-center font-rounded text-[28px] font-black tracking-[12px] text-ink"
+            placeholder="••••"
+            placeholderTextColor="#8D73BC"
+            value={pin}
+            onChangeText={(value) => setPin(normalizePinInput(value))}
+            keyboardType="number-pad"
+            secureTextEntry
+            maxLength={maxLength}
+            autoFocus
+          />
 
-        <View className="p-4 mt-6 border rounded-xl border-slate-800 bg-slate-900">
-          <Text className="font-semibold text-white">
-            {context.householdName}
-          </Text>
+          {errorMessage ? (
+            <AppText color="urgency" className="mt-3">
+              {errorMessage}
+            </AppText>
+          ) : null}
 
-          <Text className="mt-1 text-sm text-slate-400">
-            {context.childDisplayName}
-          </Text>
+          <ActionButton
+            className="mt-6"
+            label="Unlock profile"
+            loading={checkingPin}
+            onPress={() => void handleUnlock()}
+          />
+          <ActionButton
+            tone="secondary"
+            className="mt-3"
+            label="Use another profile"
+            disabled={checkingPin}
+            onPress={handleSwitchProfile}
+          />
+
+          <View className="mt-7 flex-row items-center justify-center">
+            <DirectionCIcon
+              name="checkShield"
+              color={DirectionC.color.green}
+              size={26}
+            />
+            <AppText
+              variant="caption"
+              color="ink-muted"
+              className="ml-2 flex-1"
+            >
+              The PIN is checked locally. Active device access is still
+              required.
+            </AppText>
+          </View>
         </View>
-
-        <Text className="mt-8 font-semibold text-white">
-          PIN
-        </Text>
-
-        <TextInput
-          className="px-4 py-4 mt-2 text-xl font-semibold tracking-widest text-center text-white border rounded-xl border-slate-700 bg-slate-900"
-          placeholder="••••"
-          placeholderTextColor="#64748b"
-          value={pin}
-          onChangeText={(value) =>
-            setPin(
-              normalizePinInput(value),
-            )
-          }
-          keyboardType="number-pad"
-          secureTextEntry
-          maxLength={maxLength}
-          autoFocus
-        />
-
-        {errorMessage && (
-          <Text className="mt-4 text-red-400">
-            {errorMessage}
-          </Text>
-        )}
-
-        <Pressable
-          className="px-4 py-4 mt-7 bg-white rounded-xl"
-          disabled={checkingPin}
-          onPress={handleUnlock}
-        >
-          <Text className="font-semibold text-center text-slate-950">
-            {checkingPin
-              ? 'Checking PIN...'
-              : 'Unlock profile'}
-          </Text>
-        </Pressable>
-
-        <Pressable
-          className="px-4 py-4 mt-4 border rounded-xl border-slate-700"
-          disabled={checkingPin}
-          onPress={handleSwitchProfile}
-        >
-          <Text className="font-semibold text-center text-slate-300">
-            Use another profile
-          </Text>
-        </Pressable>
-
-        <Text className="mt-5 text-xs leading-5 text-center text-slate-500">
-          The PIN is checked locally.
-          Convex still verifies the active
-          device grant before Child access
-          is allowed.
-        </Text>
-      </View>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }

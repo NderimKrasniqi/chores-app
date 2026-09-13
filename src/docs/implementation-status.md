@@ -988,7 +988,6 @@ Final Maestro regression coverage passes for:
 - TASK-13 Parent Redo review UI;
 - TASK-14 Running Balance UI.
 
-
 ### TASK-15 — Payout periods and manual settlement
 
 - Durable Household Payout Periods implemented with immutable timezone, payout-weekday, start, and end snapshots.
@@ -1007,7 +1006,6 @@ Final Maestro regression coverage passes for:
 - Parent UI includes a dedicated Payouts section for current-period visibility, payout weekday configuration, manual Swish amounts, pending outcomes, negative carry, and Mark paid confirmation.
 - TASK-15 automated regression coverage verifies settlement, negative carry, later-period outcomes, payout-day changes, weekly reset behavior, TASK-14 Running Balance, and TASK-11 unclaim accounting.
 
-
 ### TASK-16 — Private photo evidence
 
 - Optional Child photo evidence implemented for initial and redo submissions.
@@ -1022,7 +1020,6 @@ Final Maestro regression coverage passes for:
 - Revoked Parent or Child access cannot continue viewing evidence.
 - Redo evidence is independent from initial-attempt evidence.
 - Backend smoke tests and dedicated Maestro coverage passed.
-
 
 ### TASK-17 — Household approval activity
 
@@ -1056,7 +1053,6 @@ Final Maestro regression coverage passes for:
 - TASK-18 notification infrastructure and orchestration smoke coverage passed.
 - Dedicated TASK-18 Maestro notification/recovery presentation coverage passed.
 - Physical APNs delivery remains deferred because no paid Apple Developer Program credentials are currently available.
-
 
 ### TASK-19 — Offline fallback and server-confirmed actions
 

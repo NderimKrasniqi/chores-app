@@ -1,14 +1,14 @@
-import { defineTable } from 'convex/server';
-import { v } from 'convex/values';
+import { defineTable } from "convex/server";
+import { v } from "convex/values";
 
 export const weekdayValidator = v.union(
-  v.literal('monday'),
-  v.literal('tuesday'),
-  v.literal('wednesday'),
-  v.literal('thursday'),
-  v.literal('friday'),
-  v.literal('saturday'),
-  v.literal('sunday'),
+  v.literal("monday"),
+  v.literal("tuesday"),
+  v.literal("wednesday"),
+  v.literal("thursday"),
+  v.literal("friday"),
+  v.literal("saturday"),
+  v.literal("sunday"),
 );
 
 export const householdTables = {
@@ -27,35 +27,32 @@ export const householdTables = {
   }),
 
   householdMembers: defineTable({
-    householdId: v.id('households'),
+    householdId: v.id("households"),
 
     // Better Auth user ID.
     authUserId: v.string(),
 
     // Every Parent has equal domain authority.
-    role: v.literal('parent'),
+    role: v.literal("parent"),
 
     joinedAt: v.number(),
   })
-    .index('by_auth_user', ['authUserId'])
-    .index('by_household', ['householdId'])
-    .index(
-      'by_household_auth_user',
-      ['householdId', 'authUserId'],
-    ),
+    .index("by_auth_user", ["authUserId"])
+    .index("by_household", ["householdId"])
+    .index("by_household_auth_user", ["householdId", "authUserId"]),
 
   children: defineTable({
-    householdId: v.id('households'),
+    householdId: v.id("households"),
 
     // Child profiles do not require email accounts.
     displayName: v.string(),
 
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index('by_household', ['householdId']),
+  }).index("by_household", ["householdId"]),
 
   parentInvites: defineTable({
-    householdId: v.id('households'),
+    householdId: v.id("households"),
 
     // Hash of the actual invite token.
     // The raw token is never persisted.
@@ -71,9 +68,8 @@ export const householdTables = {
 
     acceptedAt: v.optional(v.number()),
 
-    acceptedByAuthUserId:
-      v.optional(v.string()),
+    acceptedByAuthUserId: v.optional(v.string()),
   })
-    .index('by_household', ['householdId'])
-    .index('by_token_hash', ['tokenHash']),
+    .index("by_household", ["householdId"])
+    .index("by_token_hash", ["tokenHash"]),
 };

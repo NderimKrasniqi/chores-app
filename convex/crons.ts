@@ -1,13 +1,8 @@
-import {
-  cronJobs,
-} from 'convex/server';
+import { cronJobs } from "convex/server";
 
-import {
-  internal,
-} from './_generated/api';
+import { internal } from "./_generated/api";
 
-const crons =
-  cronJobs();
+const crons = cronJobs();
 
 /*
  * Exact occurrence transitions are
@@ -22,24 +17,19 @@ const crons =
  *    as a safety net.
  */
 crons.interval(
-  'maintain chore occurrences',
+  "maintain chore occurrences",
   {
     minutes: 15,
   },
-  internal
-    .jobs.occurrences.maintenance
-    .run,
+  internal.jobs.occurrences.maintenance.run,
 );
 
-
 crons.interval(
-  'maintain payout periods',
+  "maintain payout periods",
   {
     minutes: 15,
   },
-  internal
-    .jobs.payouts.maintenance
-    .run,
+  internal.jobs.payouts.maintenance.run,
 );
 
 /*
@@ -48,13 +38,11 @@ crons.interval(
  * occurrence lifecycle work.
  */
 crons.interval(
-  'maintain evidence retention',
+  "maintain evidence retention",
   {
     minutes: 60,
   },
-  internal
-    .jobs.evidence.maintenance
-    .run,
+  internal.jobs.evidence.maintenance.run,
 );
 
 export default crons;

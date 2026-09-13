@@ -1,42 +1,19 @@
-import {
-  Pressable,
-  Text,
-  View,
-} from 'react-native';
+import { Pressable, Text, View } from "react-native";
 
-import type {
-  Id,
-} from '../../../convex/_generated/dataModel';
-import {
-  ChildSubmissionActions,
-} from '../evidence/child-submission-actions';
+import type { Id } from "../../../convex/_generated/dataModel";
+import { ChildSubmissionActions } from "../evidence/child-submission-actions";
 
-function formatDeadline(
-  timestamp: number,
-  timezone: string,
-) {
+function formatDeadline(timestamp: number, timezone: string) {
   try {
-    return new Intl.DateTimeFormat(
-      'en-SE',
-      {
-        timeZone:
-          timezone,
+    return new Intl.DateTimeFormat("en-SE", {
+      timeZone: timezone,
 
-        dateStyle:
-          'medium',
+      dateStyle: "medium",
 
-        timeStyle:
-          'short',
-      },
-    ).format(
-      new Date(
-        timestamp,
-      ),
-    );
+      timeStyle: "short",
+    }).format(new Date(timestamp));
   } catch {
-    return new Date(
-      timestamp,
-    ).toLocaleString();
+    return new Date(timestamp).toLocaleString();
   }
 }
 
@@ -60,52 +37,39 @@ export function ChildRedoRequiredCard({
    *
    * Production chore screens always provide it.
    */
-  occurrenceId?:
-    Id<'choreOccurrences'>;
+  occurrenceId?: Id<"choreOccurrences">;
 
-  title:
-    string;
+  title: string;
 
-  description?:
-    string;
+  description?: string;
 
-  valueSek:
-    number;
+  valueSek: number;
 
-  deadlineAt:
-    number;
+  deadlineAt: number;
 
-  timezone:
-    string;
+  timezone: string;
 
-  claimRemainsActive:
-    boolean;
+  claimRemainsActive: boolean;
 
-  canSubmit:
-    boolean;
+  canSubmit: boolean;
 
-  submitting:
-    boolean;
+  submitting: boolean;
 
-  submitTestID?:
-    string;
+  submitTestID?: string;
 
   onSubmit: (
-    evidenceUploadIntentId?:
-      Id<'submissionEvidenceUploads'>,
+    evidenceUploadIntentId?: Id<"submissionEvidenceUploads">,
   ) => Promise<void>;
 }) {
   return (
-    <View className="p-5 mt-4 border rounded-2xl border-amber-900 bg-slate-900">
+    <View className="mt-4 rounded-2xl border border-amber-900 bg-slate-900 p-5">
       <View className="flex-row items-start justify-between">
         <View className="flex-1 pr-3">
-          <Text className="text-xs font-semibold tracking-wider uppercase text-amber-400">
+          <Text className="text-xs font-semibold uppercase tracking-wider text-amber-400">
             Redo required
           </Text>
 
-          <Text className="mt-1 text-lg font-semibold text-white">
-            {title}
-          </Text>
+          <Text className="mt-1 text-lg font-semibold text-white">{title}</Text>
 
           {description ? (
             <Text className="mt-2 text-sm leading-5 text-slate-400">
@@ -114,62 +78,41 @@ export function ChildRedoRequiredCard({
           ) : null}
         </View>
 
-        <Text className="text-lg font-bold text-green-400">
-          {valueSek} kr
-        </Text>
+        <Text className="text-lg font-bold text-green-400">{valueSek} kr</Text>
       </View>
 
-      <View className="p-3 mt-4 border rounded-xl border-amber-900 bg-amber-950">
+      <View className="mt-4 rounded-xl border border-amber-900 bg-amber-950 p-3">
         <Text className="text-sm font-semibold text-amber-300">
           Redo deadline
         </Text>
 
         <Text className="mt-1 text-sm text-amber-100">
-          {formatDeadline(
-            deadlineAt,
-            timezone,
-          )}
+          {formatDeadline(deadlineAt, timezone)}
         </Text>
       </View>
 
       <Text className="mt-4 text-sm leading-5 text-slate-400">
-        Your parent asked for one
-        correction. Finish the work and
-        submit it again before the Redo
-        deadline.
+        Your parent asked for one correction. Finish the work and submit it
+        again before the Redo deadline.
       </Text>
 
       {claimRemainsActive ? (
         <Text className="mt-2 text-xs leading-5 text-slate-500">
-          This Claim remains active and
-          still uses your active Claim slot
-          until the Redo is resolved.
+          This Claim remains active and still uses your active Claim slot until
+          the Redo is resolved.
         </Text>
       ) : null}
 
-      {canSubmit &&
-      occurrenceId ? (
+      {canSubmit && occurrenceId ? (
         <ChildSubmissionActions
-          occurrenceId={
-            occurrenceId
-          }
-          attemptNumber={
-            2
-          }
-          disabled={
-            submitting
-          }
-          submitting={
-            submitting
-          }
-          submitTestID={
-            submitTestID
-          }
+          occurrenceId={occurrenceId}
+          attemptNumber={2}
+          disabled={submitting}
+          submitting={submitting}
+          submitTestID={submitTestID}
           submitLabel="Submit Redo for review"
           submittingLabel="Submitting Redo…"
-          onSubmit={
-            onSubmit
-          }
+          onSubmit={onSubmit}
         />
       ) : canSubmit ? (
         /*
@@ -179,42 +122,32 @@ export function ChildRedoRequiredCard({
          * unavailable.
          */
         <Pressable
-          testID={
-            submitTestID
-          }
+          testID={submitTestID}
           accessibilityRole="button"
           accessibilityLabel={`Submit Redo for ${title}`}
-          disabled={
-            submitting
-          }
-          onPress={() =>
-            void onSubmit()
-          }
+          disabled={submitting}
+          onPress={() => void onSubmit()}
           className={
             submitting
-              ? 'items-center px-4 py-3 mt-4 rounded-xl bg-slate-800'
-              : 'items-center px-4 py-3 mt-4 bg-white rounded-xl'
+              ? "mt-4 items-center rounded-xl bg-slate-800 px-4 py-3"
+              : "mt-4 items-center rounded-xl bg-white px-4 py-3"
           }
         >
           <Text
             className={
               submitting
-                ? 'font-semibold text-slate-500'
-                : 'font-semibold text-slate-950'
+                ? "font-semibold text-slate-500"
+                : "font-semibold text-slate-950"
             }
           >
-            {submitting
-              ? 'Submitting Redo…'
-              : 'Submit Redo for review'}
+            {submitting ? "Submitting Redo…" : "Submit Redo for review"}
           </Text>
         </Pressable>
       ) : (
-        <View className="p-3 mt-4 rounded-xl bg-slate-950">
+        <View className="mt-4 rounded-xl bg-slate-950 p-3">
           <Text className="text-xs leading-5 text-slate-500">
-            Redo submission is no longer
-            available. The deadline may
-            have passed or a Redo
-            submission is already recorded.
+            Redo submission is no longer available. The deadline may have passed
+            or a Redo submission is already recorded.
           </Text>
         </View>
       )}

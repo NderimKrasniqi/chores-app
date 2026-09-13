@@ -1,45 +1,39 @@
-import { authClient } from '@/lib/auth/client';
-import { useState } from 'react';
+import {
+  ActionButton,
+  AppText,
+  FormField,
+  Surface,
+  TopBar,
+} from "@/design-system";
+import { authClient } from "@/lib/auth/client";
+import { Image } from "expo-image";
+import { StatusBar } from "expo-status-bar";
+import { useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
   ScrollView,
-  Text,
-  TextInput,
   View,
-} from 'react-native';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-type AuthMode = 'sign-in' | 'sign-up';
+const parentAccessHero = require("../../../assets/images/direction-c/parent-access-hero.png");
+const childAvatar = require("../../../assets/images/direction-c/alex-avatar.png");
+
+type AuthMode = "sign-in" | "sign-up";
 
 type ParentAuthScreenProps = {
   onBack?: () => void;
 };
 
-export function ParentAuthScreen({
-  onBack,
-}: ParentAuthScreenProps) {
-  const [mode, setMode] =
-    useState<AuthMode>('sign-up');
-
-  const [parentName, setParentName] =
-    useState('');
-
-  const [email, setEmail] =
-    useState('');
-
-  const [password, setPassword] =
-    useState('');
-
-  const [
-    submittingAuth,
-    setSubmittingAuth,
-  ] = useState(false);
-
-  const [
-    errorMessage,
-    setErrorMessage,
-  ] = useState<string | null>(null);
+export function ParentAuthScreen({ onBack }: ParentAuthScreenProps) {
+  const [mode, setMode] = useState<AuthMode>("sign-up");
+  const [parentName, setParentName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [submittingAuth, setSubmittingAuth] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   async function handleAuthSubmit() {
     setSubmittingAuth(true);
@@ -47,7 +41,7 @@ export function ParentAuthScreen({
 
     try {
       const result =
-        mode === 'sign-up'
+        mode === "sign-up"
           ? await authClient.signUp.email({
               name: parentName.trim(),
               email: email.trim(),
@@ -59,16 +53,13 @@ export function ParentAuthScreen({
             });
 
       if (result.error) {
-        setErrorMessage(
-          result.error.message ??
-            'Authentication failed.',
-        );
+        setErrorMessage(result.error.message ?? "Authentication failed.");
       }
     } catch (error) {
       setErrorMessage(
         error instanceof Error
           ? error.message
-          : 'Something went wrong. Please try again.',
+          : "Something went wrong. Please try again.",
       );
     } finally {
       setSubmittingAuth(false);
@@ -76,113 +67,125 @@ export function ParentAuthScreen({
   }
 
   return (
-    <KeyboardAvoidingView
-      className="flex-1 bg-slate-950"
-      behavior={
-        Platform.OS === 'ios'
-          ? 'padding'
-          : undefined
-      }
-    >
-      <ScrollView
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{
-          flexGrow: 1,
-        }}
+    <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-canvas">
+      <StatusBar style="dark" />
+      <KeyboardAvoidingView
+        className="flex-1"
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <View className="justify-center flex-1 px-6">
-          {onBack && (
-            <Pressable
-              className="self-start mb-8"
-              onPress={onBack}
-            >
-              <Text className="font-semibold text-slate-400">
-                ← Back
-              </Text>
-            </Pressable>
-          )}
+        <View className="px-5">
+          <TopBar title="Parent access" onBack={onBack} />
+        </View>
 
-          <Text className="text-3xl font-bold text-white">
-            {mode === 'sign-up'
-              ? 'Create parent account'
-              : 'Parent sign in'}
-          </Text>
-
-          <Text className="mt-2 text-slate-400">
-            Chores App
-          </Text>
-
-          {mode === 'sign-up' && (
-            <TextInput
-              className="px-4 py-4 mt-8 text-white border rounded-xl border-slate-700 bg-slate-900"
-              placeholder="Name"
-              placeholderTextColor="#64748b"
-              value={parentName}
-              onChangeText={setParentName}
-              autoCapitalize="words"
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          contentContainerClassName="px-5 pb-6"
+        >
+          <View className="mt-3 min-h-[190px]">
+            <View className="w-[58%]">
+              <AppText variant="screenTitle">
+                {mode === "sign-up" ? "Create parent account" : "Welcome back"}
+              </AppText>
+              <AppText className="mt-2">
+                {mode === "sign-up"
+                  ? "Set up and manage your family’s chores and rewards."
+                  : "Sign in to open your household."}
+              </AppText>
+            </View>
+            <Image
+              source={parentAccessHero}
+              className="absolute -right-5 top-0 h-[190px] w-[210px]"
+              contentFit="contain"
+              accessible={false}
             />
-          )}
+          </View>
 
-          <TextInput
-            className="px-4 py-4 mt-3 text-white border rounded-xl border-slate-700 bg-slate-900"
-            placeholder="Email"
-            placeholderTextColor="#64748b"
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            autoCorrect={false}
-            keyboardType="email-address"
+          <View className="mt-3 gap-4">
+            {mode === "sign-up" ? (
+              <FormField
+                label="Name"
+                placeholder="Your name"
+                value={parentName}
+                onChangeText={setParentName}
+                autoCapitalize="words"
+                textContentType="name"
+              />
+            ) : null}
+
+            <FormField
+              label="Email"
+              placeholder="you@example.com"
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              autoCorrect={false}
+              keyboardType="email-address"
+              textContentType="emailAddress"
+            />
+
+            <FormField
+              label="Password"
+              placeholder="Enter a password"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              textContentType={mode === "sign-up" ? "newPassword" : "password"}
+            />
+          </View>
+
+          {errorMessage ? (
+            <Surface tone="coral" elevated={false} className="mt-4 p-3">
+              <AppText variant="bodySmall" color="urgency">
+                {errorMessage}
+              </AppText>
+            </Surface>
+          ) : null}
+
+          <ActionButton
+            className="mt-6"
+            label={mode === "sign-up" ? "Create account" : "Sign in"}
+            loading={submittingAuth}
+            onPress={() => void handleAuthSubmit()}
           />
 
-          <TextInput
-            className="px-4 py-4 mt-3 text-white border rounded-xl border-slate-700 bg-slate-900"
-            placeholder="Password"
-            placeholderTextColor="#64748b"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-          />
-
-          {errorMessage && (
-            <Text className="mt-3 text-red-400">
-              {errorMessage}
-            </Text>
-          )}
-
           <Pressable
-            className="px-4 py-4 mt-5 bg-white rounded-xl"
-            disabled={submittingAuth}
-            onPress={handleAuthSubmit}
-          >
-            <Text className="font-semibold text-center text-slate-950">
-              {submittingAuth
-                ? 'Please wait...'
-                : mode === 'sign-up'
-                  ? 'Create account'
-                  : 'Sign in'}
-            </Text>
-          </Pressable>
-
-          <Pressable
-            className="mt-5"
+            accessibilityRole="button"
             onPress={() => {
               setErrorMessage(null);
-
               setMode((current) =>
-                current === 'sign-up'
-                  ? 'sign-in'
-                  : 'sign-up',
+                current === "sign-up" ? "sign-in" : "sign-up",
               );
             }}
+            className="min-h-target items-center justify-center px-4"
           >
-            <Text className="text-center text-slate-400">
-              {mode === 'sign-up'
-                ? 'Already have an account? Sign in'
-                : 'Need an account? Sign up'}
-            </Text>
+            <AppText variant="bodySmall" className="text-center">
+              {mode === "sign-up"
+                ? "Already have an account? "
+                : "Need an account? "}
+              <AppText variant="bodySmall" className="font-black">
+                {mode === "sign-up" ? "Sign in" : "Create one"}
+              </AppText>
+            </AppText>
           </Pressable>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+
+          <Surface
+            tone="lavender"
+            elevated={false}
+            className="mt-3 flex-row items-center p-3"
+          >
+            <Image
+              source={childAvatar}
+              className="h-20 w-20"
+              contentFit="contain"
+              accessible={false}
+            />
+            <AppText className="ml-3 flex-1">
+              Children join without email accounts.
+            </AppText>
+          </Surface>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }

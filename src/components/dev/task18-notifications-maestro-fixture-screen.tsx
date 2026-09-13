@@ -1,26 +1,14 @@
-import {
-  useState,
-} from 'react';
-import {
-  Pressable,
-  ScrollView,
-  Text,
-  View,
-} from 'react-native';
+import { useState } from "react";
+import { Pressable, ScrollView, Text, View } from "react-native";
 
 type NotificationPreviewProps = {
-  audience:
-    'Child' |
-    'Parent';
+  audience: "Child" | "Parent";
 
-  title:
-    string;
+  title: string;
 
-  body:
-    string;
+  body: string;
 
-  testID:
-    string;
+  testID: string;
 };
 
 function NotificationPreview({
@@ -31,34 +19,22 @@ function NotificationPreview({
 }: NotificationPreviewProps) {
   return (
     <View
-      testID={
-        testID
-      }
-      className="p-4 mt-3 border rounded-2xl border-slate-700 bg-slate-900"
+      testID={testID}
+      className="mt-3 rounded-2xl border border-slate-700 bg-slate-900 p-4"
     >
       <Text className="text-xs font-semibold tracking-widest text-amber-400">
         {audience.toUpperCase()}
       </Text>
 
-      <Text className="mt-1 text-base font-semibold text-white">
-        {title}
-      </Text>
+      <Text className="mt-1 text-base font-semibold text-white">{title}</Text>
 
-      <Text className="mt-1 text-sm text-slate-300">
-        {body}
-      </Text>
+      <Text className="mt-1 text-sm text-slate-300">{body}</Text>
     </View>
   );
 }
 
 export function Task18NotificationsMaestroFixtureScreen() {
-  const [
-    claimActive,
-    setClaimActive,
-  ] =
-    useState(
-      true,
-    );
+  const [claimActive, setClaimActive] = useState(true);
 
   return (
     <ScrollView
@@ -74,7 +50,8 @@ export function Task18NotificationsMaestroFixtureScreen() {
       </Text>
 
       <Text className="mt-2 text-sm text-slate-400">
-        Push messages are advisory. Chore state, deadlines, locks, reviews, and financial outcomes remain authoritative in Convex.
+        Push messages are advisory. Chore state, deadlines, locks, reviews, and
+        financial outcomes remain authoritative in Convex.
       </Text>
 
       <Text className="mt-7 text-lg font-bold text-white">
@@ -119,14 +96,15 @@ export function Task18NotificationsMaestroFixtureScreen() {
       ) : (
         <View
           testID="task18-stale-suppressed"
-          className="p-4 mt-3 border rounded-2xl border-slate-700 bg-slate-900"
+          className="mt-3 rounded-2xl border border-slate-700 bg-slate-900 p-4"
         >
           <Text className="text-base font-semibold text-white">
             Stale reminder suppressed
           </Text>
 
           <Text className="mt-1 text-sm text-slate-300">
-            The Claim is no longer active, so the scheduled pre-lock notification has no recipient.
+            The Claim is no longer active, so the scheduled pre-lock
+            notification has no recipient.
           </Text>
         </View>
       )}
@@ -135,16 +113,10 @@ export function Task18NotificationsMaestroFixtureScreen() {
         testID="task18-simulate-unclaim"
         accessibilityRole="button"
         accessibilityLabel="Simulate claim becoming inactive"
-        onPress={() =>
-          setClaimActive(
-            false,
-          )
-        }
-        className="items-center px-4 py-3 mt-4 bg-white rounded-xl"
+        onPress={() => setClaimActive(false)}
+        className="mt-4 items-center rounded-xl bg-white px-4 py-3"
       >
-        <Text className="font-semibold text-slate-950">
-          Simulate unclaim
-        </Text>
+        <Text className="font-semibold text-slate-950">Simulate unclaim</Text>
       </Pressable>
 
       <Text className="mt-8 text-lg font-bold text-white">

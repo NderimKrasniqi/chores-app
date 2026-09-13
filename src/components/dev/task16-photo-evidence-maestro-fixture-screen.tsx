@@ -1,37 +1,12 @@
-import {
-  useState,
-} from 'react';
-import {
-  Pressable,
-  ScrollView,
-  Text,
-  View,
-} from 'react-native';
+import { useState } from "react";
+import { Pressable, ScrollView, Text, View } from "react-native";
 
 export function Task16PhotoEvidenceMaestroFixtureScreen() {
-  const [
-    attached,
-    setAttached,
-  ] =
-    useState(
-      false,
-    );
+  const [attached, setAttached] = useState(false);
 
-  const [
-    error,
-    setError,
-  ] =
-    useState(
-      false,
-    );
+  const [error, setError] = useState(false);
 
-  const [
-    submitted,
-    setSubmitted,
-  ] =
-    useState(
-      false,
-    );
+  const [submitted, setSubmitted] = useState(false);
 
   return (
     <ScrollView
@@ -46,26 +21,21 @@ export function Task16PhotoEvidenceMaestroFixtureScreen() {
         TASK-16 Photo Evidence Fixture
       </Text>
 
-      <View className="p-5 mt-5 rounded-2xl bg-slate-900">
-        <Text className="text-lg font-semibold text-white">
-          Finish kitchen
-        </Text>
+      <View className="mt-5 rounded-2xl bg-slate-900 p-5">
+        <Text className="text-lg font-semibold text-white">Finish kitchen</Text>
 
         <Text
           testID="task16-photo-evidence-label"
           className="mt-3 text-xs font-semibold text-slate-300"
         >
           Photo evidence
-          <Text className="font-normal text-slate-500">
-            {' '}
-            (optional)
-          </Text>
+          <Text className="font-normal text-slate-500"> (optional)</Text>
         </Text>
 
         {error ? (
           <View
             testID="task16-recoverable-error"
-            className="p-3 mt-3 border rounded-xl border-red-900 bg-red-950"
+            className="mt-3 rounded-xl border border-red-900 bg-red-950 p-3"
           >
             <Text className="text-sm font-semibold text-red-300">
               Photo not attached
@@ -85,7 +55,7 @@ export function Task16PhotoEvidenceMaestroFixtureScreen() {
           <View className="mt-3">
             <View
               testID="task16-photo-preview"
-              className="items-center justify-center w-full h-48 rounded-xl bg-slate-800"
+              className="h-48 w-full items-center justify-center rounded-xl bg-slate-800"
             >
               <Text className="font-semibold text-slate-300">
                 Photo attached
@@ -97,34 +67,24 @@ export function Task16PhotoEvidenceMaestroFixtureScreen() {
               accessibilityRole="button"
               accessibilityLabel="Remove chore evidence photo"
               onPress={() => {
-                setAttached(
-                  false,
-                );
+                setAttached(false);
 
-                setError(
-                  false,
-                );
+                setError(false);
               }}
-              className="items-center px-4 py-3 mt-2 rounded-xl bg-slate-700"
+              className="mt-2 items-center rounded-xl bg-slate-700 px-4 py-3"
             >
-              <Text className="font-semibold text-white">
-                Remove photo
-              </Text>
+              <Text className="font-semibold text-white">Remove photo</Text>
             </Pressable>
           </View>
         ) : (
           <>
-            <View className="flex-row mt-3">
-              <View className="items-center flex-1 px-3 py-3 mr-2 rounded-xl bg-slate-700">
-                <Text className="font-semibold text-white">
-                  Take photo
-                </Text>
+            <View className="mt-3 flex-row">
+              <View className="mr-2 flex-1 items-center rounded-xl bg-slate-700 px-3 py-3">
+                <Text className="font-semibold text-white">Take photo</Text>
               </View>
 
-              <View className="items-center flex-1 px-3 py-3 rounded-xl bg-slate-700">
-                <Text className="font-semibold text-white">
-                  Choose photo
-                </Text>
+              <View className="flex-1 items-center rounded-xl bg-slate-700 px-3 py-3">
+                <Text className="font-semibold text-white">Choose photo</Text>
               </View>
             </View>
 
@@ -133,15 +93,11 @@ export function Task16PhotoEvidenceMaestroFixtureScreen() {
               accessibilityRole="button"
               accessibilityLabel="Simulate photo upload failure"
               onPress={() => {
-                setAttached(
-                  false,
-                );
+                setAttached(false);
 
-                setError(
-                  true,
-                );
+                setError(true);
               }}
-              className="items-center px-4 py-3 mt-3 rounded-xl bg-slate-800"
+              className="mt-3 items-center rounded-xl bg-slate-800 px-4 py-3"
             >
               <Text className="font-semibold text-slate-300">
                 Simulate upload failure
@@ -153,19 +109,13 @@ export function Task16PhotoEvidenceMaestroFixtureScreen() {
               accessibilityRole="button"
               accessibilityLabel="Attach fixture photo"
               onPress={() => {
-                setAttached(
-                  true,
-                );
+                setAttached(true);
 
-                setError(
-                  false,
-                );
+                setError(false);
 
-                setSubmitted(
-                  false,
-                );
+                setSubmitted(false);
               }}
-              className="items-center px-4 py-3 mt-2 rounded-xl bg-slate-700"
+              className="mt-2 items-center rounded-xl bg-slate-700 px-4 py-3"
             >
               <Text className="font-semibold text-white">
                 Attach fixture photo
@@ -178,12 +128,8 @@ export function Task16PhotoEvidenceMaestroFixtureScreen() {
           testID="task16-submit"
           accessibilityRole="button"
           accessibilityLabel="Submit chore for review"
-          onPress={() =>
-            setSubmitted(
-              true,
-            )
-          }
-          className="items-center px-4 py-3 mt-3 bg-white rounded-xl"
+          onPress={() => setSubmitted(true)}
+          className="mt-3 items-center rounded-xl bg-white px-4 py-3"
         >
           <Text className="font-semibold text-slate-950">
             Submit for review
@@ -195,9 +141,7 @@ export function Task16PhotoEvidenceMaestroFixtureScreen() {
             testID="task16-submitted-result"
             className="mt-3 text-sm font-semibold text-emerald-300"
           >
-            {attached
-              ? 'Submitted with photo'
-              : 'Submitted without photo'}
+            {attached ? "Submitted with photo" : "Submitted without photo"}
           </Text>
         ) : null}
       </View>

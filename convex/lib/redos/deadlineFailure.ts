@@ -1,39 +1,22 @@
-import {
-  ConvexError,
-} from 'convex/values';
+import { ConvexError } from "convex/values";
 
-import {
-  internal,
-} from '../../_generated/api';
-import type {
-  Doc,
-  Id,
-} from '../../_generated/dataModel';
-import type {
-  MutationCtx,
-} from '../../_generated/server';
-import {
-  ensureClaimableFailurePenalty,
-} from '../finance/failurePenalty';
+import { internal } from "../../_generated/api";
+import type { Doc, Id } from "../../_generated/dataModel";
+import type { MutationCtx } from "../../_generated/server";
+import { ensureClaimableFailurePenalty } from "../finance/failurePenalty";
 
 export type ReconcileRedoDeadlineFailureResult = {
-  found:
-    boolean;
+  found: boolean;
 
-  changed:
-    boolean;
+  changed: boolean;
 
-  previousState?:
-    Doc<'choreOccurrences'>['state'];
+  previousState?: Doc<"choreOccurrences">["state"];
 
-  nextState?:
-    Doc<'choreOccurrences'>['state'];
+  nextState?: Doc<"choreOccurrences">["state"];
 
-  occurrenceId?:
-    Id<'choreOccurrences'>;
+  occurrenceId?: Id<"choreOccurrences">;
 
-  claimId?:
-    Id<'choreClaims'>;
+  claimId?: Id<"choreClaims">;
 };
 
 /*
@@ -45,29 +28,18 @@ export type ReconcileRedoDeadlineFailureResult = {
  * valid, so failure begins at +1 ms.
  */
 export async function scheduleRedoDeadlineFailure(
-  ctx:
-    MutationCtx,
-  redoId:
-    Id<'choreRedos'>,
-  deadlineAt:
-    number,
+  ctx: MutationCtx,
+  redoId: Id<"choreRedos">,
+  deadlineAt: number,
 ) {
-  if (
-    !Number.isFinite(
-      deadlineAt,
-    )
-  ) {
-    throw new ConvexError(
-      'Redo deadline must be a finite timestamp.',
-    );
+  if (!Number.isFinite(deadlineAt)) {
+    throw new ConvexError("Redo deadline must be a finite timestamp.");
   }
 
   await ctx.scheduler.runAt(
     deadlineAt + 1,
 
-    internal
-      .jobs.redos.deadlineTransitions
-      .reconcile,
+    internal.jobs.redos.deadlineTransitions.reconcile,
 
     {
       redoId,
@@ -88,17 +60,11 @@ export async function scheduleRedoDeadlineFailure(
  * penalty in the same Convex transaction.
  */
 export async function reconcileRedoDeadlineFailure(
-  ctx:
-    MutationCtx,
-  redoId:
-    Id<'choreRedos'>,
-  now =
-    Date.now(),
+  ctx: MutationCtx,
+  redoId: Id<"choreRedos">,
+  now = Date.now(),
 ): Promise<ReconcileRedoDeadlineFailureResult> {
-  const redo =
-    await ctx.db.get(
-      redoId,
-    );
+  const redo = await ctx.db.get(redoId);
 
   /*
    * Scheduled callbacks may outlive
@@ -106,31 +72,23 @@ export async function reconcileRedoDeadlineFailure(
    */
   if (!redo) {
     return {
-      found:
-        false,
+      found: false,
 
-      changed:
-        false,
+      changed: false,
     };
   }
 
-  const occurrence =
-    await ctx.db.get(
-      redo.occurrenceId,
-    );
+  const occurrence = await ctx.db.get(redo.occurrenceId);
 
   if (!occurrence) {
     return {
-      found:
-        false,
+      found: false,
 
-      changed:
-        false,
+      changed: false,
     };
   }
 
-  const previousState =
-    occurrence.state;
+  const previousState = occurrence.state;
 
   /*
    * Parent cancellation, submission,
@@ -138,48 +96,34 @@ export async function reconcileRedoDeadlineFailure(
    * must make a later scheduled deadline
    * callback harmless.
    */
-  if (
-    previousState !==
-    'redo_required'
-  ) {
+  if (previousState !== "redo_required") {
     return {
-      found:
-        true,
+      found: true,
 
-      changed:
-        false,
+      changed: false,
 
       previousState,
 
-      nextState:
-        previousState,
+      nextState: previousState,
 
-      occurrenceId:
-        occurrence._id,
+      occurrenceId: occurrence._id,
     };
   }
 
   /*
    * Submission AT deadlineAt is valid.
    */
-  if (
-    now <=
-    redo.deadlineAt
-  ) {
+  if (now <= redo.deadlineAt) {
     return {
-      found:
-        true,
+      found: true,
 
-      changed:
-        false,
+      changed: false,
 
       previousState,
 
-      nextState:
-        previousState,
+      nextState: previousState,
 
-      occurrenceId:
-        occurrence._id,
+      occurrenceId: occurrence._id,
     };
   }
 
@@ -195,145 +139,82 @@ export async function reconcileRedoDeadlineFailure(
    * redo_required, never convert that work
    * into a missed Redo.
    */
-  const attemptTwo =
-    await ctx.db
-      .query(
-        'choreSubmissions',
-      )
-      .withIndex(
-        'by_occurrence_attempt',
-        (q) =>
-          q
-            .eq(
-              'occurrenceId',
-              occurrence._id,
-            )
-            .eq(
-              'attemptNumber',
-              2,
-            ),
-      )
-      .unique();
+  const attemptTwo = await ctx.db
+    .query("choreSubmissions")
+    .withIndex("by_occurrence_attempt", (q) =>
+      q.eq("occurrenceId", occurrence._id).eq("attemptNumber", 2),
+    )
+    .unique();
 
   if (attemptTwo) {
     return {
-      found:
-        true,
+      found: true,
 
-      changed:
-        false,
+      changed: false,
 
       previousState,
 
-      nextState:
-        previousState,
+      nextState: previousState,
 
-      occurrenceId:
-        occurrence._id,
+      occurrenceId: occurrence._id,
     };
   }
 
-  const initialSubmission =
-    await ctx.db.get(
-      redo.initialSubmissionId,
-    );
+  const initialSubmission = await ctx.db.get(redo.initialSubmissionId);
 
   if (
     !initialSubmission ||
-    initialSubmission.occurrenceId !==
-      occurrence._id ||
-    initialSubmission.householdId !==
-      occurrence.householdId ||
-    initialSubmission.attemptNumber !==
-      1
+    initialSubmission.occurrenceId !== occurrence._id ||
+    initialSubmission.householdId !== occurrence.householdId ||
+    initialSubmission.attemptNumber !== 1
   ) {
-    throw new ConvexError(
-      'Redo initial Submission history is invalid.',
-    );
+    throw new ConvexError("Redo initial Submission history is invalid.");
   }
 
-  let claimId:
-    Id<'choreClaims'> |
-    undefined;
+  let claimId: Id<"choreClaims"> | undefined;
 
-  if (
-    occurrence.kind ===
-    'claimable'
-  ) {
-    const claims =
-      await ctx.db
-        .query(
-          'choreClaims',
-        )
-        .withIndex(
-          'by_occurrence',
-          (q) =>
-            q.eq(
-              'occurrenceId',
-              occurrence._id,
-            ),
-        )
-        .collect();
+  if (occurrence.kind === "claimable") {
+    const claims = await ctx.db
+      .query("choreClaims")
+      .withIndex("by_occurrence", (q) => q.eq("occurrenceId", occurrence._id))
+      .collect();
 
-    const matchingClaims =
-      claims.filter(
-        (candidate) =>
-          candidate.childId ===
-            initialSubmission
-              .childId &&
-          candidate.state ===
-            'redo_required',
-      );
-
-    if (
-      matchingClaims.length !==
-      1
-    ) {
-      throw new ConvexError(
-        'Redo Claim ownership could not be uniquely verified.',
-      );
-    }
-
-    const claim =
-      matchingClaims[0];
-
-    if (
-      claim.householdId !==
-      occurrence.householdId
-    ) {
-      throw new ConvexError(
-        'Claim Household does not match its Chore Occurrence.',
-      );
-    }
-
-    claimId =
-      claim._id;
-
-    await ctx.db.patch(
-      claim._id,
-      {
-        state:
-          'failed',
-      },
+    const matchingClaims = claims.filter(
+      (candidate) =>
+        candidate.childId === initialSubmission.childId &&
+        candidate.state === "redo_required",
     );
+
+    if (matchingClaims.length !== 1) {
+      throw new ConvexError(
+        "Redo Claim ownership could not be uniquely verified.",
+      );
+    }
+
+    const claim = matchingClaims[0];
+
+    if (claim.householdId !== occurrence.householdId) {
+      throw new ConvexError(
+        "Claim Household does not match its Chore Occurrence.",
+      );
+    }
+
+    claimId = claim._id;
+
+    await ctx.db.patch(claim._id, {
+      state: "failed",
+    });
   } else {
-    if (
-      occurrence.personalChildId !==
-      initialSubmission.childId
-    ) {
+    if (occurrence.personalChildId !== initialSubmission.childId) {
       throw new ConvexError(
-        'Redo Child does not match the Personal Chore assignment.',
+        "Redo Child does not match the Personal Chore assignment.",
       );
     }
   }
 
-  await ctx.db.patch(
-    occurrence._id,
-    {
-      state:
-        'failed',
-    },
-  );
+  await ctx.db.patch(occurrence._id, {
+    state: "failed",
+  });
 
   /*
    * Financial consequence is part of the
@@ -344,27 +225,19 @@ export async function reconcileRedoDeadlineFailure(
    * immutable value, and idempotency.
    */
   if (claimId) {
-    await ensureClaimableFailurePenalty(
-      ctx,
-      claimId,
-      now,
-    );
+    await ensureClaimableFailurePenalty(ctx, claimId, now);
   }
 
   return {
-    found:
-      true,
+    found: true,
 
-    changed:
-      true,
+    changed: true,
 
     previousState,
 
-    nextState:
-      'failed',
+    nextState: "failed",
 
-    occurrenceId:
-      occurrence._id,
+    occurrenceId: occurrence._id,
 
     ...(claimId
       ? {

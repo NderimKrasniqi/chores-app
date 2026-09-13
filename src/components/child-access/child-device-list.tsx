@@ -1,21 +1,19 @@
-import { useServerConfirmedMutation } from '@/hooks/use-server-confirmed-mutation';
-import {
-  useQuery,
-} from 'convex/react';
-import { useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { useServerConfirmedMutation } from "@/hooks/use-server-confirmed-mutation";
+import { useQuery } from "convex/react";
+import { useState } from "react";
+import { Pressable, Text, View } from "react-native";
 
-import { api } from '../../../convex/_generated/api';
-import type { Id } from '../../../convex/_generated/dataModel';
+import { api } from "../../../convex/_generated/api";
+import type { Id } from "../../../convex/_generated/dataModel";
 
 type ChildDeviceListProps = {
-  childId: Id<'children'>;
+  childId: Id<"children">;
 };
 
 function formatDateTime(timestamp: number) {
   return new Intl.DateTimeFormat(undefined, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
+    dateStyle: "medium",
+    timeStyle: "short",
   }).format(new Date(timestamp));
 }
 
@@ -24,15 +22,17 @@ export function ChildDeviceList({ childId }: ChildDeviceListProps) {
     childId,
   });
 
-  const revokeDevice = useServerConfirmedMutation(api.childPairing.revokeDevice);
+  const revokeDevice = useServerConfirmedMutation(
+    api.childPairing.revokeDevice,
+  );
 
   const [revokingGrantId, setRevokingGrantId] =
-    useState<Id<'childDeviceAccessGrants'> | null>(null);
+    useState<Id<"childDeviceAccessGrants"> | null>(null);
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   async function handleRevokeDevice(
-    accessGrantId: Id<'childDeviceAccessGrants'>,
+    accessGrantId: Id<"childDeviceAccessGrants">,
   ) {
     setRevokingGrantId(accessGrantId);
     setErrorMessage(null);
@@ -45,7 +45,7 @@ export function ChildDeviceList({ childId }: ChildDeviceListProps) {
       setErrorMessage(
         error instanceof Error
           ? error.message
-          : 'Could not revoke child device.',
+          : "Could not revoke child device.",
       );
     } finally {
       setRevokingGrantId(null);
@@ -54,7 +54,7 @@ export function ChildDeviceList({ childId }: ChildDeviceListProps) {
 
   if (devices === undefined) {
     return (
-      <View className="pt-5 mt-5 border-t border-slate-700">
+      <View className="mt-5 border-t border-slate-700 pt-5">
         <Text className="font-semibold text-white">Paired devices</Text>
 
         <Text className="mt-2 text-sm text-slate-500">Checking devices...</Text>
@@ -67,7 +67,7 @@ export function ChildDeviceList({ childId }: ChildDeviceListProps) {
   const revokedDevices = devices.filter((device) => !device.isActive);
 
   return (
-    <View className="pt-5 mt-5 border-t border-slate-700">
+    <View className="mt-5 border-t border-slate-700 pt-5">
       <Text className="font-semibold text-white">Paired devices</Text>
 
       <Text className="mt-1 text-sm leading-5 text-slate-400">
@@ -82,7 +82,7 @@ export function ChildDeviceList({ childId }: ChildDeviceListProps) {
         activeDevices.map((device, index) => (
           <View
             key={device.accessGrantId}
-            className="p-3 mt-3 border rounded-xl border-slate-700"
+            className="mt-3 rounded-xl border border-slate-700 p-3"
           >
             <Text className="font-semibold text-white">
               Paired device {index + 1}
@@ -95,14 +95,14 @@ export function ChildDeviceList({ childId }: ChildDeviceListProps) {
             <Text className="mt-2 text-sm text-green-400">Active</Text>
 
             <Pressable
-              className="px-3 py-2 mt-3 border border-red-900 rounded-lg"
+              className="mt-3 rounded-lg border border-red-900 px-3 py-2"
               disabled={revokingGrantId === device.accessGrantId}
               onPress={() => handleRevokeDevice(device.accessGrantId)}
             >
-              <Text className="font-semibold text-center text-red-400">
+              <Text className="text-center font-semibold text-red-400">
                 {revokingGrantId === device.accessGrantId
-                  ? 'Revoking...'
-                  : 'Revoke device'}
+                  ? "Revoking..."
+                  : "Revoke device"}
               </Text>
             </Pressable>
           </View>
@@ -118,7 +118,7 @@ export function ChildDeviceList({ childId }: ChildDeviceListProps) {
           {revokedDevices.map((device) => (
             <View
               key={device.accessGrantId}
-              className="p-3 mt-3 rounded-xl bg-slate-900"
+              className="mt-3 rounded-xl bg-slate-900 p-3"
             >
               <Text className="text-sm text-slate-400">
                 Paired {formatDateTime(device.createdAt)}

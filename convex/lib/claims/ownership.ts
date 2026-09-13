@@ -1,14 +1,7 @@
-import type {
-  Id,
-} from '../../_generated/dataModel';
-import type {
-  MutationCtx,
-  QueryCtx,
-} from '../../_generated/server';
+import type { Id } from "../../_generated/dataModel";
+import type { MutationCtx, QueryCtx } from "../../_generated/server";
 
-type DatabaseCtx =
-  | MutationCtx
-  | QueryCtx;
+type DatabaseCtx = MutationCtx | QueryCtx;
 
 /*
  * Only a successful Child unclaim returns
@@ -34,47 +27,25 @@ type DatabaseCtx =
  */
 export function claimPreventsReclaim(
   state:
-    | 'claimed'
-    | 'submitted'
-    | 'redo_required'
-    | 'approved'
-    | 'unclaimed'
-    | 'cancelled'
-    | 'failed',
+    | "claimed"
+    | "submitted"
+    | "redo_required"
+    | "approved"
+    | "unclaimed"
+    | "cancelled"
+    | "failed",
 ) {
-  return (
-    state !==
-    'unclaimed'
-  );
+  return state !== "unclaimed";
 }
 
 export async function findClaimPreventingReclaim(
   ctx: DatabaseCtx,
-  occurrenceId:
-    Id<'choreOccurrences'>,
+  occurrenceId: Id<"choreOccurrences">,
 ) {
-  const claims =
-    await ctx.db
-      .query(
-        'choreClaims',
-      )
-      .withIndex(
-        'by_occurrence',
-        (q) =>
-          q.eq(
-            'occurrenceId',
-            occurrenceId,
-          ),
-      )
-      .collect();
+  const claims = await ctx.db
+    .query("choreClaims")
+    .withIndex("by_occurrence", (q) => q.eq("occurrenceId", occurrenceId))
+    .collect();
 
-  return (
-    claims.find(
-      (claim) =>
-        claimPreventsReclaim(
-          claim.state,
-        ),
-    ) ??
-    null
-  );
+  return claims.find((claim) => claimPreventsReclaim(claim.state)) ?? null;
 }

@@ -1,15 +1,11 @@
-import { Redirect } from 'expo-router';
+import { Redirect } from "expo-router";
 
-import { Task11ParentCancellationMaestroFixtureScreen } from '@/components/dev/task11-parent-cancellation-maestro-fixture-screen';
+import { Task11ParentCancellationMaestroFixtureScreen } from "@/components/dev/task11-parent-cancellation-maestro-fixture-screen";
 
 export default function MaestroTask11ParentRoute() {
   if (!__DEV__) {
-    return (
-      <Redirect href="/" />
-    );
+    return <Redirect href="/" />;
   }
 
-  return (
-    <Task11ParentCancellationMaestroFixtureScreen />
-  );
+  return <Task11ParentCancellationMaestroFixtureScreen />;
 }

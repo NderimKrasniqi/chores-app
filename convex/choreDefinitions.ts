@@ -1,197 +1,143 @@
-import { ConvexError, v } from 'convex/values';
+import { ConvexError, v } from "convex/values";
 
-import type { Id } from './_generated/dataModel';
-import type {
-  MutationCtx,
-} from './_generated/server';
-import {
-  mutation,
-  query,
-} from './_generated/server';
-import {
-  requireCurrentParentForHousehold,
-} from './lib/auth/parentAuthorization';
+import type { Id } from "./_generated/dataModel";
+import type { MutationCtx } from "./_generated/server";
+import { mutation, query } from "./_generated/server";
+import { requireCurrentParentForHousehold } from "./lib/auth/parentAuthorization";
 
 const weekdayValidator = v.union(
-  v.literal('monday'),
-  v.literal('tuesday'),
-  v.literal('wednesday'),
-  v.literal('thursday'),
-  v.literal('friday'),
-  v.literal('saturday'),
-  v.literal('sunday'),
+  v.literal("monday"),
+  v.literal("tuesday"),
+  v.literal("wednesday"),
+  v.literal("thursday"),
+  v.literal("friday"),
+  v.literal("saturday"),
+  v.literal("sunday"),
 );
 
 const choreKindValidator = v.union(
-  v.literal('personal'),
-  v.literal('claimable'),
+  v.literal("personal"),
+  v.literal("claimable"),
 );
 
 const choreRecurrenceValidator = v.union(
   v.object({
-    kind: v.literal('one_off'),
+    kind: v.literal("one_off"),
     scheduledDate: v.string(),
   }),
 
   v.object({
-    kind: v.literal('daily'),
+    kind: v.literal("daily"),
     startDate: v.string(),
     interval: v.number(),
   }),
 
   v.object({
-    kind: v.literal('weekly'),
+    kind: v.literal("weekly"),
     startDate: v.string(),
     interval: v.number(),
-    weekdays: v.array(
-      weekdayValidator,
-    ),
+    weekdays: v.array(weekdayValidator),
   }),
 
   v.object({
-    kind: v.literal('monthly'),
+    kind: v.literal("monthly"),
     startDate: v.string(),
     interval: v.number(),
     dayOfMonth: v.number(),
   }),
 );
 
-const activeChoreDefinitionValidator =
-  v.object({
-    choreDefinitionId:
-      v.id(
-        'choreDefinitions',
-      ),
+const activeChoreDefinitionValidator = v.object({
+  choreDefinitionId: v.id("choreDefinitions"),
 
-    kind:
-      choreKindValidator,
+  kind: choreKindValidator,
 
-    title:
-      v.string(),
+  title: v.string(),
 
-    description:
-      v.optional(
-        v.string(),
-      ),
+  description: v.optional(v.string()),
 
-    valueSek:
-      v.number(),
+  valueSek: v.number(),
 
-    recurrence:
-      choreRecurrenceValidator,
+  recurrence: choreRecurrenceValidator,
 
-    availabilityLocalTime:
-      v.optional(
-        v.string(),
-      ),
+  availabilityLocalTime: v.optional(v.string()),
 
-    deadlineLocalTime:
-      v.string(),
+  deadlineLocalTime: v.string(),
 
-    deadlineDayOffset:
-      v.number(),
+  deadlineDayOffset: v.number(),
 
-    personalChildId:
-      v.optional(
-        v.id(
-          'children',
-        ),
-      ),
+  personalChildId: v.optional(v.id("children")),
 
-    eligibleChildIds:
-      v.optional(
-        v.array(
-          v.id(
-            'children',
-          ),
-        ),
-      ),
+  eligibleChildIds: v.optional(v.array(v.id("children"))),
 
-    isUnlockChore:
-      v.boolean(),
+  isUnlockChore: v.boolean(),
 
-    createdAt:
-      v.number(),
+  createdAt: v.number(),
 
-    updatedAt:
-      v.number(),
-  });
+  updatedAt: v.number(),
+});
 
 type Weekday =
-  | 'monday'
-  | 'tuesday'
-  | 'wednesday'
-  | 'thursday'
-  | 'friday'
-  | 'saturday'
-  | 'sunday';
+  | "monday"
+  | "tuesday"
+  | "wednesday"
+  | "thursday"
+  | "friday"
+  | "saturday"
+  | "sunday";
 
-type ChoreKind =
-  | 'personal'
-  | 'claimable';
+type ChoreKind = "personal" | "claimable";
 
 type ChoreRecurrence =
   | {
-      kind: 'one_off';
+      kind: "one_off";
       scheduledDate: string;
     }
   | {
-      kind: 'daily';
+      kind: "daily";
       startDate: string;
       interval: number;
     }
   | {
-      kind: 'weekly';
+      kind: "weekly";
       startDate: string;
       interval: number;
       weekdays: Weekday[];
     }
   | {
-      kind: 'monthly';
+      kind: "monthly";
       startDate: string;
       interval: number;
       dayOfMonth: number;
     };
 
 type DefinitionInput = {
-  householdId:
-    Id<'households'>;
+  householdId: Id<"households">;
 
   kind: ChoreKind;
 
   title: string;
 
-  description?:
-    string;
+  description?: string;
 
   valueSek: number;
 
-  recurrence:
-    ChoreRecurrence;
+  recurrence: ChoreRecurrence;
 
-  availabilityLocalTime?:
-    string;
+  availabilityLocalTime?: string;
 
-  deadlineLocalTime:
-    string;
+  deadlineLocalTime: string;
 
-  deadlineDayOffset:
-    number;
+  deadlineDayOffset: number;
 
-  personalChildId?:
-    Id<'children'>;
+  personalChildId?: Id<"children">;
 
-  eligibleChildIds?:
-    Id<'children'>[];
+  eligibleChildIds?: Id<"children">[];
 
-  isUnlockChore:
-    boolean;
+  isUnlockChore: boolean;
 };
 
-const weekdayOrder: Record<
-  Weekday,
-  number
-> = {
+const weekdayOrder: Record<Weekday, number> = {
   monday: 0,
   tuesday: 1,
   wednesday: 2,
@@ -201,254 +147,133 @@ const weekdayOrder: Record<
   sunday: 6,
 };
 
-function normalizeTitle(
-  value: string,
-) {
-  const title =
-    value.trim();
+function normalizeTitle(value: string) {
+  const title = value.trim();
 
   if (!title) {
-    throw new ConvexError(
-      'Chore title is required.',
-    );
+    throw new ConvexError("Chore title is required.");
   }
 
   return title;
 }
 
-function normalizeDescription(
-  value:
-    | string
-    | undefined,
-) {
-  if (
-    value === undefined
-  ) {
+function normalizeDescription(value: string | undefined) {
+  if (value === undefined) {
     return undefined;
   }
 
-  const description =
-    value.trim();
+  const description = value.trim();
 
-  return (
-    description ||
-    undefined
-  );
+  return description || undefined;
 }
 
-function normalizeLocalDate(
-  value: string,
-  label: string,
-) {
-  const normalized =
-    value.trim();
+function normalizeLocalDate(value: string, label: string) {
+  const normalized = value.trim();
 
-  if (
-    !/^\d{4}-\d{2}-\d{2}$/.test(
-      normalized,
-    )
-  ) {
-    throw new ConvexError(
-      `${label} must use YYYY-MM-DD.`,
-    );
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
+    throw new ConvexError(`${label} must use YYYY-MM-DD.`);
   }
 
-  const [
-    year,
-    month,
-    day,
-  ] = normalized
-    .split('-')
-    .map(Number);
+  const [year, month, day] = normalized.split("-").map(Number);
 
-  const date = new Date(
-    Date.UTC(
-      year,
-      month - 1,
-      day,
-    ),
-  );
+  const date = new Date(Date.UTC(year, month - 1, day));
 
   if (
-    date.getUTCFullYear() !==
-      year ||
-    date.getUTCMonth() !==
-      month - 1 ||
-    date.getUTCDate() !==
-      day
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
   ) {
-    throw new ConvexError(
-      `${label} is not a valid calendar date.`,
-    );
+    throw new ConvexError(`${label} is not a valid calendar date.`);
   }
 
   return normalized;
 }
 
-function normalizeLocalTime(
-  value: string,
-  label: string,
-) {
-  const normalized =
-    value.trim();
+function normalizeLocalTime(value: string, label: string) {
+  const normalized = value.trim();
 
-  if (
-    !/^([01]\d|2[0-3]):[0-5]\d$/.test(
-      normalized,
-    )
-  ) {
-    throw new ConvexError(
-      `${label} must use 24-hour HH:mm format.`,
-    );
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(normalized)) {
+    throw new ConvexError(`${label} must use 24-hour HH:mm format.`);
   }
 
   return normalized;
 }
 
-function localTimeToMinutes(
-  value: string,
-) {
-  const [
-    hours,
-    minutes,
-  ] = value
-    .split(':')
-    .map(Number);
+function localTimeToMinutes(value: string) {
+  const [hours, minutes] = value.split(":").map(Number);
 
-  return (
-    hours * 60 +
-    minutes
-  );
+  return hours * 60 + minutes;
 }
 
-function requirePositiveInterval(
-  value: number,
-) {
-  if (
-    !Number.isSafeInteger(
-      value,
-    ) ||
-    value <= 0
-  ) {
+function requirePositiveInterval(value: number) {
+  if (!Number.isSafeInteger(value) || value <= 0) {
     throw new ConvexError(
-      'Recurrence interval must be a positive whole number.',
+      "Recurrence interval must be a positive whole number.",
     );
   }
 
   return value;
 }
 
-function normalizeRecurrence(
-  recurrence:
-    ChoreRecurrence,
-): ChoreRecurrence {
-  switch (
-    recurrence.kind
-  ) {
-    case 'one_off':
+function normalizeRecurrence(recurrence: ChoreRecurrence): ChoreRecurrence {
+  switch (recurrence.kind) {
+    case "one_off":
       return {
-        kind: 'one_off',
-        scheduledDate:
-          normalizeLocalDate(
-            recurrence.scheduledDate,
-            'Scheduled date',
-          ),
+        kind: "one_off",
+        scheduledDate: normalizeLocalDate(
+          recurrence.scheduledDate,
+          "Scheduled date",
+        ),
       };
 
-    case 'daily':
+    case "daily":
       return {
-        kind: 'daily',
-        startDate:
-          normalizeLocalDate(
-            recurrence.startDate,
-            'Start date',
-          ),
-        interval:
-          requirePositiveInterval(
-            recurrence.interval,
-          ),
+        kind: "daily",
+        startDate: normalizeLocalDate(recurrence.startDate, "Start date"),
+        interval: requirePositiveInterval(recurrence.interval),
       };
 
-    case 'weekly': {
-      if (
-        recurrence.weekdays
-          .length === 0
-      ) {
+    case "weekly": {
+      if (recurrence.weekdays.length === 0) {
         throw new ConvexError(
-          'Weekly recurrence requires at least one weekday.',
+          "Weekly recurrence requires at least one weekday.",
         );
       }
 
-      const uniqueWeekdays =
-        Array.from(
-          new Set(
-            recurrence.weekdays,
-          ),
-        );
+      const uniqueWeekdays = Array.from(new Set(recurrence.weekdays));
 
-      if (
-        uniqueWeekdays.length !==
-        recurrence.weekdays
-          .length
-      ) {
+      if (uniqueWeekdays.length !== recurrence.weekdays.length) {
         throw new ConvexError(
-          'Weekly recurrence cannot contain duplicate weekdays.',
+          "Weekly recurrence cannot contain duplicate weekdays.",
         );
       }
 
       uniqueWeekdays.sort(
-        (
-          left,
-          right,
-        ) =>
-          weekdayOrder[left] -
-          weekdayOrder[right],
+        (left, right) => weekdayOrder[left] - weekdayOrder[right],
       );
 
       return {
-        kind: 'weekly',
-        startDate:
-          normalizeLocalDate(
-            recurrence.startDate,
-            'Start date',
-          ),
-        interval:
-          requirePositiveInterval(
-            recurrence.interval,
-          ),
-        weekdays:
-          uniqueWeekdays,
+        kind: "weekly",
+        startDate: normalizeLocalDate(recurrence.startDate, "Start date"),
+        interval: requirePositiveInterval(recurrence.interval),
+        weekdays: uniqueWeekdays,
       };
     }
 
-    case 'monthly':
+    case "monthly":
       if (
-        !Number.isSafeInteger(
-          recurrence.dayOfMonth,
-        ) ||
-        recurrence.dayOfMonth <
-          1 ||
-        recurrence.dayOfMonth >
-          31
+        !Number.isSafeInteger(recurrence.dayOfMonth) ||
+        recurrence.dayOfMonth < 1 ||
+        recurrence.dayOfMonth > 31
       ) {
-        throw new ConvexError(
-          'Monthly day must be between 1 and 31.',
-        );
+        throw new ConvexError("Monthly day must be between 1 and 31.");
       }
 
       return {
-        kind: 'monthly',
-        startDate:
-          normalizeLocalDate(
-            recurrence.startDate,
-            'Start date',
-          ),
-        interval:
-          requirePositiveInterval(
-            recurrence.interval,
-          ),
-        dayOfMonth:
-          recurrence.dayOfMonth,
+        kind: "monthly",
+        startDate: normalizeLocalDate(recurrence.startDate, "Start date"),
+        interval: requirePositiveInterval(recurrence.interval),
+        dayOfMonth: recurrence.dayOfMonth,
       };
   }
 }
@@ -456,756 +281,419 @@ function normalizeRecurrence(
 async function validateDefinitionInput(
   ctx: MutationCtx,
   args: DefinitionInput,
-  excludeDefinitionId?:
-    Id<'choreDefinitions'>,
+  excludeDefinitionId?: Id<"choreDefinitions">,
 ) {
-  const title =
-    normalizeTitle(
-      args.title,
-    );
+  const title = normalizeTitle(args.title);
 
-  const description =
-    normalizeDescription(
-      args.description,
-    );
+  const description = normalizeDescription(args.description);
 
-  if (
-    !Number.isSafeInteger(
-      args.valueSek,
-    ) ||
-    args.valueSek <= 0
-  ) {
+  if (!Number.isSafeInteger(args.valueSek) || args.valueSek <= 0) {
     throw new ConvexError(
-      'Chore value must be a positive whole number of SEK.',
+      "Chore value must be a positive whole number of SEK.",
     );
   }
 
-  const recurrence =
-    normalizeRecurrence(
-      args.recurrence,
-    );
+  const recurrence = normalizeRecurrence(args.recurrence);
 
   const availabilityLocalTime =
-    args.availabilityLocalTime ===
-    undefined
+    args.availabilityLocalTime === undefined
       ? undefined
-      : normalizeLocalTime(
-          args.availabilityLocalTime,
-          'Availability time',
-        );
+      : normalizeLocalTime(args.availabilityLocalTime, "Availability time");
 
-  const deadlineLocalTime =
-    normalizeLocalTime(
-      args.deadlineLocalTime,
-      'Deadline time',
-    );
+  const deadlineLocalTime = normalizeLocalTime(
+    args.deadlineLocalTime,
+    "Deadline time",
+  );
 
   if (
-    !Number.isSafeInteger(
-      args.deadlineDayOffset,
-    ) ||
-    args.deadlineDayOffset <
-      0
+    !Number.isSafeInteger(args.deadlineDayOffset) ||
+    args.deadlineDayOffset < 0
   ) {
     throw new ConvexError(
-      'Deadline day offset must be a non-negative whole number.',
+      "Deadline day offset must be a non-negative whole number.",
     );
   }
 
   const availabilityMinutes =
-    availabilityLocalTime ===
-    undefined
+    availabilityLocalTime === undefined
       ? 0
-      : localTimeToMinutes(
-          availabilityLocalTime,
-        );
+      : localTimeToMinutes(availabilityLocalTime);
 
   const deadlineMinutes =
-    localTimeToMinutes(
-      deadlineLocalTime,
-    ) +
-    args.deadlineDayOffset *
-      24 *
-      60;
+    localTimeToMinutes(deadlineLocalTime) + args.deadlineDayOffset * 24 * 60;
 
-  if (
-    deadlineMinutes <=
-    availabilityMinutes
-  ) {
+  if (deadlineMinutes <= availabilityMinutes) {
     throw new ConvexError(
-      'Deadline must be after the chore availability start.',
+      "Deadline must be after the chore availability start.",
     );
   }
 
-  let personalChildId:
-    | Id<'children'>
-    | undefined;
+  let personalChildId: Id<"children"> | undefined;
 
-  let eligibleChildIds:
-    | Id<'children'>[]
-    | undefined;
+  let eligibleChildIds: Id<"children">[] | undefined;
 
-  if (
-    args.kind ===
-    'personal'
-  ) {
-    if (
-      !args.personalChildId
-    ) {
+  if (args.kind === "personal") {
+    if (!args.personalChildId) {
+      throw new ConvexError("Personal chores must be assigned to a Child.");
+    }
+
+    if (args.eligibleChildIds !== undefined) {
       throw new ConvexError(
-        'Personal chores must be assigned to a Child.',
+        "Personal chores cannot use Claimable eligibility.",
       );
     }
 
-    if (
-      args.eligibleChildIds !==
-      undefined
-    ) {
+    const child = await ctx.db.get(args.personalChildId);
+
+    if (!child || child.householdId !== args.householdId) {
       throw new ConvexError(
-        'Personal chores cannot use Claimable eligibility.',
+        "Assigned Child does not belong to this household.",
       );
     }
 
-    const child =
-      await ctx.db.get(
-        args.personalChildId,
-      );
-
-    if (
-      !child ||
-      child.householdId !==
-        args.householdId
-    ) {
-      throw new ConvexError(
-        'Assigned Child does not belong to this household.',
-      );
-    }
-
-    personalChildId =
-      child._id;
+    personalChildId = child._id;
   } else {
-    if (
-      args.personalChildId !==
-      undefined
-    ) {
+    if (args.personalChildId !== undefined) {
       throw new ConvexError(
-        'Claimable chores cannot have a Personal Child assignment.',
+        "Claimable chores cannot have a Personal Child assignment.",
       );
     }
 
-    if (
-      args.eligibleChildIds !==
-      undefined
-    ) {
-      if (
-        args
-          .eligibleChildIds
-          .length === 0
-      ) {
+    if (args.eligibleChildIds !== undefined) {
+      if (args.eligibleChildIds.length === 0) {
         throw new ConvexError(
-          'Restricted Claimable eligibility must contain at least one Child.',
+          "Restricted Claimable eligibility must contain at least one Child.",
         );
       }
 
-      const uniqueChildIds =
-        Array.from(
-          new Set(
-            args
-              .eligibleChildIds,
-          ),
-        );
+      const uniqueChildIds = Array.from(new Set(args.eligibleChildIds));
 
-      if (
-        uniqueChildIds.length !==
-        args
-          .eligibleChildIds
-          .length
-      ) {
+      if (uniqueChildIds.length !== args.eligibleChildIds.length) {
         throw new ConvexError(
-          'Claimable eligibility cannot contain duplicate Children.',
+          "Claimable eligibility cannot contain duplicate Children.",
         );
       }
 
-      for (
-        const childId of
-        uniqueChildIds
-      ) {
-        const child =
-          await ctx.db.get(
-            childId,
-          );
+      for (const childId of uniqueChildIds) {
+        const child = await ctx.db.get(childId);
 
-        if (
-          !child ||
-          child.householdId !==
-            args.householdId
-        ) {
+        if (!child || child.householdId !== args.householdId) {
           throw new ConvexError(
-            'Every eligible Child must belong to this household.',
+            "Every eligible Child must belong to this household.",
           );
         }
       }
 
-      eligibleChildIds =
-        uniqueChildIds;
+      eligibleChildIds = uniqueChildIds;
     }
   }
 
-  if (
-    args.isUnlockChore
-  ) {
-    if (
-      args.kind !==
-      'personal'
-    ) {
-      throw new ConvexError(
-        'Only Personal chores can be Unlock Chores.',
-      );
+  if (args.isUnlockChore) {
+    if (args.kind !== "personal") {
+      throw new ConvexError("Only Personal chores can be Unlock Chores.");
     }
 
-    if (
-      recurrence.kind ===
-      'one_off'
-    ) {
-      throw new ConvexError(
-        'An Unlock Chore must be recurring.',
-      );
+    if (recurrence.kind === "one_off") {
+      throw new ConvexError("An Unlock Chore must be recurring.");
     }
 
-    if (
-      !personalChildId
-    ) {
-      throw new ConvexError(
-        'Unlock Chore requires an assigned Child.',
-      );
+    if (!personalChildId) {
+      throw new ConvexError("Unlock Chore requires an assigned Child.");
     }
 
-    const existingUnlocks =
-      await ctx.db
-        .query(
-          'choreDefinitions',
-        )
-        .withIndex(
-          'by_household_personal_child_unlock',
-          (q) =>
-            q
-              .eq(
-                'householdId',
-                args.householdId,
-              )
-              .eq(
-                'personalChildId',
-                personalChildId,
-              )
-              .eq(
-                'isUnlockChore',
-                true,
-              ),
-        )
-        .collect();
+    const existingUnlocks = await ctx.db
+      .query("choreDefinitions")
+      .withIndex("by_household_personal_child_unlock", (q) =>
+        q
+          .eq("householdId", args.householdId)
+          .eq("personalChildId", personalChildId)
+          .eq("isUnlockChore", true),
+      )
+      .collect();
 
-    const conflictingUnlock =
-      existingUnlocks.find(
-        (definition) =>
-          definition.archivedAt ===
-            undefined &&
-          definition._id !==
-            excludeDefinitionId,
-      );
+    const conflictingUnlock = existingUnlocks.find(
+      (definition) =>
+        definition.archivedAt === undefined &&
+        definition._id !== excludeDefinitionId,
+    );
 
-    if (
-      conflictingUnlock
-    ) {
-      throw new ConvexError(
-        'This Child already has an active Unlock Chore.',
-      );
+    if (conflictingUnlock) {
+      throw new ConvexError("This Child already has an active Unlock Chore.");
     }
   }
 
   return {
     title,
     description,
-    valueSek:
-      args.valueSek,
+    valueSek: args.valueSek,
     recurrence,
     availabilityLocalTime,
     deadlineLocalTime,
-    deadlineDayOffset:
-      args.deadlineDayOffset,
+    deadlineDayOffset: args.deadlineDayOffset,
     personalChildId,
     eligibleChildIds,
-    isUnlockChore:
-      args.isUnlockChore,
+    isUnlockChore: args.isUnlockChore,
   };
 }
 
-export const create =
-  mutation({
-    args: {
-      householdId:
-        v.id(
-          'households',
-        ),
+export const create = mutation({
+  args: {
+    householdId: v.id("households"),
 
-      kind:
-        choreKindValidator,
+    kind: choreKindValidator,
 
-      title:
-        v.string(),
+    title: v.string(),
 
-      description:
-        v.optional(
-          v.string(),
-        ),
+    description: v.optional(v.string()),
 
-      valueSek:
-        v.number(),
+    valueSek: v.number(),
 
-      recurrence:
-        choreRecurrenceValidator,
+    recurrence: choreRecurrenceValidator,
 
-      availabilityLocalTime:
-        v.optional(
-          v.string(),
-        ),
+    availabilityLocalTime: v.optional(v.string()),
 
-      deadlineLocalTime:
-        v.string(),
+    deadlineLocalTime: v.string(),
 
-      deadlineDayOffset:
-        v.number(),
+    deadlineDayOffset: v.number(),
 
-      personalChildId:
-        v.optional(
-          v.id(
-            'children',
-          ),
-        ),
+    personalChildId: v.optional(v.id("children")),
 
-      eligibleChildIds:
-        v.optional(
-          v.array(
-            v.id(
-              'children',
-            ),
-          ),
-        ),
+    eligibleChildIds: v.optional(v.array(v.id("children"))),
 
-      isUnlockChore:
-        v.boolean(),
-    },
+    isUnlockChore: v.boolean(),
+  },
 
-    returns:
-      v.id(
-        'choreDefinitions',
-      ),
+  returns: v.id("choreDefinitions"),
 
-    handler: async (
+  handler: async (ctx, args) => {
+    const { authUser } = await requireCurrentParentForHousehold(
       ctx,
-      args,
-    ) => {
-      const { authUser } =
-        await requireCurrentParentForHousehold(
-          ctx,
-          args.householdId,
-        );
+      args.householdId,
+    );
 
-      const normalized =
-        await validateDefinitionInput(
-          ctx,
-          args,
-        );
+    const normalized = await validateDefinitionInput(ctx, args);
 
-      const now =
-        Date.now();
+    const now = Date.now();
 
-      return await ctx.db.insert(
-        'choreDefinitions',
-        {
-          householdId:
-            args.householdId,
+    return await ctx.db.insert("choreDefinitions", {
+      householdId: args.householdId,
 
-          kind:
-            args.kind,
+      kind: args.kind,
 
-          title:
-            normalized.title,
+      title: normalized.title,
 
-          description:
-            normalized.description,
+      description: normalized.description,
 
-          valueSek:
-            normalized.valueSek,
+      valueSek: normalized.valueSek,
 
-          recurrence:
-            normalized.recurrence,
+      recurrence: normalized.recurrence,
 
-          availabilityLocalTime:
-            normalized.availabilityLocalTime,
+      availabilityLocalTime: normalized.availabilityLocalTime,
 
-          deadlineLocalTime:
-            normalized.deadlineLocalTime,
+      deadlineLocalTime: normalized.deadlineLocalTime,
 
-          deadlineDayOffset:
-            normalized.deadlineDayOffset,
+      deadlineDayOffset: normalized.deadlineDayOffset,
 
-          personalChildId:
-            normalized.personalChildId,
+      personalChildId: normalized.personalChildId,
 
-          eligibleChildIds:
-            normalized.eligibleChildIds,
+      eligibleChildIds: normalized.eligibleChildIds,
 
-          isUnlockChore:
-            normalized.isUnlockChore,
+      isUnlockChore: normalized.isUnlockChore,
 
-          createdByAuthUserId:
-            authUser._id,
+      createdByAuthUserId: authUser._id,
 
-          createdAt:
-            now,
+      createdAt: now,
 
-          updatedAt:
-            now,
-        },
-      );
-    },
-  });
+      updatedAt: now,
+    });
+  },
+});
 
-export const update =
-  mutation({
-    args: {
-      choreDefinitionId:
-        v.id(
-          'choreDefinitions',
-        ),
+export const update = mutation({
+  args: {
+    choreDefinitionId: v.id("choreDefinitions"),
 
-      kind:
-        choreKindValidator,
+    kind: choreKindValidator,
 
-      title:
-        v.string(),
+    title: v.string(),
 
-      description:
-        v.optional(
-          v.string(),
-        ),
+    description: v.optional(v.string()),
 
-      valueSek:
-        v.number(),
+    valueSek: v.number(),
 
-      recurrence:
-        choreRecurrenceValidator,
+    recurrence: choreRecurrenceValidator,
 
-      availabilityLocalTime:
-        v.optional(
-          v.string(),
-        ),
+    availabilityLocalTime: v.optional(v.string()),
 
-      deadlineLocalTime:
-        v.string(),
+    deadlineLocalTime: v.string(),
 
-      deadlineDayOffset:
-        v.number(),
+    deadlineDayOffset: v.number(),
 
-      personalChildId:
-        v.optional(
-          v.id(
-            'children',
-          ),
-        ),
+    personalChildId: v.optional(v.id("children")),
 
-      eligibleChildIds:
-        v.optional(
-          v.array(
-            v.id(
-              'children',
-            ),
-          ),
-        ),
+    eligibleChildIds: v.optional(v.array(v.id("children"))),
 
-      isUnlockChore:
-        v.boolean(),
-    },
+    isUnlockChore: v.boolean(),
+  },
 
-    returns:
-      v.id(
-        'choreDefinitions',
-      ),
+  returns: v.id("choreDefinitions"),
 
-    handler: async (
+  handler: async (ctx, args) => {
+    const definition = await ctx.db.get(args.choreDefinitionId);
+
+    if (!definition) {
+      throw new ConvexError("Chore definition not found.");
+    }
+
+    await requireCurrentParentForHousehold(ctx, definition.householdId);
+
+    if (definition.archivedAt !== undefined) {
+      throw new ConvexError("Archived chore definitions cannot be edited.");
+    }
+
+    const normalized = await validateDefinitionInput(
       ctx,
-      args,
-    ) => {
-      const definition =
-        await ctx.db.get(
-          args.choreDefinitionId,
-        );
+      {
+        householdId: definition.householdId,
 
-      if (!definition) {
-        throw new ConvexError(
-          'Chore definition not found.',
-        );
-      }
+        kind: args.kind,
 
-      await requireCurrentParentForHousehold(
-        ctx,
-        definition.householdId,
-      );
+        title: args.title,
 
-      if (
-        definition.archivedAt !==
-        undefined
-      ) {
-        throw new ConvexError(
-          'Archived chore definitions cannot be edited.',
-        );
-      }
+        description: args.description,
 
-      const normalized =
-        await validateDefinitionInput(
-          ctx,
-          {
-            householdId:
-              definition.householdId,
+        valueSek: args.valueSek,
 
-            kind:
-              args.kind,
+        recurrence: args.recurrence,
 
-            title:
-              args.title,
+        availabilityLocalTime: args.availabilityLocalTime,
 
-            description:
-              args.description,
+        deadlineLocalTime: args.deadlineLocalTime,
 
-            valueSek:
-              args.valueSek,
+        deadlineDayOffset: args.deadlineDayOffset,
 
-            recurrence:
-              args.recurrence,
+        personalChildId: args.personalChildId,
 
-            availabilityLocalTime:
-              args.availabilityLocalTime,
+        eligibleChildIds: args.eligibleChildIds,
 
-            deadlineLocalTime:
-              args.deadlineLocalTime,
+        isUnlockChore: args.isUnlockChore,
+      },
+      definition._id,
+    );
 
-            deadlineDayOffset:
-              args.deadlineDayOffset,
+    await ctx.db.patch(definition._id, {
+      kind: args.kind,
 
-            personalChildId:
-              args.personalChildId,
+      title: normalized.title,
 
-            eligibleChildIds:
-              args.eligibleChildIds,
+      description: normalized.description,
 
-            isUnlockChore:
-              args.isUnlockChore,
-          },
-          definition._id,
-        );
+      valueSek: normalized.valueSek,
 
-      await ctx.db.patch(
-        definition._id,
-        {
-          kind:
-            args.kind,
+      recurrence: normalized.recurrence,
 
-          title:
-            normalized.title,
+      availabilityLocalTime: normalized.availabilityLocalTime,
 
-          description:
-            normalized.description,
+      deadlineLocalTime: normalized.deadlineLocalTime,
 
-          valueSek:
-            normalized.valueSek,
+      deadlineDayOffset: normalized.deadlineDayOffset,
 
-          recurrence:
-            normalized.recurrence,
+      personalChildId: normalized.personalChildId,
 
-          availabilityLocalTime:
-            normalized.availabilityLocalTime,
+      eligibleChildIds: normalized.eligibleChildIds,
 
-          deadlineLocalTime:
-            normalized.deadlineLocalTime,
+      isUnlockChore: normalized.isUnlockChore,
 
-          deadlineDayOffset:
-            normalized.deadlineDayOffset,
+      updatedAt: Date.now(),
+    });
 
-          personalChildId:
-            normalized.personalChildId,
+    return definition._id;
+  },
+});
 
-          eligibleChildIds:
-            normalized.eligibleChildIds,
+export const archive = mutation({
+  args: {
+    choreDefinitionId: v.id("choreDefinitions"),
+  },
 
-          isUnlockChore:
-            normalized.isUnlockChore,
+  returns: v.boolean(),
 
-          updatedAt:
-            Date.now(),
-        },
-      );
+  handler: async (ctx, args) => {
+    const definition = await ctx.db.get(args.choreDefinitionId);
 
-      return definition._id;
-    },
-  });
+    if (!definition) {
+      throw new ConvexError("Chore definition not found.");
+    }
 
-export const archive =
-  mutation({
-    args: {
-      choreDefinitionId:
-        v.id(
-          'choreDefinitions',
-        ),
-    },
-
-    returns:
-      v.boolean(),
-
-    handler: async (
+    const { authUser } = await requireCurrentParentForHousehold(
       ctx,
-      args,
-    ) => {
-      const definition =
-        await ctx.db.get(
-          args.choreDefinitionId,
-        );
+      definition.householdId,
+    );
 
-      if (!definition) {
-        throw new ConvexError(
-          'Chore definition not found.',
-        );
-      }
+    if (definition.archivedAt !== undefined) {
+      return false;
+    }
 
-      const { authUser } =
-        await requireCurrentParentForHousehold(
-          ctx,
-          definition.householdId,
-        );
+    const now = Date.now();
 
-      if (
-        definition.archivedAt !==
-        undefined
-      ) {
-        return false;
-      }
+    await ctx.db.patch(definition._id, {
+      archivedAt: now,
 
-      const now =
-        Date.now();
+      archivedByAuthUserId: authUser._id,
 
-      await ctx.db.patch(
-        definition._id,
-        {
-          archivedAt:
-            now,
+      updatedAt: now,
+    });
 
-          archivedByAuthUserId:
-            authUser._id,
+    return true;
+  },
+});
 
-          updatedAt:
-            now,
-        },
-      );
+export const listActiveForHousehold = query({
+  args: {
+    householdId: v.id("households"),
+  },
 
-      return true;
-    },
-  });
+  returns: v.array(activeChoreDefinitionValidator),
 
-export const listActiveForHousehold =
-  query({
-    args: {
-      householdId:
-        v.id(
-          'households',
-        ),
-    },
+  handler: async (ctx, args) => {
+    await requireCurrentParentForHousehold(ctx, args.householdId);
 
-    returns:
-      v.array(
-        activeChoreDefinitionValidator,
-      ),
+    const definitions = await ctx.db
+      .query("choreDefinitions")
+      .withIndex("by_household", (q) => q.eq("householdId", args.householdId))
+      .collect();
 
-    handler: async (
-      ctx,
-      args,
-    ) => {
-      await requireCurrentParentForHousehold(
-        ctx,
-        args.householdId,
-      );
+    return definitions
+      .filter((definition) => definition.archivedAt === undefined)
+      .sort((left, right) => right.createdAt - left.createdAt)
+      .map((definition) => ({
+        choreDefinitionId: definition._id,
 
-      const definitions =
-        await ctx.db
-          .query(
-            'choreDefinitions',
-          )
-          .withIndex(
-            'by_household',
-            (q) =>
-              q.eq(
-                'householdId',
-                args.householdId,
-              ),
-          )
-          .collect();
+        kind: definition.kind,
 
-      return definitions
-        .filter(
-          (definition) =>
-            definition.archivedAt ===
-            undefined,
-        )
-        .sort(
-          (
-            left,
-            right,
-          ) =>
-            right.createdAt -
-            left.createdAt,
-        )
-        .map(
-          (definition) => ({
-            choreDefinitionId:
-              definition._id,
+        title: definition.title,
 
-            kind:
-              definition.kind,
+        description: definition.description,
 
-            title:
-              definition.title,
+        valueSek: definition.valueSek,
 
-            description:
-              definition.description,
+        recurrence: definition.recurrence,
 
-            valueSek:
-              definition.valueSek,
+        availabilityLocalTime: definition.availabilityLocalTime,
 
-            recurrence:
-              definition.recurrence,
+        deadlineLocalTime: definition.deadlineLocalTime,
 
-            availabilityLocalTime:
-              definition.availabilityLocalTime,
+        deadlineDayOffset: definition.deadlineDayOffset,
 
-            deadlineLocalTime:
-              definition.deadlineLocalTime,
+        personalChildId: definition.personalChildId,
 
-            deadlineDayOffset:
-              definition.deadlineDayOffset,
+        eligibleChildIds: definition.eligibleChildIds,
 
-            personalChildId:
-              definition.personalChildId,
+        isUnlockChore: definition.isUnlockChore,
 
-            eligibleChildIds:
-              definition.eligibleChildIds,
+        createdAt: definition.createdAt,
 
-            isUnlockChore:
-              definition.isUnlockChore,
-
-            createdAt:
-              definition.createdAt,
-
-            updatedAt:
-              definition.updatedAt,
-          }),
-        );
-    },
-  });
+        updatedAt: definition.updatedAt,
+      }));
+  },
+});

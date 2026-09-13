@@ -1,29 +1,15 @@
-import {
-  ConvexError,
-  v,
-} from 'convex/values';
+import { ConvexError, v } from "convex/values";
 
-import {
-  query,
-} from './_generated/server';
-import {
-  requireCurrentChildAccess,
-} from './lib/auth/childAuthorization';
-import {
-  requireCurrentParentForHousehold,
-} from './lib/auth/parentAuthorization';
-import {
-  calculateRunningBalanceForChild,
-} from './lib/finance/runningBalance';
+import { query } from "./_generated/server";
+import { requireCurrentChildAccess } from "./lib/auth/childAuthorization";
+import { requireCurrentParentForHousehold } from "./lib/auth/parentAuthorization";
+import { calculateRunningBalanceForChild } from "./lib/finance/runningBalance";
 
-const runningBalanceResultValidator =
-  v.object({
-    childId:
-      v.id('children'),
+const runningBalanceResultValidator = v.object({
+  childId: v.id("children"),
 
-    balanceSek:
-      v.number(),
-  });
+  balanceSek: v.number(),
+});
 
 /*
  * Child-facing financial projection.
@@ -34,54 +20,35 @@ const runningBalanceResultValidator =
  * state, preventing sibling-balance
  * lookups.
  */
-export const getMine =
-  query({
-    args: {},
+export const getMine = query({
+  args: {},
 
-    returns:
-      runningBalanceResultValidator,
+  returns: runningBalanceResultValidator,
 
-    handler: async (
-      ctx,
-    ) => {
-      const {
-        child,
-        household,
-      } =
-        await requireCurrentChildAccess(
-          ctx,
-        );
+  handler: async (ctx) => {
+    const { child, household } = await requireCurrentChildAccess(ctx);
 
-      const balance =
-        await calculateRunningBalanceForChild(
-          ctx,
-          child._id,
-        );
+    const balance = await calculateRunningBalanceForChild(ctx, child._id);
 
-      /*
-       * Defensive consistency check.
-       * Authentication grant, Child, and
-       * financial Ledger must all resolve
-       * to the same Household.
-       */
-      if (
-        balance.householdId !==
-        household._id
-      ) {
-        throw new ConvexError(
-          'Running Balance Household does not match current Child access.',
-        );
-      }
+    /*
+     * Defensive consistency check.
+     * Authentication grant, Child, and
+     * financial Ledger must all resolve
+     * to the same Household.
+     */
+    if (balance.householdId !== household._id) {
+      throw new ConvexError(
+        "Running Balance Household does not match current Child access.",
+      );
+    }
 
-      return {
-        childId:
-          child._id,
+    return {
+      childId: child._id,
 
-        balanceSek:
-          balance.balanceSek,
-      };
-    },
-  });
+      balanceSek: balance.balanceSek,
+    };
+  },
+});
 
 /*
  * Parent-facing financial projection.
@@ -92,73 +59,40 @@ export const getMine =
  * A Child from another Household cannot
  * be queried even when its ID is known.
  */
-export const getForChild =
-  query({
-    args: {
-      householdId:
-        v.id(
-          'households',
-        ),
+export const getForChild = query({
+  args: {
+    householdId: v.id("households"),
 
-      childId:
-        v.id(
-          'children',
-        ),
-    },
+    childId: v.id("children"),
+  },
 
-    returns:
-      runningBalanceResultValidator,
+  returns: runningBalanceResultValidator,
 
-    handler: async (
-      ctx,
-      args,
-    ) => {
-      await requireCurrentParentForHousehold(
-        ctx,
-        args.householdId,
+  handler: async (ctx, args) => {
+    await requireCurrentParentForHousehold(ctx, args.householdId);
+
+    const child = await ctx.db.get(args.childId);
+
+    if (!child) {
+      throw new ConvexError("Child not found.");
+    }
+
+    if (child.householdId !== args.householdId) {
+      throw new ConvexError("This Child does not belong to this Household.");
+    }
+
+    const balance = await calculateRunningBalanceForChild(ctx, child._id);
+
+    if (balance.householdId !== args.householdId) {
+      throw new ConvexError(
+        "Running Balance Household does not match the requested Household.",
       );
+    }
 
-      const child =
-        await ctx.db.get(
-          args.childId,
-        );
+    return {
+      childId: child._id,
 
-      if (!child) {
-        throw new ConvexError(
-          'Child not found.',
-        );
-      }
-
-      if (
-        child.householdId !==
-        args.householdId
-      ) {
-        throw new ConvexError(
-          'This Child does not belong to this Household.',
-        );
-      }
-
-      const balance =
-        await calculateRunningBalanceForChild(
-          ctx,
-          child._id,
-        );
-
-      if (
-        balance.householdId !==
-        args.householdId
-      ) {
-        throw new ConvexError(
-          'Running Balance Household does not match the requested Household.',
-        );
-      }
-
-      return {
-        childId:
-          child._id,
-
-        balanceSek:
-          balance.balanceSek,
-      };
-    },
-  });
+      balanceSek: balance.balanceSek,
+    };
+  },
+});

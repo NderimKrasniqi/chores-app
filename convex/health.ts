@@ -1,5 +1,5 @@
-import { v } from 'convex/values';
-import { query } from './_generated/server';
+import { v } from "convex/values";
+import { query } from "./_generated/server";
 
 export const ping = query({
   args: {},
@@ -10,7 +10,7 @@ export const ping = query({
   handler: async () => {
     return {
       ok: true,
-      message: 'Convex connected',
+      message: "Convex connected",
     };
   },
 });

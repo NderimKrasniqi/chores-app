@@ -1,46 +1,32 @@
-import {
-  Text,
-  View,
-} from 'react-native';
+import { Text, View } from "react-native";
 
-import type {
-  ServerConnectionStatus,
-} from '@/hooks/use-server-confirmed-mutation';
+import type { ServerConnectionStatus } from "@/hooks/use-server-confirmed-mutation";
 
-export function getServerConnectionMessage(
-  status:
-    ServerConnectionStatus,
-) {
+export function getServerConnectionMessage(status: ServerConnectionStatus) {
   switch (status) {
-    case 'recovering':
-      return 'Connection lost — checking whether your last change reached the server. Do not repeat the action.';
+    case "recovering":
+      return "Connection lost — checking whether your last change reached the server. Do not repeat the action.";
 
-    case 'offline':
-      return 'Offline — showing last synced data. Changes are disabled until the server reconnects.';
+    case "offline":
+      return "Offline — showing last synced data. Changes are disabled until the server reconnects.";
 
-    case 'connecting':
-      return 'Connecting to the server — changes are unavailable until connected.';
+    case "connecting":
+      return "Connecting to the server — changes are unavailable until connected.";
 
-    case 'online':
+    case "online":
       return null;
   }
 }
 
 export function ServerConnectionNotice({
   status,
-  testID =
-    'server-connection-notice',
+  testID = "server-connection-notice",
 }: {
-  status:
-    ServerConnectionStatus;
+  status: ServerConnectionStatus;
 
-  testID?:
-    string;
+  testID?: string;
 }) {
-  const message =
-    getServerConnectionMessage(
-      status,
-    );
+  const message = getServerConnectionMessage(status);
 
   if (!message) {
     return null;
@@ -48,10 +34,8 @@ export function ServerConnectionNotice({
 
   return (
     <View
-      testID={
-        testID
-      }
-      className="px-4 py-3 border rounded-xl border-amber-700 bg-amber-950"
+      testID={testID}
+      className="rounded-xl border border-amber-700 bg-amber-950 px-4 py-3"
     >
       <Text className="text-sm font-medium leading-5 text-amber-200">
         {message}

@@ -1,17 +1,17 @@
-import { ConvexError, v } from 'convex/values';
+import { ConvexError, v } from "convex/values";
 
-import { internal } from './_generated/api';
-import type { Id } from './_generated/dataModel';
-import { action, internalMutation, mutation, query } from './_generated/server';
+import { internal } from "./_generated/api";
+import type { Id } from "./_generated/dataModel";
+import { action, internalMutation, mutation, query } from "./_generated/server";
 import {
   requireCurrentParentAuthUser,
   requireCurrentParentForHousehold,
   requireParentMembershipForHousehold,
-} from './lib/auth/parentAuthorization';
+} from "./lib/auth/parentAuthorization";
 
 function bytesToHex(bytes: Uint8Array) {
-  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join(
-    '',
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join(
+    "",
   );
 }
 
@@ -26,18 +26,18 @@ function generateInviteToken() {
 async function hashInviteToken(token: string) {
   const encoded = new TextEncoder().encode(token);
 
-  const digest = await crypto.subtle.digest('SHA-256', encoded);
+  const digest = await crypto.subtle.digest("SHA-256", encoded);
 
   return bytesToHex(new Uint8Array(digest));
 }
 
 export const create = action({
   args: {
-    householdId: v.id('households'),
+    householdId: v.id("households"),
   },
 
   returns: v.object({
-    inviteId: v.id('parentInvites'),
+    inviteId: v.id("parentInvites"),
     token: v.string(),
   }),
 
@@ -45,18 +45,15 @@ export const create = action({
     ctx,
     args,
   ): Promise<{
-    inviteId: Id<'parentInvites'>;
+    inviteId: Id<"parentInvites">;
     token: string;
   }> => {
-    const authUser =
-      await requireCurrentParentAuthUser(
-        ctx,
-      );
+    const authUser = await requireCurrentParentAuthUser(ctx);
 
     const token = generateInviteToken();
     const tokenHash = await hashInviteToken(token);
 
-    const inviteId: Id<'parentInvites'> = await ctx.runMutation(
+    const inviteId: Id<"parentInvites"> = await ctx.runMutation(
       internal.parentInvites.storeGeneratedInvite,
       {
         householdId: args.householdId,
@@ -78,26 +75,23 @@ export const accept = action({
   },
 
   returns: v.object({
-    householdId: v.id('households'),
-    membershipId: v.id('householdMembers'),
+    householdId: v.id("households"),
+    membershipId: v.id("householdMembers"),
   }),
 
   handler: async (
     ctx,
     args,
   ): Promise<{
-    householdId: Id<'households'>;
-    membershipId: Id<'householdMembers'>;
+    householdId: Id<"households">;
+    membershipId: Id<"householdMembers">;
   }> => {
-    const authUser =
-      await requireCurrentParentAuthUser(
-        ctx,
-      );
+    const authUser = await requireCurrentParentAuthUser(ctx);
 
     const token = args.token.trim();
 
     if (!token) {
-      throw new ConvexError('Invite token is required.');
+      throw new ConvexError("Invite token is required.");
     }
 
     const tokenHash = await hashInviteToken(token);
@@ -111,22 +105,19 @@ export const accept = action({
 
 export const revokeActive = mutation({
   args: {
-    householdId: v.id('households'),
+    householdId: v.id("households"),
   },
 
   returns: v.number(),
 
   handler: async (ctx, args): Promise<number> => {
-    await requireCurrentParentForHousehold(
-      ctx,
-      args.householdId,
-    );
+    await requireCurrentParentForHousehold(ctx, args.householdId);
 
     const now = Date.now();
 
     const invites = await ctx.db
-      .query('parentInvites')
-      .withIndex('by_household', (q) => q.eq('householdId', args.householdId))
+      .query("parentInvites")
+      .withIndex("by_household", (q) => q.eq("householdId", args.householdId))
       .collect();
 
     let revokedCount = 0;
@@ -154,29 +145,26 @@ export const revokeActive = mutation({
 
 export const getActive = query({
   args: {
-    householdId: v.id('households'),
+    householdId: v.id("households"),
   },
 
   returns: v.union(
     v.null(),
     v.object({
-      inviteId: v.id('parentInvites'),
+      inviteId: v.id("parentInvites"),
       createdAt: v.number(),
       expiresAt: v.optional(v.number()),
     }),
   ),
 
   handler: async (ctx, args) => {
-    await requireCurrentParentForHousehold(
-      ctx,
-      args.householdId,
-    );
+    await requireCurrentParentForHousehold(ctx, args.householdId);
 
     const now = Date.now();
 
     const invites = await ctx.db
-      .query('parentInvites')
-      .withIndex('by_household', (q) => q.eq('householdId', args.householdId))
+      .query("parentInvites")
+      .withIndex("by_household", (q) => q.eq("householdId", args.householdId))
       .collect();
 
     const activeInvite = invites
@@ -202,26 +190,26 @@ export const getActive = query({
 
 export const storeGeneratedInvite = internalMutation({
   args: {
-    householdId: v.id('households'),
+    householdId: v.id("households"),
     actorAuthUserId: v.string(),
     tokenHash: v.string(),
   },
 
-  returns: v.id('parentInvites'),
+  returns: v.id("parentInvites"),
 
-  handler: async (ctx, args): Promise<Id<'parentInvites'>> => {
+  handler: async (ctx, args): Promise<Id<"parentInvites">> => {
     await requireParentMembershipForHousehold(
       ctx,
       args.householdId,
       args.actorAuthUserId,
-      'You are not authorized to invite a parent to this household.',
+      "You are not authorized to invite a parent to this household.",
     );
 
     const now = Date.now();
 
     const existingInvites = await ctx.db
-      .query('parentInvites')
-      .withIndex('by_household', (q) => q.eq('householdId', args.householdId))
+      .query("parentInvites")
+      .withIndex("by_household", (q) => q.eq("householdId", args.householdId))
       .collect();
 
     for (const invite of existingInvites) {
@@ -237,7 +225,7 @@ export const storeGeneratedInvite = internalMutation({
       }
     }
 
-    return await ctx.db.insert('parentInvites', {
+    return await ctx.db.insert("parentInvites", {
       householdId: args.householdId,
       tokenHash: args.tokenHash,
       createdByAuthUserId: args.actorAuthUserId,
@@ -253,63 +241,63 @@ export const consumeInvite = internalMutation({
   },
 
   returns: v.object({
-    householdId: v.id('households'),
-    membershipId: v.id('householdMembers'),
+    householdId: v.id("households"),
+    membershipId: v.id("householdMembers"),
   }),
 
   handler: async (
     ctx,
     args,
   ): Promise<{
-    householdId: Id<'households'>;
-    membershipId: Id<'householdMembers'>;
+    householdId: Id<"households">;
+    membershipId: Id<"householdMembers">;
   }> => {
     const invite = await ctx.db
-      .query('parentInvites')
-      .withIndex('by_token_hash', (q) => q.eq('tokenHash', args.tokenHash))
+      .query("parentInvites")
+      .withIndex("by_token_hash", (q) => q.eq("tokenHash", args.tokenHash))
       .unique();
 
     if (!invite) {
-      throw new ConvexError('Invalid parent invite.');
+      throw new ConvexError("Invalid parent invite.");
     }
 
     const now = Date.now();
 
     if (invite.revokedAt !== undefined) {
-      throw new ConvexError('This parent invite has been revoked.');
+      throw new ConvexError("This parent invite has been revoked.");
     }
 
     if (invite.acceptedAt !== undefined) {
-      throw new ConvexError('This parent invite has already been used.');
+      throw new ConvexError("This parent invite has already been used.");
     }
 
     if (invite.expiresAt !== undefined && invite.expiresAt <= now) {
-      throw new ConvexError('This parent invite has expired.');
+      throw new ConvexError("This parent invite has expired.");
     }
 
     const household = await ctx.db.get(invite.householdId);
 
     if (!household) {
-      throw new ConvexError('Household no longer exists.');
+      throw new ConvexError("Household no longer exists.");
     }
 
     const existingMembership = await ctx.db
-      .query('householdMembers')
-      .withIndex('by_household_auth_user', (q) =>
+      .query("householdMembers")
+      .withIndex("by_household_auth_user", (q) =>
         q
-          .eq('householdId', invite.householdId)
-          .eq('authUserId', args.actorAuthUserId),
+          .eq("householdId", invite.householdId)
+          .eq("authUserId", args.actorAuthUserId),
       )
       .unique();
 
     if (existingMembership) {
-      throw new ConvexError('You are already a parent in this household.');
+      throw new ConvexError("You are already a parent in this household.");
     }
 
-    const membershipId = await ctx.db.insert('householdMembers', {
+    const membershipId = await ctx.db.insert("householdMembers", {
       householdId: invite.householdId,
       authUserId: args.actorAuthUserId,
-      role: 'parent',
+      role: "parent",
       joinedAt: now,
     });
 

@@ -1,709 +1,422 @@
-import {
-  v,
-} from 'convex/values';
-
-import {
-  internalMutation,
-  internalQuery,
-} from '../../../_generated/server';
-import {
-  approveClaimableSubmission,
-} from '../../../lib/reviews/claimable';
-import {
-  resolveLocalDateTimeToEpochMs,
-} from '../../../lib/scheduling/choreScheduling';
-import {
-  rejectInitialSubmission,
-} from '../../../lib/reviews/initialRejection';
-import {
-  approvePersonalSubmission,
-} from '../../../lib/reviews/personal';
-
-const choreKindValidator =
-  v.union(
-    v.literal(
-      'personal',
-    ),
-
-    v.literal(
-      'claimable',
-    ),
-  );
-
-export const setup =
-  internalMutation({
-    args: {
-      kind:
-        choreKindValidator,
-    },
-
-    handler: async (
-      ctx,
-      args,
-    ) => {
-      const timezone =
-        'Europe/Stockholm';
-
-      const createdAt =
-        resolveLocalDateTimeToEpochMs(
-          '2030-01-16',
-          '10:00',
-          timezone,
-        );
-
-      const deadlineAt =
-        resolveLocalDateTimeToEpochMs(
-          '2030-01-16',
-          '18:00',
-          timezone,
-        );
-
-      const submittedAt =
-        resolveLocalDateTimeToEpochMs(
-          '2030-01-16',
-          '17:30',
-          timezone,
-        );
-
-      /*
-       * Parent review may happen after
-       * the original deadline because
-       * persisted submittedAt is the
-       * authoritative on-time fact.
-       */
-      const reviewAt =
-        resolveLocalDateTimeToEpochMs(
-          '2030-01-16',
-          '20:00',
-          timezone,
-        );
-
-      const householdId =
-        await ctx.db.insert(
-          'households',
-          {
-            name:
-              `TASK13 ${args.kind} review authority`,
-
-            timezone,
-
-            payoutWeekday:
-              'friday',
-
-            weeklyUnclaimAllowance:
-              2,
-
-            createdAt,
-
-            updatedAt:
-              createdAt,
-          },
-        );
+import { v } from "convex/values";
 
-      const childId =
-        await ctx.db.insert(
-          'children',
-          {
-            householdId,
+import { internalMutation, internalQuery } from "../../../_generated/server";
+import { approveClaimableSubmission } from "../../../lib/reviews/claimable";
+import { resolveLocalDateTimeToEpochMs } from "../../../lib/scheduling/choreScheduling";
+import { rejectInitialSubmission } from "../../../lib/reviews/initialRejection";
+import { approvePersonalSubmission } from "../../../lib/reviews/personal";
 
-            displayName:
-              'Fixture Child',
+const choreKindValidator = v.union(
+  v.literal("personal"),
 
-            createdAt,
+  v.literal("claimable"),
+);
 
-            updatedAt:
-              createdAt,
-          },
-        );
+export const setup = internalMutation({
+  args: {
+    kind: choreKindValidator,
+  },
 
-      let definitionId;
+  handler: async (ctx, args) => {
+    const timezone = "Europe/Stockholm";
 
-      if (
-        args.kind ===
-        'personal'
-      ) {
-        definitionId =
-          await ctx.db.insert(
-            'choreDefinitions',
-            {
-              householdId,
+    const createdAt = resolveLocalDateTimeToEpochMs(
+      "2030-01-16",
+      "10:00",
+      timezone,
+    );
 
-              kind:
-                'personal',
+    const deadlineAt = resolveLocalDateTimeToEpochMs(
+      "2030-01-16",
+      "18:00",
+      timezone,
+    );
 
-              title:
-                'Concurrent Personal review',
+    const submittedAt = resolveLocalDateTimeToEpochMs(
+      "2030-01-16",
+      "17:30",
+      timezone,
+    );
 
-              valueSek:
-                90,
+    /*
+     * Parent review may happen after
+     * the original deadline because
+     * persisted submittedAt is the
+     * authoritative on-time fact.
+     */
+    const reviewAt = resolveLocalDateTimeToEpochMs(
+      "2030-01-16",
+      "20:00",
+      timezone,
+    );
 
-              recurrence: {
-                kind:
-                  'one_off',
+    const householdId = await ctx.db.insert("households", {
+      name: `TASK13 ${args.kind} review authority`,
 
-                scheduledDate:
-                  '2030-01-16',
-              },
+      timezone,
 
-              deadlineLocalTime:
-                '18:00',
+      payoutWeekday: "friday",
 
-              deadlineDayOffset:
-                0,
+      weeklyUnclaimAllowance: 2,
 
-              personalChildId:
-                childId,
+      createdAt,
 
-              isUnlockChore:
-                false,
+      updatedAt: createdAt,
+    });
 
-              createdByAuthUserId:
-                'task13-smoke',
+    const childId = await ctx.db.insert("children", {
+      householdId,
 
-              createdAt,
+      displayName: "Fixture Child",
 
-              updatedAt:
-                createdAt,
-            },
-          );
-      } else {
-        definitionId =
-          await ctx.db.insert(
-            'choreDefinitions',
-            {
-              householdId,
+      createdAt,
 
-              kind:
-                'claimable',
+      updatedAt: createdAt,
+    });
 
-              title:
-                'Concurrent Claimable review',
+    let definitionId;
 
-              valueSek:
-                140,
-
-              recurrence: {
-                kind:
-                  'one_off',
-
-                scheduledDate:
-                  '2030-01-16',
-              },
-
-              deadlineLocalTime:
-                '18:00',
-
-              deadlineDayOffset:
-                0,
-
-              eligibleChildIds:
-                [
-                  childId,
-                ],
-
-              isUnlockChore:
-                false,
-
-              createdByAuthUserId:
-                'task13-smoke',
-
-              createdAt,
-
-              updatedAt:
-                createdAt,
-            },
-          );
-      }
-
-      const occurrenceId =
-        await ctx.db.insert(
-          'choreOccurrences',
-          {
-            householdId,
-
-            choreDefinitionId:
-              definitionId,
-
-            kind:
-              args.kind,
-
-            title:
-              args.kind ===
-              'personal'
-                ? 'Concurrent Personal review'
-                : 'Concurrent Claimable review',
-
-            valueSek:
-              args.kind ===
-              'personal'
-                ? 90
-                : 140,
-
-            scheduledLocalDate:
-              '2030-01-16',
-
-            timezone,
-
-            deadlineLocalTime:
-              '18:00',
-
-            deadlineDayOffset:
-              0,
-
-            availabilityStartsAt:
-              createdAt,
-
-            deadlineAt,
-
-            ...(args.kind ===
-            'personal'
-              ? {
-                  personalChildId:
-                    childId,
-                }
-              : {
-                  eligibleChildIds:
-                    [
-                      childId,
-                    ],
-                }),
-
-            isUnlockChore:
-              false,
-
-            state:
-              'submitted',
-
-            createdAt,
-          },
-        );
-
-      if (
-        args.kind ===
-        'claimable'
-      ) {
-        await ctx.db.insert(
-          'choreClaims',
-          {
-            householdId,
-
-            occurrenceId,
-
-            childId,
-
-            state:
-              'submitted',
-
-            claimedAt:
-              resolveLocalDateTimeToEpochMs(
-                '2030-01-16',
-                '12:00',
-                timezone,
-              ),
-          },
-        );
-      }
-
-      const submissionId =
-        await ctx.db.insert(
-          'choreSubmissions',
-          {
-            householdId,
-
-            occurrenceId,
-
-            childId,
-
-            attemptNumber:
-              1,
-
-            submittedAt,
-          },
-        );
-
-      return {
+    if (args.kind === "personal") {
+      definitionId = await ctx.db.insert("choreDefinitions", {
         householdId,
 
-        childId,
+        kind: "personal",
 
-        definitionId,
+        title: "Concurrent Personal review",
+
+        valueSek: 90,
+
+        recurrence: {
+          kind: "one_off",
+
+          scheduledDate: "2030-01-16",
+        },
+
+        deadlineLocalTime: "18:00",
+
+        deadlineDayOffset: 0,
+
+        personalChildId: childId,
+
+        isUnlockChore: false,
+
+        createdByAuthUserId: "task13-smoke",
+
+        createdAt,
+
+        updatedAt: createdAt,
+      });
+    } else {
+      definitionId = await ctx.db.insert("choreDefinitions", {
+        householdId,
+
+        kind: "claimable",
+
+        title: "Concurrent Claimable review",
+
+        valueSek: 140,
+
+        recurrence: {
+          kind: "one_off",
+
+          scheduledDate: "2030-01-16",
+        },
+
+        deadlineLocalTime: "18:00",
+
+        deadlineDayOffset: 0,
+
+        eligibleChildIds: [childId],
+
+        isUnlockChore: false,
+
+        createdByAuthUserId: "task13-smoke",
+
+        createdAt,
+
+        updatedAt: createdAt,
+      });
+    }
+
+    const occurrenceId = await ctx.db.insert("choreOccurrences", {
+      householdId,
+
+      choreDefinitionId: definitionId,
+
+      kind: args.kind,
+
+      title:
+        args.kind === "personal"
+          ? "Concurrent Personal review"
+          : "Concurrent Claimable review",
+
+      valueSek: args.kind === "personal" ? 90 : 140,
+
+      scheduledLocalDate: "2030-01-16",
+
+      timezone,
+
+      deadlineLocalTime: "18:00",
+
+      deadlineDayOffset: 0,
+
+      availabilityStartsAt: createdAt,
+
+      deadlineAt,
+
+      ...(args.kind === "personal"
+        ? {
+            personalChildId: childId,
+          }
+        : {
+            eligibleChildIds: [childId],
+          }),
+
+      isUnlockChore: false,
+
+      state: "submitted",
+
+      createdAt,
+    });
+
+    if (args.kind === "claimable") {
+      await ctx.db.insert("choreClaims", {
+        householdId,
 
         occurrenceId,
 
-        submissionId,
+        childId,
 
-        reviewAt,
-      };
-    },
-  });
+        state: "submitted",
 
-export const approve =
-  internalMutation({
-    args: {
-      kind:
-        choreKindValidator,
-
-      submissionId:
-        v.id(
-          'choreSubmissions',
+        claimedAt: resolveLocalDateTimeToEpochMs(
+          "2030-01-16",
+          "12:00",
+          timezone,
         ),
+      });
+    }
 
-      now:
-        v.number(),
-    },
+    const submissionId = await ctx.db.insert("choreSubmissions", {
+      householdId,
 
-    handler: async (
-      ctx,
-      args,
-    ) => {
-      if (
-        args.kind ===
-        'personal'
-      ) {
-        return await approvePersonalSubmission(
-          ctx,
-          args.submissionId,
-          'task13-parent-approve',
-          args.now,
-        );
-      }
+      occurrenceId,
 
-      return await approveClaimableSubmission(
+      childId,
+
+      attemptNumber: 1,
+
+      submittedAt,
+    });
+
+    return {
+      householdId,
+
+      childId,
+
+      definitionId,
+
+      occurrenceId,
+
+      submissionId,
+
+      reviewAt,
+    };
+  },
+});
+
+export const approve = internalMutation({
+  args: {
+    kind: choreKindValidator,
+
+    submissionId: v.id("choreSubmissions"),
+
+    now: v.number(),
+  },
+
+  handler: async (ctx, args) => {
+    if (args.kind === "personal") {
+      return await approvePersonalSubmission(
         ctx,
         args.submissionId,
-        'task13-parent-approve',
+        "task13-parent-approve",
         args.now,
       );
-    },
-  });
+    }
 
-export const reject =
-  internalMutation({
-    args: {
-      kind:
-        choreKindValidator,
-
-      submissionId:
-        v.id(
-          'choreSubmissions',
-        ),
-
-      now:
-        v.number(),
-    },
-
-    handler: async (
+    return await approveClaimableSubmission(
       ctx,
-      args,
-    ) => {
-      return await rejectInitialSubmission(
-        ctx,
-        args.submissionId,
-        'task13-parent-reject',
-        args.kind,
-        '2030-01-17',
-        '18:00',
-        args.now,
-      );
-    },
-  });
+      args.submissionId,
+      "task13-parent-approve",
+      args.now,
+    );
+  },
+});
 
-export const inspect =
-  internalQuery({
-    args: {
-      occurrenceId:
-        v.id(
-          'choreOccurrences',
-        ),
-    },
+export const reject = internalMutation({
+  args: {
+    kind: choreKindValidator,
 
-    handler: async (
+    submissionId: v.id("choreSubmissions"),
+
+    now: v.number(),
+  },
+
+  handler: async (ctx, args) => {
+    return await rejectInitialSubmission(
       ctx,
-      args,
-    ) => {
-      const occurrence =
-        await ctx.db.get(
-          args.occurrenceId,
-        );
+      args.submissionId,
+      "task13-parent-reject",
+      args.kind,
+      "2030-01-17",
+      "18:00",
+      args.now,
+    );
+  },
+});
 
-      const reviews =
-        await ctx.db
-          .query(
-            'choreReviews',
-          )
-          .withIndex(
-            'by_occurrence',
-            (q) =>
-              q.eq(
-                'occurrenceId',
-                args.occurrenceId,
-              ),
-          )
-          .collect();
+export const inspect = internalQuery({
+  args: {
+    occurrenceId: v.id("choreOccurrences"),
+  },
 
-      const redos =
-        await ctx.db
-          .query(
-            'choreRedos',
-          )
-          .withIndex(
-            'by_occurrence',
-            (q) =>
-              q.eq(
-                'occurrenceId',
-                args.occurrenceId,
-              ),
-          )
-          .collect();
+  handler: async (ctx, args) => {
+    const occurrence = await ctx.db.get(args.occurrenceId);
 
-      const ledgerEntries =
-        await ctx.db
-          .query(
-            'ledgerEntries',
-          )
-          .withIndex(
-            'by_occurrence_kind',
-            (q) =>
-              q.eq(
-                'occurrenceId',
-                args.occurrenceId,
-              ),
-          )
-          .collect();
+    const reviews = await ctx.db
+      .query("choreReviews")
+      .withIndex("by_occurrence", (q) =>
+        q.eq("occurrenceId", args.occurrenceId),
+      )
+      .collect();
 
-      const claims =
-        await ctx.db
-          .query(
-            'choreClaims',
-          )
-          .withIndex(
-            'by_occurrence',
-            (q) =>
-              q.eq(
-                'occurrenceId',
-                args.occurrenceId,
-              ),
-          )
-          .collect();
+    const redos = await ctx.db
+      .query("choreRedos")
+      .withIndex("by_occurrence", (q) =>
+        q.eq("occurrenceId", args.occurrenceId),
+      )
+      .collect();
 
-      return {
-        occurrenceState:
-          occurrence?.state,
+    const ledgerEntries = await ctx.db
+      .query("ledgerEntries")
+      .withIndex("by_occurrence_kind", (q) =>
+        q.eq("occurrenceId", args.occurrenceId),
+      )
+      .collect();
 
-        reviewCount:
-          reviews.length,
+    const claims = await ctx.db
+      .query("choreClaims")
+      .withIndex("by_occurrence", (q) =>
+        q.eq("occurrenceId", args.occurrenceId),
+      )
+      .collect();
 
-        reviewDecision:
-          reviews[0]
-            ?.decision,
+    return {
+      occurrenceState: occurrence?.state,
 
-        redoCount:
-          redos.length,
+      reviewCount: reviews.length,
 
-        earningCount:
-          ledgerEntries.filter(
-            (entry) =>
-              entry.kind ===
-              'earning',
-          ).length,
+      reviewDecision: reviews[0]?.decision,
 
-        claimState:
-          claims[0]
-            ?.state,
-      };
-    },
-  });
+      redoCount: redos.length,
 
-export const cleanup =
-  internalMutation({
-    args: {
-      householdId:
-        v.id(
-          'households',
-        ),
+      earningCount: ledgerEntries.filter((entry) => entry.kind === "earning")
+        .length,
 
-      childId:
-        v.id(
-          'children',
-        ),
+      claimState: claims[0]?.state,
+    };
+  },
+});
 
-      definitionId:
-        v.id(
-          'choreDefinitions',
-        ),
+export const cleanup = internalMutation({
+  args: {
+    householdId: v.id("households"),
 
-      occurrenceId:
-        v.id(
-          'choreOccurrences',
-        ),
-    },
+    childId: v.id("children"),
 
-    handler: async (
-      ctx,
-      args,
-    ) => {
-      const ledgerEntries =
-        await ctx.db
-          .query(
-            'ledgerEntries',
-          )
-          .withIndex(
-            'by_occurrence_kind',
-            (q) =>
-              q.eq(
-                'occurrenceId',
-                args.occurrenceId,
-              ),
-          )
-          .collect();
+    definitionId: v.id("choreDefinitions"),
 
-      for (
-        const entry of
-        ledgerEntries
-      ) {
-        await ctx.db.delete(
-          entry._id,
-        );
-      }
+    occurrenceId: v.id("choreOccurrences"),
+  },
 
-      const reviews =
-        await ctx.db
-          .query(
-            'choreReviews',
-          )
-          .withIndex(
-            'by_occurrence',
-            (q) =>
-              q.eq(
-                'occurrenceId',
-                args.occurrenceId,
-              ),
-          )
-          .collect();
+  handler: async (ctx, args) => {
+    const ledgerEntries = await ctx.db
+      .query("ledgerEntries")
+      .withIndex("by_occurrence_kind", (q) =>
+        q.eq("occurrenceId", args.occurrenceId),
+      )
+      .collect();
 
-      for (
-        const review of
-        reviews
-      ) {
-        await ctx.db.delete(
-          review._id,
-        );
-      }
+    for (const entry of ledgerEntries) {
+      await ctx.db.delete(entry._id);
+    }
 
-      const redos =
-        await ctx.db
-          .query(
-            'choreRedos',
-          )
-          .withIndex(
-            'by_occurrence',
-            (q) =>
-              q.eq(
-                'occurrenceId',
-                args.occurrenceId,
-              ),
-          )
-          .collect();
+    const reviews = await ctx.db
+      .query("choreReviews")
+      .withIndex("by_occurrence", (q) =>
+        q.eq("occurrenceId", args.occurrenceId),
+      )
+      .collect();
 
-      for (
-        const redo of
-        redos
-      ) {
-        await ctx.db.delete(
-          redo._id,
-        );
-      }
+    for (const review of reviews) {
+      await ctx.db.delete(review._id);
+    }
 
-      const submissions =
-        await ctx.db
-          .query(
-            'choreSubmissions',
-          )
-          .withIndex(
-            'by_occurrence',
-            (q) =>
-              q.eq(
-                'occurrenceId',
-                args.occurrenceId,
-              ),
-          )
-          .collect();
+    const redos = await ctx.db
+      .query("choreRedos")
+      .withIndex("by_occurrence", (q) =>
+        q.eq("occurrenceId", args.occurrenceId),
+      )
+      .collect();
 
-      for (
-        const submission of
-        submissions
-      ) {
-        await ctx.db.delete(
-          submission._id,
-        );
-      }
+    for (const redo of redos) {
+      await ctx.db.delete(redo._id);
+    }
 
-      const claims =
-        await ctx.db
-          .query(
-            'choreClaims',
-          )
-          .withIndex(
-            'by_occurrence',
-            (q) =>
-              q.eq(
-                'occurrenceId',
-                args.occurrenceId,
-              ),
-          )
-          .collect();
+    const submissions = await ctx.db
+      .query("choreSubmissions")
+      .withIndex("by_occurrence", (q) =>
+        q.eq("occurrenceId", args.occurrenceId),
+      )
+      .collect();
 
-      for (
-        const claim of
-        claims
-      ) {
-        await ctx.db.delete(
-          claim._id,
-        );
-      }
+    for (const submission of submissions) {
+      await ctx.db.delete(submission._id);
+    }
 
-      const occurrence =
-        await ctx.db.get(
-          args.occurrenceId,
-        );
+    const claims = await ctx.db
+      .query("choreClaims")
+      .withIndex("by_occurrence", (q) =>
+        q.eq("occurrenceId", args.occurrenceId),
+      )
+      .collect();
 
-      if (occurrence) {
-        await ctx.db.delete(
-          occurrence._id,
-        );
-      }
+    for (const claim of claims) {
+      await ctx.db.delete(claim._id);
+    }
 
-      const definition =
-        await ctx.db.get(
-          args.definitionId,
-        );
+    const occurrence = await ctx.db.get(args.occurrenceId);
 
-      if (definition) {
-        await ctx.db.delete(
-          definition._id,
-        );
-      }
+    if (occurrence) {
+      await ctx.db.delete(occurrence._id);
+    }
 
-      const child =
-        await ctx.db.get(
-          args.childId,
-        );
+    const definition = await ctx.db.get(args.definitionId);
 
-      if (child) {
-        await ctx.db.delete(
-          child._id,
-        );
-      }
+    if (definition) {
+      await ctx.db.delete(definition._id);
+    }
 
-      const household =
-        await ctx.db.get(
-          args.householdId,
-        );
+    const child = await ctx.db.get(args.childId);
 
-      if (household) {
-        await ctx.db.delete(
-          household._id,
-        );
-      }
-    },
-  });
+    if (child) {
+      await ctx.db.delete(child._id);
+    }
+
+    const household = await ctx.db.get(args.householdId);
+
+    if (household) {
+      await ctx.db.delete(household._id);
+    }
+  },
+});

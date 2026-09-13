@@ -1,25 +1,18 @@
-import { v } from 'convex/values';
+import { v } from "convex/values";
 
-import {
-  mutation,
-  query,
-} from './_generated/server';
-import { requireCurrentChildAccess } from './lib/auth/childAuthorization';
+import { mutation, query } from "./_generated/server";
+import { requireCurrentChildAccess } from "./lib/auth/childAuthorization";
 import {
   listPersonalOccurrencesForChild,
   submitPersonalOccurrence,
-} from './lib/personal/execution';
-import {
-  submitPersonalRedo,
-} from './lib/redos/submission';
-import {
-  notifyParentsOfSubmission,
-} from './lib/notifications/orchestration';
+} from "./lib/personal/execution";
+import { submitPersonalRedo } from "./lib/redos/submission";
+import { notifyParentsOfSubmission } from "./lib/notifications/orchestration";
 import {
   personalChoreListValidator,
   personalInitialSubmissionResultValidator,
   personalRedoSubmissionResultValidator,
-} from './lib/api/choreContracts';
+} from "./lib/api/choreContracts";
 
 /*
  * Child-facing Personal Chore view.
@@ -33,138 +26,79 @@ import {
  * The mutation independently re-checks
  * every invariant.
  */
-export const listMine =
-  query({
-    args: {},
+export const listMine = query({
+  args: {},
 
-    returns:
-      personalChoreListValidator,
+  returns: personalChoreListValidator,
 
-    handler: async (
-      ctx,
-    ) => {
-      const {
-        child,
-      } =
-        await requireCurrentChildAccess(
-          ctx,
-        );
+  handler: async (ctx) => {
+    const { child } = await requireCurrentChildAccess(ctx);
 
-      const now =
-        Date.now();
+    const now = Date.now();
 
-      const occurrences =
-        await listPersonalOccurrencesForChild(
-          ctx,
-          child._id,
-        );
+    const occurrences = await listPersonalOccurrencesForChild(ctx, child._id);
 
-      return occurrences.map(
-        (occurrence) => ({
-          occurrenceId:
-            occurrence._id,
+    return occurrences.map((occurrence) => ({
+      occurrenceId: occurrence._id,
 
-          choreDefinitionId:
-            occurrence
-              .choreDefinitionId,
+      choreDefinitionId: occurrence.choreDefinitionId,
 
-          title:
-            occurrence.title,
+      title: occurrence.title,
 
-          description:
-            occurrence.description,
+      description: occurrence.description,
 
-          valueSek:
-            occurrence.valueSek,
+      valueSek: occurrence.valueSek,
 
-          scheduledLocalDate:
-            occurrence
-              .scheduledLocalDate,
+      scheduledLocalDate: occurrence.scheduledLocalDate,
 
-          timezone:
-            occurrence.timezone,
+      timezone: occurrence.timezone,
 
-          availabilityStartsAt:
-            occurrence
-              .availabilityStartsAt,
+      availabilityStartsAt: occurrence.availabilityStartsAt,
 
-          deadlineAt:
-            occurrence.deadlineAt,
+      deadlineAt: occurrence.deadlineAt,
 
-          state:
-            occurrence.state,
+      state: occurrence.state,
 
-          isUnlockChore:
-            occurrence
-              .isUnlockChore,
+      isUnlockChore: occurrence.isUnlockChore,
 
-          canSubmit:
-            occurrence.state ===
-              'available' &&
-            now >=
-              occurrence
-                .availabilityStartsAt &&
-            now <=
-              occurrence
-                .deadlineAt,
-        }),
-      );
-    },
-  });
+      canSubmit:
+        occurrence.state === "available" &&
+        now >= occurrence.availabilityStartsAt &&
+        now <= occurrence.deadlineAt,
+    }));
+  },
+});
 
 /*
  * Attempt 1.
  *
  * Convex server time is authoritative.
  */
-export const submit =
-  mutation({
-    args: {
-      occurrenceId:
-        v.id(
-          'choreOccurrences',
-        ),
+export const submit = mutation({
+  args: {
+    occurrenceId: v.id("choreOccurrences"),
 
-      evidenceUploadIntentId:
-        v.optional(
-          v.id(
-            'submissionEvidenceUploads',
-          ),
-        ),
-    },
+    evidenceUploadIntentId: v.optional(v.id("submissionEvidenceUploads")),
+  },
 
-    returns:
-      personalInitialSubmissionResultValidator,
+  returns: personalInitialSubmissionResultValidator,
 
-    handler: async (
+  handler: async (ctx, args) => {
+    const { child } = await requireCurrentChildAccess(ctx);
+
+    const result = await submitPersonalOccurrence(
       ctx,
-      args,
-    ) => {
-      const {
-        child,
-      } =
-        await requireCurrentChildAccess(
-          ctx,
-        );
+      args.occurrenceId,
+      child._id,
+      Date.now(),
+      args.evidenceUploadIntentId,
+    );
 
-      const result =
-        await submitPersonalOccurrence(
-          ctx,
-          args.occurrenceId,
-          child._id,
-          Date.now(),
-          args
-            .evidenceUploadIntentId,
-        );
+    await notifyParentsOfSubmission(ctx, result.submissionId);
 
-      await notifyParentsOfSubmission(
-        ctx,
-        result.submissionId,
-      );
-
-      return result;
-    },
-  });
+    return result;
+  },
+});
 
 /*
  * Attempt 2 — the one permitted Redo.
@@ -173,51 +107,28 @@ export const submit =
  * durable choreRedos record rather than
  * the original occurrence deadline.
  */
-export const submitRedo =
-  mutation({
-    args: {
-      occurrenceId:
-        v.id(
-          'choreOccurrences',
-        ),
+export const submitRedo = mutation({
+  args: {
+    occurrenceId: v.id("choreOccurrences"),
 
-      evidenceUploadIntentId:
-        v.optional(
-          v.id(
-            'submissionEvidenceUploads',
-          ),
-        ),
-    },
+    evidenceUploadIntentId: v.optional(v.id("submissionEvidenceUploads")),
+  },
 
-    returns:
-      personalRedoSubmissionResultValidator,
+  returns: personalRedoSubmissionResultValidator,
 
-    handler: async (
+  handler: async (ctx, args) => {
+    const { child } = await requireCurrentChildAccess(ctx);
+
+    const result = await submitPersonalRedo(
       ctx,
-      args,
-    ) => {
-      const {
-        child,
-      } =
-        await requireCurrentChildAccess(
-          ctx,
-        );
+      args.occurrenceId,
+      child._id,
+      Date.now(),
+      args.evidenceUploadIntentId,
+    );
 
-      const result =
-        await submitPersonalRedo(
-          ctx,
-          args.occurrenceId,
-          child._id,
-          Date.now(),
-          args
-            .evidenceUploadIntentId,
-        );
+    await notifyParentsOfSubmission(ctx, result.submissionId);
 
-      await notifyParentsOfSubmission(
-        ctx,
-        result.submissionId,
-      );
-
-      return result;
-    },
-  });
+    return result;
+  },
+});

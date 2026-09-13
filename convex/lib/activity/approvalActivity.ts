@@ -1,39 +1,25 @@
-import type {
-  Id,
-} from '../../_generated/dataModel';
-import type {
-  MutationCtx,
-  QueryCtx,
-} from '../../_generated/server';
+import type { Id } from "../../_generated/dataModel";
+import type { MutationCtx, QueryCtx } from "../../_generated/server";
 
 export type ApprovalActivityItem = {
-  activityId:
-    Id<'choreReviews'>;
+  activityId: Id<"choreReviews">;
 
-  childId:
-    Id<'children'>;
+  childId: Id<"children">;
 
-  childDisplayName:
-    string;
+  childDisplayName: string;
 
-  choreTitle:
-    string;
+  choreTitle: string;
 
-  choreKind:
-    'personal' | 'claimable';
+  choreKind: "personal" | "claimable";
 
-  valueSek:
-    number;
+  valueSek: number;
 
-  approvedAt:
-    number;
+  approvedAt: number;
 };
 
-const ACTIVITY_LIMIT =
-  12;
+const ACTIVITY_LIMIT = 12;
 
-const REVIEW_SCAN_LIMIT =
-  100;
+const REVIEW_SCAN_LIMIT = 100;
 
 /*
  * Shared household activity is deliberately
@@ -44,155 +30,82 @@ const REVIEW_SCAN_LIMIT =
  * payouts, or Running Balances.
  */
 export async function listHouseholdApprovalActivity(
-  ctx:
-    | QueryCtx
-    | MutationCtx,
-  householdId:
-    Id<'households'>,
+  ctx: QueryCtx | MutationCtx,
+  householdId: Id<"households">,
 ) {
-  const reviews =
-    await ctx.db
-      .query(
-        'choreReviews',
-      )
-      .withIndex(
-        'by_household_reviewed_at',
-        (q) =>
-          q.eq(
-            'householdId',
-            householdId,
-          ),
-      )
-      .order(
-        'desc',
-      )
-      .take(
-        REVIEW_SCAN_LIMIT,
-      );
+  const reviews = await ctx.db
+    .query("choreReviews")
+    .withIndex("by_household_reviewed_at", (q) =>
+      q.eq("householdId", householdId),
+    )
+    .order("desc")
+    .take(REVIEW_SCAN_LIMIT);
 
-  const items:
-    ApprovalActivityItem[] =
-    [];
+  const items: ApprovalActivityItem[] = [];
 
-  for (
-    const review
-    of reviews
-  ) {
-    if (
-      review.decision !==
-      'approved'
-    ) {
+  for (const review of reviews) {
+    if (review.decision !== "approved") {
       continue;
     }
 
-    const submission =
-      await ctx.db.get(
-        review.submissionId,
-      );
+    const submission = await ctx.db.get(review.submissionId);
 
-    const occurrence =
-      await ctx.db.get(
-        review.occurrenceId,
-      );
+    const occurrence = await ctx.db.get(review.occurrenceId);
 
-    if (
-      !submission ||
-      !occurrence
-    ) {
+    if (!submission || !occurrence) {
       continue;
     }
 
     if (
-      submission.householdId !==
-        householdId ||
-      occurrence.householdId !==
-        householdId ||
-      submission.occurrenceId !==
-        occurrence._id ||
-      review.occurrenceId !==
-        occurrence._id
+      submission.householdId !== householdId ||
+      occurrence.householdId !== householdId ||
+      submission.occurrenceId !== occurrence._id ||
+      review.occurrenceId !== occurrence._id
     ) {
       continue;
     }
 
-    const earning =
-      await ctx.db
-        .query(
-          'ledgerEntries',
-        )
-        .withIndex(
-          'by_occurrence_kind',
-          (q) =>
-            q
-              .eq(
-                'occurrenceId',
-                occurrence._id,
-              )
-              .eq(
-                'kind',
-                'earning',
-              ),
-        )
-        .unique();
+    const earning = await ctx.db
+      .query("ledgerEntries")
+      .withIndex("by_occurrence_kind", (q) =>
+        q.eq("occurrenceId", occurrence._id).eq("kind", "earning"),
+      )
+      .unique();
 
     if (
       !earning ||
-      earning.householdId !==
-        householdId ||
-      earning.childId !==
-        submission.childId ||
-      earning.reviewId !==
-        review._id ||
-      earning.amountSek !==
-        occurrence.valueSek ||
-      earning.amountSek <=
-        0
+      earning.householdId !== householdId ||
+      earning.childId !== submission.childId ||
+      earning.reviewId !== review._id ||
+      earning.amountSek !== occurrence.valueSek ||
+      earning.amountSek <= 0
     ) {
       continue;
     }
 
-    const child =
-      await ctx.db.get(
-        submission.childId,
-      );
+    const child = await ctx.db.get(submission.childId);
 
-    if (
-      child &&
-      child.householdId !==
-        householdId
-    ) {
+    if (child && child.householdId !== householdId) {
       continue;
     }
 
     items.push({
-      activityId:
-        review._id,
+      activityId: review._id,
 
-      childId:
-        submission.childId,
+      childId: submission.childId,
 
-      childDisplayName:
-        child
-          ?.displayName ??
-        'Child',
+      childDisplayName: child?.displayName ?? "Child",
 
-      choreTitle:
-        occurrence.title,
+      choreTitle: occurrence.title,
 
-      choreKind:
-        occurrence.kind,
+      choreKind: occurrence.kind,
 
-      valueSek:
-        occurrence.valueSek,
+      valueSek: occurrence.valueSek,
 
-      approvedAt:
-        review.reviewedAt,
+      approvedAt: review.reviewedAt,
     });
 
-    if (
-      items.length >=
-      ACTIVITY_LIMIT
-    ) {
+    if (items.length >= ACTIVITY_LIMIT) {
       break;
     }
   }

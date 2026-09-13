@@ -1,60 +1,31 @@
-import type {
-  Id,
-} from '../../_generated/dataModel';
-import type {
-  MutationCtx,
-} from '../../_generated/server';
-import {
-  getClaimCommitmentLockAt,
-} from './commitmentRules';
+import type { Id } from "../../_generated/dataModel";
+import type { MutationCtx } from "../../_generated/server";
+import { getClaimCommitmentLockAt } from "./commitmentRules";
 
 export async function reconcileClaimCommitmentLock(
-  ctx:
-    MutationCtx,
-  occurrenceId:
-    Id<'choreOccurrences'>,
-  now =
-    Date.now(),
+  ctx: MutationCtx,
+  occurrenceId: Id<"choreOccurrences">,
+  now = Date.now(),
 ) {
-  const occurrence =
-    await ctx.db.get(
-      occurrenceId,
-    );
+  const occurrence = await ctx.db.get(occurrenceId);
 
-  if (
-    !occurrence ||
-    occurrence.kind !==
-      'claimable'
-  ) {
+  if (!occurrence || occurrence.kind !== "claimable") {
     return {
-      found:
-        occurrence !==
-        null,
+      found: occurrence !== null,
 
-      changed:
-        false,
+      changed: false,
 
-      lockAt:
-        null,
+      lockAt: null,
     };
   }
 
-  const lockAt =
-    getClaimCommitmentLockAt(
-      occurrence.deadlineAt,
-    );
+  const lockAt = getClaimCommitmentLockAt(occurrence.deadlineAt);
 
-  if (
-    occurrence
-      .commitmentLockReachedAt !==
-    undefined
-  ) {
+  if (occurrence.commitmentLockReachedAt !== undefined) {
     return {
-      found:
-        true,
+      found: true,
 
-      changed:
-        false,
+      changed: false,
 
       lockAt,
     };
@@ -69,52 +40,34 @@ export async function reconcileClaimCommitmentLock(
    * change occurrence.state, so an actively
    * claimed Chore remains covered here.
    */
-  if (
-    occurrence.state !==
-      'scheduled' &&
-    occurrence.state !==
-      'available'
-  ) {
+  if (occurrence.state !== "scheduled" && occurrence.state !== "available") {
     return {
-      found:
-        true,
+      found: true,
 
-      changed:
-        false,
+      changed: false,
 
       lockAt,
     };
   }
 
-  if (
-    now <
-    lockAt
-  ) {
+  if (now < lockAt) {
     return {
-      found:
-        true,
+      found: true,
 
-      changed:
-        false,
+      changed: false,
 
       lockAt,
     };
   }
 
-  await ctx.db.patch(
-    occurrence._id,
-    {
-      commitmentLockReachedAt:
-        lockAt,
-    },
-  );
+  await ctx.db.patch(occurrence._id, {
+    commitmentLockReachedAt: lockAt,
+  });
 
   return {
-    found:
-      true,
+    found: true,
 
-    changed:
-      true,
+    changed: true,
 
     lockAt,
   };

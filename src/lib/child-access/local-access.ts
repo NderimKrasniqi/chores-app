@@ -1,13 +1,12 @@
-import * as Crypto from 'expo-crypto';
-import * as SecureStore from 'expo-secure-store';
+import * as Crypto from "expo-crypto";
+import * as SecureStore from "expo-secure-store";
 
 import {
   clearChildAuthStoragePrefix,
   PARENT_AUTH_STORAGE_PREFIX,
-} from '@/lib/auth/client';
+} from "@/lib/auth/client";
 
-const CHILD_CONTEXT_REGISTRY_KEY =
-  'choresapp.child-context-registry.v1';
+const CHILD_CONTEXT_REGISTRY_KEY = "choresapp.child-context-registry.v1";
 
 const PIN_MIN_LENGTH = 4;
 const PIN_MAX_LENGTH = 8;
@@ -50,31 +49,22 @@ type RegisterLocalChildContextInput = {
   pin: string;
 };
 
-function bytesToHex(
-  bytes: Uint8Array,
-) {
-  return Array.from(
-    bytes,
-    (byte) =>
-      byte
-        .toString(16)
-        .padStart(2, '0'),
-  ).join('');
+function bytesToHex(bytes: Uint8Array) {
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join(
+    "",
+  );
 }
 
 function normalizePin(pin: string) {
   return pin.trim();
 }
 
-export function isValidChildPin(
-  pin: string,
-) {
-  const normalized =
-    normalizePin(pin);
+export function isValidChildPin(pin: string) {
+  const normalized = normalizePin(pin);
 
-  return new RegExp(
-    `^\\d{${PIN_MIN_LENGTH},${PIN_MAX_LENGTH}}$`,
-  ).test(normalized);
+  return new RegExp(`^\\d{${PIN_MIN_LENGTH},${PIN_MAX_LENGTH}}$`).test(
+    normalized,
+  );
 }
 
 export function getChildPinRequirements() {
@@ -85,92 +75,55 @@ export function getChildPinRequirements() {
 }
 
 async function createPinSalt() {
-  const bytes =
-    await Crypto.getRandomBytesAsync(
-      16,
-    );
+  const bytes = await Crypto.getRandomBytesAsync(16);
 
   return bytesToHex(bytes);
 }
 
-async function createPinVerifier(
-  pin: string,
-  salt: string,
-) {
+async function createPinVerifier(pin: string, salt: string) {
   return Crypto.digestStringAsync(
-    Crypto.CryptoDigestAlgorithm
-      .SHA256,
+    Crypto.CryptoDigestAlgorithm.SHA256,
     `${salt}:${normalizePin(pin)}`,
   );
 }
 
-function constantTimeEqual(
-  left: string,
-  right: string,
-) {
+function constantTimeEqual(left: string, right: string) {
   if (left.length !== right.length) {
     return false;
   }
 
   let difference = 0;
 
-  for (
-    let index = 0;
-    index < left.length;
-    index += 1
-  ) {
-    difference |=
-      left.charCodeAt(index) ^
-      right.charCodeAt(index);
+  for (let index = 0; index < left.length; index += 1) {
+    difference |= left.charCodeAt(index) ^ right.charCodeAt(index);
   }
 
   return difference === 0;
 }
 
-function isLocalChildContext(
-  value: unknown,
-): value is LocalChildContext {
-  if (
-    typeof value !== 'object' ||
-    value === null
-  ) {
+function isLocalChildContext(value: unknown): value is LocalChildContext {
+  if (typeof value !== "object" || value === null) {
     return false;
   }
 
-  const candidate = value as Record<
-    string,
-    unknown
-  >;
+  const candidate = value as Record<string, unknown>;
 
   return (
-    typeof candidate.contextId ===
-      'string' &&
-    typeof candidate.householdId ===
-      'string' &&
-    typeof candidate.householdName ===
-      'string' &&
-    typeof candidate.childId ===
-      'string' &&
-    typeof candidate.childDisplayName ===
-      'string' &&
-    typeof candidate.authStoragePrefix ===
-      'string' &&
-    typeof candidate.pinSalt ===
-      'string' &&
-    typeof candidate.pinVerifier ===
-      'string' &&
-    typeof candidate.createdAt ===
-      'number' &&
-    typeof candidate.updatedAt ===
-      'number'
+    typeof candidate.contextId === "string" &&
+    typeof candidate.householdId === "string" &&
+    typeof candidate.householdName === "string" &&
+    typeof candidate.childId === "string" &&
+    typeof candidate.childDisplayName === "string" &&
+    typeof candidate.authStoragePrefix === "string" &&
+    typeof candidate.pinSalt === "string" &&
+    typeof candidate.pinVerifier === "string" &&
+    typeof candidate.createdAt === "number" &&
+    typeof candidate.updatedAt === "number"
   );
 }
 
 async function readRegistry() {
-  const stored =
-    await SecureStore.getItemAsync(
-      CHILD_CONTEXT_REGISTRY_KEY,
-    );
+  const stored = await SecureStore.getItemAsync(CHILD_CONTEXT_REGISTRY_KEY);
 
   if (!stored) {
     return [] as LocalChildContext[];
@@ -181,33 +134,21 @@ async function readRegistry() {
   try {
     parsed = JSON.parse(stored);
   } catch {
-    throw new Error(
-      'Stored child access data is corrupted.',
-    );
+    throw new Error("Stored child access data is corrupted.");
   }
 
   if (!Array.isArray(parsed)) {
-    throw new Error(
-      'Stored child access data is invalid.',
-    );
+    throw new Error("Stored child access data is invalid.");
   }
 
-  if (
-    !parsed.every(
-      isLocalChildContext,
-    )
-  ) {
-    throw new Error(
-      'Stored child access data has an invalid format.',
-    );
+  if (!parsed.every(isLocalChildContext)) {
+    throw new Error("Stored child access data has an invalid format.");
   }
 
   return parsed;
 }
 
-async function writeRegistry(
-  contexts: LocalChildContext[],
-) {
+async function writeRegistry(contexts: LocalChildContext[]) {
   await SecureStore.setItemAsync(
     CHILD_CONTEXT_REGISTRY_KEY,
     JSON.stringify(contexts),
@@ -226,43 +167,27 @@ export function createChildAuthStoragePrefix() {
 }
 
 export async function listLocalChildContexts() {
-  const contexts =
-    await readRegistry();
+  const contexts = await readRegistry();
 
-  return [...contexts].sort(
-    (left, right) =>
-      left.childDisplayName.localeCompare(
-        right.childDisplayName,
-      ),
+  return [...contexts].sort((left, right) =>
+    left.childDisplayName.localeCompare(right.childDisplayName),
   );
 }
 
-export async function getLocalChildContext(
-  contextId: string,
-) {
-  const contexts =
-    await readRegistry();
+export async function getLocalChildContext(contextId: string) {
+  const contexts = await readRegistry();
 
-  return (
-    contexts.find(
-      (context) =>
-        context.contextId ===
-        contextId,
-    ) ?? null
-  );
+  return contexts.find((context) => context.contextId === contextId) ?? null;
 }
 
 export async function getLocalChildContextByStoragePrefix(
   authStoragePrefix: string,
 ) {
-  const contexts =
-    await readRegistry();
+  const contexts = await readRegistry();
 
   return (
     contexts.find(
-      (context) =>
-        context.authStoragePrefix ===
-        authStoragePrefix,
+      (context) => context.authStoragePrefix === authStoragePrefix,
     ) ?? null
   );
 }
@@ -275,94 +200,60 @@ export async function registerLocalChildContext({
   authStoragePrefix,
   pin,
 }: RegisterLocalChildContextInput) {
-  const normalizedPin =
-    normalizePin(pin);
+  const normalizedPin = normalizePin(pin);
 
-  if (
-    !isValidChildPin(
-      normalizedPin,
-    )
-  ) {
+  if (!isValidChildPin(normalizedPin)) {
     throw new Error(
       `PIN must contain ${PIN_MIN_LENGTH} to ${PIN_MAX_LENGTH} digits.`,
     );
   }
 
-  const normalizedStoragePrefix =
-    authStoragePrefix.trim();
+  const normalizedStoragePrefix = authStoragePrefix.trim();
 
   if (!normalizedStoragePrefix) {
-    throw new Error(
-      'Child auth storage prefix is required.',
-    );
+    throw new Error("Child auth storage prefix is required.");
   }
 
-  if (
-    normalizedStoragePrefix ===
-    PARENT_AUTH_STORAGE_PREFIX
-  ) {
-    throw new Error(
-      'Child access cannot use the Parent auth storage context.',
-    );
+  if (normalizedStoragePrefix === PARENT_AUTH_STORAGE_PREFIX) {
+    throw new Error("Child access cannot use the Parent auth storage context.");
   }
 
-  const pinSalt =
-    await createPinSalt();
+  const pinSalt = await createPinSalt();
 
-  const pinVerifier =
-    await createPinVerifier(
-      normalizedPin,
-      pinSalt,
-    );
+  const pinVerifier = await createPinVerifier(normalizedPin, pinSalt);
 
-  const contexts =
-    await readRegistry();
+  const contexts = await readRegistry();
 
-  const existing =
-    contexts.find(
-      (context) =>
-        context.childId ===
-          childId ||
-        context.authStoragePrefix ===
-          normalizedStoragePrefix,
-    );
+  const existing = contexts.find(
+    (context) =>
+      context.childId === childId ||
+      context.authStoragePrefix === normalizedStoragePrefix,
+  );
 
   const now = Date.now();
 
-  if (
-    existing &&
-    existing.authStoragePrefix !==
-      normalizedStoragePrefix
-  ) {
-    await clearChildAuthStoragePrefix(
-      existing.authStoragePrefix,
-    );
+  if (existing && existing.authStoragePrefix !== normalizedStoragePrefix) {
+    await clearChildAuthStoragePrefix(existing.authStoragePrefix);
   }
 
-  const context: LocalChildContext =
-    {
-      contextId:
-        existing?.contextId ??
-        Crypto.randomUUID(),
+  const context: LocalChildContext = {
+    contextId: existing?.contextId ?? Crypto.randomUUID(),
 
-      householdId,
-      householdName,
+    householdId,
+    householdName,
 
-      childId,
-      childDisplayName,
+    childId,
+    childDisplayName,
 
-      authStoragePrefix:
-        normalizedStoragePrefix,
+    authStoragePrefix: normalizedStoragePrefix,
 
-      pinSalt,
-      pinVerifier,
+    pinSalt,
+    pinVerifier,
 
-      createdAt:
-        existing?.createdAt ??
-        now,
+    createdAt: existing?.createdAt ?? now,
 
-      updatedAt: now,
-    };
+    updatedAt: now,
+  };
 
   /*
    * One saved local context per Child on this
@@ -372,60 +263,39 @@ export async function registerLocalChildContext({
    * local context metadata instead of creating
    * duplicate profile-picker entries.
    */
-  const nextContexts =
-    contexts.filter(
-      (candidate) =>
-        candidate.contextId !==
-          context.contextId &&
-        candidate.childId !==
-          childId &&
-        candidate.authStoragePrefix !==
-          normalizedStoragePrefix,
-    );
+  const nextContexts = contexts.filter(
+    (candidate) =>
+      candidate.contextId !== context.contextId &&
+      candidate.childId !== childId &&
+      candidate.authStoragePrefix !== normalizedStoragePrefix,
+  );
 
   nextContexts.push(context);
 
-  await writeRegistry(
-    nextContexts,
-  );
+  await writeRegistry(nextContexts);
 
   return context;
 }
 
-export async function verifyLocalChildPin(
-  contextId: string,
-  pin: string,
-) {
-  const normalizedPin =
-    normalizePin(pin);
+export async function verifyLocalChildPin(contextId: string, pin: string) {
+  const normalizedPin = normalizePin(pin);
 
-  if (
-    !isValidChildPin(
-      normalizedPin,
-    )
-  ) {
+  if (!isValidChildPin(normalizedPin)) {
     return false;
   }
 
-  const context =
-    await getLocalChildContext(
-      contextId,
-    );
+  const context = await getLocalChildContext(contextId);
 
   if (!context) {
     return false;
   }
 
-  const candidateVerifier =
-    await createPinVerifier(
-      normalizedPin,
-      context.pinSalt,
-    );
-
-  return constantTimeEqual(
-    candidateVerifier,
-    context.pinVerifier,
+  const candidateVerifier = await createPinVerifier(
+    normalizedPin,
+    context.pinSalt,
   );
+
+  return constantTimeEqual(candidateVerifier, context.pinVerifier);
 }
 
 export async function changeLocalChildPin(
@@ -433,84 +303,54 @@ export async function changeLocalChildPin(
   currentPin: string,
   newPin: string,
 ) {
-  const currentPinValid =
-    await verifyLocalChildPin(
-      contextId,
-      currentPin,
-    );
+  const currentPinValid = await verifyLocalChildPin(contextId, currentPin);
 
   if (!currentPinValid) {
-    throw new Error(
-      'Current PIN is incorrect.',
-    );
+    throw new Error("Current PIN is incorrect.");
   }
 
-  if (
-    !isValidChildPin(newPin)
-  ) {
+  if (!isValidChildPin(newPin)) {
     throw new Error(
       `New PIN must contain ${PIN_MIN_LENGTH} to ${PIN_MAX_LENGTH} digits.`,
     );
   }
 
-  const contexts =
-    await readRegistry();
+  const contexts = await readRegistry();
 
-  const context =
-    contexts.find(
-      (candidate) =>
-        candidate.contextId ===
-        contextId,
-    );
+  const context = contexts.find(
+    (candidate) => candidate.contextId === contextId,
+  );
 
   if (!context) {
-    throw new Error(
-      'Child profile is no longer stored on this device.',
-    );
+    throw new Error("Child profile is no longer stored on this device.");
   }
 
-  const pinSalt =
-    await createPinSalt();
+  const pinSalt = await createPinSalt();
 
-  const pinVerifier =
-    await createPinVerifier(
-      newPin,
-      pinSalt,
-    );
+  const pinVerifier = await createPinVerifier(newPin, pinSalt);
 
-  const updatedContext: LocalChildContext =
-    {
-      ...context,
-      pinSalt,
-      pinVerifier,
-      updatedAt: Date.now(),
-    };
+  const updatedContext: LocalChildContext = {
+    ...context,
+    pinSalt,
+    pinVerifier,
+    updatedAt: Date.now(),
+  };
 
   await writeRegistry(
-    contexts.map(
-      (candidate) =>
-        candidate.contextId ===
-        contextId
-          ? updatedContext
-          : candidate,
+    contexts.map((candidate) =>
+      candidate.contextId === contextId ? updatedContext : candidate,
     ),
   );
 
   return updatedContext;
 }
 
-export async function removeLocalChildContext(
-  contextId: string,
-) {
-  const contexts =
-    await readRegistry();
+export async function removeLocalChildContext(contextId: string) {
+  const contexts = await readRegistry();
 
-  const context =
-    contexts.find(
-      (candidate) =>
-        candidate.contextId ===
-        contextId,
-    );
+  const context = contexts.find(
+    (candidate) => candidate.contextId === contextId,
+  );
 
   if (!context) {
     return false;
@@ -524,30 +364,19 @@ export async function removeLocalChildContext(
    * This intentionally cannot target the
    * Parent auth namespace.
    */
-  await clearChildAuthStoragePrefix(
-    context.authStoragePrefix,
+  await clearChildAuthStoragePrefix(context.authStoragePrefix);
+
+  const nextContexts = contexts.filter(
+    (candidate) => candidate.contextId !== contextId,
   );
 
-  const nextContexts =
-    contexts.filter(
-      (candidate) =>
-        candidate.contextId !==
-        contextId,
-    );
-
-  if (
-    nextContexts.length === 0
-  ) {
-    await SecureStore.deleteItemAsync(
-      CHILD_CONTEXT_REGISTRY_KEY,
-    );
+  if (nextContexts.length === 0) {
+    await SecureStore.deleteItemAsync(CHILD_CONTEXT_REGISTRY_KEY);
 
     return true;
   }
 
-  await writeRegistry(
-    nextContexts,
-  );
+  await writeRegistry(nextContexts);
 
   return true;
 }

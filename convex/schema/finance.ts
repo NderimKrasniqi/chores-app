@@ -1,26 +1,18 @@
-import {
-  defineTable,
-} from 'convex/server';
-import {
-  v,
-} from 'convex/values';
+import { defineTable } from "convex/server";
+import { v } from "convex/values";
 
-import {
-  weekdayValidator,
-} from './households';
+import { weekdayValidator } from "./households";
 
-const payoutPeriodStateValidator =
-  v.union(
-    v.literal('open'),
-    v.literal('closed'),
-  );
+const payoutPeriodStateValidator = v.union(
+  v.literal("open"),
+  v.literal("closed"),
+);
 
-const payoutStatusValidator =
-  v.union(
-    v.literal('pending'),
-    v.literal('paid'),
-    v.literal('no_payment'),
-  );
+const payoutStatusValidator = v.union(
+  v.literal("pending"),
+  v.literal("paid"),
+  v.literal("no_payment"),
+);
 
 export const financeTables = {
   /*
@@ -33,100 +25,54 @@ export const financeTables = {
    * This table exists so current balance
    * reads do not rescan lifetime history.
    */
-  childFinancialBalances:
-    defineTable({
-      householdId:
-        v.id('households'),
+  childFinancialBalances: defineTable({
+    householdId: v.id("households"),
 
-      childId:
-        v.id('children'),
+    childId: v.id("children"),
 
-      earningTotalSek:
-        v.number(),
+    earningTotalSek: v.number(),
 
-      penaltyTotalSek:
-        v.number(),
+    penaltyTotalSek: v.number(),
 
-      settledTotalSek:
-        v.number(),
+    settledTotalSek: v.number(),
 
-      entryCount:
-        v.number(),
+    entryCount: v.number(),
 
-      updatedAt:
-        v.number(),
-    })
-      .index(
-        'by_child',
-        [
-          'childId',
-        ],
-      )
-      .index(
-        'by_household',
-        [
-          'householdId',
-        ],
-      ),
+    updatedAt: v.number(),
+  })
+    .index("by_child", ["childId"])
+    .index("by_household", ["householdId"]),
 
   payoutPeriods: defineTable({
-    householdId:
-      v.id('households'),
+    householdId: v.id("households"),
 
-    startLocalDate:
-      v.string(),
+    startLocalDate: v.string(),
 
-    endLocalDate:
-      v.string(),
+    endLocalDate: v.string(),
 
-    startAt:
-      v.number(),
+    startAt: v.number(),
 
-    endAt:
-      v.number(),
+    endAt: v.number(),
 
-    timezone:
-      v.string(),
+    timezone: v.string(),
 
-    payoutWeekday:
-      weekdayValidator,
+    payoutWeekday: weekdayValidator,
 
-    state:
-      payoutPeriodStateValidator,
+    state: payoutPeriodStateValidator,
 
-    createdAt:
-      v.number(),
+    createdAt: v.number(),
 
-    closedAt:
-      v.optional(
-        v.number(),
-      ),
+    closedAt: v.optional(v.number()),
   })
-    .index(
-      'by_household_start_at',
-      [
-        'householdId',
-        'startAt',
-      ],
-    )
-    .index(
-      'by_household_state_end_at',
-      [
-        'householdId',
-        'state',
-        'endAt',
-      ],
-    ),
+    .index("by_household_start_at", ["householdId", "startAt"])
+    .index("by_household_state_end_at", ["householdId", "state", "endAt"]),
 
   payouts: defineTable({
-    householdId:
-      v.id('households'),
+    householdId: v.id("households"),
 
-    payoutPeriodId:
-      v.id('payoutPeriods'),
+    payoutPeriodId: v.id("payoutPeriods"),
 
-    childId:
-      v.id('children'),
+    childId: v.id("children"),
 
     /*
      * Net unreserved financial position
@@ -134,79 +80,32 @@ export const financeTables = {
      *
      * Negative values carry forward.
      */
-    balanceAtCloseSek:
-      v.number(),
+    balanceAtCloseSek: v.number(),
 
     /*
      * Positive amount manually paid
      * through Swish.
      */
-    amountDueSek:
-      v.number(),
+    amountDueSek: v.number(),
 
     /*
      * Work still awaiting review or Redo
      * when the period closed.
      */
-    pendingOutcomeCount:
-      v.number(),
+    pendingOutcomeCount: v.number(),
 
-    status:
-      payoutStatusValidator,
+    status: payoutStatusValidator,
 
-    createdAt:
-      v.number(),
+    createdAt: v.number(),
 
-    paidAt:
-      v.optional(
-        v.number(),
-      ),
+    paidAt: v.optional(v.number()),
 
-    paidByAuthUserId:
-      v.optional(
-        v.string(),
-      ),
+    paidByAuthUserId: v.optional(v.string()),
   })
-    .index(
-      'by_period_child',
-      [
-        'payoutPeriodId',
-        'childId',
-      ],
-    )
-    .index(
-      'by_household_status',
-      [
-        'householdId',
-        'status',
-      ],
-    )
-    .index(
-      'by_child',
-      [
-        'childId',
-      ],
-    )
-    .index(
-      'by_child_created_at',
-      [
-        'childId',
-        'createdAt',
-      ],
-    )
-    .index(
-      'by_child_status_created_at',
-      [
-        'childId',
-        'status',
-        'createdAt',
-      ],
-    )
-    .index(
-      'by_household_created_at',
-      [
-        'householdId',
-        'createdAt',
-      ],
-    ),
+    .index("by_period_child", ["payoutPeriodId", "childId"])
+    .index("by_household_status", ["householdId", "status"])
+    .index("by_child", ["childId"])
+    .index("by_child_created_at", ["childId", "createdAt"])
+    .index("by_child_status_created_at", ["childId", "status", "createdAt"])
+    .index("by_household_created_at", ["householdId", "createdAt"]),
 };

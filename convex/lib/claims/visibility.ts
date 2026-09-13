@@ -1,43 +1,19 @@
-import type {
-  Id,
-} from '../../_generated/dataModel';
-import type {
-  MutationCtx,
-  QueryCtx,
-} from '../../_generated/server';
-import {
-  getClaimableAccessGateForChild,
-} from './accessGate';
-import {
-  findClaimPreventingReclaim,
-} from './ownership';
+import type { Id } from "../../_generated/dataModel";
+import type { MutationCtx, QueryCtx } from "../../_generated/server";
+import { getClaimableAccessGateForChild } from "./accessGate";
+import { findClaimPreventingReclaim } from "./ownership";
 
-const visibleClaimStates = [
-  'claimed',
-  'submitted',
-  'redo_required',
-] as const;
+const visibleClaimStates = ["claimed", "submitted", "redo_required"] as const;
 
 export async function listVisibleClaimableOccurrencesForChild(
-  ctx:
-    | MutationCtx
-    | QueryCtx,
-  householdId:
-    Id<'households'>,
-  childId:
-    Id<'children'>,
+  ctx: MutationCtx | QueryCtx,
+  householdId: Id<"households">,
+  childId: Id<"children">,
   now = Date.now(),
 ) {
-  const gate =
-    await getClaimableAccessGateForChild(
-      ctx,
-      childId,
-      now,
-    );
+  const gate = await getClaimableAccessGateForChild(ctx, childId, now);
 
-  if (
-    !gate.canAccessClaimables
-  ) {
+  if (!gate.canAccessClaimables) {
     return {
       gate,
       occurrences: [],
@@ -55,57 +31,30 @@ export async function listVisibleClaimableOccurrencesForChild(
    * state and stale overdue work is
    * excluded by the deadline range.
    */
-  const candidates =
-    await ctx.db
-      .query(
-        'choreOccurrences',
-      )
-      .withIndex(
-        'by_household_kind_state_deadline',
-        (q) =>
-          q
-            .eq(
-              'householdId',
-              householdId,
-            )
-            .eq(
-              'kind',
-              'claimable',
-            )
-            .eq(
-              'state',
-              'available',
-            )
-            .gt(
-              'deadlineAt',
-              now,
-            ),
-      )
-      .collect();
+  const candidates = await ctx.db
+    .query("choreOccurrences")
+    .withIndex("by_household_kind_state_deadline", (q) =>
+      q
+        .eq("householdId", householdId)
+        .eq("kind", "claimable")
+        .eq("state", "available")
+        .gt("deadlineAt", now),
+    )
+    .collect();
 
   const visible = [];
 
-  for (
-    const occurrence of
-    candidates
-  ) {
+  for (const occurrence of candidates) {
     /*
      * undefined eligibleChildIds means
      * every Child in the Household is
      * eligible.
      */
     const isRestrictedAway =
-      occurrence.eligibleChildIds !==
-        undefined &&
-      !occurrence.eligibleChildIds.includes(
-        childId,
-      );
+      occurrence.eligibleChildIds !== undefined &&
+      !occurrence.eligibleChildIds.includes(childId);
 
-    if (
-      occurrence.availabilityStartsAt >
-        now ||
-      isRestrictedAway
-    ) {
+    if (occurrence.availabilityStartsAt > now || isRestrictedAway) {
       continue;
     }
 
@@ -116,43 +65,26 @@ export async function listVisibleClaimableOccurrencesForChild(
      * Any other Claim state prevents it
      * from appearing as available.
      */
-    const blockingClaim =
-      await findClaimPreventingReclaim(
-        ctx,
-        occurrence._id,
-      );
+    const blockingClaim = await findClaimPreventingReclaim(ctx, occurrence._id);
 
     if (blockingClaim) {
       continue;
     }
 
-    visible.push(
-      occurrence,
-    );
+    visible.push(occurrence);
   }
 
-  visible.sort(
-    (
-      left,
-      right,
-    ) =>
-      left.deadlineAt -
-      right.deadlineAt,
-  );
+  visible.sort((left, right) => left.deadlineAt - right.deadlineAt);
 
   return {
     gate,
-    occurrences:
-      visible,
+    occurrences: visible,
   };
 }
 
 export async function listHouseholdClaimedOccurrences(
-  ctx:
-    | MutationCtx
-    | QueryCtx,
-  householdId:
-    Id<'households'>,
+  ctx: MutationCtx | QueryCtx,
+  householdId: Id<"households">,
 ) {
   /*
    * Active ownership is a current-state
@@ -160,87 +92,50 @@ export async function listHouseholdClaimedOccurrences(
    * Claim states directly instead of
    * scanning lifetime Household Claims.
    */
-  const claimGroups =
-    await Promise.all(
-      visibleClaimStates.map(
-        async (
-          state,
-        ) => {
-          const claims =
-            await ctx.db
-              .query(
-                'choreClaims',
-              )
-              .withIndex(
-                'by_household_state_claimed_at',
-                (q) =>
-                  q
-                    .eq(
-                      'householdId',
-                      householdId,
-                    )
-                    .eq(
-                      'state',
-                      state,
-                    ),
-              )
-              .collect();
+  const claimGroups = await Promise.all(
+    visibleClaimStates.map(async (state) => {
+      const claims = await ctx.db
+        .query("choreClaims")
+        .withIndex("by_household_state_claimed_at", (q) =>
+          q.eq("householdId", householdId).eq("state", state),
+        )
+        .collect();
 
-          /*
-           * The indexed equality above is
-           * the runtime guarantee that
-           * narrows this operational
-           * projection to active ownership
-           * states.
-           *
-           * Re-attach the queried state so
-           * TypeScript carries that
-           * invariant to public API
-           * validators.
-           */
-          return claims.map(
-            (
-              claim,
-            ) => ({
-              ...claim,
-              state,
-            }),
-          );
-        },
-      ),
-    );
+      /*
+       * The indexed equality above is
+       * the runtime guarantee that
+       * narrows this operational
+       * projection to active ownership
+       * states.
+       *
+       * Re-attach the queried state so
+       * TypeScript carries that
+       * invariant to public API
+       * validators.
+       */
+      return claims.map((claim) => ({
+        ...claim,
+        state,
+      }));
+    }),
+  );
 
   const visible = [];
 
-  for (
-    const claim of
-    claimGroups.flat()
-  ) {
-    const occurrence =
-      await ctx.db.get(
-        claim.occurrenceId,
-      );
+  for (const claim of claimGroups.flat()) {
+    const occurrence = await ctx.db.get(claim.occurrenceId);
 
     if (
       !occurrence ||
-      occurrence.householdId !==
-        householdId ||
-      occurrence.kind !==
-        'claimable'
+      occurrence.householdId !== householdId ||
+      occurrence.kind !== "claimable"
     ) {
       continue;
     }
 
-    const child =
-      await ctx.db.get(
-        claim.childId,
-      );
+    const child = await ctx.db.get(claim.childId);
 
-    if (
-      !child ||
-      child.householdId !==
-        householdId
-    ) {
+    if (!child || child.householdId !== householdId) {
       continue;
     }
 
@@ -251,14 +146,7 @@ export async function listHouseholdClaimedOccurrences(
     });
   }
 
-  visible.sort(
-    (
-      left,
-      right,
-    ) =>
-      right.claim.claimedAt -
-      left.claim.claimedAt,
-  );
+  visible.sort((left, right) => right.claim.claimedAt - left.claim.claimedAt);
 
   return visible;
 }

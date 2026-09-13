@@ -1,38 +1,29 @@
-import { ConvexError, v } from 'convex/values';
+import { ConvexError, v } from "convex/values";
 
-import type { Id } from './_generated/dataModel';
-import { mutation, query } from './_generated/server';
+import type { Id } from "./_generated/dataModel";
+import { mutation, query } from "./_generated/server";
+import { authComponent } from "./auth";
 import {
+  isAnonymousAuthUser,
   requireCurrentParentAuthUser,
   requireCurrentParentForHousehold,
-} from './lib/auth/parentAuthorization';
-import { ensureCurrentPayoutPeriod } from './lib/finance/payoutPeriods';
+} from "./lib/auth/parentAuthorization";
+import { ensureCurrentPayoutPeriod } from "./lib/finance/payoutPeriods";
+import {
+  normalizeHouseholdTimezone,
+  updateHouseholdTimezone,
+  updateHouseholdWeeklyUnclaimAllowance,
+} from "./lib/householdSettings";
 
 const payoutWeekdayValidator = v.union(
-  v.literal('monday'),
-  v.literal('tuesday'),
-  v.literal('wednesday'),
-  v.literal('thursday'),
-  v.literal('friday'),
-  v.literal('saturday'),
-  v.literal('sunday'),
+  v.literal("monday"),
+  v.literal("tuesday"),
+  v.literal("wednesday"),
+  v.literal("thursday"),
+  v.literal("friday"),
+  v.literal("saturday"),
+  v.literal("sunday"),
 );
-
-function normalizeTimezone(timezone: string) {
-  const trimmed = timezone.trim();
-
-  if (!trimmed) {
-    throw new ConvexError('Timezone is required.');
-  }
-
-  try {
-    return new Intl.DateTimeFormat('en-US', {
-      timeZone: trimmed,
-    }).resolvedOptions().timeZone;
-  } catch {
-    throw new ConvexError('Invalid IANA timezone.');
-  }
-}
 
 export const create = mutation({
   args: {
@@ -48,21 +39,18 @@ export const create = mutation({
   },
 
   returns: v.object({
-    householdId: v.id('households'),
-    membershipId: v.id('householdMembers'),
-    childIds: v.array(v.id('children')),
+    householdId: v.id("households"),
+    membershipId: v.id("householdMembers"),
+    childIds: v.array(v.id("children")),
   }),
 
   handler: async (ctx, args) => {
-    const authUser =
-      await requireCurrentParentAuthUser(
-        ctx,
-      );
+    const authUser = await requireCurrentParentAuthUser(ctx);
 
     const householdName = args.name.trim();
 
     if (!householdName) {
-      throw new ConvexError('Household name is required.');
+      throw new ConvexError("Household name is required.");
     }
 
     if (
@@ -70,7 +58,7 @@ export const create = mutation({
       args.weeklyUnclaimAllowance < 0
     ) {
       throw new ConvexError(
-        'Weekly unclaim allowance must be a non-negative whole number.',
+        "Weekly unclaim allowance must be a non-negative whole number.",
       );
     }
 
@@ -78,7 +66,7 @@ export const create = mutation({
       const displayName = child.displayName.trim();
 
       if (!displayName) {
-        throw new ConvexError('Child name cannot be empty.');
+        throw new ConvexError("Child name cannot be empty.");
       }
 
       return {
@@ -86,10 +74,10 @@ export const create = mutation({
       };
     });
 
-    const timezone = normalizeTimezone(args.timezone);
+    const timezone = normalizeHouseholdTimezone(args.timezone);
     const now = Date.now();
 
-    const householdId = await ctx.db.insert('households', {
+    const householdId = await ctx.db.insert("households", {
       name: householdName,
       timezone,
       payoutWeekday: args.payoutWeekday,
@@ -98,17 +86,17 @@ export const create = mutation({
       updatedAt: now,
     });
 
-    const membershipId = await ctx.db.insert('householdMembers', {
+    const membershipId = await ctx.db.insert("householdMembers", {
       householdId,
       authUserId: authUser._id,
-      role: 'parent',
+      role: "parent",
       joinedAt: now,
     });
 
-    const childIds: Id<'children'>[] = [];
+    const childIds: Id<"children">[] = [];
 
     for (const child of children) {
-      const childId = await ctx.db.insert('children', {
+      const childId = await ctx.db.insert("children", {
         householdId,
         displayName: child.displayName,
         createdAt: now,
@@ -118,11 +106,7 @@ export const create = mutation({
       childIds.push(childId);
     }
 
-    await ensureCurrentPayoutPeriod(
-      ctx,
-      householdId,
-      now,
-    );
+    await ensureCurrentPayoutPeriod(ctx, householdId, now);
 
     return {
       householdId,
@@ -137,14 +121,21 @@ export const listForCurrentParent = query({
 
   returns: v.array(
     v.object({
-      householdId: v.id('households'),
+      householdId: v.id("households"),
       name: v.string(),
       timezone: v.string(),
       payoutWeekday: payoutWeekdayValidator,
       weeklyUnclaimAllowance: v.number(),
+      parents: v.array(
+        v.object({
+          membershipId: v.id("householdMembers"),
+          displayName: v.string(),
+          isCurrent: v.boolean(),
+        }),
+      ),
       children: v.array(
         v.object({
-          childId: v.id('children'),
+          childId: v.id("children"),
           displayName: v.string(),
         }),
       ),
@@ -152,15 +143,12 @@ export const listForCurrentParent = query({
   ),
 
   handler: async (ctx) => {
-    const authUser =
-      await requireCurrentParentAuthUser(
-        ctx,
-      );
+    const authUser = await requireCurrentParentAuthUser(ctx);
 
     const memberships = await ctx.db
-      .query('householdMembers')
-      .withIndex('by_auth_user', (q) => q.eq('authUserId', authUser._id))
-      .collect();
+      .query("householdMembers")
+      .withIndex("by_auth_user", (q) => q.eq("authUserId", authUser._id))
+      .take(50);
 
     const result = [];
 
@@ -171,10 +159,41 @@ export const listForCurrentParent = query({
         continue;
       }
 
-      const children = await ctx.db
-        .query('children')
-        .withIndex('by_household', (q) => q.eq('householdId', household._id))
-        .collect();
+      const [children, householdMemberships] = await Promise.all([
+        ctx.db
+          .query("children")
+          .withIndex("by_household", (q) => q.eq("householdId", household._id))
+          .take(100),
+        ctx.db
+          .query("householdMembers")
+          .withIndex("by_household", (q) => q.eq("householdId", household._id))
+          .take(50),
+      ]);
+
+      const parents = (
+        await Promise.all(
+          householdMemberships.map(async (householdMembership) => {
+            const parent = await authComponent.getAnyUserById(
+              ctx,
+              householdMembership.authUserId,
+            );
+
+            if (!parent || isAnonymousAuthUser(parent)) {
+              return null;
+            }
+
+            return {
+              membershipId: householdMembership._id,
+              displayName: parent.name.trim() || "Parent",
+              isCurrent: householdMembership.authUserId === authUser._id,
+            };
+          }),
+        )
+      ).filter((parent) => parent !== null);
+
+      parents.sort(
+        (left, right) => Number(right.isCurrent) - Number(left.isCurrent),
+      );
 
       result.push({
         householdId: household._id,
@@ -182,6 +201,7 @@ export const listForCurrentParent = query({
         timezone: household.timezone,
         payoutWeekday: household.payoutWeekday,
         weeklyUnclaimAllowance: household.weeklyUnclaimAllowance,
+        parents,
         children: children.map((child) => ({
           childId: child._id,
           displayName: child.displayName,
@@ -193,76 +213,93 @@ export const listForCurrentParent = query({
   },
 });
 
+export const setTimezone = mutation({
+  args: {
+    householdId: v.id("households"),
+    timezone: v.string(),
+  },
 
-export const setPayoutWeekday =
-  mutation({
-    args: {
-      householdId:
-        v.id('households'),
+  returns: v.object({
+    householdId: v.id("households"),
+    timezone: v.string(),
+    currentPeriodEndAt: v.number(),
+  }),
 
-      payoutWeekday:
-        payoutWeekdayValidator,
-    },
+  handler: async (ctx, args) => {
+    await requireCurrentParentForHousehold(ctx, args.householdId);
 
-    returns:
-      v.object({
-        householdId:
-          v.id('households'),
+    return await updateHouseholdTimezone(ctx, args.householdId, args.timezone);
+  },
+});
 
-        payoutWeekday:
-          payoutWeekdayValidator,
+export const setWeeklyUnclaimAllowance = mutation({
+  args: {
+    householdId: v.id("households"),
+    weeklyUnclaimAllowance: v.number(),
+  },
 
-        currentPeriodEndAt:
-          v.number(),
-      }),
+  returns: v.object({
+    householdId: v.id("households"),
+    weeklyUnclaimAllowance: v.number(),
+  }),
 
-    handler: async (
+  handler: async (ctx, args) => {
+    await requireCurrentParentForHousehold(ctx, args.householdId);
+
+    return await updateHouseholdWeeklyUnclaimAllowance(
       ctx,
-      args,
-    ) => {
-      await requireCurrentParentForHousehold(
-        ctx,
-        args.householdId,
-      );
+      args.householdId,
+      args.weeklyUnclaimAllowance,
+    );
+  },
+});
 
-      const now =
-        Date.now();
+export const setPayoutWeekday = mutation({
+  args: {
+    householdId: v.id("households"),
 
-      /*
-       * Persist the current period before
-       * changing the Household setting.
-       *
-       * Its existing end boundary is now
-       * immutable. The new weekday is used
-       * only when the next period is opened.
-       */
-      const currentPeriod =
-        await ensureCurrentPayoutPeriod(
-          ctx,
-          args.householdId,
-          now,
-        );
+    payoutWeekday: payoutWeekdayValidator,
+  },
 
-      await ctx.db.patch(
-        args.householdId,
-        {
-          payoutWeekday:
-            args.payoutWeekday,
+  returns: v.object({
+    householdId: v.id("households"),
 
-          updatedAt:
-            now,
-        },
-      );
+    payoutWeekday: payoutWeekdayValidator,
 
-      return {
-        householdId:
-          args.householdId,
+    currentPeriodEndAt: v.number(),
+  }),
 
-        payoutWeekday:
-          args.payoutWeekday,
+  handler: async (ctx, args) => {
+    await requireCurrentParentForHousehold(ctx, args.householdId);
 
-        currentPeriodEndAt:
-          currentPeriod.endAt,
-      };
-    },
-  });
+    const now = Date.now();
+
+    /*
+     * Persist the current period before
+     * changing the Household setting.
+     *
+     * Its existing end boundary is now
+     * immutable. The new weekday is used
+     * only when the next period is opened.
+     */
+    const currentPeriod = await ensureCurrentPayoutPeriod(
+      ctx,
+      args.householdId,
+      now,
+    );
+
+    await ctx.db.patch(args.householdId, {
+      payoutWeekday: args.payoutWeekday,
+
+      updatedAt: now,
+    });
+
+    return {
+      householdId: args.householdId,
+
+      payoutWeekday: args.payoutWeekday,
+
+      currentPeriodEndAt: currentPeriod.endAt,
+    };
+  },
+});

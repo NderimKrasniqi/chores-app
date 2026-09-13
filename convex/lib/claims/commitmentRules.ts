@@ -3,11 +3,10 @@ import {
   getWeekday,
   resolveLocalDateTimeToEpochMs,
   type Weekday,
-} from '../scheduling/choreScheduling';
-import { getLocalDateForInstant } from '../scheduling/householdTime';
+} from "../scheduling/choreScheduling";
+import { getLocalDateForInstant } from "../scheduling/householdTime";
 
-const commitmentLockWindowMs =
-  2 * 60 * 60 * 1000;
+const commitmentLockWindowMs = 2 * 60 * 60 * 1000;
 
 export type PayoutWeekWindow = {
   startLocalDate: string;
@@ -23,96 +22,40 @@ export type PayoutWeekWindow = {
   payoutWeekday: Weekday;
 };
 
-function requireFiniteTimestamp(
-  value: number,
-  name: string,
-) {
-  if (
-    !Number.isFinite(
-      value,
-    )
-  ) {
-    throw new Error(
-      `${name} must be a finite timestamp.`,
-    );
+function requireFiniteTimestamp(value: number, name: string) {
+  if (!Number.isFinite(value)) {
+    throw new Error(`${name} must be a finite timestamp.`);
   }
 }
 
-function requireNonNegativeWholeNumber(
-  value: number,
-  name: string,
-) {
-  if (
-    !Number.isSafeInteger(
-      value,
-    ) ||
-    value < 0
-  ) {
-    throw new Error(
-      `${name} must be a non-negative whole number.`,
-    );
+function requireNonNegativeWholeNumber(value: number, name: string) {
+  if (!Number.isSafeInteger(value) || value < 0) {
+    throw new Error(`${name} must be a non-negative whole number.`);
   }
 }
 
-function findMostRecentPayoutDate(
-  localDate: string,
-  payoutWeekday: Weekday,
-) {
-  for (
-    let offset = 0;
-    offset < 7;
-    offset += 1
-  ) {
-    const candidate =
-      addLocalDays(
-        localDate,
-        -offset,
-      );
+function findMostRecentPayoutDate(localDate: string, payoutWeekday: Weekday) {
+  for (let offset = 0; offset < 7; offset += 1) {
+    const candidate = addLocalDays(localDate, -offset);
 
-    if (
-      getWeekday(
-        candidate,
-      ) ===
-      payoutWeekday
-    ) {
+    if (getWeekday(candidate) === payoutWeekday) {
       return candidate;
     }
   }
 
-  throw new Error(
-    'Could not resolve payout-week boundary.',
-  );
+  throw new Error("Could not resolve payout-week boundary.");
 }
 
-export function getClaimCommitmentLockAt(
-  deadlineAt: number,
-) {
-  requireFiniteTimestamp(
-    deadlineAt,
-    'deadlineAt',
-  );
+export function getClaimCommitmentLockAt(deadlineAt: number) {
+  requireFiniteTimestamp(deadlineAt, "deadlineAt");
 
-  return (
-    deadlineAt -
-    commitmentLockWindowMs
-  );
+  return deadlineAt - commitmentLockWindowMs;
 }
 
-export function isClaimTimeLocked(
-  deadlineAt: number,
-  now: number,
-) {
-  requireFiniteTimestamp(
-    now,
-    'now',
-  );
+export function isClaimTimeLocked(deadlineAt: number, now: number) {
+  requireFiniteTimestamp(now, "now");
 
-  return (
-    now >=
-    getClaimCommitmentLockAt(
-      deadlineAt,
-    )
-  );
+  return now >= getClaimCommitmentLockAt(deadlineAt);
 }
 
 export function getClaimUnclaimStatus({
@@ -125,43 +68,26 @@ export function getClaimUnclaimStatus({
 
   now: number;
 
-  weeklyUnclaimAllowance:
-    number;
+  weeklyUnclaimAllowance: number;
 
   usedUnclaims: number;
 }) {
   requireNonNegativeWholeNumber(
     weeklyUnclaimAllowance,
-    'weeklyUnclaimAllowance',
+    "weeklyUnclaimAllowance",
   );
 
-  requireNonNegativeWholeNumber(
-    usedUnclaims,
-    'usedUnclaims',
-  );
+  requireNonNegativeWholeNumber(usedUnclaims, "usedUnclaims");
 
-  const lockAt =
-    getClaimCommitmentLockAt(
-      deadlineAt,
-    );
+  const lockAt = getClaimCommitmentLockAt(deadlineAt);
 
-  requireFiniteTimestamp(
-    now,
-    'now',
-  );
+  requireFiniteTimestamp(now, "now");
 
-  const isTimeLocked =
-    now >= lockAt;
+  const isTimeLocked = now >= lockAt;
 
-  const remainingUnclaims =
-    Math.max(
-      weeklyUnclaimAllowance -
-        usedUnclaims,
-      0,
-    );
+  const remainingUnclaims = Math.max(weeklyUnclaimAllowance - usedUnclaims, 0);
 
-  const hasUnclaimAllowance =
-    remainingUnclaims > 0;
+  const hasUnclaimAllowance = remainingUnclaims > 0;
 
   return {
     lockAt,
@@ -172,9 +98,7 @@ export function getClaimUnclaimStatus({
 
     hasUnclaimAllowance,
 
-    canUnclaim:
-      !isTimeLocked &&
-      hasUnclaimAllowance,
+    canUnclaim: !isTimeLocked && hasUnclaimAllowance,
   };
 }
 
@@ -189,16 +113,9 @@ export function getCurrentPayoutWeekWindow({
 
   payoutWeekday: Weekday;
 }): PayoutWeekWindow {
-  requireFiniteTimestamp(
-    now,
-    'now',
-  );
+  requireFiniteTimestamp(now, "now");
 
-  const currentLocalDate =
-    getLocalDateForInstant(
-      now,
-      timezone,
-    );
+  const currentLocalDate = getLocalDateForInstant(now, timezone);
 
   /*
    * TASK-11 convention:
@@ -213,38 +130,24 @@ export function getCurrentPayoutWeekWindow({
    * based, so DST weeks may contain
    * 167 or 169 actual hours.
    */
-  const startLocalDate =
-    findMostRecentPayoutDate(
-      currentLocalDate,
-      payoutWeekday,
-    );
+  const startLocalDate = findMostRecentPayoutDate(
+    currentLocalDate,
+    payoutWeekday,
+  );
 
-  const endLocalDate =
-    addLocalDays(
-      startLocalDate,
-      7,
-    );
+  const endLocalDate = addLocalDays(startLocalDate, 7);
 
-  const startAt =
-    resolveLocalDateTimeToEpochMs(
-      startLocalDate,
-      '00:00',
-      timezone,
-    );
+  const startAt = resolveLocalDateTimeToEpochMs(
+    startLocalDate,
+    "00:00",
+    timezone,
+  );
 
-  const endAt =
-    resolveLocalDateTimeToEpochMs(
-      endLocalDate,
-      '00:00',
-      timezone,
-    );
+  const endAt = resolveLocalDateTimeToEpochMs(endLocalDate, "00:00", timezone);
 
-  if (
-    now < startAt ||
-    now >= endAt
-  ) {
+  if (now < startAt || now >= endAt) {
     throw new Error(
-      'Resolved payout week does not contain the requested instant.',
+      "Resolved payout week does not contain the requested instant.",
     );
   }
 

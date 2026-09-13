@@ -2,44 +2,28 @@ import {
   useConvexConnectionState,
   useMutation,
   type ReactMutation,
-} from 'convex/react';
-import type {
-  FunctionReference,
-  OptionalRestArgs,
-} from 'convex/server';
-import {
-  useCallback,
-} from 'react';
+} from "convex/react";
+import type { FunctionReference, OptionalRestArgs } from "convex/server";
+import { useCallback } from "react";
 
 export type ServerConnectionStatus =
-  | 'connecting'
-  | 'online'
-  | 'offline'
-  | 'recovering';
+  "connecting" | "online" | "offline" | "recovering";
 
-export class ServerConfirmationRequiredError
-  extends Error {
+export class ServerConfirmationRequiredError extends Error {
   constructor() {
     super(
-      'This action needs a live server connection. It was not queued. Reconnect and try again.',
+      "This action needs a live server connection. It was not queued. Reconnect and try again.",
     );
 
-    this.name =
-      'ServerConfirmationRequiredError';
+    this.name = "ServerConfirmationRequiredError";
   }
 }
 
-export async function runServerConfirmedAction<
-  Result,
->(
-  isServerConnected:
-    boolean,
-  execute:
-    () => Promise<Result>,
+export async function runServerConfirmedAction<Result>(
+  isServerConnected: boolean,
+  execute: () => Promise<Result>,
 ): Promise<Result> {
-  if (
-    !isServerConnected
-  ) {
+  if (!isServerConnected) {
     throw new ServerConfirmationRequiredError();
   }
 
@@ -47,90 +31,47 @@ export async function runServerConfirmedAction<
 }
 
 export function useServerConnectionStatus() {
-  const connection =
-    useConvexConnectionState();
+  const connection = useConvexConnectionState();
 
-  let status:
-    ServerConnectionStatus;
+  let status: ServerConnectionStatus;
 
-  if (
-    connection
-      .isWebSocketConnected
-  ) {
-    status =
-      'online';
-  } else if (
-    connection
-      .inflightMutations >
-    0
-  ) {
-    status =
-      'recovering';
-  } else if (
-    connection.hasEverConnected
-  ) {
-    status =
-      'offline';
+  if (connection.isWebSocketConnected) {
+    status = "online";
+  } else if (connection.inflightMutations > 0) {
+    status = "recovering";
+  } else if (connection.hasEverConnected) {
+    status = "offline";
   } else {
-    status =
-      'connecting';
+    status = "connecting";
   }
 
   return {
     status,
 
-    isServerConnected:
-      connection
-        .isWebSocketConnected,
+    isServerConnected: connection.isWebSocketConnected,
 
-    canStartConsequentialAction:
-      connection
-        .isWebSocketConnected,
+    canStartConsequentialAction: connection.isWebSocketConnected,
 
-    hasInflightMutation:
-      connection
-        .inflightMutations >
-      0,
+    hasInflightMutation: connection.inflightMutations > 0,
   };
 }
 
 export function useServerConfirmedMutation<
-  Mutation extends
-    FunctionReference<'mutation'>,
->(
-  mutation:
-    Mutation,
-): ReactMutation<Mutation> {
-  const execute =
-    useMutation(
-      mutation,
-    );
+  Mutation extends FunctionReference<"mutation">,
+>(mutation: Mutation): ReactMutation<Mutation> {
+  const execute = useMutation(mutation);
 
-  const {
-    isServerConnected,
-  } =
-    useServerConnectionStatus();
+  const { isServerConnected } = useServerConnectionStatus();
 
-  const guarded =
-    useCallback(
-      async (
-        ...args:
-          OptionalRestArgs<Mutation>
-      ) => {
-        return await runServerConfirmedAction(
-          isServerConnected,
-          async () =>
-            await execute(
-              ...args,
-            ),
-        );
-      },
-      [
-        execute,
+  const guarded = useCallback(
+    async (...args: OptionalRestArgs<Mutation>) => {
+      return await runServerConfirmedAction(
         isServerConnected,
-      ],
-    );
+        async () => await execute(...args),
+      );
+    },
+    [execute, isServerConnected],
+  );
 
-  return guarded as
-    ReactMutation<Mutation>;
+  return guarded as ReactMutation<Mutation>;
 }

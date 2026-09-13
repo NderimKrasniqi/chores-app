@@ -1,0 +1,19 @@
+# Dependencies and build output
+node_modules/
+.agents/
+.expo/
+dist/
+web-build/
+coverage/
+ios/
+android/
+
+# Generated Convex files
+convex/_generated/
+
+# Binary design and application assets
+assets/images/
+design/references/**/*.png
+design/references/**/*.jpg
+design/references/**/*.jpeg
+design/references/**/*.webp

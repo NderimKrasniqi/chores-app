@@ -1,28 +1,18 @@
-import type {
-  Id,
-} from '../../../_generated/dataModel';
-import {
-  internalMutation,
-} from '../../../_generated/server';
-import { claimClaimableOccurrence } from '../../../lib/claims/claiming';
-import { unclaimClaimableClaim } from '../../../lib/claims/unclaiming';
-import { getWeeklyUnclaimUsageForChild } from '../../../lib/claims/unclaimAccounting';
-import { resolveLocalDateTimeToEpochMs } from '../../../lib/scheduling/choreScheduling';
+import type { Id } from "../../../_generated/dataModel";
+import { internalMutation } from "../../../_generated/server";
+import { claimClaimableOccurrence } from "../../../lib/claims/claiming";
+import { unclaimClaimableClaim } from "../../../lib/claims/unclaiming";
+import { getWeeklyUnclaimUsageForChild } from "../../../lib/claims/unclaimAccounting";
+import { resolveLocalDateTimeToEpochMs } from "../../../lib/scheduling/choreScheduling";
 
-function assert(
-  condition: unknown,
-  message: string,
-): asserts condition {
+function assert(condition: unknown, message: string): asserts condition {
   if (!condition) {
-    throw new Error(
-      message,
-    );
+    throw new Error(message);
   }
 }
 
 async function expectFailure(
-  operation:
-    () => Promise<unknown>,
+  operation: () => Promise<unknown>,
   message: string,
 ) {
   try {
@@ -31,676 +21,454 @@ async function expectFailure(
     return;
   }
 
-  throw new Error(
-    message,
-  );
+  throw new Error(message);
 }
 
-export const run =
-  internalMutation({
-    args: {},
+export const run = internalMutation({
+  args: {},
 
-    handler: async (
-      ctx,
-    ) => {
-      const now =
-        resolveLocalDateTimeToEpochMs(
-          '2030-01-16',
-          '12:00',
-          'Europe/Stockholm',
-        );
+  handler: async (ctx) => {
+    const now = resolveLocalDateTimeToEpochMs(
+      "2030-01-16",
+      "12:00",
+      "Europe/Stockholm",
+    );
 
-      const deadlineAt =
-        resolveLocalDateTimeToEpochMs(
-          '2030-01-16',
-          '18:00',
-          'Europe/Stockholm',
-        );
+    const deadlineAt = resolveLocalDateTimeToEpochMs(
+      "2030-01-16",
+      "18:00",
+      "Europe/Stockholm",
+    );
 
-      const lockAt =
-        resolveLocalDateTimeToEpochMs(
-          '2030-01-16',
-          '16:00',
-          'Europe/Stockholm',
-        );
+    const lockAt = resolveLocalDateTimeToEpochMs(
+      "2030-01-16",
+      "16:00",
+      "Europe/Stockholm",
+    );
 
-      const householdId =
-        await ctx.db.insert(
-          'households',
-          {
-            name:
-              'TASK11 unclaim smoke',
+    const householdId = await ctx.db.insert("households", {
+      name: "TASK11 unclaim smoke",
 
-            timezone:
-              'Europe/Stockholm',
+      timezone: "Europe/Stockholm",
 
-            payoutWeekday:
-              'friday',
+      payoutWeekday: "friday",
 
-            weeklyUnclaimAllowance:
-              2,
+      weeklyUnclaimAllowance: 2,
 
-            createdAt:
-              now,
+      createdAt: now,
 
-            updatedAt:
-              now,
-          },
-        );
+      updatedAt: now,
+    });
 
-      const childA =
-        await ctx.db.insert(
-          'children',
-          {
-            householdId,
+    const childA = await ctx.db.insert("children", {
+      householdId,
 
-            displayName:
-              'Child A',
+      displayName: "Child A",
 
-            createdAt:
-              now,
+      createdAt: now,
 
-            updatedAt:
-              now,
-          },
-        );
+      updatedAt: now,
+    });
 
-      const childB =
-        await ctx.db.insert(
-          'children',
-          {
-            householdId,
+    const childB = await ctx.db.insert("children", {
+      householdId,
 
-            displayName:
-              'Child B',
+      displayName: "Child B",
 
-            createdAt:
-              now,
+      createdAt: now,
 
-            updatedAt:
-              now,
-          },
-        );
+      updatedAt: now,
+    });
 
-      const childC =
-        await ctx.db.insert(
-          'children',
-          {
-            householdId,
+    const childC = await ctx.db.insert("children", {
+      householdId,
 
-            displayName:
-              'Child C',
+      displayName: "Child C",
 
-            createdAt:
-              now,
+      createdAt: now,
 
-            updatedAt:
-              now,
-          },
-        );
+      updatedAt: now,
+    });
 
-      const definitionId =
-        await ctx.db.insert(
-          'choreDefinitions',
-          {
-            householdId,
+    const definitionId = await ctx.db.insert("choreDefinitions", {
+      householdId,
 
-            kind:
-              'claimable',
+      kind: "claimable",
 
-            title:
-              'TASK11 unclaim fixture',
+      title: "TASK11 unclaim fixture",
 
-            valueSek:
-              100,
+      valueSek: 100,
 
-            recurrence: {
-              kind:
-                'one_off',
+      recurrence: {
+        kind: "one_off",
 
-              scheduledDate:
-                '2030-01-16',
-            },
+        scheduledDate: "2030-01-16",
+      },
 
-            deadlineLocalTime:
-              '18:00',
+      deadlineLocalTime: "18:00",
 
-            deadlineDayOffset:
-              0,
+      deadlineDayOffset: 0,
 
-            eligibleChildIds:
-              [
-                childA,
-                childB,
-                childC,
-              ],
+      eligibleChildIds: [childA, childB, childC],
 
-            isUnlockChore:
-              false,
+      isUnlockChore: false,
 
-            createdByAuthUserId:
-              'task11-smoke',
+      createdByAuthUserId: "task11-smoke",
 
-            createdAt:
-              now,
+      createdAt: now,
 
-            updatedAt:
-              now,
-          },
-        );
+      updatedAt: now,
+    });
 
-      const occurrenceIds:
-        Array<
-          Id<'choreOccurrences'>
-        > = [];
+    const occurrenceIds: Array<Id<"choreOccurrences">> = [];
 
-      const claimIds:
-        Array<
-          Id<'choreClaims'>
-        > = [];
+    const claimIds: Array<Id<"choreClaims">> = [];
 
-      async function createOccurrence(
-        title: string,
-      ) {
-        const occurrenceId =
-          await ctx.db.insert(
-            'choreOccurrences',
-            {
-              householdId,
+    async function createOccurrence(title: string) {
+      const occurrenceId = await ctx.db.insert("choreOccurrences", {
+        householdId,
 
-              choreDefinitionId:
-                definitionId,
+        choreDefinitionId: definitionId,
 
-              kind:
-                'claimable',
+        kind: "claimable",
 
-              title,
+        title,
 
-              valueSek:
-                100,
+        valueSek: 100,
 
-              scheduledLocalDate:
-                '2030-01-16',
+        scheduledLocalDate: "2030-01-16",
 
-              timezone:
-                'Europe/Stockholm',
+        timezone: "Europe/Stockholm",
 
-              deadlineLocalTime:
-                '18:00',
+        deadlineLocalTime: "18:00",
 
-              deadlineDayOffset:
-                0,
+        deadlineDayOffset: 0,
 
-              availabilityStartsAt:
-                resolveLocalDateTimeToEpochMs(
-                  '2030-01-16',
-                  '10:00',
-                  'Europe/Stockholm',
-                ),
+        availabilityStartsAt: resolveLocalDateTimeToEpochMs(
+          "2030-01-16",
+          "10:00",
+          "Europe/Stockholm",
+        ),
 
-              deadlineAt,
+        deadlineAt,
 
-              eligibleChildIds:
-                [
-                  childA,
-                  childB,
-                  childC,
-                ],
+        eligibleChildIds: [childA, childB, childC],
 
-              isUnlockChore:
-                false,
+        isUnlockChore: false,
 
-              state:
-                'available',
+        state: "available",
 
-              createdAt:
-                now,
-            },
-          );
+        createdAt: now,
+      });
 
-        occurrenceIds.push(
-          occurrenceId,
-        );
+      occurrenceIds.push(occurrenceId);
 
-        return occurrenceId;
-      }
+      return occurrenceId;
+    }
 
-      async function claim(
-        childId:
-          Id<'children'>,
-        occurrenceId:
-          Id<'choreOccurrences'>,
-        at = now,
-        acceptImmediateLock =
-          false,
-      ) {
-        const result =
-          await claimClaimableOccurrence(
-            ctx,
-            householdId,
-            childId,
-            occurrenceId,
-            at,
-            acceptImmediateLock,
-          );
+    async function claim(
+      childId: Id<"children">,
+      occurrenceId: Id<"choreOccurrences">,
+      at = now,
+      acceptImmediateLock = false,
+    ) {
+      const result = await claimClaimableOccurrence(
+        ctx,
+        householdId,
+        childId,
+        occurrenceId,
+        at,
+        acceptImmediateLock,
+      );
 
-        claimIds.push(
-          result.claimId,
-        );
+      claimIds.push(result.claimId);
 
-        return result;
-      }
+      return result;
+    }
 
-      try {
-        let passed =
-          0;
+    try {
+      let passed = 0;
 
-        const firstOccurrence =
-          await createOccurrence(
-            'First unclaim',
-          );
+      const firstOccurrence = await createOccurrence("First unclaim");
 
-        const firstClaim =
-          await claim(
-            childA,
-            firstOccurrence,
-          );
+      const firstClaim = await claim(childA, firstOccurrence);
 
-        const firstUnclaim =
-          await unclaimClaimableClaim(
+      const firstUnclaim = await unclaimClaimableClaim(
+        ctx,
+        householdId,
+        childA,
+        firstClaim.claimId,
+        now,
+      );
+
+      const persistedFirst = await ctx.db.get(firstClaim.claimId);
+
+      assert(
+        persistedFirst?.state === "unclaimed",
+        "Successful unclaim must persist terminal unclaimed state.",
+      );
+
+      assert(
+        persistedFirst.unclaimedAt === now,
+        "Successful unclaim must persist authoritative unclaimedAt.",
+      );
+
+      assert(
+        firstUnclaim.remainingUnclaims === 1,
+        "Successful first unclaim should leave one weekly unclaim.",
+      );
+
+      passed += 1;
+
+      console.log("✅ 1/10 valid pre-lock Child unclaim succeeds durably");
+
+      const household = await ctx.db.get(householdId);
+
+      assert(household, "Household fixture missing.");
+
+      const usageAfterFirst = await getWeeklyUnclaimUsageForChild(
+        ctx,
+        household,
+        childA,
+        now,
+      );
+
+      assert(
+        usageAfterFirst.usedUnclaims === 1,
+        "Successful unclaim must consume exactly one weekly allowance.",
+      );
+
+      passed += 1;
+
+      console.log("✅ 2/10 successful unclaim consumes weekly allowance");
+
+      const secondOwner = await claim(childB, firstOccurrence);
+
+      const claimsForFirstOccurrence = await ctx.db
+        .query("choreClaims")
+        .withIndex("by_occurrence", (q) =>
+          q.eq("occurrenceId", firstOccurrence),
+        )
+        .collect();
+
+      assert(
+        secondOwner.childId === childB,
+        "Another eligible Child should be able to claim after unclaim.",
+      );
+
+      assert(
+        claimsForFirstOccurrence.length === 2,
+        "Reclaim must preserve the earlier Claim history.",
+      );
+
+      assert(
+        claimsForFirstOccurrence.some((item) => item.state === "unclaimed"),
+        "Historical unclaimed Claim must remain durable.",
+      );
+
+      passed += 1;
+
+      console.log(
+        "✅ 3/10 unclaimed occurrence can be reclaimed while history is preserved",
+      );
+
+      const lockedOccurrence = await createOccurrence("Exact lock");
+
+      const lockedClaim = await claim(childA, lockedOccurrence);
+
+      await expectFailure(
+        () =>
+          unclaimClaimableClaim(
             ctx,
             householdId,
             childA,
-            firstClaim.claimId,
-            now,
-          );
-
-        const persistedFirst =
-          await ctx.db.get(
-            firstClaim.claimId,
-          );
-
-        assert(
-          persistedFirst?.state ===
-            'unclaimed',
-          'Successful unclaim must persist terminal unclaimed state.',
-        );
-
-        assert(
-          persistedFirst.unclaimedAt ===
-            now,
-          'Successful unclaim must persist authoritative unclaimedAt.',
-        );
-
-        assert(
-          firstUnclaim.remainingUnclaims ===
-            1,
-          'Successful first unclaim should leave one weekly unclaim.',
-        );
-
-        passed += 1;
-
-        console.log(
-          '✅ 1/10 valid pre-lock Child unclaim succeeds durably',
-        );
-
-        const household =
-          await ctx.db.get(
-            householdId,
-          );
-
-        assert(
-          household,
-          'Household fixture missing.',
-        );
-
-        const usageAfterFirst =
-          await getWeeklyUnclaimUsageForChild(
-            ctx,
-            household,
-            childA,
-            now,
-          );
-
-        assert(
-          usageAfterFirst.usedUnclaims ===
-            1,
-          'Successful unclaim must consume exactly one weekly allowance.',
-        );
-
-        passed += 1;
-
-        console.log(
-          '✅ 2/10 successful unclaim consumes weekly allowance',
-        );
-
-        const secondOwner =
-          await claim(
-            childB,
-            firstOccurrence,
-          );
-
-        const claimsForFirstOccurrence =
-          await ctx.db
-            .query(
-              'choreClaims',
-            )
-            .withIndex(
-              'by_occurrence',
-              (q) =>
-                q.eq(
-                  'occurrenceId',
-                  firstOccurrence,
-                ),
-            )
-            .collect();
-
-        assert(
-          secondOwner.childId ===
-            childB,
-          'Another eligible Child should be able to claim after unclaim.',
-        );
-
-        assert(
-          claimsForFirstOccurrence.length ===
-            2,
-          'Reclaim must preserve the earlier Claim history.',
-        );
-
-        assert(
-          claimsForFirstOccurrence.some(
-            (item) =>
-              item.state ===
-              'unclaimed',
-          ),
-          'Historical unclaimed Claim must remain durable.',
-        );
-
-        passed += 1;
-
-        console.log(
-          '✅ 3/10 unclaimed occurrence can be reclaimed while history is preserved',
-        );
-
-        const lockedOccurrence =
-          await createOccurrence(
-            'Exact lock',
-          );
-
-        const lockedClaim =
-          await claim(
-            childA,
-            lockedOccurrence,
-          );
-
-        await expectFailure(
-          () =>
-            unclaimClaimableClaim(
-              ctx,
-              householdId,
-              childA,
-              lockedClaim.claimId,
-              lockAt,
-            ),
-          'Exact two-hour lock boundary must reject unclaim.',
-        );
-
-        const persistedLocked =
-          await ctx.db.get(
             lockedClaim.claimId,
-          );
+            lockAt,
+          ),
+        "Exact two-hour lock boundary must reject unclaim.",
+      );
 
-        assert(
-          persistedLocked?.state ===
-            'claimed',
-          'Rejected locked unclaim must leave Claim active.',
-        );
+      const persistedLocked = await ctx.db.get(lockedClaim.claimId);
 
-        passed += 1;
+      assert(
+        persistedLocked?.state === "claimed",
+        "Rejected locked unclaim must leave Claim active.",
+      );
 
-        console.log(
-          '✅ 4/10 exact two-hour boundary rejects unclaim atomically',
-        );
+      passed += 1;
 
-        /*
-         * Release this synthetic active slot
-         * without consuming unclaim allowance.
-         */
-        await ctx.db.patch(
-          lockedClaim.claimId,
-          {
-            state:
-              'cancelled',
-          },
-        );
+      console.log("✅ 4/10 exact two-hour boundary rejects unclaim atomically");
 
-        const beforeLockOccurrence =
-          await createOccurrence(
-            'Before lock',
-          );
+      /*
+       * Release this synthetic active slot
+       * without consuming unclaim allowance.
+       */
+      await ctx.db.patch(lockedClaim.claimId, {
+        state: "cancelled",
+      });
 
-        const beforeLockClaim =
-          await claim(
-            childA,
-            beforeLockOccurrence,
-          );
+      const beforeLockOccurrence = await createOccurrence("Before lock");
 
-        await unclaimClaimableClaim(
-          ctx,
-          householdId,
-          childA,
-          beforeLockClaim.claimId,
-          lockAt - 1,
-        );
+      const beforeLockClaim = await claim(childA, beforeLockOccurrence);
 
-        const persistedBeforeLock =
-          await ctx.db.get(
-            beforeLockClaim.claimId,
-          );
+      await unclaimClaimableClaim(
+        ctx,
+        householdId,
+        childA,
+        beforeLockClaim.claimId,
+        lockAt - 1,
+      );
 
-        assert(
-          persistedBeforeLock?.state ===
-            'unclaimed',
-          'One millisecond before lock must still permit unclaim.',
-        );
+      const persistedBeforeLock = await ctx.db.get(beforeLockClaim.claimId);
 
-        passed += 1;
+      assert(
+        persistedBeforeLock?.state === "unclaimed",
+        "One millisecond before lock must still permit unclaim.",
+      );
 
-        console.log(
-          '✅ 5/10 one millisecond before lock still permits unclaim',
-        );
+      passed += 1;
 
-        const exhaustedUsage =
-          await getWeeklyUnclaimUsageForChild(
+      console.log("✅ 5/10 one millisecond before lock still permits unclaim");
+
+      const exhaustedUsage = await getWeeklyUnclaimUsageForChild(
+        ctx,
+        household,
+        childA,
+        lockAt - 1,
+      );
+
+      assert(
+        exhaustedUsage.usedUnclaims === 2 &&
+          exhaustedUsage.remainingUnclaims === 0,
+        "Two successful unclaims must exhaust allowance.",
+      );
+
+      passed += 1;
+
+      console.log(
+        "✅ 6/10 configured weekly allowance is exhausted after two unclaims",
+      );
+
+      const exhaustedOccurrence = await createOccurrence("Exhausted allowance");
+
+      const exhaustedClaim = await claim(
+        childA,
+        exhaustedOccurrence,
+        now,
+        true,
+      );
+
+      assert(
+        exhaustedClaim.state === "claimed",
+        "Allowance exhaustion must not prevent a new Claim.",
+      );
+
+      passed += 1;
+
+      console.log(
+        "✅ 7/10 exhausted unclaim allowance does not prevent claiming",
+      );
+
+      await expectFailure(
+        () =>
+          unclaimClaimableClaim(
             ctx,
-            household,
+            householdId,
             childA,
-            lockAt - 1,
-          );
-
-        assert(
-          exhaustedUsage.usedUnclaims ===
-            2 &&
-          exhaustedUsage.remainingUnclaims ===
-            0,
-          'Two successful unclaims must exhaust allowance.',
-        );
-
-        passed += 1;
-
-        console.log(
-          '✅ 6/10 configured weekly allowance is exhausted after two unclaims',
-        );
-
-        const exhaustedOccurrence =
-          await createOccurrence(
-            'Exhausted allowance',
-          );
-
-        const exhaustedClaim =
-          await claim(
-            childA,
-            exhaustedOccurrence,
+            exhaustedClaim.claimId,
             now,
-            true,
-          );
+          ),
+        "Exhausted weekly allowance must reject unclaim.",
+      );
 
-        assert(
-          exhaustedClaim.state ===
-            'claimed',
-          'Allowance exhaustion must not prevent a new Claim.',
-        );
+      const persistedExhausted = await ctx.db.get(exhaustedClaim.claimId);
 
-        passed += 1;
+      assert(
+        persistedExhausted?.state === "claimed" &&
+          persistedExhausted.unclaimedAt === undefined,
+        "Rejected exhausted unclaim must not mutate the Claim.",
+      );
 
-        console.log(
-          '✅ 7/10 exhausted unclaim allowance does not prevent claiming',
-        );
+      passed += 1;
 
-        await expectFailure(
-          () =>
-            unclaimClaimableClaim(
-              ctx,
-              householdId,
-              childA,
-              exhaustedClaim.claimId,
-              now,
-            ),
-          'Exhausted weekly allowance must reject unclaim.',
-        );
+      console.log(
+        "✅ 8/10 exhausted allowance rejects unclaim without mutation",
+      );
 
-        const persistedExhausted =
-          await ctx.db.get(
+      await expectFailure(
+        () =>
+          unclaimClaimableClaim(
+            ctx,
+            householdId,
+            childC,
             exhaustedClaim.claimId,
-          );
+            now,
+          ),
+        "Another Child must not unclaim someone else’s Claim.",
+      );
 
-        assert(
-          persistedExhausted?.state ===
-            'claimed' &&
-          persistedExhausted.unclaimedAt ===
-            undefined,
-          'Rejected exhausted unclaim must not mutate the Claim.',
-        );
+      passed += 1;
 
-        passed += 1;
+      console.log("✅ 9/10 another Child cannot unclaim the owner’s Claim");
 
-        console.log(
-          '✅ 8/10 exhausted allowance rejects unclaim without mutation',
-        );
+      await ctx.db.patch(exhaustedClaim.claimId, {
+        state: "submitted",
+      });
 
-        await expectFailure(
-          () =>
-            unclaimClaimableClaim(
-              ctx,
-              householdId,
-              childC,
-              exhaustedClaim.claimId,
-              now,
-            ),
-          'Another Child must not unclaim someone else’s Claim.',
-        );
-
-        passed += 1;
-
-        console.log(
-          '✅ 9/10 another Child cannot unclaim the owner’s Claim',
-        );
-
-        await ctx.db.patch(
-          exhaustedClaim.claimId,
-          {
-            state:
-              'submitted',
-          },
-        );
-
-        await expectFailure(
-          () =>
-            unclaimClaimableClaim(
-              ctx,
-              householdId,
-              childA,
-              exhaustedClaim.claimId,
-              now,
-            ),
-          'Submitted Claim must not be voluntarily unclaimed.',
-        );
-
-        const persistedSubmitted =
-          await ctx.db.get(
+      await expectFailure(
+        () =>
+          unclaimClaimableClaim(
+            ctx,
+            householdId,
+            childA,
             exhaustedClaim.claimId,
-          );
+            now,
+          ),
+        "Submitted Claim must not be voluntarily unclaimed.",
+      );
 
-        assert(
-          persistedSubmitted?.state ===
-            'submitted',
-          'Rejected submitted unclaim must preserve submission state.',
-        );
+      const persistedSubmitted = await ctx.db.get(exhaustedClaim.claimId);
 
-        passed += 1;
+      assert(
+        persistedSubmitted?.state === "submitted",
+        "Rejected submitted unclaim must preserve submission state.",
+      );
 
-        console.log(
-          '✅ 10/10 submitted Claim cannot be unclaimed',
-        );
+      passed += 1;
 
-        return {
-          passed,
+      console.log("✅ 10/10 submitted Claim cannot be unclaimed");
 
-          total:
-            10,
-        };
-      } finally {
-        for (
-          const claimId of
-          claimIds
-        ) {
-          const claim =
-            await ctx.db.get(
-              claimId,
-            );
+      return {
+        passed,
 
-          if (claim) {
-            await ctx.db.delete(
-              claimId,
-            );
-          }
+        total: 10,
+      };
+    } finally {
+      for (const claimId of claimIds) {
+        const claim = await ctx.db.get(claimId);
+
+        if (claim) {
+          await ctx.db.delete(claimId);
         }
-
-        for (
-          const occurrenceId of
-          occurrenceIds
-        ) {
-          const occurrence =
-            await ctx.db.get(
-              occurrenceId,
-            );
-
-          if (occurrence) {
-            await ctx.db.delete(
-              occurrenceId,
-            );
-          }
-        }
-
-        await ctx.db.delete(
-          definitionId,
-        );
-
-        await ctx.db.delete(
-          childA,
-        );
-
-        await ctx.db.delete(
-          childB,
-        );
-
-        await ctx.db.delete(
-          childC,
-        );
-
-        await ctx.db.delete(
-          householdId,
-        );
       }
-    },
-  });
+
+      for (const occurrenceId of occurrenceIds) {
+        const occurrence = await ctx.db.get(occurrenceId);
+
+        if (occurrence) {
+          await ctx.db.delete(occurrenceId);
+        }
+      }
+
+      await ctx.db.delete(definitionId);
+
+      await ctx.db.delete(childA);
+
+      await ctx.db.delete(childB);
+
+      await ctx.db.delete(childC);
+
+      await ctx.db.delete(householdId);
+    }
+  },
+});

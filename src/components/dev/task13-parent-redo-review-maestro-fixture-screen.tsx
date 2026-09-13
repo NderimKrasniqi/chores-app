@@ -1,159 +1,83 @@
-import {
-  useState,
-} from 'react';
-import {
-  ScrollView,
-  Text,
-} from 'react-native';
+import { useState } from "react";
+import { ScrollView, Text } from "react-native";
 
-import type {
-  Id,
-} from '../../../convex/_generated/dataModel';
+import type { Id } from "../../../convex/_generated/dataModel";
 import {
   RedoChoreReviewsView,
   type RedoChoreReviewViewModel,
-} from '../chores/redo-chore-reviews-view';
+} from "../chores/redo-chore-reviews-view";
 
 const PERSONAL_SUBMISSION_ID =
-  'task13-personal-redo-review' as Id<'choreSubmissions'>;
+  "task13-personal-redo-review" as Id<"choreSubmissions">;
 
 const CLAIMABLE_SUBMISSION_ID =
-  'task13-claimable-redo-review' as Id<'choreSubmissions'>;
+  "task13-claimable-redo-review" as Id<"choreSubmissions">;
 
-const CHILD_ID =
-  'task13-redo-child' as Id<'children'>;
+const CHILD_ID = "task13-redo-child" as Id<"children">;
 
-const REDO_DEADLINE =
-  Date.UTC(
-    2030,
-    0,
-    17,
-    17,
-    0,
-    0,
-  );
+const REDO_DEADLINE = Date.UTC(2030, 0, 17, 17, 0, 0);
 
-const initialPending:
-  RedoChoreReviewViewModel[] =
-  [
-    {
-      submissionId:
-        PERSONAL_SUBMISSION_ID,
+const initialPending: RedoChoreReviewViewModel[] = [
+  {
+    submissionId: PERSONAL_SUBMISSION_ID,
 
-      occurrenceId:
-        'task13-personal-redo-occurrence' as Id<'choreOccurrences'>,
+    occurrenceId: "task13-personal-redo-occurrence" as Id<"choreOccurrences">,
 
-      childId:
-        CHILD_ID,
+    childId: CHILD_ID,
 
-      kind:
-        'personal',
+    kind: "personal",
 
-      childDisplayName:
-        'Fixture Child',
+    childDisplayName: "Fixture Child",
 
-      title:
-        'Bedroom reset',
+    title: "Bedroom reset",
 
-      description:
-        'Put everything back in place.',
+    description: "Put everything back in place.",
 
-      valueSek:
-        90,
+    valueSek: 90,
 
-      submittedAt:
-        Date.UTC(
-          2030,
-          0,
-          17,
-          16,
-          0,
-          0,
-        ),
+    submittedAt: Date.UTC(2030, 0, 17, 16, 0, 0),
 
-      redoDeadlineAt:
-        REDO_DEADLINE,
+    redoDeadlineAt: REDO_DEADLINE,
 
-      timezone:
-        'Europe/Stockholm',
+    timezone: "Europe/Stockholm",
 
-      isUnlockChore:
-        false,
-    },
+    isUnlockChore: false,
+  },
 
-    {
-      submissionId:
-        CLAIMABLE_SUBMISSION_ID,
+  {
+    submissionId: CLAIMABLE_SUBMISSION_ID,
 
-      occurrenceId:
-        'task13-claimable-redo-occurrence' as Id<'choreOccurrences'>,
+    occurrenceId: "task13-claimable-redo-occurrence" as Id<"choreOccurrences">,
 
-      childId:
-        CHILD_ID,
+    childId: CHILD_ID,
 
-      kind:
-        'claimable',
+    kind: "claimable",
 
-      childDisplayName:
-        'Fixture Child',
+    childDisplayName: "Fixture Child",
 
-      title:
-        'Garage shelves',
+    title: "Garage shelves",
 
-      description:
-        'Organize the garage shelves.',
+    description: "Organize the garage shelves.",
 
-      valueSek:
-        140,
+    valueSek: 140,
 
-      submittedAt:
-        Date.UTC(
-          2030,
-          0,
-          17,
-          16,
-          15,
-          0,
-        ),
+    submittedAt: Date.UTC(2030, 0, 17, 16, 15, 0),
 
-      redoDeadlineAt:
-        REDO_DEADLINE,
+    redoDeadlineAt: REDO_DEADLINE,
 
-      timezone:
-        'Europe/Stockholm',
+    timezone: "Europe/Stockholm",
 
-      isUnlockChore:
-        false,
-    },
-  ];
+    isUnlockChore: false,
+  },
+];
 
 export function Task13ParentRedoReviewMaestroFixtureScreen() {
-  const [
-    pending,
-    setPending,
-  ] =
-    useState<
-      RedoChoreReviewViewModel[]
-    >(
-      initialPending,
-    );
+  const [pending, setPending] =
+    useState<RedoChoreReviewViewModel[]>(initialPending);
 
-  function remove(
-    submissionId:
-      Id<'choreSubmissions'>,
-  ) {
-    setPending(
-      (
-        current,
-      ) =>
-        current.filter(
-          (
-            submission,
-          ) =>
-            submission
-              .submissionId !==
-            submissionId,
-        ),
+  function remove(submissionId: Id<"choreSubmissions">) {
+    setPending((current) =>
+      current.filter((submission) => submission.submissionId !== submissionId),
     );
   }
 
@@ -171,30 +95,16 @@ export function Task13ParentRedoReviewMaestroFixtureScreen() {
       </Text>
 
       <RedoChoreReviewsView
-        pending={
-          pending
-        }
-        onApprove={async (
-          submission,
-        ) => {
-          remove(
-            submission
-              .submissionId,
-          );
+        pending={pending}
+        onApprove={async (submission) => {
+          remove(submission.submissionId);
 
           return {
-            amountSek:
-              submission
-                .valueSek,
+            amountSek: submission.valueSek,
           };
         }}
-        onReject={async (
-          submission,
-        ) => {
-          remove(
-            submission
-              .submissionId,
-          );
+        onReject={async (submission) => {
+          remove(submission.submissionId);
         }}
       />
     </ScrollView>

@@ -1,498 +1,306 @@
-import {
-  v,
-} from 'convex/values';
+import { v } from "convex/values";
 
-import {
-  internalMutation,
-} from '../../../_generated/server';
-import {
-  enqueueNotificationEvent,
-} from '../../../lib/notifications/events';
-import {
-  disableExpoPushTokenGlobally,
-} from '../../../lib/notifications/registration';
-import {
-  resolveNotificationTargets,
-} from '../../../lib/notifications/recipients';
+import { internalMutation } from "../../../_generated/server";
+import { enqueueNotificationEvent } from "../../../lib/notifications/events";
+import { disableExpoPushTokenGlobally } from "../../../lib/notifications/registration";
+import { resolveNotificationTargets } from "../../../lib/notifications/recipients";
 
-function assert(
-  condition:
-    unknown,
-  message:
-    string,
-): asserts condition {
+function assert(condition: unknown, message: string): asserts condition {
   if (!condition) {
-    throw new Error(
-      message,
-    );
+    throw new Error(message);
   }
 }
 
-export const run =
-  internalMutation({
-    args: {},
-
-    returns:
-      v.object({
-        passed:
-          v.boolean(),
-      }),
-
-    handler: async (
-      ctx,
-    ) => {
-      const now =
-        1_893_456_000_000;
-
-      const householdId =
-        await ctx.db.insert(
-          'households',
-          {
-            name:
-              'TASK18 notification smoke',
-
-            timezone:
-              'Europe/Stockholm',
-
-            payoutWeekday:
-              'friday',
-
-            weeklyUnclaimAllowance:
-              2,
-
-            createdAt:
-              now,
-
-            updatedAt:
-              now,
-          },
-        );
+export const run = internalMutation({
+  args: {},
 
-      const childId =
-        await ctx.db.insert(
-          'children',
-          {
-            householdId,
-
-            displayName:
-              'TASK18 Child',
+  returns: v.object({
+    passed: v.boolean(),
+  }),
 
-            createdAt:
-              now,
-
-            updatedAt:
-              now,
-          },
-        );
-
-      const parentMembershipId =
-        await ctx.db.insert(
-          'householdMembers',
-          {
-            householdId,
-
-            authUserId:
-              'task18-parent',
-
-            role:
-              'parent',
+  handler: async (ctx) => {
+    const now = 1_893_456_000_000;
 
-            joinedAt:
-              now,
-          },
-        );
-
-      const credentialId =
-        await ctx.db.insert(
-          'childPairingCredentials',
-          {
-            householdId,
-
-            childId,
-
-            qrTokenHash:
-              'task18-qr',
+    const householdId = await ctx.db.insert("households", {
+      name: "TASK18 notification smoke",
 
-            manualCodeHash:
-              'task18-code',
+      timezone: "Europe/Stockholm",
 
-            createdByAuthUserId:
-              'task18-parent',
-
-            createdAt:
-              now,
-
-            expiresAt:
-              now +
-              900_000,
-
-            manualAttemptCount:
-              0,
-          },
-        );
+      payoutWeekday: "friday",
 
-      const activeGrantId =
-        await ctx.db.insert(
-          'childDeviceAccessGrants',
-          {
-            householdId,
+      weeklyUnclaimAllowance: 2,
 
-            childId,
+      createdAt: now,
 
-            authUserId:
-              'task18-child-active',
+      updatedAt: now,
+    });
 
-            pairingCredentialId:
-              credentialId,
+    const childId = await ctx.db.insert("children", {
+      householdId,
 
-            createdAt:
-              now,
-          },
-        );
+      displayName: "TASK18 Child",
 
-      const revokedGrantId =
-        await ctx.db.insert(
-          'childDeviceAccessGrants',
-          {
-            householdId,
+      createdAt: now,
 
-            childId,
+      updatedAt: now,
+    });
 
-            authUserId:
-              'task18-child-revoked',
+    const parentMembershipId = await ctx.db.insert("householdMembers", {
+      householdId,
 
-            pairingCredentialId:
-              credentialId,
+      authUserId: "task18-parent",
 
-            createdAt:
-              now,
+      role: "parent",
 
-            revokedAt:
-              now,
+      joinedAt: now,
+    });
 
-            revokedByAuthUserId:
-              'task18-parent',
-          },
-        );
+    const credentialId = await ctx.db.insert("childPairingCredentials", {
+      householdId,
 
-      const parentRegistrationId =
-        await ctx.db.insert(
-          'pushRegistrations',
-          {
-            authUserId:
-              'task18-parent',
+      childId,
 
-            expoPushToken:
-              'ExpoPushToken[parent-active]',
+      qrTokenHash: "task18-qr",
 
-            platform:
-              'ios',
+      manualCodeHash: "task18-code",
 
-            createdAt:
-              now,
+      createdByAuthUserId: "task18-parent",
 
-            updatedAt:
-              now,
-          },
-        );
+      createdAt: now,
 
-      const disabledParentRegistrationId =
-        await ctx.db.insert(
-          'pushRegistrations',
-          {
-            authUserId:
-              'task18-parent',
+      expiresAt: now + 900_000,
 
-            expoPushToken:
-              'ExpoPushToken[parent-disabled]',
+      manualAttemptCount: 0,
+    });
 
-            platform:
-              'ios',
+    const activeGrantId = await ctx.db.insert("childDeviceAccessGrants", {
+      householdId,
 
-            createdAt:
-              now,
+      childId,
 
-            updatedAt:
-              now,
+      authUserId: "task18-child-active",
 
-            disabledAt:
-              now,
-          },
-        );
+      pairingCredentialId: credentialId,
 
-      const activeChildRegistrationId =
-        await ctx.db.insert(
-          'pushRegistrations',
-          {
-            authUserId:
-              'task18-child-active',
+      createdAt: now,
+    });
 
-            expoPushToken:
-              'ExpoPushToken[child-active]',
+    const revokedGrantId = await ctx.db.insert("childDeviceAccessGrants", {
+      householdId,
 
-            platform:
-              'ios',
+      childId,
 
-            childAccessGrantId:
-              activeGrantId,
+      authUserId: "task18-child-revoked",
 
-            childId,
-
-            createdAt:
-              now,
+      pairingCredentialId: credentialId,
 
-            updatedAt:
-              now,
-          },
-        );
-
-      const revokedChildRegistrationId =
-        await ctx.db.insert(
-          'pushRegistrations',
-          {
-            authUserId:
-              'task18-child-revoked',
-
-            expoPushToken:
-              'ExpoPushToken[child-revoked]',
-
-            platform:
-              'ios',
-
-            childAccessGrantId:
-              revokedGrantId,
-
-            childId,
-
-            createdAt:
-              now,
-
-            updatedAt:
-              now,
-          },
-        );
-
-      const parentEventResult =
-        await enqueueNotificationEvent(
-          ctx,
-          {
-            eventKey:
-              'task18:parents',
-
-            kind:
-              'submission_review',
-
-            householdId,
-
-            recipientKind:
-              'parents',
-
-            title:
-              'Review needed',
-
-            body:
-              'TASK18 Child submitted work.',
-          },
-          {
-            now,
-
-            scheduleDelivery:
-              false,
-          },
-        );
-
-      const duplicate =
-        await enqueueNotificationEvent(
-          ctx,
-          {
-            eventKey:
-              'task18:parents',
-
-            kind:
-              'submission_review',
-
-            householdId,
-
-            recipientKind:
-              'parents',
-
-            title:
-              'Duplicate',
-
-            body:
-              'Must not duplicate.',
-          },
-          {
-            now,
-
-            scheduleDelivery:
-              false,
-          },
-        );
-
-      assert(
-        duplicate.eventId ===
-          parentEventResult
-            .eventId &&
-          !duplicate.created,
-        'Notification events must be idempotent by event key.',
-      );
-
-      const parentEvent =
-        await ctx.db.get(
-          parentEventResult
-            .eventId,
-        );
-
-      assert(
-        parentEvent,
-        'Parent notification event missing.',
-      );
-
-      const parentTargets =
-        await resolveNotificationTargets(
-          ctx,
-          parentEvent,
-        );
-
-      assert(
-        parentTargets.length ===
-          1 &&
-          parentTargets[0]
-            .registrationId ===
-            parentRegistrationId,
-        'Only active Parent push registrations should be targeted.',
-      );
-
-      const childEventResult =
-        await enqueueNotificationEvent(
-          ctx,
-          {
-            eventKey:
-              'task18:child',
-
-            kind:
-              'approved',
-
-            householdId,
-
-            recipientKind:
-              'child',
-
-            childId,
-
-            title:
-              'Approved',
-
-            body:
-              'Your chore was approved.',
-          },
-          {
-            now,
-
-            scheduleDelivery:
-              false,
-          },
-        );
-
-      const childEvent =
-        await ctx.db.get(
-          childEventResult
-            .eventId,
-        );
-
-      assert(
-        childEvent,
-        'Child notification event missing.',
-      );
-
-      const childTargets =
-        await resolveNotificationTargets(
-          ctx,
-          childEvent,
-        );
-
-      assert(
-        childTargets.length ===
-          1 &&
-          childTargets[0]
-            .registrationId ===
-            activeChildRegistrationId,
-        'Revoked Child grants must never receive push notifications.',
-      );
-
-      await disableExpoPushTokenGlobally(
-        ctx,
-        'ExpoPushToken[child-active]',
-        now +
-          1,
-      );
-
-      const afterDisable =
-        await resolveNotificationTargets(
-          ctx,
-          childEvent,
-        );
-
-      assert(
-        afterDisable.length ===
-          0,
-        'DeviceNotRegistered cleanup must remove the token from future targeting.',
-      );
-
-      await ctx.db.delete(
-        childEventResult
-          .eventId,
-      );
-
-      await ctx.db.delete(
-        parentEventResult
-          .eventId,
-      );
-
-      await ctx.db.delete(
-        revokedChildRegistrationId,
-      );
-
-      await ctx.db.delete(
-        activeChildRegistrationId,
-      );
-
-      await ctx.db.delete(
-        disabledParentRegistrationId,
-      );
-
-      await ctx.db.delete(
-        parentRegistrationId,
-      );
-
-      await ctx.db.delete(
-        revokedGrantId,
-      );
-
-      await ctx.db.delete(
-        activeGrantId,
-      );
-
-      await ctx.db.delete(
-        credentialId,
-      );
-
-      await ctx.db.delete(
-        parentMembershipId,
-      );
-
-      await ctx.db.delete(
+      createdAt: now,
+
+      revokedAt: now,
+
+      revokedByAuthUserId: "task18-parent",
+    });
+
+    const parentRegistrationId = await ctx.db.insert("pushRegistrations", {
+      authUserId: "task18-parent",
+
+      expoPushToken: "ExpoPushToken[parent-active]",
+
+      platform: "ios",
+
+      createdAt: now,
+
+      updatedAt: now,
+    });
+
+    const disabledParentRegistrationId = await ctx.db.insert(
+      "pushRegistrations",
+      {
+        authUserId: "task18-parent",
+
+        expoPushToken: "ExpoPushToken[parent-disabled]",
+
+        platform: "ios",
+
+        createdAt: now,
+
+        updatedAt: now,
+
+        disabledAt: now,
+      },
+    );
+
+    const activeChildRegistrationId = await ctx.db.insert("pushRegistrations", {
+      authUserId: "task18-child-active",
+
+      expoPushToken: "ExpoPushToken[child-active]",
+
+      platform: "ios",
+
+      childAccessGrantId: activeGrantId,
+
+      childId,
+
+      createdAt: now,
+
+      updatedAt: now,
+    });
+
+    const revokedChildRegistrationId = await ctx.db.insert(
+      "pushRegistrations",
+      {
+        authUserId: "task18-child-revoked",
+
+        expoPushToken: "ExpoPushToken[child-revoked]",
+
+        platform: "ios",
+
+        childAccessGrantId: revokedGrantId,
+
         childId,
-      );
 
-      await ctx.db.delete(
+        createdAt: now,
+
+        updatedAt: now,
+      },
+    );
+
+    const parentEventResult = await enqueueNotificationEvent(
+      ctx,
+      {
+        eventKey: "task18:parents",
+
+        kind: "submission_review",
+
         householdId,
-      );
 
-      return {
-        passed:
-          true,
-      };
-    },
-  });
+        recipientKind: "parents",
+
+        title: "Review needed",
+
+        body: "TASK18 Child submitted work.",
+      },
+      {
+        now,
+
+        scheduleDelivery: false,
+      },
+    );
+
+    const duplicate = await enqueueNotificationEvent(
+      ctx,
+      {
+        eventKey: "task18:parents",
+
+        kind: "submission_review",
+
+        householdId,
+
+        recipientKind: "parents",
+
+        title: "Duplicate",
+
+        body: "Must not duplicate.",
+      },
+      {
+        now,
+
+        scheduleDelivery: false,
+      },
+    );
+
+    assert(
+      duplicate.eventId === parentEventResult.eventId && !duplicate.created,
+      "Notification events must be idempotent by event key.",
+    );
+
+    const parentEvent = await ctx.db.get(parentEventResult.eventId);
+
+    assert(parentEvent, "Parent notification event missing.");
+
+    const parentTargets = await resolveNotificationTargets(ctx, parentEvent);
+
+    assert(
+      parentTargets.length === 1 &&
+        parentTargets[0].registrationId === parentRegistrationId,
+      "Only active Parent push registrations should be targeted.",
+    );
+
+    const childEventResult = await enqueueNotificationEvent(
+      ctx,
+      {
+        eventKey: "task18:child",
+
+        kind: "approved",
+
+        householdId,
+
+        recipientKind: "child",
+
+        childId,
+
+        title: "Approved",
+
+        body: "Your chore was approved.",
+      },
+      {
+        now,
+
+        scheduleDelivery: false,
+      },
+    );
+
+    const childEvent = await ctx.db.get(childEventResult.eventId);
+
+    assert(childEvent, "Child notification event missing.");
+
+    const childTargets = await resolveNotificationTargets(ctx, childEvent);
+
+    assert(
+      childTargets.length === 1 &&
+        childTargets[0].registrationId === activeChildRegistrationId,
+      "Revoked Child grants must never receive push notifications.",
+    );
+
+    await disableExpoPushTokenGlobally(
+      ctx,
+      "ExpoPushToken[child-active]",
+      now + 1,
+    );
+
+    const afterDisable = await resolveNotificationTargets(ctx, childEvent);
+
+    assert(
+      afterDisable.length === 0,
+      "DeviceNotRegistered cleanup must remove the token from future targeting.",
+    );
+
+    await ctx.db.delete(childEventResult.eventId);
+
+    await ctx.db.delete(parentEventResult.eventId);
+
+    await ctx.db.delete(revokedChildRegistrationId);
+
+    await ctx.db.delete(activeChildRegistrationId);
+
+    await ctx.db.delete(disabledParentRegistrationId);
+
+    await ctx.db.delete(parentRegistrationId);
+
+    await ctx.db.delete(revokedGrantId);
+
+    await ctx.db.delete(activeGrantId);
+
+    await ctx.db.delete(credentialId);
+
+    await ctx.db.delete(parentMembershipId);
+
+    await ctx.db.delete(childId);
+
+    await ctx.db.delete(householdId);
+
+    return {
+      passed: true,
+    };
+  },
+});

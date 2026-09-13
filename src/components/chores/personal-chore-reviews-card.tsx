@@ -1,176 +1,92 @@
-import { useServerConfirmedMutation } from '@/hooks/use-server-confirmed-mutation';
-import {
-  useQuery,
-} from 'convex/react';
-import {
-  useState,
-} from 'react';
-import {
-  Alert,
-  Pressable,
-  Text,
-  View,
-} from 'react-native';
+import { useServerConfirmedMutation } from "@/hooks/use-server-confirmed-mutation";
+import { useQuery } from "convex/react";
+import { useState } from "react";
+import { Alert, Pressable, Text, View } from "react-native";
 
-import { api } from '../../../convex/_generated/api';
-import type {
-  Id,
-} from '../../../convex/_generated/dataModel';
-import { RedoDeadlineRejectControls } from './redo-deadline-reject-controls';
-import { SubmissionEvidenceViewer } from '../evidence/submission-evidence-viewer';
+import { api } from "../../../convex/_generated/api";
+import type { Id } from "../../../convex/_generated/dataModel";
+import { RedoDeadlineRejectControls } from "./redo-deadline-reject-controls";
+import { SubmissionEvidenceViewer } from "../evidence/submission-evidence-viewer";
 
 type PersonalChoreReviewsCardProps = {
-  householdId:
-    Id<'households'>;
+  householdId: Id<"households">;
 };
 
-type ReviewAction =
-  | 'approve'
-  | 'reject';
+type ReviewAction = "approve" | "reject";
 
-function formatDateTime(
-  timestamp: number,
-) {
-  return new Intl.DateTimeFormat(
-    'en-SE',
-    {
-      dateStyle:
-        'medium',
+function formatDateTime(timestamp: number) {
+  return new Intl.DateTimeFormat("en-SE", {
+    dateStyle: "medium",
 
-      timeStyle:
-        'short',
-    },
-  ).format(
-    new Date(
-      timestamp,
-    ),
-  );
+    timeStyle: "short",
+  }).format(new Date(timestamp));
 }
 
 export function PersonalChoreReviewsCard({
   householdId,
 }: PersonalChoreReviewsCardProps) {
-  const pending =
-    useQuery(
-      api
-        .personalChoreReviews
-        .listPending,
-      {
-        householdId,
-      },
-    );
+  const pending = useQuery(api.personalChoreReviews.listPending, {
+    householdId,
+  });
 
-  const approve =
-    useServerConfirmedMutation(
-      api
-        .personalChoreReviews
-        .approve,
-    );
+  const approve = useServerConfirmedMutation(api.personalChoreReviews.approve);
 
-  const reject =
-    useServerConfirmedMutation(
-      api
-        .personalChoreReviews
-        .reject,
-    );
+  const reject = useServerConfirmedMutation(api.personalChoreReviews.reject);
 
-  const [
-    reviewingId,
-    setReviewingId,
-  ] =
-    useState<
-      Id<'choreSubmissions'> |
-        null
-    >(null);
+  const [reviewingId, setReviewingId] = useState<Id<"choreSubmissions"> | null>(
+    null,
+  );
 
-  const [
-    reviewAction,
-    setReviewAction,
-  ] =
-    useState<
-      ReviewAction | null
-    >(null);
+  const [reviewAction, setReviewAction] = useState<ReviewAction | null>(null);
 
   async function handleApprove(
-    submissionId:
-      Id<'choreSubmissions'>,
-    title:
-      string,
-    childDisplayName:
-      string,
+    submissionId: Id<"choreSubmissions">,
+    title: string,
+    childDisplayName: string,
   ) {
-    if (
-      reviewingId !==
-      null
-    ) {
+    if (reviewingId !== null) {
       return;
     }
 
-    setReviewingId(
-      submissionId,
-    );
+    setReviewingId(submissionId);
 
-    setReviewAction(
-      'approve',
-    );
+    setReviewAction("approve");
 
     try {
-      const result =
-        await approve({
-          submissionId,
-        });
+      const result = await approve({
+        submissionId,
+      });
 
       Alert.alert(
-        'Approved',
+        "Approved",
         `${childDisplayName} earned ${result.amountSek} kr for ${title}.`,
       );
-    } catch (
-      error
-    ) {
+    } catch (error) {
       Alert.alert(
-        'Could not approve',
-        error instanceof
-          Error
-          ? error.message
-          : 'Please try again.',
+        "Could not approve",
+        error instanceof Error ? error.message : "Please try again.",
       );
     } finally {
-      setReviewingId(
-        null,
-      );
+      setReviewingId(null);
 
-      setReviewAction(
-        null,
-      );
+      setReviewAction(null);
     }
   }
 
   async function handleReject(
-    submissionId:
-      Id<'choreSubmissions'>,
-    title:
-      string,
-    childDisplayName:
-      string,
-    redoDeadlineLocalDate:
-      string,
-    redoDeadlineLocalTime:
-      string,
+    submissionId: Id<"choreSubmissions">,
+    title: string,
+    childDisplayName: string,
+    redoDeadlineLocalDate: string,
+    redoDeadlineLocalTime: string,
   ) {
-    if (
-      reviewingId !==
-      null
-    ) {
+    if (reviewingId !== null) {
       return;
     }
 
-    setReviewingId(
-      submissionId,
-    );
+    setReviewingId(submissionId);
 
-    setReviewAction(
-      'reject',
-    );
+    setReviewAction("reject");
 
     try {
       await reject({
@@ -182,36 +98,24 @@ export function PersonalChoreReviewsCard({
       });
 
       Alert.alert(
-        'Redo required',
+        "Redo required",
         `${childDisplayName} can redo ${title} by ${redoDeadlineLocalDate} ${redoDeadlineLocalTime}.`,
       );
-    } catch (
-      error
-    ) {
+    } catch (error) {
       Alert.alert(
-        'Could not reject',
-        error instanceof
-          Error
-          ? error.message
-          : 'Please try again.',
+        "Could not reject",
+        error instanceof Error ? error.message : "Please try again.",
       );
     } finally {
-      setReviewingId(
-        null,
-      );
+      setReviewingId(null);
 
-      setReviewAction(
-        null,
-      );
+      setReviewAction(null);
     }
   }
 
-  if (
-    pending ===
-    undefined
-  ) {
+  if (pending === undefined) {
     return (
-      <View className="p-5 rounded-2xl bg-slate-900">
+      <View className="rounded-2xl bg-slate-900 p-5">
         <Text className="text-lg font-semibold text-white">
           Personal chore reviews
         </Text>
@@ -230,193 +134,129 @@ export function PersonalChoreReviewsCard({
       </Text>
 
       <Text className="mt-2 text-sm leading-5 text-slate-500">
-        Approve completed work or reject
-        the first submission with one Redo
+        Approve completed work or reject the first submission with one Redo
         deadline.
       </Text>
 
-      {pending.length ===
-      0 ? (
-        <View className="p-5 mt-4 rounded-2xl bg-slate-950">
-          <Text className="font-semibold text-white">
-            Nothing waiting
-          </Text>
+      {pending.length === 0 ? (
+        <View className="mt-4 rounded-2xl bg-slate-950 p-5">
+          <Text className="font-semibold text-white">Nothing waiting</Text>
 
           <Text className="mt-2 text-sm leading-5 text-slate-500">
-            Submitted Personal Chores will
-            appear here for Parent review.
+            Submitted Personal Chores will appear here for Parent review.
           </Text>
         </View>
       ) : (
         <View className="mt-4">
-          {pending.map(
-            (
-              submission,
-            ) => {
-              const isCurrent =
-                reviewingId ===
-                submission
-                  .submissionId;
+          {pending.map((submission) => {
+            const isCurrent = reviewingId === submission.submissionId;
 
-              const isApproving =
-                isCurrent &&
-                reviewAction ===
-                  'approve';
+            const isApproving = isCurrent && reviewAction === "approve";
 
-              const isRejecting =
-                isCurrent &&
-                reviewAction ===
-                  'reject';
+            const isRejecting = isCurrent && reviewAction === "reject";
 
-              const actionsBusy =
-                reviewingId !==
-                null;
+            const actionsBusy = reviewingId !== null;
 
-              return (
-                <View
-                  key={
-                    submission
-                      .submissionId
+            return (
+              <View
+                key={submission.submissionId}
+                className="mb-3 rounded-2xl border border-slate-800 bg-slate-950 p-4"
+              >
+                <View className="flex-row items-start justify-between">
+                  <View className="flex-1 pr-4">
+                    <Text className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                      {submission.childDisplayName}
+                    </Text>
+
+                    <Text className="mt-1 text-lg font-semibold text-white">
+                      {submission.title}
+                    </Text>
+
+                    {submission.description ? (
+                      <Text className="mt-2 text-sm leading-5 text-slate-400">
+                        {submission.description}
+                      </Text>
+                    ) : null}
+                  </View>
+
+                  <Text className="text-lg font-bold text-green-400">
+                    {submission.valueSek} kr
+                  </Text>
+                </View>
+
+                {submission.isUnlockChore ? (
+                  <View className="mt-3 self-start rounded-lg bg-amber-950 px-2 py-1">
+                    <Text className="text-xs font-semibold text-amber-400">
+                      Unlock chore
+                    </Text>
+                  </View>
+                ) : null}
+
+                <View className="mt-4 border-t border-slate-800 pt-3">
+                  <Text className="text-xs leading-5 text-slate-500">
+                    Submitted: {formatDateTime(submission.submittedAt)}
+                  </Text>
+
+                  <Text className="text-xs leading-5 text-slate-500">
+                    Original deadline: {formatDateTime(submission.deadlineAt)}
+                  </Text>
+                </View>
+
+                {submission.hasEvidence ? (
+                  <SubmissionEvidenceViewer
+                    submissionId={submission.submissionId}
+                  />
+                ) : null}
+
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Approve personal chore ${submission.title} for ${submission.childDisplayName}`}
+                  className={
+                    actionsBusy
+                      ? "mt-4 rounded-xl bg-slate-700 px-4 py-3"
+                      : "mt-4 rounded-xl bg-white px-4 py-3"
                   }
-                  className="p-4 mb-3 border rounded-2xl border-slate-800 bg-slate-950"
+                  disabled={actionsBusy}
+                  onPress={() =>
+                    void handleApprove(
+                      submission.submissionId,
+                      submission.title,
+                      submission.childDisplayName,
+                    )
+                  }
                 >
-                  <View className="flex-row items-start justify-between">
-                    <View className="flex-1 pr-4">
-                      <Text className="text-xs font-semibold tracking-wider uppercase text-slate-500">
-                        {
-                          submission
-                            .childDisplayName
-                        }
-                      </Text>
-
-                      <Text className="mt-1 text-lg font-semibold text-white">
-                        {
-                          submission
-                            .title
-                        }
-                      </Text>
-
-                      {submission.description ? (
-                        <Text className="mt-2 text-sm leading-5 text-slate-400">
-                          {
-                            submission
-                              .description
-                          }
-                        </Text>
-                      ) : null}
-                    </View>
-
-                    <Text className="text-lg font-bold text-green-400">
-                      {
-                        submission
-                          .valueSek
-                      }{' '}
-                      kr
-                    </Text>
-                  </View>
-
-                  {submission.isUnlockChore ? (
-                    <View className="self-start px-2 py-1 mt-3 rounded-lg bg-amber-950">
-                      <Text className="text-xs font-semibold text-amber-400">
-                        Unlock chore
-                      </Text>
-                    </View>
-                  ) : null}
-
-                  <View className="pt-3 mt-4 border-t border-slate-800">
-                    <Text className="text-xs leading-5 text-slate-500">
-                      Submitted:{' '}
-                      {formatDateTime(
-                        submission
-                          .submittedAt,
-                      )}
-                    </Text>
-
-                    <Text className="text-xs leading-5 text-slate-500">
-                      Original deadline:{' '}
-                      {formatDateTime(
-                        submission
-                          .deadlineAt,
-                      )}
-                    </Text>
-                  </View>
-
-                  {submission.hasEvidence ? (
-                    <SubmissionEvidenceViewer
-                      submissionId={
-                        submission
-                          .submissionId
-                      }
-                    />
-                  ) : null}
-
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={`Approve personal chore ${submission.title} for ${submission.childDisplayName}`}
+                  <Text
                     className={
                       actionsBusy
-                        ? 'px-4 py-3 mt-4 rounded-xl bg-slate-700'
-                        : 'px-4 py-3 mt-4 bg-white rounded-xl'
-                    }
-                    disabled={
-                      actionsBusy
-                    }
-                    onPress={() =>
-                      void handleApprove(
-                        submission
-                          .submissionId,
-                        submission.title,
-                        submission
-                          .childDisplayName,
-                      )
+                        ? "text-center font-semibold text-slate-400"
+                        : "text-center font-semibold text-slate-950"
                     }
                   >
-                    <Text
-                      className={
-                        actionsBusy
-                          ? 'font-semibold text-center text-slate-400'
-                          : 'font-semibold text-center text-slate-950'
-                      }
-                    >
-                      {isApproving
-                        ? 'Approving…'
-                        : 'Approve'}
-                    </Text>
-                  </Pressable>
+                    {isApproving ? "Approving…" : "Approve"}
+                  </Text>
+                </Pressable>
 
-                  <RedoDeadlineRejectControls
-                    disabled={
-                      actionsBusy
-                    }
-                    rejecting={
-                      isRejecting
-                    }
-                    title={
-                      submission.title
-                    }
-                    childDisplayName={
-                      submission
-                        .childDisplayName
-                    }
-                    onReject={async (
+                <RedoDeadlineRejectControls
+                  disabled={actionsBusy}
+                  rejecting={isRejecting}
+                  title={submission.title}
+                  childDisplayName={submission.childDisplayName}
+                  onReject={async (
+                    redoDeadlineLocalDate,
+                    redoDeadlineLocalTime,
+                  ) => {
+                    await handleReject(
+                      submission.submissionId,
+                      submission.title,
+                      submission.childDisplayName,
                       redoDeadlineLocalDate,
                       redoDeadlineLocalTime,
-                    ) => {
-                      await handleReject(
-                        submission
-                          .submissionId,
-                        submission.title,
-                        submission
-                          .childDisplayName,
-                        redoDeadlineLocalDate,
-                        redoDeadlineLocalTime,
-                      );
-                    }}
-                  />
-                </View>
-              );
-            },
-          )}
+                    );
+                  }}
+                />
+              </View>
+            );
+          })}
         </View>
       )}
     </View>

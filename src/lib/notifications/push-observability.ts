@@ -1,13 +1,12 @@
 export type PushRegistrationFailureStage =
-  | 'setup'
-  | 'missing_project_id'
-  | 'token_acquisition'
-  | 'backend_registration'
-  | 'token_refresh';
+  | "setup"
+  | "missing_project_id"
+  | "token_acquisition"
+  | "backend_registration"
+  | "token_refresh";
 
 export function reportPushRegistrationFailure(
-  stage:
-    PushRegistrationFailureStage,
+  stage: PushRegistrationFailureStage,
 ) {
   /*
    * Intentionally do not accept the raw
@@ -19,11 +18,8 @@ export function reportPushRegistrationFailure(
    * logs or future telemetry transports.
    */
   if (__DEV__) {
-    console.warn(
-      '[push-registration]',
-      {
-        stage,
-      },
-    );
+    console.warn("[push-registration]", {
+      stage,
+    });
   }
 }

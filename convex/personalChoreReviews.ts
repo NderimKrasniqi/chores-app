@@ -1,275 +1,172 @@
-import { v } from 'convex/values';
+import { v } from "convex/values";
 
-import {
-  mutation,
-  query,
-} from './_generated/server';
-import {
-  rejectInitialSubmission,
-} from './lib/reviews/initialRejection';
-import { requireCurrentParentForHousehold } from './lib/auth/parentAuthorization';
-import {
-  approvePersonalSubmission,
-} from './lib/reviews/personal';
-import {
-  listPendingPersonalReviews,
-} from './lib/reviews/pendingPersonal';
+import { mutation, query } from "./_generated/server";
+import { rejectInitialSubmission } from "./lib/reviews/initialRejection";
+import { requireCurrentParentForHousehold } from "./lib/auth/parentAuthorization";
+import { approvePersonalSubmission } from "./lib/reviews/personal";
+import { listPendingPersonalReviews } from "./lib/reviews/pendingPersonal";
 import {
   approveRedoSubmission,
   rejectRedoSubmission,
-} from './lib/reviews/redo';
-import {
-  scheduleRedoDeadlineFailure,
-} from './lib/redos/deadlineFailure';
+} from "./lib/reviews/redo";
+import { scheduleRedoDeadlineFailure } from "./lib/redos/deadlineFailure";
 import {
   notifyChildOfApproval,
   notifyChildRedoRequired,
-} from './lib/notifications/orchestration';
+} from "./lib/notifications/orchestration";
 import {
   initialRejectionResultValidator,
   pendingPersonalReviewsValidator,
   personalApprovalResultValidator,
   redoApprovalResultValidator,
   redoRejectionResultValidator,
-} from './lib/api/choreContracts';
+} from "./lib/api/choreContracts";
 
-export const listPending =
-  query({
-    args: {
-      householdId:
-        v.id(
-          'households',
-        ),
-    },
+export const listPending = query({
+  args: {
+    householdId: v.id("households"),
+  },
 
-    returns:
-      pendingPersonalReviewsValidator,
+  returns: pendingPersonalReviewsValidator,
 
-    handler: async (
+  handler: async (ctx, args) => {
+    await requireCurrentParentForHousehold(ctx, args.householdId);
+
+    return await listPendingPersonalReviews(ctx, args.householdId);
+  },
+});
+
+export const approve = mutation({
+  args: {
+    submissionId: v.id("choreSubmissions"),
+  },
+
+  returns: personalApprovalResultValidator,
+
+  handler: async (ctx, args) => {
+    const submission = await ctx.db.get(args.submissionId);
+
+    if (!submission) {
+      throw new Error("Submission not found.");
+    }
+
+    const { authUser } = await requireCurrentParentForHousehold(
       ctx,
-      args,
-    ) => {
-      await requireCurrentParentForHousehold(
-        ctx,
-        args.householdId,
-      );
+      submission.householdId,
+    );
 
-      return await listPendingPersonalReviews(
-        ctx,
-        args.householdId,
-      );
-    },
-  });
-
-export const approve =
-  mutation({
-    args: {
-      submissionId:
-        v.id(
-          'choreSubmissions',
-        ),
-    },
-
-    returns:
-      personalApprovalResultValidator,
-
-    handler: async (
+    const result = await approvePersonalSubmission(
       ctx,
-      args,
-    ) => {
-      const submission =
-        await ctx.db.get(
-          args.submissionId,
-        );
+      submission._id,
+      authUser._id,
+    );
 
-      if (!submission) {
-        throw new Error(
-          'Submission not found.',
-        );
-      }
+    await notifyChildOfApproval(ctx, result.reviewId);
 
-      const {
-        authUser,
-      } =
-        await requireCurrentParentForHousehold(
-          ctx,
-          submission.householdId,
-        );
+    return result;
+  },
+});
 
-      const result =
-        await approvePersonalSubmission(
-          ctx,
-          submission._id,
-          authUser._id,
-        );
+export const reject = mutation({
+  args: {
+    submissionId: v.id("choreSubmissions"),
 
-      await notifyChildOfApproval(
-        ctx,
-        result.reviewId,
-      );
+    redoDeadlineLocalDate: v.string(),
 
-      return result;
-    },
-  });
+    redoDeadlineLocalTime: v.string(),
+  },
 
-export const reject =
-  mutation({
-    args: {
-      submissionId:
-        v.id(
-          'choreSubmissions',
-        ),
+  returns: initialRejectionResultValidator,
 
-      redoDeadlineLocalDate:
-        v.string(),
+  handler: async (ctx, args) => {
+    const submission = await ctx.db.get(args.submissionId);
 
-      redoDeadlineLocalTime:
-        v.string(),
-    },
+    if (!submission) {
+      throw new Error("Submission not found.");
+    }
 
-    returns:
-      initialRejectionResultValidator,
-
-    handler: async (
+    const { authUser } = await requireCurrentParentForHousehold(
       ctx,
-      args,
-    ) => {
-      const submission =
-        await ctx.db.get(
-          args.submissionId,
-        );
+      submission.householdId,
+    );
 
-      if (!submission) {
-        throw new Error(
-          'Submission not found.',
-        );
-      }
-
-      const {
-        authUser,
-      } =
-        await requireCurrentParentForHousehold(
-          ctx,
-          submission.householdId,
-        );
-
-      const result =
-        await rejectInitialSubmission(
-          ctx,
-          submission._id,
-          authUser._id,
-          'personal',
-          args.redoDeadlineLocalDate,
-          args.redoDeadlineLocalTime,
-        );
-
-      await scheduleRedoDeadlineFailure(
-        ctx,
-        result.redoId,
-        result.redoDeadlineAt,
-      );
-
-      await notifyChildRedoRequired(
-        ctx,
-        result.redoId,
-      );
-
-      return result;
-    },
-  });
-
-export const approveRedo =
-  mutation({
-    args: {
-      submissionId:
-        v.id(
-          'choreSubmissions',
-        ),
-    },
-
-    returns:
-      redoApprovalResultValidator,
-
-    handler: async (
+    const result = await rejectInitialSubmission(
       ctx,
-      args,
-    ) => {
-      const submission =
-        await ctx.db.get(
-          args.submissionId,
-        );
+      submission._id,
+      authUser._id,
+      "personal",
+      args.redoDeadlineLocalDate,
+      args.redoDeadlineLocalTime,
+    );
 
-      if (!submission) {
-        throw new Error(
-          'Submission not found.',
-        );
-      }
-
-      const {
-        authUser,
-      } =
-        await requireCurrentParentForHousehold(
-          ctx,
-          submission.householdId,
-        );
-
-      const result =
-        await approveRedoSubmission(
-          ctx,
-          submission._id,
-          authUser._id,
-          'personal',
-        );
-
-      await notifyChildOfApproval(
-        ctx,
-        result.reviewId,
-      );
-
-      return result;
-    },
-  });
-
-export const rejectRedo =
-  mutation({
-    args: {
-      submissionId:
-        v.id(
-          'choreSubmissions',
-        ),
-    },
-
-    returns:
-      redoRejectionResultValidator,
-
-    handler: async (
+    await scheduleRedoDeadlineFailure(
       ctx,
-      args,
-    ) => {
-      const submission =
-        await ctx.db.get(
-          args.submissionId,
-        );
+      result.redoId,
+      result.redoDeadlineAt,
+    );
 
-      if (!submission) {
-        throw new Error(
-          'Submission not found.',
-        );
-      }
+    await notifyChildRedoRequired(ctx, result.redoId);
 
-      const {
-        authUser,
-      } =
-        await requireCurrentParentForHousehold(
-          ctx,
-          submission.householdId,
-        );
+    return result;
+  },
+});
 
-      return await rejectRedoSubmission(
-        ctx,
-        submission._id,
-        authUser._id,
-        'personal',
-      );
-    },
-  });
+export const approveRedo = mutation({
+  args: {
+    submissionId: v.id("choreSubmissions"),
+  },
+
+  returns: redoApprovalResultValidator,
+
+  handler: async (ctx, args) => {
+    const submission = await ctx.db.get(args.submissionId);
+
+    if (!submission) {
+      throw new Error("Submission not found.");
+    }
+
+    const { authUser } = await requireCurrentParentForHousehold(
+      ctx,
+      submission.householdId,
+    );
+
+    const result = await approveRedoSubmission(
+      ctx,
+      submission._id,
+      authUser._id,
+      "personal",
+    );
+
+    await notifyChildOfApproval(ctx, result.reviewId);
+
+    return result;
+  },
+});
+
+export const rejectRedo = mutation({
+  args: {
+    submissionId: v.id("choreSubmissions"),
+  },
+
+  returns: redoRejectionResultValidator,
+
+  handler: async (ctx, args) => {
+    const submission = await ctx.db.get(args.submissionId);
+
+    if (!submission) {
+      throw new Error("Submission not found.");
+    }
+
+    const { authUser } = await requireCurrentParentForHousehold(
+      ctx,
+      submission.householdId,
+    );
+
+    return await rejectRedoSubmission(
+      ctx,
+      submission._id,
+      authUser._id,
+      "personal",
+    );
+  },
+});

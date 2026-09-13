@@ -1,130 +1,80 @@
 import {
   getLocalChildContextByStoragePrefix,
   type LocalChildContext,
-} from '@/lib/child-access/local-access';
-import { rememberLocalChildGrant } from '@/lib/child-access/grant-status';
+} from "@/lib/child-access/local-access";
+import { rememberLocalChildGrant } from "@/lib/child-access/grant-status";
 import {
   consumeTrustedSingleChildAutoOpen,
   setChildExplicitlyLocked,
-} from '@/lib/child-access/unlock-policy';
-import { useAuthRuntime } from '@/providers/auth-runtime-provider';
-import {
-  useEffect,
-  useState,
-} from 'react';
-import {
-  ActivityIndicator,
-  Text,
-  View,
-} from 'react-native';
+} from "@/lib/child-access/unlock-policy";
+import { useAuthRuntime } from "@/providers/auth-runtime-provider";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, Text, View } from "react-native";
 
-import type { Id } from '../../../convex/_generated/dataModel';
+import type { Id } from "../../../convex/_generated/dataModel";
 
-import { ChildHomeScreen } from './child-home-screen';
-import { ChildPinSetupScreen } from './child-pin-setup-screen';
-import { ChildPinUnlockScreen } from './child-pin-unlock-screen';
+import { ChildHomeScreen } from "./child-home-screen";
+import { ChildPinSetupScreen } from "./child-pin-setup-screen";
+import { ChildPinUnlockScreen } from "./child-pin-unlock-screen";
 
 type ChildAccess = {
-  accessGrantId:
-    Id<'childDeviceAccessGrants'>;
+  accessGrantId: Id<"childDeviceAccessGrants">;
 
-  householdId:
-    Id<'households'>;
+  householdId: Id<"households">;
 
-  householdName:
-    string;
+  householdName: string;
 
-  childId:
-    Id<'children'>;
+  childId: Id<"children">;
 
-  childDisplayName:
-    string;
+  childDisplayName: string;
 
-  grantedAt:
-    number;
+  grantedAt: number;
 };
 
 type ChildAccessGateProps = {
-  access:
-    ChildAccess;
+  access: ChildAccess;
 };
 
-export function ChildAccessGate({
-  access,
-}: ChildAccessGateProps) {
-  const {
-    storagePrefix,
-  } = useAuthRuntime();
+export function ChildAccessGate({ access }: ChildAccessGateProps) {
+  const { storagePrefix } = useAuthRuntime();
 
-  const [
-    localContext,
-    setLocalContext,
-  ] =
-    useState<LocalChildContext | null>(
-      null,
-    );
+  const [localContext, setLocalContext] = useState<LocalChildContext | null>(
+    null,
+  );
 
-  const [
-    unlocked,
-    setUnlocked,
-  ] = useState(false);
+  const [unlocked, setUnlocked] = useState(false);
 
-  const [
-    loading,
-    setLoading,
-  ] = useState(true);
+  const [loading, setLoading] = useState(true);
 
-  const [
-    errorMessage,
-    setErrorMessage,
-  ] = useState<
-    string | null
-  >(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    let cancelled =
-      false;
+    let cancelled = false;
 
     const trustedSingleChildOpen =
-      consumeTrustedSingleChildAutoOpen(
-        storagePrefix,
-      );
+      consumeTrustedSingleChildAutoOpen(storagePrefix);
 
     async function loadLocalContext() {
-      setLoading(
-        true,
-      );
+      setLoading(true);
 
-      setUnlocked(
-        false,
-      );
+      setUnlocked(false);
 
-      setErrorMessage(
-        null,
-      );
+      setErrorMessage(null);
 
       try {
         const context =
-          await getLocalChildContextByStoragePrefix(
-            storagePrefix,
-          );
+          await getLocalChildContextByStoragePrefix(storagePrefix);
 
         if (cancelled) {
           return;
         }
 
-        if (
-          context &&
-          context.childId !==
-            access.childId
-        ) {
+        if (context && context.childId !== access.childId) {
           setErrorMessage(
-            'This local auth context belongs to a different child profile.',
+            "This local auth context belongs to a different child profile.",
           );
 
-          setLocalContext(
-            null,
-          );
+          setLocalContext(null);
 
           return;
         }
@@ -148,17 +98,10 @@ export function ChildAccessGate({
           }
         }
 
-        setLocalContext(
-          context,
-        );
+        setLocalContext(context);
 
-        if (
-          context &&
-          trustedSingleChildOpen
-        ) {
-          setUnlocked(
-            true,
-          );
+        if (context && trustedSingleChildOpen) {
+          setUnlocked(true);
         }
       } catch (error) {
         if (cancelled) {
@@ -168,13 +111,11 @@ export function ChildAccessGate({
         setErrorMessage(
           error instanceof Error
             ? error.message
-            : 'Could not load local child access.',
+            : "Could not load local child access.",
         );
       } finally {
         if (!cancelled) {
-          setLoading(
-            false,
-          );
+          setLoading(false);
         }
       }
     }
@@ -182,14 +123,9 @@ export function ChildAccessGate({
     void loadLocalContext();
 
     return () => {
-      cancelled =
-        true;
+      cancelled = true;
     };
-  }, [
-    access.accessGrantId,
-    access.childId,
-    storagePrefix,
-  ]);
+  }, [access.accessGrantId, access.childId, storagePrefix]);
 
   async function handlePinUnlocked() {
     if (!localContext) {
@@ -197,46 +133,36 @@ export function ChildAccessGate({
     }
 
     try {
-      await setChildExplicitlyLocked(
-        localContext.childId,
-        false,
-      );
+      await setChildExplicitlyLocked(localContext.childId, false);
 
-      setUnlocked(
-        true,
-      );
+      setUnlocked(true);
     } catch (error) {
       setErrorMessage(
         error instanceof Error
           ? error.message
-          : 'Could not unlock child profile.',
+          : "Could not unlock child profile.",
       );
     }
   }
 
   if (loading) {
     return (
-      <View className="items-center justify-center flex-1 bg-slate-950">
+      <View className="flex-1 items-center justify-center bg-slate-950">
         <ActivityIndicator />
 
-        <Text className="mt-3 text-slate-400">
-          Loading child
-          profile...
-        </Text>
+        <Text className="mt-3 text-slate-400">Loading child profile...</Text>
       </View>
     );
   }
 
   if (errorMessage) {
     return (
-      <View className="justify-center flex-1 px-6 bg-slate-950">
+      <View className="flex-1 justify-center bg-slate-950 px-6">
         <Text className="text-xl font-bold text-white">
           Child profile error
         </Text>
 
-        <Text className="mt-3 leading-6 text-red-400">
-          {errorMessage}
-        </Text>
+        <Text className="mt-3 leading-6 text-red-400">{errorMessage}</Text>
       </View>
     );
   }
@@ -244,36 +170,17 @@ export function ChildAccessGate({
   if (!localContext) {
     return (
       <ChildPinSetupScreen
-        householdId={
-          access.householdId
-        }
-        householdName={
-          access.householdName
-        }
-        childId={
-          access.childId
-        }
-        childDisplayName={
-          access.childDisplayName
-        }
-        authStoragePrefix={
-          storagePrefix
-        }
-        onComplete={(
-          context,
-        ) => {
-          void rememberLocalChildGrant(
-            context.contextId,
-            access.accessGrantId,
-          );
+        householdId={access.householdId}
+        householdName={access.householdName}
+        childId={access.childId}
+        childDisplayName={access.childDisplayName}
+        authStoragePrefix={storagePrefix}
+        onComplete={(context) => {
+          void rememberLocalChildGrant(context.contextId, access.accessGrantId);
 
-          setLocalContext(
-            context,
-          );
+          setLocalContext(context);
 
-          setUnlocked(
-            true,
-          );
+          setUnlocked(true);
         }}
       />
     );
@@ -282,9 +189,7 @@ export function ChildAccessGate({
   if (!unlocked) {
     return (
       <ChildPinUnlockScreen
-        context={
-          localContext
-        }
+        context={localContext}
         onUnlocked={() => {
           void handlePinUnlocked();
         }}
@@ -292,11 +197,5 @@ export function ChildAccessGate({
     );
   }
 
-  return (
-    <ChildHomeScreen
-      access={
-        access
-      }
-    />
-  );
+  return <ChildHomeScreen access={access} />;
 }

@@ -1,26 +1,16 @@
-import type {
-  Id,
-} from '../../../_generated/dataModel';
-import {
-  internalMutation,
-} from '../../../_generated/server';
-import { claimClaimableOccurrence } from '../../../lib/claims/claiming';
-import { resolveLocalDateTimeToEpochMs } from '../../../lib/scheduling/choreScheduling';
+import type { Id } from "../../../_generated/dataModel";
+import { internalMutation } from "../../../_generated/server";
+import { claimClaimableOccurrence } from "../../../lib/claims/claiming";
+import { resolveLocalDateTimeToEpochMs } from "../../../lib/scheduling/choreScheduling";
 
-function assert(
-  condition: unknown,
-  message: string,
-): asserts condition {
+function assert(condition: unknown, message: string): asserts condition {
   if (!condition) {
-    throw new Error(
-      message,
-    );
+    throw new Error(message);
   }
 }
 
 async function expectFailure(
-  operation:
-    () => Promise<unknown>,
+  operation: () => Promise<unknown>,
   message: string,
 ) {
   try {
@@ -29,456 +19,310 @@ async function expectFailure(
     return;
   }
 
-  throw new Error(
-    message,
-  );
+  throw new Error(message);
 }
 
-export const run =
-  internalMutation({
-    args: {},
+export const run = internalMutation({
+  args: {},
 
-    handler: async (
-      ctx,
-    ) => {
-      const now =
-        resolveLocalDateTimeToEpochMs(
-          '2030-01-16',
-          '12:00',
-          'Europe/Stockholm',
-        );
+  handler: async (ctx) => {
+    const now = resolveLocalDateTimeToEpochMs(
+      "2030-01-16",
+      "12:00",
+      "Europe/Stockholm",
+    );
 
-      const householdId =
-        await ctx.db.insert(
-          'households',
-          {
-            name:
-              'TASK11 warning smoke',
+    const householdId = await ctx.db.insert("households", {
+      name: "TASK11 warning smoke",
 
-            timezone:
-              'Europe/Stockholm',
+      timezone: "Europe/Stockholm",
 
-            payoutWeekday:
-              'friday',
+      payoutWeekday: "friday",
 
-            weeklyUnclaimAllowance:
-              1,
+      weeklyUnclaimAllowance: 1,
 
-            createdAt:
-              now,
+      createdAt: now,
 
-            updatedAt:
-              now,
-          },
-        );
+      updatedAt: now,
+    });
 
-      const childId =
-        await ctx.db.insert(
-          'children',
-          {
-            householdId,
+    const childId = await ctx.db.insert("children", {
+      householdId,
 
-            displayName:
-              'Warning Child',
+      displayName: "Warning Child",
 
-            createdAt:
-              now,
+      createdAt: now,
 
-            updatedAt:
-              now,
-          },
-        );
+      updatedAt: now,
+    });
 
-      const definitionId =
-        await ctx.db.insert(
-          'choreDefinitions',
-          {
-            householdId,
+    const definitionId = await ctx.db.insert("choreDefinitions", {
+      householdId,
 
-            kind:
-              'claimable',
+      kind: "claimable",
 
-            title:
-              'TASK11 warning fixture',
+      title: "TASK11 warning fixture",
 
-            valueSek:
-              100,
+      valueSek: 100,
 
-            recurrence: {
-              kind:
-                'one_off',
+      recurrence: {
+        kind: "one_off",
 
-              scheduledDate:
-                '2030-01-16',
-            },
+        scheduledDate: "2030-01-16",
+      },
 
-            deadlineLocalTime:
-              '18:00',
+      deadlineLocalTime: "18:00",
 
-            deadlineDayOffset:
-              0,
+      deadlineDayOffset: 0,
 
-            eligibleChildIds:
-              [
-                childId,
-              ],
+      eligibleChildIds: [childId],
 
-            isUnlockChore:
-              false,
+      isUnlockChore: false,
 
-            createdByAuthUserId:
-              'task11-smoke',
+      createdByAuthUserId: "task11-smoke",
 
-            createdAt:
-              now,
+      createdAt: now,
 
-            updatedAt:
-              now,
-          },
-        );
+      updatedAt: now,
+    });
 
-      const occurrenceIds:
-        Array<
-          Id<'choreOccurrences'>
-        > = [];
+    const occurrenceIds: Array<Id<"choreOccurrences">> = [];
 
-      const claimIds:
-        Array<
-          Id<'choreClaims'>
-        > = [];
+    const claimIds: Array<Id<"choreClaims">> = [];
 
-      async function createOccurrence(
-        title: string,
-        deadlineLocalTime:
-          string,
-      ) {
-        const deadlineAt =
-          resolveLocalDateTimeToEpochMs(
-            '2030-01-16',
-            deadlineLocalTime,
-            'Europe/Stockholm',
-          );
+    async function createOccurrence(title: string, deadlineLocalTime: string) {
+      const deadlineAt = resolveLocalDateTimeToEpochMs(
+        "2030-01-16",
+        deadlineLocalTime,
+        "Europe/Stockholm",
+      );
 
-        const occurrenceId =
-          await ctx.db.insert(
-            'choreOccurrences',
-            {
-              householdId,
+      const occurrenceId = await ctx.db.insert("choreOccurrences", {
+        householdId,
 
-              choreDefinitionId:
-                definitionId,
+        choreDefinitionId: definitionId,
 
-              kind:
-                'claimable',
+        kind: "claimable",
 
-              title,
+        title,
 
-              valueSek:
-                100,
+        valueSek: 100,
 
-              scheduledLocalDate:
-                '2030-01-16',
+        scheduledLocalDate: "2030-01-16",
 
-              timezone:
-                'Europe/Stockholm',
+        timezone: "Europe/Stockholm",
 
-              deadlineLocalTime,
+        deadlineLocalTime,
 
-              deadlineDayOffset:
-                0,
+        deadlineDayOffset: 0,
 
-              availabilityStartsAt:
-                resolveLocalDateTimeToEpochMs(
-                  '2030-01-16',
-                  '10:00',
-                  'Europe/Stockholm',
-                ),
+        availabilityStartsAt: resolveLocalDateTimeToEpochMs(
+          "2030-01-16",
+          "10:00",
+          "Europe/Stockholm",
+        ),
 
-              deadlineAt,
+        deadlineAt,
 
-              eligibleChildIds:
-                [
-                  childId,
-                ],
+        eligibleChildIds: [childId],
 
-              isUnlockChore:
-                false,
+        isUnlockChore: false,
 
-              state:
-                'available',
+        state: "available",
 
-              createdAt:
-                now,
-            },
-          );
+        createdAt: now,
+      });
 
-        occurrenceIds.push(
-          occurrenceId,
-        );
+      occurrenceIds.push(occurrenceId);
 
-        return occurrenceId;
-      }
+      return occurrenceId;
+    }
 
-      try {
-        let passed =
-          0;
+    try {
+      let passed = 0;
 
-        const ordinaryOccurrence =
-          await createOccurrence(
-            'Ordinary Claim',
-            '18:00',
-          );
+      const ordinaryOccurrence = await createOccurrence(
+        "Ordinary Claim",
+        "18:00",
+      );
 
-        const ordinaryClaim =
-          await claimClaimableOccurrence(
-            ctx,
-            householdId,
-            childId,
-            ordinaryOccurrence,
-            now,
-            false,
-          );
+      const ordinaryClaim = await claimClaimableOccurrence(
+        ctx,
+        householdId,
+        childId,
+        ordinaryOccurrence,
+        now,
+        false,
+      );
 
-        claimIds.push(
-          ordinaryClaim.claimId,
-        );
+      claimIds.push(ordinaryClaim.claimId);
 
-        assert(
-          !ordinaryClaim
-            .commitment
-            .isImmediatelyLocked,
-          'Ordinary Claim should not require immediate-lock warning.',
-        );
+      assert(
+        !ordinaryClaim.commitment.isImmediatelyLocked,
+        "Ordinary Claim should not require immediate-lock warning.",
+      );
 
-        passed += 1;
+      passed += 1;
 
-        console.log(
-          '✅ 1/5 ordinary Claim succeeds without locked acknowledgement',
-        );
+      console.log(
+        "✅ 1/5 ordinary Claim succeeds without locked acknowledgement",
+      );
 
-        await ctx.db.patch(
-          ordinaryClaim.claimId,
-          {
-            state:
-              'approved',
-          },
-        );
+      await ctx.db.patch(ordinaryClaim.claimId, {
+        state: "approved",
+      });
 
-        const lockedByTimeOccurrence =
-          await createOccurrence(
-            'Locked by time',
-            '13:00',
-          );
+      const lockedByTimeOccurrence = await createOccurrence(
+        "Locked by time",
+        "13:00",
+      );
 
-        await expectFailure(
-          () =>
-            claimClaimableOccurrence(
-              ctx,
-              householdId,
-              childId,
-              lockedByTimeOccurrence,
-              now,
-              false,
-            ),
-          'Time-locked Claim must require explicit acknowledgement.',
-        );
-
-        passed += 1;
-
-        console.log(
-          '✅ 2/5 time-locked Claim rejects missing acknowledgement',
-        );
-
-        const lockedByTimeClaim =
-          await claimClaimableOccurrence(
+      await expectFailure(
+        () =>
+          claimClaimableOccurrence(
             ctx,
             householdId,
             childId,
             lockedByTimeOccurrence,
             now,
-            true,
-          );
+            false,
+          ),
+        "Time-locked Claim must require explicit acknowledgement.",
+      );
 
-        claimIds.push(
-          lockedByTimeClaim.claimId,
-        );
+      passed += 1;
 
-        assert(
-          lockedByTimeClaim
-            .commitment
-            .isImmediatelyLocked &&
-          lockedByTimeClaim
-            .commitment
-            .lockReason ===
-            'time_window',
-          'Acknowledged time-window Claim should be recorded as immediately locked.',
-        );
+      console.log("✅ 2/5 time-locked Claim rejects missing acknowledgement");
 
-        passed += 1;
+      const lockedByTimeClaim = await claimClaimableOccurrence(
+        ctx,
+        householdId,
+        childId,
+        lockedByTimeOccurrence,
+        now,
+        true,
+      );
 
-        console.log(
-          '✅ 3/5 acknowledged time-window Claim succeeds',
-        );
+      claimIds.push(lockedByTimeClaim.claimId);
 
-        await ctx.db.patch(
-          lockedByTimeClaim.claimId,
-          {
-            state:
-              'approved',
-          },
-        );
+      assert(
+        lockedByTimeClaim.commitment.isImmediatelyLocked &&
+          lockedByTimeClaim.commitment.lockReason === "time_window",
+        "Acknowledged time-window Claim should be recorded as immediately locked.",
+      );
 
-        /*
-         * Create one historical successful
-         * unclaim in the current Payout Week
-         * to exhaust the allowance.
-         */
-        const historicalOccurrence =
-          await createOccurrence(
-            'Historical unclaim',
-            '18:00',
-          );
+      passed += 1;
 
-        const historicalClaimId =
-          await ctx.db.insert(
-            'choreClaims',
-            {
-              householdId,
+      console.log("✅ 3/5 acknowledged time-window Claim succeeds");
 
-              occurrenceId:
-                historicalOccurrence,
+      await ctx.db.patch(lockedByTimeClaim.claimId, {
+        state: "approved",
+      });
 
-              childId,
+      /*
+       * Create one historical successful
+       * unclaim in the current Payout Week
+       * to exhaust the allowance.
+       */
+      const historicalOccurrence = await createOccurrence(
+        "Historical unclaim",
+        "18:00",
+      );
 
-              state:
-                'unclaimed',
+      const historicalClaimId = await ctx.db.insert("choreClaims", {
+        householdId,
 
-              claimedAt:
-                resolveLocalDateTimeToEpochMs(
-                  '2030-01-15',
-                  '10:00',
-                  'Europe/Stockholm',
-                ),
+        occurrenceId: historicalOccurrence,
 
-              unclaimedAt:
-                resolveLocalDateTimeToEpochMs(
-                  '2030-01-15',
-                  '11:00',
-                  'Europe/Stockholm',
-                ),
-            },
-          );
+        childId,
 
-        claimIds.push(
-          historicalClaimId,
-        );
+        state: "unclaimed",
 
-        const allowanceLockedOccurrence =
-          await createOccurrence(
-            'Locked by allowance',
-            '18:00',
-          );
+        claimedAt: resolveLocalDateTimeToEpochMs(
+          "2030-01-15",
+          "10:00",
+          "Europe/Stockholm",
+        ),
 
-        await expectFailure(
-          () =>
-            claimClaimableOccurrence(
-              ctx,
-              householdId,
-              childId,
-              allowanceLockedOccurrence,
-              now,
-              false,
-            ),
-          'Allowance-locked Claim must require explicit acknowledgement.',
-        );
+        unclaimedAt: resolveLocalDateTimeToEpochMs(
+          "2030-01-15",
+          "11:00",
+          "Europe/Stockholm",
+        ),
+      });
 
-        passed += 1;
+      claimIds.push(historicalClaimId);
 
-        console.log(
-          '✅ 4/5 exhausted allowance requires locked acknowledgement',
-        );
+      const allowanceLockedOccurrence = await createOccurrence(
+        "Locked by allowance",
+        "18:00",
+      );
 
-        const allowanceLockedClaim =
-          await claimClaimableOccurrence(
+      await expectFailure(
+        () =>
+          claimClaimableOccurrence(
             ctx,
             householdId,
             childId,
             allowanceLockedOccurrence,
             now,
-            true,
-          );
+            false,
+          ),
+        "Allowance-locked Claim must require explicit acknowledgement.",
+      );
 
-        claimIds.push(
-          allowanceLockedClaim.claimId,
-        );
+      passed += 1;
 
-        assert(
-          allowanceLockedClaim
-            .commitment
-            .isImmediatelyLocked &&
-          allowanceLockedClaim
-            .commitment
-            .lockReason ===
-            'allowance_exhausted',
-          'Allowance-exhausted Claim should identify its lock reason.',
-        );
+      console.log("✅ 4/5 exhausted allowance requires locked acknowledgement");
 
-        passed += 1;
+      const allowanceLockedClaim = await claimClaimableOccurrence(
+        ctx,
+        householdId,
+        childId,
+        allowanceLockedOccurrence,
+        now,
+        true,
+      );
 
-        console.log(
-          '✅ 5/5 acknowledged allowance-locked Claim still succeeds',
-        );
+      claimIds.push(allowanceLockedClaim.claimId);
 
-        return {
-          passed,
+      assert(
+        allowanceLockedClaim.commitment.isImmediatelyLocked &&
+          allowanceLockedClaim.commitment.lockReason === "allowance_exhausted",
+        "Allowance-exhausted Claim should identify its lock reason.",
+      );
 
-          total:
-            5,
-        };
-      } finally {
-        for (
-          const claimId of
-          claimIds
-        ) {
-          const claim =
-            await ctx.db.get(
-              claimId,
-            );
+      passed += 1;
 
-          if (claim) {
-            await ctx.db.delete(
-              claimId,
-            );
-          }
+      console.log("✅ 5/5 acknowledged allowance-locked Claim still succeeds");
+
+      return {
+        passed,
+
+        total: 5,
+      };
+    } finally {
+      for (const claimId of claimIds) {
+        const claim = await ctx.db.get(claimId);
+
+        if (claim) {
+          await ctx.db.delete(claimId);
         }
-
-        for (
-          const occurrenceId of
-          occurrenceIds
-        ) {
-          const occurrence =
-            await ctx.db.get(
-              occurrenceId,
-            );
-
-          if (occurrence) {
-            await ctx.db.delete(
-              occurrenceId,
-            );
-          }
-        }
-
-        await ctx.db.delete(
-          definitionId,
-        );
-
-        await ctx.db.delete(
-          childId,
-        );
-
-        await ctx.db.delete(
-          householdId,
-        );
       }
-    },
-  });
+
+      for (const occurrenceId of occurrenceIds) {
+        const occurrence = await ctx.db.get(occurrenceId);
+
+        if (occurrence) {
+          await ctx.db.delete(occurrenceId);
+        }
+      }
+
+      await ctx.db.delete(definitionId);
+
+      await ctx.db.delete(childId);
+
+      await ctx.db.delete(householdId);
+    }
+  },
+});

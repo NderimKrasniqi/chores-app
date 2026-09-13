@@ -1,132 +1,135 @@
-import { useServerConfirmedMutation } from '@/hooks/use-server-confirmed-mutation';
+import { DirectionCIcon } from "@/components/ui/direction-c-icon";
+import { DirectionC } from "@/constants/direction-c";
 import {
-  useQuery,
-} from 'convex/react';
-import { useState } from 'react';
+  ActionButton,
+  AppText,
+  FormField,
+  Surface,
+  TopBar,
+} from "@/design-system";
+import { useServerConfirmedMutation } from "@/hooks/use-server-confirmed-mutation";
+import { useQuery } from "convex/react";
+import { useState } from "react";
+import { Image } from "expo-image";
 import {
   Alert,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
   Pressable,
+  ScrollView,
   Text,
   TextInput,
   View,
-} from 'react-native';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-import { api } from '../../../convex/_generated/api';
-import type { Id } from '../../../convex/_generated/dataModel';
+import { api } from "../../../convex/_generated/api";
+import type { Id } from "../../../convex/_generated/dataModel";
 
 type Weekday =
-  | 'monday'
-  | 'tuesday'
-  | 'wednesday'
-  | 'thursday'
-  | 'friday'
-  | 'saturday'
-  | 'sunday';
+  | "monday"
+  | "tuesday"
+  | "wednesday"
+  | "thursday"
+  | "friday"
+  | "saturday"
+  | "sunday";
 
-type ChoreKind =
-  | 'personal'
-  | 'claimable';
+type ChoreKind = "personal" | "claimable";
 
-type RecurrenceKind =
-  | 'one_off'
-  | 'daily'
-  | 'weekly'
-  | 'monthly';
+type RecurrenceKind = "one_off" | "daily" | "weekly" | "monthly";
 
 type Recurrence =
   | {
-      kind: 'one_off';
+      kind: "one_off";
       scheduledDate: string;
     }
   | {
-      kind: 'daily';
+      kind: "daily";
       startDate: string;
       interval: number;
     }
   | {
-      kind: 'weekly';
+      kind: "weekly";
       startDate: string;
       interval: number;
       weekdays: Weekday[];
     }
   | {
-      kind: 'monthly';
+      kind: "monthly";
       startDate: string;
       interval: number;
       dayOfMonth: number;
     };
 
 type ChildSummary = {
-  childId: Id<'children'>;
+  childId: Id<"children">;
   displayName: string;
 };
 
 type DefinitionSummary = {
-  choreDefinitionId:
-    Id<'choreDefinitions'>;
+  choreDefinitionId: Id<"choreDefinitions">;
 
   kind: ChoreKind;
 
   title: string;
 
-  description?:
-    string;
+  description?: string;
 
   valueSek: number;
 
-  recurrence:
-    Recurrence;
+  recurrence: Recurrence;
 
-  availabilityLocalTime?:
-    string;
+  availabilityLocalTime?: string;
 
-  deadlineLocalTime:
-    string;
+  deadlineLocalTime: string;
 
-  deadlineDayOffset:
-    number;
+  deadlineDayOffset: number;
 
-  personalChildId?:
-    Id<'children'>;
+  personalChildId?: Id<"children">;
 
-  eligibleChildIds?:
-    Id<'children'>[];
+  eligibleChildIds?: Id<"children">[];
 
-  isUnlockChore:
-    boolean;
+  isUnlockChore: boolean;
 
   createdAt: number;
   updatedAt: number;
 };
 
 type ChoreDefinitionsCardProps = {
-  householdId:
-    Id<'households'>;
+  householdId: Id<"households">;
 
-  children:
-    ChildSummary[];
+  children: ChildSummary[];
 };
 
-const weekdays:
-  Weekday[] = [
-  'monday',
-  'tuesday',
-  'wednesday',
-  'thursday',
-  'friday',
-  'saturday',
-  'sunday',
+const weekdays: Weekday[] = [
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+  "saturday",
+  "sunday",
 ];
 
-function formatWeekday(
-  weekday: Weekday,
-) {
-  return (
-    weekday
-      .charAt(0)
-      .toUpperCase() +
-    weekday.slice(1)
-  );
+const choreArtwork = {
+  bedroom: require("../../../assets/images/direction-c/chore-bedroom.png"),
+  dog: require("../../../assets/images/direction-c/chore-dog-bowl.png"),
+  recycling: require("../../../assets/images/direction-c/chore-recycling.png"),
+};
+
+function getChoreArtwork(title: string) {
+  const normalized = title.toLowerCase();
+  if (normalized.includes("dog") || normalized.includes("pet"))
+    return choreArtwork.dog;
+  if (normalized.includes("recycl") || normalized.includes("trash"))
+    return choreArtwork.recycling;
+  return choreArtwork.bedroom;
+}
+
+function formatWeekday(weekday: Weekday) {
+  return weekday.charAt(0).toUpperCase() + weekday.slice(1);
 }
 
 function OptionButton({
@@ -140,70 +143,42 @@ function OptionButton({
 }) {
   return (
     <Pressable
-      className={
-        active
-          ? 'px-3 py-3 mr-2 mt-2 border rounded-xl border-white bg-white'
-          : 'px-3 py-3 mr-2 mt-2 border rounded-xl border-slate-700'
-      }
+      accessibilityRole="button"
+      accessibilityState={{ selected: active }}
+      className={`mr-2 mt-2 min-h-target justify-center rounded-control px-4 ${
+        active ? "bg-action" : "border border-infoSoftStrong bg-surfaceRaised"
+      }`}
       onPress={onPress}
     >
-      <Text
-        className={
-          active
-            ? 'font-semibold text-slate-950'
-            : 'font-semibold text-white'
-        }
-      >
+      <AppText variant="label" color={active ? "white" : "ink"}>
         {label}
-      </Text>
+      </AppText>
     </Pressable>
   );
 }
 
-function formatRecurrence(
-  recurrence:
-    Recurrence,
-) {
-  switch (
-    recurrence.kind
-  ) {
-    case 'one_off':
+function formatRecurrence(recurrence: Recurrence) {
+  switch (recurrence.kind) {
+    case "one_off":
       return `One-off · ${recurrence.scheduledDate}`;
 
-    case 'daily':
-      return recurrence.interval ===
-        1
+    case "daily":
+      return recurrence.interval === 1
         ? `Daily · from ${recurrence.startDate}`
         : `Every ${recurrence.interval} days · from ${recurrence.startDate}`;
 
-    case 'weekly':
+    case "weekly":
       return `Every ${
-        recurrence.interval ===
-        1
-          ? ''
-          : `${recurrence.interval} `
-      }week${
-        recurrence.interval ===
-        1
-          ? ''
-          : 's'
-      } · ${recurrence.weekdays
-        .map(
-          formatWeekday,
-        )
-        .join(', ')}`;
+        recurrence.interval === 1 ? "" : `${recurrence.interval} `
+      }week${recurrence.interval === 1 ? "" : "s"} · ${recurrence.weekdays
+        .map(formatWeekday)
+        .join(", ")}`;
 
-    case 'monthly':
+    case "monthly":
       return `Every ${
-        recurrence.interval ===
-        1
-          ? ''
-          : `${recurrence.interval} `
+        recurrence.interval === 1 ? "" : `${recurrence.interval} `
       }month${
-        recurrence.interval ===
-        1
-          ? ''
-          : 's'
+        recurrence.interval === 1 ? "" : "s"
       } · day ${recurrence.dayOfMonth}`;
   }
 }
@@ -212,222 +187,109 @@ export function ChoreDefinitionsCard({
   householdId,
   children,
 }: ChoreDefinitionsCardProps) {
-  const definitions =
-    useQuery(
-      api
-        .choreDefinitions
-        .listActiveForHousehold,
-      {
-        householdId,
-      },
-    );
+  const definitions = useQuery(api.choreDefinitions.listActiveForHousehold, {
+    householdId,
+  });
 
-  const createDefinition =
-    useServerConfirmedMutation(
-      api
-        .choreDefinitions
-        .create,
-    );
-
-  const updateDefinition =
-    useServerConfirmedMutation(
-      api
-        .choreDefinitions
-        .update,
-    );
-
-  const archiveDefinition =
-    useServerConfirmedMutation(
-      api
-        .choreDefinitions
-        .archive,
-    );
-
-  const [
-    showingForm,
-    setShowingForm,
-  ] = useState(false);
-
-  const [
-    editingDefinitionId,
-    setEditingDefinitionId,
-  ] = useState<
-    Id<'choreDefinitions'> |
-      undefined
-  >(undefined);
-
-  const [
-    kind,
-    setKind,
-  ] =
-    useState<ChoreKind>(
-      'personal',
-    );
-
-  const [
-    title,
-    setTitle,
-  ] = useState('');
-
-  const [
-    description,
-    setDescription,
-  ] = useState('');
-
-  const [
-    valueSek,
-    setValueSek,
-  ] = useState('');
-
-  const [
-    recurrenceKind,
-    setRecurrenceKind,
-  ] =
-    useState<RecurrenceKind>(
-      'one_off',
-    );
-
-  const [
-    scheduledDate,
-    setScheduledDate,
-  ] = useState('');
-
-  const [
-    startDate,
-    setStartDate,
-  ] = useState('');
-
-  const [
-    interval,
-    setInterval,
-  ] = useState('1');
-
-  const [
-    selectedWeekdays,
-    setSelectedWeekdays,
-  ] = useState<
-    Weekday[]
-  >([]);
-
-  const [
-    dayOfMonth,
-    setDayOfMonth,
-  ] = useState('1');
-
-  const [
-    availabilityLocalTime,
-    setAvailabilityLocalTime,
-  ] = useState('');
-
-  const [
-    deadlineLocalTime,
-    setDeadlineLocalTime,
-  ] = useState('18:00');
-
-  const [
-    deadlineDayOffset,
-    setDeadlineDayOffset,
-  ] = useState('0');
-
-  const [
-    personalChildId,
-    setPersonalChildId,
-  ] = useState<
-    Id<'children'> |
-      undefined
-  >(
-    children[0]?.childId,
+  const createDefinition = useServerConfirmedMutation(
+    api.choreDefinitions.create,
   );
 
-  const [
-    restrictEligibility,
-    setRestrictEligibility,
-  ] = useState(false);
+  const updateDefinition = useServerConfirmedMutation(
+    api.choreDefinitions.update,
+  );
 
-  const [
-    eligibleChildIds,
-    setEligibleChildIds,
-  ] = useState<
-    Id<'children'>[]
-  >([]);
+  const archiveDefinition = useServerConfirmedMutation(
+    api.choreDefinitions.archive,
+  );
 
-  const [
-    isUnlockChore,
-    setIsUnlockChore,
-  ] = useState(false);
+  const [showingForm, setShowingForm] = useState(false);
 
-  const [
-    working,
-    setWorking,
-  ] = useState(false);
+  const [listKind, setListKind] = useState<ChoreKind>("personal");
 
-  const [
-    archivingId,
-    setArchivingId,
-  ] = useState<
-    Id<'choreDefinitions'> |
-      undefined
+  const [editingDefinitionId, setEditingDefinitionId] = useState<
+    Id<"choreDefinitions"> | undefined
   >(undefined);
 
-  const [
-    errorMessage,
-    setErrorMessage,
-  ] = useState<
-    string | null
-  >(null);
+  const [kind, setKind] = useState<ChoreKind>("personal");
+
+  const [title, setTitle] = useState("");
+
+  const [description, setDescription] = useState("");
+
+  const [valueSek, setValueSek] = useState("");
+
+  const [recurrenceKind, setRecurrenceKind] =
+    useState<RecurrenceKind>("one_off");
+
+  const [scheduledDate, setScheduledDate] = useState("");
+
+  const [startDate, setStartDate] = useState("");
+
+  const [interval, setInterval] = useState("1");
+
+  const [selectedWeekdays, setSelectedWeekdays] = useState<Weekday[]>([]);
+
+  const [dayOfMonth, setDayOfMonth] = useState("1");
+
+  const [availabilityLocalTime, setAvailabilityLocalTime] = useState("");
+
+  const [deadlineLocalTime, setDeadlineLocalTime] = useState("18:00");
+
+  const [deadlineDayOffset, setDeadlineDayOffset] = useState("0");
+
+  const [personalChildId, setPersonalChildId] = useState<
+    Id<"children"> | undefined
+  >(children[0]?.childId);
+
+  const [restrictEligibility, setRestrictEligibility] = useState(false);
+
+  const [eligibleChildIds, setEligibleChildIds] = useState<Id<"children">[]>(
+    [],
+  );
+
+  const [isUnlockChore, setIsUnlockChore] = useState(false);
+
+  const [working, setWorking] = useState(false);
+
+  const [archivingId, setArchivingId] = useState<
+    Id<"choreDefinitions"> | undefined
+  >(undefined);
+
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   function resetForm() {
-    setEditingDefinitionId(
-      undefined,
-    );
+    setEditingDefinitionId(undefined);
 
-    setKind('personal');
+    setKind("personal");
 
-    setTitle('');
-    setDescription('');
-    setValueSek('');
+    setTitle("");
+    setDescription("");
+    setValueSek("");
 
-    setRecurrenceKind(
-      'one_off',
-    );
+    setRecurrenceKind("one_off");
 
-    setScheduledDate('');
-    setStartDate('');
-    setInterval('1');
+    setScheduledDate("");
+    setStartDate("");
+    setInterval("1");
 
-    setSelectedWeekdays(
-      [],
-    );
+    setSelectedWeekdays([]);
 
-    setDayOfMonth('1');
+    setDayOfMonth("1");
 
-    setAvailabilityLocalTime(
-      '',
-    );
+    setAvailabilityLocalTime("");
 
-    setDeadlineLocalTime(
-      '18:00',
-    );
+    setDeadlineLocalTime("18:00");
 
-    setDeadlineDayOffset(
-      '0',
-    );
+    setDeadlineDayOffset("0");
 
-    setPersonalChildId(
-      children[0]?.childId,
-    );
+    setPersonalChildId(children[0]?.childId);
 
-    setRestrictEligibility(
-      false,
-    );
+    setRestrictEligibility(false);
 
-    setEligibleChildIds(
-      [],
-    );
+    setEligibleChildIds([]);
 
-    setIsUnlockChore(
-      false,
-    );
+    setIsUnlockChore(false);
 
     setErrorMessage(null);
   }
@@ -435,336 +297,168 @@ export function ChoreDefinitionsCard({
   function startNewChore() {
     resetForm();
 
-    setShowingForm(
-      true,
-    );
+    setShowingForm(true);
   }
 
-  function startEditing(
-    definition:
-      DefinitionSummary,
-  ) {
-    setEditingDefinitionId(
-      definition
-        .choreDefinitionId,
-    );
+  function startEditing(definition: DefinitionSummary) {
+    setEditingDefinitionId(definition.choreDefinitionId);
 
-    setKind(
-      definition.kind,
-    );
+    setKind(definition.kind);
 
-    setTitle(
-      definition.title,
-    );
+    setTitle(definition.title);
 
-    setDescription(
-      definition.description ??
-        '',
-    );
+    setDescription(definition.description ?? "");
 
-    setValueSek(
-      definition.valueSek.toString(),
-    );
+    setValueSek(definition.valueSek.toString());
 
-    setRecurrenceKind(
-      definition
-        .recurrence
-        .kind,
-    );
+    setRecurrenceKind(definition.recurrence.kind);
 
-    setScheduledDate('');
-    setStartDate('');
-    setInterval('1');
-    setSelectedWeekdays(
-      [],
-    );
-    setDayOfMonth('1');
+    setScheduledDate("");
+    setStartDate("");
+    setInterval("1");
+    setSelectedWeekdays([]);
+    setDayOfMonth("1");
 
-    switch (
-      definition
-        .recurrence
-        .kind
-    ) {
-      case 'one_off':
-        setScheduledDate(
-          definition
-            .recurrence
-            .scheduledDate,
-        );
+    switch (definition.recurrence.kind) {
+      case "one_off":
+        setScheduledDate(definition.recurrence.scheduledDate);
         break;
 
-      case 'daily':
-        setStartDate(
-          definition
-            .recurrence
-            .startDate,
-        );
+      case "daily":
+        setStartDate(definition.recurrence.startDate);
 
-        setInterval(
-          definition
-            .recurrence
-            .interval
-            .toString(),
-        );
+        setInterval(definition.recurrence.interval.toString());
         break;
 
-      case 'weekly':
-        setStartDate(
-          definition
-            .recurrence
-            .startDate,
-        );
+      case "weekly":
+        setStartDate(definition.recurrence.startDate);
 
-        setInterval(
-          definition
-            .recurrence
-            .interval
-            .toString(),
-        );
+        setInterval(definition.recurrence.interval.toString());
 
-        setSelectedWeekdays(
-          definition
-            .recurrence
-            .weekdays,
-        );
+        setSelectedWeekdays(definition.recurrence.weekdays);
         break;
 
-      case 'monthly':
-        setStartDate(
-          definition
-            .recurrence
-            .startDate,
-        );
+      case "monthly":
+        setStartDate(definition.recurrence.startDate);
 
-        setInterval(
-          definition
-            .recurrence
-            .interval
-            .toString(),
-        );
+        setInterval(definition.recurrence.interval.toString());
 
-        setDayOfMonth(
-          definition
-            .recurrence
-            .dayOfMonth
-            .toString(),
-        );
+        setDayOfMonth(definition.recurrence.dayOfMonth.toString());
         break;
     }
 
-    setAvailabilityLocalTime(
-      definition
-        .availabilityLocalTime ??
-        '',
-    );
+    setAvailabilityLocalTime(definition.availabilityLocalTime ?? "");
 
-    setDeadlineLocalTime(
-      definition
-        .deadlineLocalTime,
-    );
+    setDeadlineLocalTime(definition.deadlineLocalTime);
 
-    setDeadlineDayOffset(
-      definition
-        .deadlineDayOffset
-        .toString(),
-    );
+    setDeadlineDayOffset(definition.deadlineDayOffset.toString());
 
     setPersonalChildId(
-      definition.kind ===
-        'personal'
-        ? definition
-            .personalChildId
-        : children[0]
-            ?.childId,
+      definition.kind === "personal"
+        ? definition.personalChildId
+        : children[0]?.childId,
     );
 
     setRestrictEligibility(
-      definition.kind ===
-        'claimable' &&
-        definition
-          .eligibleChildIds !==
-          undefined,
+      definition.kind === "claimable" &&
+        definition.eligibleChildIds !== undefined,
     );
 
-    setEligibleChildIds(
-      definition
-        .eligibleChildIds ??
-        [],
-    );
+    setEligibleChildIds(definition.eligibleChildIds ?? []);
 
-    setIsUnlockChore(
-      definition
-        .isUnlockChore,
-    );
+    setIsUnlockChore(definition.isUnlockChore);
 
     setErrorMessage(null);
 
-    setShowingForm(
-      true,
-    );
+    setShowingForm(true);
   }
 
   function closeForm() {
     resetForm();
 
-    setShowingForm(
-      false,
-    );
+    setShowingForm(false);
   }
 
-  function handleKindChange(
-    nextKind:
-      ChoreKind,
-  ) {
+  function handleKindChange(nextKind: ChoreKind) {
     setKind(nextKind);
 
-    setErrorMessage(
-      null,
-    );
+    setErrorMessage(null);
 
-    if (
-      nextKind ===
-      'claimable'
-    ) {
-      setIsUnlockChore(
-        false,
-      );
+    if (nextKind === "claimable") {
+      setIsUnlockChore(false);
     }
   }
 
-  function handleRecurrenceChange(
-    nextKind:
-      RecurrenceKind,
-  ) {
-    setRecurrenceKind(
-      nextKind,
-    );
+  function handleRecurrenceChange(nextKind: RecurrenceKind) {
+    setRecurrenceKind(nextKind);
 
-    setErrorMessage(
-      null,
-    );
+    setErrorMessage(null);
 
-    if (
-      nextKind ===
-      'one_off'
-    ) {
-      setIsUnlockChore(
-        false,
-      );
+    if (nextKind === "one_off") {
+      setIsUnlockChore(false);
     }
   }
 
-  function toggleWeekday(
-    weekday:
-      Weekday,
-  ) {
-    setSelectedWeekdays(
-      (current) =>
-        current.includes(
-          weekday,
-        )
-          ? current.filter(
-              (item) =>
-                item !==
-                weekday,
-            )
-          : [
-              ...current,
-              weekday,
-            ],
+  function toggleWeekday(weekday: Weekday) {
+    setSelectedWeekdays((current) =>
+      current.includes(weekday)
+        ? current.filter((item) => item !== weekday)
+        : [...current, weekday],
     );
   }
 
-  function toggleEligibleChild(
-    childId:
-      Id<'children'>,
-  ) {
-    setEligibleChildIds(
-      (current) =>
-        current.includes(
-          childId,
-        )
-          ? current.filter(
-              (item) =>
-                item !==
-                childId,
-            )
-          : [
-              ...current,
-              childId,
-            ],
+  function toggleEligibleChild(childId: Id<"children">) {
+    setEligibleChildIds((current) =>
+      current.includes(childId)
+        ? current.filter((item) => item !== childId)
+        : [...current, childId],
     );
   }
 
-  function buildRecurrence():
-    Recurrence {
-    switch (
-      recurrenceKind
-    ) {
-      case 'one_off':
+  function buildRecurrence(): Recurrence {
+    switch (recurrenceKind) {
+      case "one_off":
         return {
-          kind:
-            'one_off',
+          kind: "one_off",
 
-          scheduledDate:
-            scheduledDate.trim(),
+          scheduledDate: scheduledDate.trim(),
         };
 
-      case 'daily':
+      case "daily":
         return {
-          kind:
-            'daily',
+          kind: "daily",
 
-          startDate:
-            startDate.trim(),
+          startDate: startDate.trim(),
 
-          interval:
-            Number(
-              interval,
-            ),
+          interval: Number(interval),
         };
 
-      case 'weekly':
+      case "weekly":
         return {
-          kind:
-            'weekly',
+          kind: "weekly",
 
-          startDate:
-            startDate.trim(),
+          startDate: startDate.trim(),
 
-          interval:
-            Number(
-              interval,
-            ),
+          interval: Number(interval),
 
-          weekdays:
-            selectedWeekdays,
+          weekdays: selectedWeekdays,
         };
 
-      case 'monthly':
+      case "monthly":
         return {
-          kind:
-            'monthly',
+          kind: "monthly",
 
-          startDate:
-            startDate.trim(),
+          startDate: startDate.trim(),
 
-          interval:
-            Number(
-              interval,
-            ),
+          interval: Number(interval),
 
-          dayOfMonth:
-            Number(
-              dayOfMonth,
-            ),
+          dayOfMonth: Number(dayOfMonth),
         };
     }
   }
 
   function buildDefinitionInput() {
-    const recurrence =
-      buildRecurrence();
+    const recurrence = buildRecurrence();
 
     return {
       kind,
@@ -777,10 +471,7 @@ export function ChoreDefinitionsCard({
           }
         : {}),
 
-      valueSek:
-        Number(
-          valueSek,
-        ),
+      valueSek: Number(valueSek),
 
       recurrence,
 
@@ -792,32 +483,22 @@ export function ChoreDefinitionsCard({
 
       deadlineLocalTime,
 
-      deadlineDayOffset:
-        Number(
-          deadlineDayOffset,
-        ),
+      deadlineDayOffset: Number(deadlineDayOffset),
 
-      ...(kind ===
-        'personal' &&
-      personalChildId
+      ...(kind === "personal" && personalChildId
         ? {
             personalChildId,
           }
         : {}),
 
-      ...(kind ===
-        'claimable' &&
-      restrictEligibility
+      ...(kind === "claimable" && restrictEligibility
         ? {
             eligibleChildIds,
           }
         : {}),
 
       isUnlockChore:
-        kind ===
-          'personal' &&
-        recurrenceKind !==
-          'one_off'
+        kind === "personal" && recurrenceKind !== "one_off"
           ? isUnlockChore
           : false,
     };
@@ -825,20 +506,14 @@ export function ChoreDefinitionsCard({
 
   async function handleSave() {
     setWorking(true);
-    setErrorMessage(
-      null,
-    );
+    setErrorMessage(null);
 
     try {
-      const input =
-        buildDefinitionInput();
+      const input = buildDefinitionInput();
 
-      if (
-        editingDefinitionId
-      ) {
+      if (editingDefinitionId) {
         await updateDefinition({
-          choreDefinitionId:
-            editingDefinitionId,
+          choreDefinitionId: editingDefinitionId,
 
           ...input,
         });
@@ -856,173 +531,112 @@ export function ChoreDefinitionsCard({
         error instanceof Error
           ? error.message
           : editingDefinitionId
-            ? 'Could not update chore.'
-            : 'Could not create chore.',
+            ? "Could not update chore."
+            : "Could not create chore.",
       );
     } finally {
       setWorking(false);
     }
   }
 
-  async function handleArchive(
-    definition:
-      DefinitionSummary,
-  ) {
-    setArchivingId(
-      definition
-        .choreDefinitionId,
-    );
+  async function handleArchive(definition: DefinitionSummary) {
+    setArchivingId(definition.choreDefinitionId);
 
     try {
       await archiveDefinition({
-        choreDefinitionId:
-          definition
-            .choreDefinitionId,
+        choreDefinitionId: definition.choreDefinitionId,
       });
 
-      if (
-        editingDefinitionId ===
-        definition
-          .choreDefinitionId
-      ) {
+      if (editingDefinitionId === definition.choreDefinitionId) {
         closeForm();
       }
     } catch (error) {
       Alert.alert(
-        'Could not archive chore',
-        error instanceof Error
-          ? error.message
-          : 'Please try again.',
+        "Could not archive chore",
+        error instanceof Error ? error.message : "Please try again.",
       );
     } finally {
-      setArchivingId(
-        undefined,
-      );
+      setArchivingId(undefined);
     }
   }
 
-  function confirmArchive(
-    definition:
-      DefinitionSummary,
-  ) {
+  function confirmArchive(definition: DefinitionSummary) {
     Alert.alert(
-      'Archive chore?',
+      "Archive chore?",
       `"${definition.title}" will stop generating future occurrences. Existing chore history will remain unchanged.`,
       [
         {
-          text:
-            'Cancel',
+          text: "Cancel",
 
-          style:
-            'cancel',
+          style: "cancel",
         },
         {
-          text:
-            'Archive',
+          text: "Archive",
 
-          style:
-            'destructive',
+          style: "destructive",
 
-          onPress: () =>
-            void handleArchive(
-              definition,
-            ),
+          onPress: () => void handleArchive(definition),
         },
       ],
     );
   }
 
-  function getChildName(
-    childId:
-      Id<'children'>,
-  ) {
+  function getChildName(childId: Id<"children">) {
     return (
-      children.find(
-        (child) =>
-          child.childId ===
-          childId,
-      )?.displayName ??
-      'Unknown Child'
+      children.find((child) => child.childId === childId)?.displayName ??
+      "Unknown Child"
     );
   }
 
   return (
-    <View className="pt-5 mt-6 border-t border-slate-800">
-      <Text className="font-semibold text-white">
-        Chores
-      </Text>
+    <View className="mt-6 border-t border-slate-800 pt-5">
+      <Text className="font-semibold text-white">Chores</Text>
 
       <Text className="mt-1 text-sm leading-5 text-slate-500">
-        Configure paid Personal
-        and Claimable chores for
-        this household.
+        Configure paid Personal and Claimable chores for this household.
       </Text>
 
       {!showingForm && (
         <Pressable
-          className="px-4 py-3 mt-4 bg-white rounded-xl"
-          onPress={
-            startNewChore
-          }
+          className="mt-4 rounded-xl bg-white px-4 py-3"
+          onPress={startNewChore}
         >
-          <Text className="font-semibold text-center text-slate-950">
+          <Text className="text-center font-semibold text-slate-950">
             Add chore
           </Text>
         </Pressable>
       )}
 
       {showingForm && (
-        <View className="p-4 mt-4 border rounded-xl border-slate-700 bg-slate-950">
+        <View className="mt-4 rounded-xl border border-slate-700 bg-slate-950 p-4">
           <Text className="text-lg font-semibold text-white">
-            {editingDefinitionId
-              ? 'Edit chore'
-              : 'New chore'}
+            {editingDefinitionId ? "Edit chore" : "New chore"}
           </Text>
 
-          <Text className="mt-5 text-sm font-semibold text-white">
-            Type
-          </Text>
+          <Text className="mt-5 text-sm font-semibold text-white">Type</Text>
 
           <View className="flex-row flex-wrap">
             <OptionButton
               label="Personal"
-              active={
-                kind ===
-                'personal'
-              }
-              onPress={() =>
-                handleKindChange(
-                  'personal',
-                )
-              }
+              active={kind === "personal"}
+              onPress={() => handleKindChange("personal")}
             />
 
             <OptionButton
               label="Claimable"
-              active={
-                kind ===
-                'claimable'
-              }
-              onPress={() =>
-                handleKindChange(
-                  'claimable',
-                )
-              }
+              active={kind === "claimable"}
+              onPress={() => handleKindChange("claimable")}
             />
           </View>
 
-          <Text className="mt-5 text-sm font-semibold text-white">
-            Title
-          </Text>
+          <Text className="mt-5 text-sm font-semibold text-white">Title</Text>
 
           <TextInput
-            className="px-4 py-3 mt-2 text-white border rounded-xl border-slate-700 bg-slate-900"
+            className="mt-2 rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-white"
             placeholder="Clean your room"
             placeholderTextColor="#64748b"
             value={title}
-            onChangeText={
-              setTitle
-            }
+            onChangeText={setTitle}
           />
 
           <Text className="mt-4 text-sm font-semibold text-white">
@@ -1030,15 +644,11 @@ export function ChoreDefinitionsCard({
           </Text>
 
           <TextInput
-            className="px-4 py-3 mt-2 text-white border rounded-xl border-slate-700 bg-slate-900"
+            className="mt-2 rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-white"
             placeholder="Optional instructions"
             placeholderTextColor="#64748b"
-            value={
-              description
-            }
-            onChangeText={
-              setDescription
-            }
+            value={description}
+            onChangeText={setDescription}
             multiline
           />
 
@@ -1047,51 +657,34 @@ export function ChoreDefinitionsCard({
           </Text>
 
           <TextInput
-            className="px-4 py-3 mt-2 text-white border rounded-xl border-slate-700 bg-slate-900"
+            className="mt-2 rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-white"
             placeholder="50"
             placeholderTextColor="#64748b"
             value={valueSek}
-            onChangeText={
-              setValueSek
-            }
+            onChangeText={setValueSek}
             keyboardType="number-pad"
           />
 
-          {kind ===
-            'personal' && (
+          {kind === "personal" && (
             <>
               <Text className="mt-5 text-sm font-semibold text-white">
                 Child
               </Text>
 
               <View className="flex-row flex-wrap">
-                {children.map(
-                  (child) => (
-                    <OptionButton
-                      key={
-                        child.childId
-                      }
-                      label={
-                        child.displayName
-                      }
-                      active={
-                        personalChildId ===
-                        child.childId
-                      }
-                      onPress={() =>
-                        setPersonalChildId(
-                          child.childId,
-                        )
-                      }
-                    />
-                  ),
-                )}
+                {children.map((child) => (
+                  <OptionButton
+                    key={child.childId}
+                    label={child.displayName}
+                    active={personalChildId === child.childId}
+                    onPress={() => setPersonalChildId(child.childId)}
+                  />
+                ))}
               </View>
             </>
           )}
 
-          {kind ===
-            'claimable' && (
+          {kind === "claimable" && (
             <>
               <Text className="mt-5 text-sm font-semibold text-white">
                 Eligibility
@@ -1100,51 +693,27 @@ export function ChoreDefinitionsCard({
               <View className="flex-row flex-wrap">
                 <OptionButton
                   label="All Children"
-                  active={
-                    !restrictEligibility
-                  }
-                  onPress={() =>
-                    setRestrictEligibility(
-                      false,
-                    )
-                  }
+                  active={!restrictEligibility}
+                  onPress={() => setRestrictEligibility(false)}
                 />
 
                 <OptionButton
                   label="Selected Children"
-                  active={
-                    restrictEligibility
-                  }
-                  onPress={() =>
-                    setRestrictEligibility(
-                      true,
-                    )
-                  }
+                  active={restrictEligibility}
+                  onPress={() => setRestrictEligibility(true)}
                 />
               </View>
 
               {restrictEligibility && (
-                <View className="flex-row flex-wrap mt-2">
-                  {children.map(
-                    (child) => (
-                      <OptionButton
-                        key={
-                          child.childId
-                        }
-                        label={
-                          child.displayName
-                        }
-                        active={eligibleChildIds.includes(
-                          child.childId,
-                        )}
-                        onPress={() =>
-                          toggleEligibleChild(
-                            child.childId,
-                          )
-                        }
-                      />
-                    ),
-                  )}
+                <View className="mt-2 flex-row flex-wrap">
+                  {children.map((child) => (
+                    <OptionButton
+                      key={child.childId}
+                      label={child.displayName}
+                      active={eligibleChildIds.includes(child.childId)}
+                      onPress={() => toggleEligibleChild(child.childId)}
+                    />
+                  ))}
                 </View>
               )}
             </>
@@ -1157,74 +726,41 @@ export function ChoreDefinitionsCard({
           <View className="flex-row flex-wrap">
             <OptionButton
               label="One-off"
-              active={
-                recurrenceKind ===
-                'one_off'
-              }
-              onPress={() =>
-                handleRecurrenceChange(
-                  'one_off',
-                )
-              }
+              active={recurrenceKind === "one_off"}
+              onPress={() => handleRecurrenceChange("one_off")}
             />
 
             <OptionButton
               label="Daily"
-              active={
-                recurrenceKind ===
-                'daily'
-              }
-              onPress={() =>
-                handleRecurrenceChange(
-                  'daily',
-                )
-              }
+              active={recurrenceKind === "daily"}
+              onPress={() => handleRecurrenceChange("daily")}
             />
 
             <OptionButton
               label="Weekly"
-              active={
-                recurrenceKind ===
-                'weekly'
-              }
-              onPress={() =>
-                handleRecurrenceChange(
-                  'weekly',
-                )
-              }
+              active={recurrenceKind === "weekly"}
+              onPress={() => handleRecurrenceChange("weekly")}
             />
 
             <OptionButton
               label="Monthly"
-              active={
-                recurrenceKind ===
-                'monthly'
-              }
-              onPress={() =>
-                handleRecurrenceChange(
-                  'monthly',
-                )
-              }
+              active={recurrenceKind === "monthly"}
+              onPress={() => handleRecurrenceChange("monthly")}
             />
           </View>
 
-          {recurrenceKind ===
-            'one_off' ? (
+          {recurrenceKind === "one_off" ? (
             <>
               <Text className="mt-4 text-sm font-semibold text-white">
                 Scheduled date
               </Text>
 
               <TextInput
-                className="px-4 py-3 mt-2 text-white border rounded-xl border-slate-700 bg-slate-900"
+                className="mt-2 rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-white"
                 placeholder="2026-09-10"
                 placeholderTextColor="#64748b"
-                value={
-                  scheduledDate
-                }
-                onChangeText={
-                  setScheduledDate
-                }
+                value={scheduledDate}
+                onChangeText={setScheduledDate}
                 autoCapitalize="none"
               />
             </>
@@ -1235,15 +771,11 @@ export function ChoreDefinitionsCard({
               </Text>
 
               <TextInput
-                className="px-4 py-3 mt-2 text-white border rounded-xl border-slate-700 bg-slate-900"
+                className="mt-2 rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-white"
                 placeholder="2026-09-10"
                 placeholderTextColor="#64748b"
-                value={
-                  startDate
-                }
-                onChangeText={
-                  setStartDate
-                }
+                value={startDate}
+                onChangeText={setStartDate}
                 autoCapitalize="none"
               />
 
@@ -1252,139 +784,93 @@ export function ChoreDefinitionsCard({
               </Text>
 
               <TextInput
-                className="px-4 py-3 mt-2 text-white border rounded-xl border-slate-700 bg-slate-900"
+                className="mt-2 rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-white"
                 placeholder="1"
                 placeholderTextColor="#64748b"
-                value={
-                  interval
-                }
-                onChangeText={
-                  setInterval
-                }
+                value={interval}
+                onChangeText={setInterval}
                 keyboardType="number-pad"
               />
             </>
           )}
 
-          {recurrenceKind ===
-            'weekly' && (
+          {recurrenceKind === "weekly" && (
             <>
               <Text className="mt-4 text-sm font-semibold text-white">
                 Weekdays
               </Text>
 
               <View className="flex-row flex-wrap">
-                {weekdays.map(
-                  (weekday) => (
-                    <OptionButton
-                      key={
-                        weekday
-                      }
-                      label={formatWeekday(
-                        weekday,
-                      )}
-                      active={selectedWeekdays.includes(
-                        weekday,
-                      )}
-                      onPress={() =>
-                        toggleWeekday(
-                          weekday,
-                        )
-                      }
-                    />
-                  ),
-                )}
+                {weekdays.map((weekday) => (
+                  <OptionButton
+                    key={weekday}
+                    label={formatWeekday(weekday)}
+                    active={selectedWeekdays.includes(weekday)}
+                    onPress={() => toggleWeekday(weekday)}
+                  />
+                ))}
               </View>
             </>
           )}
 
-          {recurrenceKind ===
-            'monthly' && (
+          {recurrenceKind === "monthly" && (
             <>
               <Text className="mt-4 text-sm font-semibold text-white">
                 Day of month
               </Text>
 
               <TextInput
-                className="px-4 py-3 mt-2 text-white border rounded-xl border-slate-700 bg-slate-900"
+                className="mt-2 rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-white"
                 placeholder="1"
                 placeholderTextColor="#64748b"
-                value={
-                  dayOfMonth
-                }
-                onChangeText={
-                  setDayOfMonth
-                }
+                value={dayOfMonth}
+                onChangeText={setDayOfMonth}
                 keyboardType="number-pad"
               />
             </>
           )}
 
-          {kind ===
-            'personal' &&
-            recurrenceKind !==
-              'one_off' && (
-              <>
-                <Text className="mt-5 text-sm font-semibold text-white">
-                  Unlock Chore
-                </Text>
+          {kind === "personal" && recurrenceKind !== "one_off" && (
+            <>
+              <Text className="mt-5 text-sm font-semibold text-white">
+                Unlock Chore
+              </Text>
 
-                <View className="flex-row flex-wrap">
-                  <OptionButton
-                    label="No"
-                    active={
-                      !isUnlockChore
-                    }
-                    onPress={() =>
-                      setIsUnlockChore(
-                        false,
-                      )
-                    }
-                  />
+              <View className="flex-row flex-wrap">
+                <OptionButton
+                  label="No"
+                  active={!isUnlockChore}
+                  onPress={() => setIsUnlockChore(false)}
+                />
 
-                  <OptionButton
-                    label="Yes"
-                    active={
-                      isUnlockChore
-                    }
-                    onPress={() =>
-                      setIsUnlockChore(
-                        true,
-                      )
-                    }
-                  />
-                </View>
+                <OptionButton
+                  label="Yes"
+                  active={isUnlockChore}
+                  onPress={() => setIsUnlockChore(true)}
+                />
+              </View>
 
-                <Text className="mt-2 text-xs leading-5 text-slate-500">
-                  A Child may have
-                  only one active
-                  recurring Unlock
-                  Chore.
-                </Text>
-              </>
-            )}
+              <Text className="mt-2 text-xs leading-5 text-slate-500">
+                A Child may have only one active recurring Unlock Chore.
+              </Text>
+            </>
+          )}
 
           <Text className="mt-5 text-sm font-semibold text-white">
             Availability time
           </Text>
 
           <TextInput
-            className="px-4 py-3 mt-2 text-white border rounded-xl border-slate-700 bg-slate-900"
+            className="mt-2 rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-white"
             placeholder="Optional HH:mm"
             placeholderTextColor="#64748b"
-            value={
-              availabilityLocalTime
-            }
-            onChangeText={
-              setAvailabilityLocalTime
-            }
+            value={availabilityLocalTime}
+            onChangeText={setAvailabilityLocalTime}
             autoCapitalize="none"
           />
 
           <Text className="mt-2 text-xs leading-5 text-slate-500">
-            Leave empty to make
-            the chore available at
-            00:00 on its scheduled
+            Leave empty to make the chore available at 00:00 on its scheduled
             day.
           </Text>
 
@@ -1393,15 +879,11 @@ export function ChoreDefinitionsCard({
           </Text>
 
           <TextInput
-            className="px-4 py-3 mt-2 text-white border rounded-xl border-slate-700 bg-slate-900"
+            className="mt-2 rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-white"
             placeholder="18:00"
             placeholderTextColor="#64748b"
-            value={
-              deadlineLocalTime
-            }
-            onChangeText={
-              setDeadlineLocalTime
-            }
+            value={deadlineLocalTime}
+            onChangeText={setDeadlineLocalTime}
             autoCapitalize="none"
           />
 
@@ -1410,58 +892,44 @@ export function ChoreDefinitionsCard({
           </Text>
 
           <TextInput
-            className="px-4 py-3 mt-2 text-white border rounded-xl border-slate-700 bg-slate-900"
+            className="mt-2 rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-white"
             placeholder="0"
             placeholderTextColor="#64748b"
-            value={
-              deadlineDayOffset
-            }
-            onChangeText={
-              setDeadlineDayOffset
-            }
+            value={deadlineDayOffset}
+            onChangeText={setDeadlineDayOffset}
             keyboardType="number-pad"
           />
 
           <Text className="mt-2 text-xs leading-5 text-slate-500">
-            0 means the scheduled
-            day. 1 means the
-            following day.
+            0 means the scheduled day. 1 means the following day.
           </Text>
 
           {errorMessage && (
-            <Text className="mt-4 text-red-400">
-              {errorMessage}
-            </Text>
+            <Text className="mt-4 text-red-400">{errorMessage}</Text>
           )}
 
           <Pressable
-            className="px-4 py-3 mt-6 bg-white rounded-xl"
+            className="mt-6 rounded-xl bg-white px-4 py-3"
             disabled={working}
-            onPress={() =>
-              void handleSave()
-            }
+            onPress={() => void handleSave()}
           >
-            <Text className="font-semibold text-center text-slate-950">
+            <Text className="text-center font-semibold text-slate-950">
               {working
                 ? editingDefinitionId
-                  ? 'Saving...'
-                  : 'Creating...'
+                  ? "Saving..."
+                  : "Creating..."
                 : editingDefinitionId
-                  ? 'Save changes'
-                  : 'Create chore'}
+                  ? "Save changes"
+                  : "Create chore"}
             </Text>
           </Pressable>
 
           <Pressable
-            className="px-4 py-3 mt-3 border rounded-xl border-slate-700"
+            className="mt-3 rounded-xl border border-slate-700 px-4 py-3"
             disabled={working}
-            onPress={
-              closeForm
-            }
+            onPress={closeForm}
           >
-            <Text className="font-semibold text-center text-white">
-              Cancel
-            </Text>
+            <Text className="text-center font-semibold text-white">Cancel</Text>
           </Pressable>
         </View>
       )}
@@ -1471,160 +939,100 @@ export function ChoreDefinitionsCard({
           Active definitions
         </Text>
 
-        {definitions ===
-          undefined && (
-          <Text className="mt-3 text-slate-500">
-            Loading chores...
-          </Text>
+        {definitions === undefined && (
+          <Text className="mt-3 text-slate-500">Loading chores...</Text>
         )}
 
-        {definitions?.length ===
-          0 && (
+        {definitions?.length === 0 && (
           <Text className="mt-3 text-sm leading-5 text-slate-500">
-            No chores configured
-            yet.
+            No chores configured yet.
           </Text>
         )}
 
-        {definitions?.map(
-          (definition) => (
-            <View
-              key={
-                definition
-                  .choreDefinitionId
-              }
-              className="p-4 mt-3 border rounded-xl border-slate-800 bg-slate-950"
-            >
-              <View className="flex-row items-start justify-between">
-                <View className="flex-1 pr-3">
-                  <Text className="text-lg font-semibold text-white">
-                    {
-                      definition.title
-                    }
-                  </Text>
+        {definitions?.map((definition) => (
+          <View
+            key={definition.choreDefinitionId}
+            className="mt-3 rounded-xl border border-slate-800 bg-slate-950 p-4"
+          >
+            <View className="flex-row items-start justify-between">
+              <View className="flex-1 pr-3">
+                <Text className="text-lg font-semibold text-white">
+                  {definition.title}
+                </Text>
 
-                  <Text className="mt-1 text-sm text-slate-400">
-                    {definition.kind ===
-                    'personal'
-                      ? 'Personal'
-                      : 'Claimable'}{' '}
-                    ·{' '}
-                    {
-                      definition.valueSek
-                    }{' '}
-                    kr
-                  </Text>
-                </View>
-
-                {definition.isUnlockChore && (
-                  <Text className="text-xs font-semibold text-amber-400">
-                    UNLOCK
-                  </Text>
-                )}
+                <Text className="mt-1 text-sm text-slate-400">
+                  {definition.kind === "personal" ? "Personal" : "Claimable"} ·{" "}
+                  {definition.valueSek} kr
+                </Text>
               </View>
 
-              {definition.description && (
-                <Text className="mt-3 text-sm leading-5 text-slate-400">
-                  {
-                    definition.description
-                  }
+              {definition.isUnlockChore && (
+                <Text className="text-xs font-semibold text-amber-400">
+                  UNLOCK
                 </Text>
               )}
-
-              <Text className="mt-3 text-sm text-slate-500">
-                {formatRecurrence(
-                  definition.recurrence,
-                )}
-              </Text>
-
-              <Text className="mt-1 text-sm text-slate-500">
-                Available:{' '}
-                {definition.availabilityLocalTime ??
-                  '00:00'}{' '}
-                · Deadline:{' '}
-                {
-                  definition.deadlineLocalTime
-                }
-                {definition.deadlineDayOffset >
-                0
-                  ? ` +${definition.deadlineDayOffset} day${
-                      definition.deadlineDayOffset ===
-                      1
-                        ? ''
-                        : 's'
-                    }`
-                  : ''}
-              </Text>
-
-              {definition.kind ===
-                'personal' &&
-                definition.personalChildId && (
-                  <Text className="mt-1 text-sm text-slate-500">
-                    Child:{' '}
-                    {getChildName(
-                      definition.personalChildId,
-                    )}
-                  </Text>
-                )}
-
-              {definition.kind ===
-                'claimable' && (
-                  <Text className="mt-1 text-sm text-slate-500">
-                    Eligible:{' '}
-                    {definition.eligibleChildIds ===
-                    undefined
-                      ? 'All Children'
-                      : definition.eligibleChildIds
-                          .map(
-                            getChildName,
-                          )
-                          .join(
-                            ', ',
-                          )}
-                  </Text>
-                )}
-
-              <View className="flex-row mt-4">
-                <Pressable
-                  className="flex-1 px-4 py-3 mr-2 border rounded-xl border-slate-700"
-                  disabled={
-                    archivingId !==
-                    undefined
-                  }
-                  onPress={() =>
-                    startEditing(
-                      definition,
-                    )
-                  }
-                >
-                  <Text className="font-semibold text-center text-white">
-                    Edit
-                  </Text>
-                </Pressable>
-
-                <Pressable
-                  className="flex-1 px-4 py-3 ml-2 border border-red-900 rounded-xl"
-                  disabled={
-                    archivingId !==
-                    undefined
-                  }
-                  onPress={() =>
-                    confirmArchive(
-                      definition,
-                    )
-                  }
-                >
-                  <Text className="font-semibold text-center text-red-400">
-                    {archivingId ===
-                    definition.choreDefinitionId
-                      ? 'Archiving...'
-                      : 'Archive'}
-                  </Text>
-                </Pressable>
-              </View>
             </View>
-          ),
-        )}
+
+            {definition.description && (
+              <Text className="mt-3 text-sm leading-5 text-slate-400">
+                {definition.description}
+              </Text>
+            )}
+
+            <Text className="mt-3 text-sm text-slate-500">
+              {formatRecurrence(definition.recurrence)}
+            </Text>
+
+            <Text className="mt-1 text-sm text-slate-500">
+              Available: {definition.availabilityLocalTime ?? "00:00"} ·
+              Deadline: {definition.deadlineLocalTime}
+              {definition.deadlineDayOffset > 0
+                ? ` +${definition.deadlineDayOffset} day${
+                    definition.deadlineDayOffset === 1 ? "" : "s"
+                  }`
+                : ""}
+            </Text>
+
+            {definition.kind === "personal" && definition.personalChildId && (
+              <Text className="mt-1 text-sm text-slate-500">
+                Child: {getChildName(definition.personalChildId)}
+              </Text>
+            )}
+
+            {definition.kind === "claimable" && (
+              <Text className="mt-1 text-sm text-slate-500">
+                Eligible:{" "}
+                {definition.eligibleChildIds === undefined
+                  ? "All Children"
+                  : definition.eligibleChildIds.map(getChildName).join(", ")}
+              </Text>
+            )}
+
+            <View className="mt-4 flex-row">
+              <Pressable
+                className="mr-2 flex-1 rounded-xl border border-slate-700 px-4 py-3"
+                disabled={archivingId !== undefined}
+                onPress={() => startEditing(definition)}
+              >
+                <Text className="text-center font-semibold text-white">
+                  Edit
+                </Text>
+              </Pressable>
+
+              <Pressable
+                className="ml-2 flex-1 rounded-xl border border-red-900 px-4 py-3"
+                disabled={archivingId !== undefined}
+                onPress={() => confirmArchive(definition)}
+              >
+                <Text className="text-center font-semibold text-red-400">
+                  {archivingId === definition.choreDefinitionId
+                    ? "Archiving..."
+                    : "Archive"}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        ))}
       </View>
     </View>
   );

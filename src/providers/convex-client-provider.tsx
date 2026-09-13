@@ -1,16 +1,16 @@
 import {
   ConvexBetterAuthProvider,
   type AuthClient,
-} from '@convex-dev/better-auth/react';
-import { ConvexReactClient } from 'convex/react';
-import type { PropsWithChildren } from 'react';
+} from "@convex-dev/better-auth/react";
+import { ConvexReactClient } from "convex/react";
+import type { PropsWithChildren } from "react";
 
-import { useAuthRuntime } from '@/providers/auth-runtime-provider';
+import { useAuthRuntime } from "@/providers/auth-runtime-provider";
 
 const convexUrl = process.env.EXPO_PUBLIC_CONVEX_URL;
 
 if (!convexUrl) {
-  throw new Error('Missing EXPO_PUBLIC_CONVEX_URL');
+  throw new Error("Missing EXPO_PUBLIC_CONVEX_URL");
 }
 
 const convex = new ConvexReactClient(convexUrl, {

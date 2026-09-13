@@ -1,13 +1,7 @@
-import {
-  v,
-} from 'convex/values';
+import { v } from "convex/values";
 
-import {
-  internalMutation,
-} from '../../_generated/server';
-import {
-  reconcileClaimCommitmentLock,
-} from '../../lib/claims/commitmentLifecycle';
+import { internalMutation } from "../../_generated/server";
+import { reconcileClaimCommitmentLock } from "../../lib/claims/commitmentLifecycle";
 
 /*
  * Internal durable time transition.
@@ -15,37 +9,20 @@ import {
  * Phones cannot manufacture or advance
  * commitment-lock state.
  */
-export const reconcileCommitmentLock =
-  internalMutation({
-    args: {
-      occurrenceId:
-        v.id(
-          'choreOccurrences',
-        ),
-    },
+export const reconcileCommitmentLock = internalMutation({
+  args: {
+    occurrenceId: v.id("choreOccurrences"),
+  },
 
-    returns:
-      v.object({
-        found:
-          v.boolean(),
+  returns: v.object({
+    found: v.boolean(),
 
-        changed:
-          v.boolean(),
+    changed: v.boolean(),
 
-        lockAt:
-          v.union(
-            v.number(),
-            v.null(),
-          ),
-      }),
+    lockAt: v.union(v.number(), v.null()),
+  }),
 
-    handler: async (
-      ctx,
-      args,
-    ) => {
-      return await reconcileClaimCommitmentLock(
-        ctx,
-        args.occurrenceId,
-      );
-    },
-  });
+  handler: async (ctx, args) => {
+    return await reconcileClaimCommitmentLock(ctx, args.occurrenceId);
+  },
+});

@@ -11,6 +11,7 @@
 ## Code quality
 
 Review meaningful improvements in:
+
 1. correctness,
 2. readability,
 3. maintainability,
@@ -54,6 +55,7 @@ Planning can use broad context. Each implementation task starts in a fresh focus
 ## Living documentation
 
 Project docs are living sources of truth. Update the smallest authoritative set when truth changes:
+
 - product problem/solution/journey/constraint → `docs/product.md`
 - domain language/rule/invariant/state transition → `docs/domain.md`
 - observable journey behavior → `docs/specs.md#J-xx`
@@ -71,6 +73,7 @@ A task is ready when its behavior is specified enough to implement without inven
 ## Definition of Done
 
 As applicable:
+
 - agreed behavior is implemented,
 - relevant focused tests pass,
 - affected living docs are current,

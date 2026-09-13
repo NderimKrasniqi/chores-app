@@ -1,64 +1,36 @@
-import {
-  useState,
-} from 'react';
-import {
-  Pressable,
-  ScrollView,
-  Text,
-} from 'react-native';
+import { useState } from "react";
+import { Pressable, ScrollView, Text } from "react-native";
 
-import type {
-  Id,
-} from '../../../convex/_generated/dataModel';
+import type { Id } from "../../../convex/_generated/dataModel";
 import {
   ApprovalActivitySurface,
   type ApprovalActivityItem,
-} from '../activity/approval-activity';
+} from "../activity/approval-activity";
 
-const alexId =
-  'task17-alex' as
-    Id<'children'>;
+const alexId = "task17-alex" as Id<"children">;
 
-const samId =
-  'task17-sam' as
-    Id<'children'>;
+const samId = "task17-sam" as Id<"children">;
 
-const initialItems:
-  ApprovalActivityItem[] =
-  [
-    {
-      activityId:
-        'task17-review-sam' as
-          Id<'choreReviews'>,
+const initialItems: ApprovalActivityItem[] = [
+  {
+    activityId: "task17-review-sam" as Id<"choreReviews">,
 
-      childId:
-        samId,
+    childId: samId,
 
-      childDisplayName:
-        'Sam',
+    childDisplayName: "Sam",
 
-      choreTitle:
-        'Vacuum living room',
+    choreTitle: "Vacuum living room",
 
-      choreKind:
-        'claimable',
+    choreKind: "claimable",
 
-      valueSek:
-        90,
+    valueSek: 90,
 
-      approvedAt:
-        1_893_456_000_000,
-    },
-  ];
+    approvedAt: 1_893_456_000_000,
+  },
+];
 
 export function Task17ActivityMaestroFixtureScreen() {
-  const [
-    items,
-    setItems,
-  ] =
-    useState(
-      initialItems,
-    );
+  const [items, setItems] = useState(initialItems);
 
   return (
     <ScrollView
@@ -78,52 +50,35 @@ export function Task17ActivityMaestroFixtureScreen() {
         accessibilityRole="button"
         accessibilityLabel="Simulate new household approval"
         onPress={() =>
-          setItems(
-            (
-              current,
-            ) => [
-              {
-                activityId:
-                  `task17-review-alex-${current.length}-${Date.now()}` as
-                    Id<'choreReviews'>,
+          setItems((current) => [
+            {
+              activityId:
+                `task17-review-alex-${current.length}-${Date.now()}` as Id<"choreReviews">,
 
-                childId:
-                  alexId,
+              childId: alexId,
 
-                childDisplayName:
-                  'Alex',
+              childDisplayName: "Alex",
 
-                choreTitle:
-                  'Load dishwasher',
+              choreTitle: "Load dishwasher",
 
-                choreKind:
-                  'personal',
+              choreKind: "personal",
 
-                valueSek:
-                  60,
+              valueSek: 60,
 
-                approvedAt:
-                  Date.now(),
-              },
-              ...current,
-            ],
-          )
+              approvedAt: Date.now(),
+            },
+            ...current,
+          ])
         }
-        className="items-center px-4 py-3 mt-5 bg-white rounded-xl"
+        className="mt-5 items-center rounded-xl bg-white px-4 py-3"
       >
-        <Text className="font-semibold text-slate-950">
-          Simulate approval
-        </Text>
+        <Text className="font-semibold text-slate-950">Simulate approval</Text>
       </Pressable>
 
       <ApprovalActivitySurface
-        items={
-          items
-        }
+        items={items}
         timezone="Europe/Stockholm"
-        viewerChildId={
-          alexId
-        }
+        viewerChildId={alexId}
         showHistory
       />
     </ScrollView>

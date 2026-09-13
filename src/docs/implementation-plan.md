@@ -1,9 +1,11 @@
 # Implementation Plan
+
 **Status:** Approved — current
 
 **Implementation progress:** TASK-01 through TASK-22 complete. TASK-23 is next.
 
 ## Phase 1 — Establish trusted household access
+
 - [x] TASK-01 Bootstrap the Expo, NativeWind, and Convex application with an unprotected connectivity seam
 - [x] TASK-02 Implement Better Auth parent sign-in with `expo-secure-store` session persistence and protected Convex actor resolution
 - [x] TASK-03 Implement household creation, child profiles, timezone, payout-day, and default unclaim settings
@@ -11,10 +13,12 @@
 - [x] TASK-05 Implement child QR/manual-code pairing, device revocation, and `expo-secure-store`-protected PIN-gated shared-device access
 
 ## Phase 2 — Establish chore configuration and scheduling
+
 - [x] TASK-06 Implement parent chore definitions with recurrence, values, eligibility, availability, and unlock designation
 - [x] TASK-07 Generate timezone-stable chore occurrences with immutable schedule snapshots and unclaimed expiry
 
 ## Phase 3 — Prove the responsibility-to-commitment loop
+
 - [x] TASK-08 Deliver personal-chore viewing, on-time submission, parent approval, earnings, and no-penalty misses
 - [x] TASK-09 Gate the claimable-chore pool on approval of the current unlock-chore occurrence
 - [x] TASK-10 Implement atomic exclusive claiming, eligibility checks, one-active-claim enforcement, and claimed-by visibility
@@ -24,23 +28,28 @@
 - [x] TASK-14 Apply missed locked-claim and failed-redo penalties with negative running-balance carry-forward
 
 ## Phase 4 — Complete settlement, evidence, and household engagement
+
 - [x] TASK-15 Implement payout periods, manual Swish settlement tracking, pending outcomes, and weekly resets
 - [x] TASK-16 Add optional private photo evidence with authorized upload/view and recoverable upload failure
 - [x] TASK-17 Add household approval celebrations and activity history with sibling financial privacy
 - [x] TASK-18 Add Expo push registration and notifications for chore, review, redo, deadline, and pre-lock events
 
 ## Phase 5 — Harden and close the first release
+
 - [x] TASK-19 Enforce read-only offline fallback and server-confirmed recovery states across consequential actions
 - [x] TASK-20 Verify the integrated first-release surface across all approved household, chore, review, financial, and notification journeys
 
 ## Phase 6 — Audit and stabilize the engineering foundation
+
 - [x] TASK-21 Audit the complete codebase for correctness, security, architecture, readability, maintainability, performance, testing quality, and current Expo/Convex best practices; produce prioritized findings before refactoring
 - [x] TASK-22 Resolve approved P0/P1 findings and selected high-value P2 findings, stabilizing domain, backend, application, and integration boundaries before production UI work
 
 ## Phase 7 — Define and build the production experience
+
 - [ ] TASK-23 Define the real Parent and Child UX architecture, navigation model, journey flows, low-fidelity wireframes, design system, accessibility requirements, and loading/error/offline interaction states before production UI implementation
 - [ ] TASK-24 Implement the production UI/UX journey-by-journey on the stabilized application interfaces, replacing temporary validation surfaces while preserving approved behavior and regression coverage
 
 ## Phase 8 — Pilot and prepare distribution
+
 - [ ] TASK-25 Run a real-household pilot across representative scheduling, chore, review, financial, notification, offline, pairing, and recovery journeys; resolve material pilot findings and complete regression verification
 - [ ] TASK-26 Complete production distribution readiness, including production configuration, privacy/store disclosures, app metadata and assets, TestFlight verification, and App Store release preparation when Apple Developer credentials are available

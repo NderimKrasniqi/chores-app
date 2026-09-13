@@ -1,13 +1,7 @@
-import {
-  v,
-} from 'convex/values';
+import { v } from "convex/values";
 
-import {
-  internalMutation,
-} from '../../_generated/server';
-import {
-  runEvidenceMaintenance,
-} from '../../lib/evidence/maintenance';
+import { internalMutation } from "../../_generated/server";
+import { runEvidenceMaintenance } from "../../lib/evidence/maintenance";
 
 /*
  * Bounded evidence retention maintenance.
@@ -18,36 +12,24 @@ import {
  * - up to 100 expired private view tokens;
  * - one 50-object _storage page.
  */
-export const run =
-  internalMutation({
-    args: {},
+export const run = internalMutation({
+  args: {},
 
-    returns:
-      v.object({
-        expiredIntentsProcessed:
-          v.number(),
+  returns: v.object({
+    expiredIntentsProcessed: v.number(),
 
-        expiredIntentFilesDeleted:
-          v.number(),
+    expiredIntentFilesDeleted: v.number(),
 
-        expiredViewTokensDeleted:
-          v.number(),
+    expiredViewTokensDeleted: v.number(),
 
-        storageObjectsScanned:
-          v.number(),
+    storageObjectsScanned: v.number(),
 
-        orphanFilesDeleted:
-          v.number(),
+    orphanFilesDeleted: v.number(),
 
-        completedStorageCycle:
-          v.boolean(),
-      }),
+    completedStorageCycle: v.boolean(),
+  }),
 
-    handler: async (
-      ctx,
-    ) => {
-      return await runEvidenceMaintenance(
-        ctx,
-      );
-    },
-  });
+  handler: async (ctx) => {
+    return await runEvidenceMaintenance(ctx);
+  },
+});

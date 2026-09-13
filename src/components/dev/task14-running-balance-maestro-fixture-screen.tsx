@@ -1,11 +1,6 @@
-import {
-  ScrollView,
-  Text,
-} from 'react-native';
+import { ScrollView, Text } from "react-native";
 
-import {
-  ChildRunningBalanceCardView,
-} from '../child-access/child-running-balance-card';
+import { ChildRunningBalanceCardView } from "../child-access/child-running-balance-card";
 
 export function Task14RunningBalanceMaestroFixtureScreen() {
   return (
@@ -21,11 +16,7 @@ export function Task14RunningBalanceMaestroFixtureScreen() {
         TASK-14 Running Balance Fixture
       </Text>
 
-      <ChildRunningBalanceCardView
-        balanceSek={
-          -100
-        }
-      />
+      <ChildRunningBalanceCardView balanceSek={-100} />
     </ScrollView>
   );
 }

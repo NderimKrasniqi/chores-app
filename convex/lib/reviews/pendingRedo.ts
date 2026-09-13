@@ -1,177 +1,90 @@
-import type {
-  Id,
-} from '../../_generated/dataModel';
-import type {
-  QueryCtx,
-} from '../../_generated/server';
-import {
-  findSubmittedClaimForSubmission,
-} from '../claims/submittedClaim';
+import type { Id } from "../../_generated/dataModel";
+import type { QueryCtx } from "../../_generated/server";
+import { findSubmittedClaimForSubmission } from "../claims/submittedClaim";
 
 export type PendingRedoReview = {
-  submissionId:
-    Id<'choreSubmissions'>;
+  submissionId: Id<"choreSubmissions">;
 
-  occurrenceId:
-    Id<'choreOccurrences'>;
+  occurrenceId: Id<"choreOccurrences">;
 
-  childId:
-    Id<'children'>;
+  childId: Id<"children">;
 
-  kind:
-    'personal' |
-    'claimable';
+  kind: "personal" | "claimable";
 
-  childDisplayName:
-    string;
+  childDisplayName: string;
 
-  title:
-    string;
+  title: string;
 
-  description?:
-    string;
+  description?: string;
 
-  valueSek:
-    number;
+  valueSek: number;
 
-  submittedAt:
-    number;
+  submittedAt: number;
 
-  redoDeadlineAt:
-    number;
+  redoDeadlineAt: number;
 
-  timezone:
-    string;
+  timezone: string;
 
-  isUnlockChore:
-    boolean;
+  isUnlockChore: boolean;
 
-  hasEvidence:
-    boolean;
+  hasEvidence: boolean;
 };
 
 export async function listPendingRedoReviews(
   ctx: QueryCtx,
-  householdId:
-    Id<'households'>,
+  householdId: Id<"households">,
 ) {
-  const occurrences =
-    await ctx.db
-      .query(
-        'choreOccurrences',
-      )
-      .withIndex(
-        'by_household_state_availability',
-        (q) =>
-          q
-            .eq(
-              'householdId',
-              householdId,
-            )
-            .eq(
-              'state',
-              'submitted',
-            ),
-      )
-      .collect();
+  const occurrences = await ctx.db
+    .query("choreOccurrences")
+    .withIndex("by_household_state_availability", (q) =>
+      q.eq("householdId", householdId).eq("state", "submitted"),
+    )
+    .collect();
 
-  const pending:
-    PendingRedoReview[] =
-    [];
+  const pending: PendingRedoReview[] = [];
 
-  for (
-    const occurrence of
-    occurrences
-  ) {
-    const submission =
-      await ctx.db
-        .query(
-          'choreSubmissions',
-        )
-        .withIndex(
-          'by_occurrence_attempt',
-          (q) =>
-            q
-              .eq(
-                'occurrenceId',
-                occurrence._id,
-              )
-              .eq(
-                'attemptNumber',
-                2,
-              ),
-        )
-        .unique();
+  for (const occurrence of occurrences) {
+    const submission = await ctx.db
+      .query("choreSubmissions")
+      .withIndex("by_occurrence_attempt", (q) =>
+        q.eq("occurrenceId", occurrence._id).eq("attemptNumber", 2),
+      )
+      .unique();
 
     if (!submission) {
       continue;
     }
 
-    const review =
-      await ctx.db
-        .query(
-          'choreReviews',
-        )
-        .withIndex(
-          'by_submission',
-          (q) =>
-            q.eq(
-              'submissionId',
-              submission._id,
-            ),
-        )
-        .unique();
+    const review = await ctx.db
+      .query("choreReviews")
+      .withIndex("by_submission", (q) => q.eq("submissionId", submission._id))
+      .unique();
 
     if (review) {
       continue;
     }
 
-    const redo =
-      await ctx.db
-        .query(
-          'choreRedos',
-        )
-        .withIndex(
-          'by_occurrence',
-          (q) =>
-            q.eq(
-              'occurrenceId',
-              occurrence._id,
-            ),
-        )
-        .unique();
+    const redo = await ctx.db
+      .query("choreRedos")
+      .withIndex("by_occurrence", (q) => q.eq("occurrenceId", occurrence._id))
+      .unique();
 
-    if (
-      !redo ||
-      submission.submittedAt >
-        redo.deadlineAt
-    ) {
+    if (!redo || submission.submittedAt > redo.deadlineAt) {
       continue;
     }
 
-    const child =
-      await ctx.db.get(
-        submission.childId,
+    const child = await ctx.db.get(submission.childId);
+
+    if (!child || child.householdId !== householdId) {
+      continue;
+    }
+
+    if (occurrence.kind === "claimable") {
+      const claim = await findSubmittedClaimForSubmission(
+        ctx,
+        occurrence._id,
+        child._id,
       );
-
-    if (
-      !child ||
-      child.householdId !==
-        householdId
-    ) {
-      continue;
-    }
-
-    if (
-      occurrence.kind ===
-      'claimable'
-    ) {
-      const claim =
-        await findSubmittedClaimForSubmission(
-          ctx,
-          occurrence._id,
-          child._id,
-        );
 
       if (!claim) {
         continue;
@@ -179,55 +92,33 @@ export async function listPendingRedoReviews(
     }
 
     pending.push({
-      submissionId:
-        submission._id,
+      submissionId: submission._id,
 
-      occurrenceId:
-        occurrence._id,
+      occurrenceId: occurrence._id,
 
-      childId:
-        child._id,
+      childId: child._id,
 
-      kind:
-        occurrence.kind,
+      kind: occurrence.kind,
 
-      childDisplayName:
-        child.displayName,
+      childDisplayName: child.displayName,
 
-      title:
-        occurrence.title,
+      title: occurrence.title,
 
-      description:
-        occurrence.description,
+      description: occurrence.description,
 
-      valueSek:
-        occurrence.valueSek,
+      valueSek: occurrence.valueSek,
 
-      submittedAt:
-        submission.submittedAt,
+      submittedAt: submission.submittedAt,
 
-      redoDeadlineAt:
-        redo.deadlineAt,
+      redoDeadlineAt: redo.deadlineAt,
 
-      timezone:
-        occurrence.timezone,
+      timezone: occurrence.timezone,
 
-      isUnlockChore:
-        occurrence.isUnlockChore,
+      isUnlockChore: occurrence.isUnlockChore,
 
-      hasEvidence:
-        submission
-          .evidenceStorageId !==
-        undefined,
+      hasEvidence: submission.evidenceStorageId !== undefined,
     });
   }
 
-  return pending.sort(
-    (
-      left,
-      right,
-    ) =>
-      left.submittedAt -
-      right.submittedAt,
-  );
+  return pending.sort((left, right) => left.submittedAt - right.submittedAt);
 }

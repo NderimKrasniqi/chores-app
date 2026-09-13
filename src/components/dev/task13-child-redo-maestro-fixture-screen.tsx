@@ -1,39 +1,14 @@
-import {
-  useState,
-} from 'react';
-import {
-  ScrollView,
-  Text,
-} from 'react-native';
+import { useState } from "react";
+import { ScrollView, Text } from "react-native";
 
-import { ChildRedoRequiredCard } from '../chores/child-redo-required-card';
+import { ChildRedoRequiredCard } from "../chores/child-redo-required-card";
 
-const REDO_DEADLINE =
-  Date.UTC(
-    2030,
-    0,
-    17,
-    17,
-    0,
-    0,
-  );
+const REDO_DEADLINE = Date.UTC(2030, 0, 17, 17, 0, 0);
 
 export function Task13ChildRedoMaestroFixtureScreen() {
-  const [
-    personalSubmitted,
-    setPersonalSubmitted,
-  ] =
-    useState(
-      false,
-    );
+  const [personalSubmitted, setPersonalSubmitted] = useState(false);
 
-  const [
-    claimableSubmitted,
-    setClaimableSubmitted,
-  ] =
-    useState(
-      false,
-    );
+  const [claimableSubmitted, setClaimableSubmitted] = useState(false);
 
   return (
     <ScrollView
@@ -52,29 +27,19 @@ export function Task13ChildRedoMaestroFixtureScreen() {
         <ChildRedoRequiredCard
           title="Bedroom reset"
           description="Put everything back in place."
-          valueSek={
-            90
-          }
-          deadlineAt={
-            REDO_DEADLINE
-          }
+          valueSek={90}
+          deadlineAt={REDO_DEADLINE}
           timezone="Europe/Stockholm"
-          claimRemainsActive={
-            false
-          }
+          claimRemainsActive={false}
           canSubmit
-          submitting={
-            false
-          }
+          submitting={false}
           submitTestID="task13-personal-redo-submit"
           onSubmit={async () => {
-            setPersonalSubmitted(
-              true,
-            );
+            setPersonalSubmitted(true);
           }}
         />
       ) : (
-        <Text className="p-4 mt-4 text-green-300 rounded-xl bg-green-950">
+        <Text className="mt-4 rounded-xl bg-green-950 p-4 text-green-300">
           Personal Redo submitted
         </Text>
       )}
@@ -83,27 +48,19 @@ export function Task13ChildRedoMaestroFixtureScreen() {
         <ChildRedoRequiredCard
           title="Garage shelves"
           description="Organize the garage shelves."
-          valueSek={
-            140
-          }
-          deadlineAt={
-            REDO_DEADLINE
-          }
+          valueSek={140}
+          deadlineAt={REDO_DEADLINE}
           timezone="Europe/Stockholm"
           claimRemainsActive
           canSubmit
-          submitting={
-            false
-          }
+          submitting={false}
           submitTestID="task13-claimable-redo-submit"
           onSubmit={async () => {
-            setClaimableSubmitted(
-              true,
-            );
+            setClaimableSubmitted(true);
           }}
         />
       ) : (
-        <Text className="p-4 mt-4 text-green-300 rounded-xl bg-green-950">
+        <Text className="mt-4 rounded-xl bg-green-950 p-4 text-green-300">
           Claimable Redo submitted
         </Text>
       )}

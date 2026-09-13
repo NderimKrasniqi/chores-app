@@ -1,219 +1,136 @@
-import {
-  ConvexError,
-} from 'convex/values';
+import { ConvexError } from "convex/values";
 
-import {
-  internal,
-} from '../../_generated/api';
-import type {
-  Id,
-} from '../../_generated/dataModel';
-import type {
-  MutationCtx,
-} from '../../_generated/server';
+import { internal } from "../../_generated/api";
+import type { Id } from "../../_generated/dataModel";
+import type { MutationCtx } from "../../_generated/server";
 
 export type NotificationEventKind =
-  | 'claimable_available'
-  | 'submission_review'
-  | 'approved'
-  | 'redo_required'
-  | 'deadline_reminder'
-  | 'redo_deadline_reminder'
-  | 'pre_lock_reminder';
+  | "claimable_available"
+  | "submission_review"
+  | "approved"
+  | "redo_required"
+  | "deadline_reminder"
+  | "redo_deadline_reminder"
+  | "pre_lock_reminder";
 
 export type NotificationEventInput = {
-  eventKey:
-    string;
+  eventKey: string;
 
-  kind:
-    NotificationEventKind;
+  kind: NotificationEventKind;
 
-  householdId:
-    Id<'households'>;
+  householdId: Id<"households">;
 
-  recipientKind:
-    'parents' |
-    'child';
+  recipientKind: "parents" | "child";
 
-  childId?:
-    Id<'children'>;
+  childId?: Id<"children">;
 
-  title:
-    string;
+  title: string;
 
-  body:
-    string;
+  body: string;
 
-  occurrenceId?:
-    Id<'choreOccurrences'>;
+  occurrenceId?: Id<"choreOccurrences">;
 
-  submissionId?:
-    Id<'choreSubmissions'>;
+  submissionId?: Id<"choreSubmissions">;
 
-  claimId?:
-    Id<'choreClaims'>;
+  claimId?: Id<"choreClaims">;
 
-  redoId?:
-    Id<'choreRedos'>;
+  redoId?: Id<"choreRedos">;
 
-  scheduledFor?:
-    number;
+  scheduledFor?: number;
 };
 
 export async function enqueueNotificationEvent(
-  ctx:
-    MutationCtx,
-  input:
-    NotificationEventInput,
+  ctx: MutationCtx,
+  input: NotificationEventInput,
   options?: {
-    now?:
-      number;
+    now?: number;
 
-    scheduleDelivery?:
-      boolean;
+    scheduleDelivery?: boolean;
   },
 ) {
-  const now =
-    options?.now ??
-    Date.now();
+  const now = options?.now ?? Date.now();
 
-  const eventKey =
-    input.eventKey.trim();
+  const eventKey = input.eventKey.trim();
 
   if (!eventKey) {
-    throw new ConvexError(
-      'Notification event key cannot be empty.',
-    );
+    throw new ConvexError("Notification event key cannot be empty.");
   }
 
-  if (
-    input.recipientKind ===
-      'child' &&
-    !input.childId
-  ) {
-    throw new ConvexError(
-      'Child notification requires a Child recipient.',
-    );
+  if (input.recipientKind === "child" && !input.childId) {
+    throw new ConvexError("Child notification requires a Child recipient.");
   }
 
-  const existing =
-    await ctx.db
-      .query(
-        'notificationEvents',
-      )
-      .withIndex(
-        'by_event_key',
-        (q) =>
-          q.eq(
-            'eventKey',
-            eventKey,
-          ),
-      )
-      .unique();
+  const existing = await ctx.db
+    .query("notificationEvents")
+    .withIndex("by_event_key", (q) => q.eq("eventKey", eventKey))
+    .unique();
 
   if (existing) {
     return {
-      eventId:
-        existing._id,
+      eventId: existing._id,
 
-      created:
-        false,
+      created: false,
     };
   }
 
-  const scheduledFor =
-    input.scheduledFor ??
-    now;
+  const scheduledFor = input.scheduledFor ?? now;
 
-  const eventId =
-    await ctx.db.insert(
-      'notificationEvents',
-      {
-        eventKey,
+  const eventId = await ctx.db.insert("notificationEvents", {
+    eventKey,
 
-        kind:
-          input.kind,
+    kind: input.kind,
 
-        householdId:
-          input.householdId,
+    householdId: input.householdId,
 
-        recipientKind:
-          input
-            .recipientKind,
+    recipientKind: input.recipientKind,
 
-        ...(input.childId !==
-        undefined
-          ? {
-              childId:
-                input.childId,
-            }
-          : {}),
+    ...(input.childId !== undefined
+      ? {
+          childId: input.childId,
+        }
+      : {}),
 
-        title:
-          input.title,
+    title: input.title,
 
-        body:
-          input.body,
+    body: input.body,
 
-        ...(input.occurrenceId !==
-        undefined
-          ? {
-              occurrenceId:
-                input
-                  .occurrenceId,
-            }
-          : {}),
+    ...(input.occurrenceId !== undefined
+      ? {
+          occurrenceId: input.occurrenceId,
+        }
+      : {}),
 
-        ...(input.submissionId !==
-        undefined
-          ? {
-              submissionId:
-                input
-                  .submissionId,
-            }
-          : {}),
+    ...(input.submissionId !== undefined
+      ? {
+          submissionId: input.submissionId,
+        }
+      : {}),
 
-        ...(input.claimId !==
-        undefined
-          ? {
-              claimId:
-                input.claimId,
-            }
-          : {}),
+    ...(input.claimId !== undefined
+      ? {
+          claimId: input.claimId,
+        }
+      : {}),
 
-        ...(input.redoId !==
-        undefined
-          ? {
-              redoId:
-                input.redoId,
-            }
-          : {}),
+    ...(input.redoId !== undefined
+      ? {
+          redoId: input.redoId,
+        }
+      : {}),
 
-        scheduledFor,
+    scheduledFor,
 
-        createdAt:
-          now,
+    createdAt: now,
 
-        dispatchAttemptCount:
-          0,
-      },
-    );
+    dispatchAttemptCount: 0,
+  });
 
-  if (
-    options
-      ?.scheduleDelivery !==
-    false
-  ) {
-    if (
-      scheduledFor >
-      now
-    ) {
+  if (options?.scheduleDelivery !== false) {
+    if (scheduledFor > now) {
       await ctx.scheduler.runAt(
         scheduledFor,
 
-        internal
-          .jobs.notifications.delivery
-          .dispatchEvent,
+        internal.jobs.notifications.delivery.dispatchEvent,
 
         {
           eventId,
@@ -223,9 +140,7 @@ export async function enqueueNotificationEvent(
       await ctx.scheduler.runAfter(
         0,
 
-        internal
-          .jobs.notifications.delivery
-          .dispatchEvent,
+        internal.jobs.notifications.delivery.dispatchEvent,
 
         {
           eventId,
@@ -236,7 +151,6 @@ export async function enqueueNotificationEvent(
 
   return {
     eventId,
-    created:
-      true,
+    created: true,
   };
 }

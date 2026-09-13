@@ -1,79 +1,41 @@
-import {
-  ConvexError,
-} from 'convex/values';
+import { ConvexError } from "convex/values";
 
-import type {
-  Id,
-} from '../../_generated/dataModel';
-import type {
-  MutationCtx,
-} from '../../_generated/server';
-import { getClaimUnclaimStatus } from './commitmentRules';
-import { getWeeklyUnclaimUsageForChild } from './unclaimAccounting';
+import type { Id } from "../../_generated/dataModel";
+import type { MutationCtx } from "../../_generated/server";
+import { getClaimUnclaimStatus } from "./commitmentRules";
+import { getWeeklyUnclaimUsageForChild } from "./unclaimAccounting";
 
 export async function unclaimClaimableClaim(
   ctx: MutationCtx,
-  householdId:
-    Id<'households'>,
-  childId:
-    Id<'children'>,
-  claimId:
-    Id<'choreClaims'>,
+  householdId: Id<"households">,
+  childId: Id<"children">,
+  claimId: Id<"choreClaims">,
   now = Date.now(),
 ) {
-  const household =
-    await ctx.db.get(
-      householdId,
-    );
+  const household = await ctx.db.get(householdId);
 
   if (!household) {
-    throw new ConvexError(
-      'Household not found.',
-    );
+    throw new ConvexError("Household not found.");
   }
 
-  const child =
-    await ctx.db.get(
-      childId,
-    );
+  const child = await ctx.db.get(childId);
 
-  if (
-    !child ||
-    child.householdId !==
-      householdId
-  ) {
-    throw new ConvexError(
-      'Child does not belong to this Household.',
-    );
+  if (!child || child.householdId !== householdId) {
+    throw new ConvexError("Child does not belong to this Household.");
   }
 
-  const claim =
-    await ctx.db.get(
-      claimId,
-    );
+  const claim = await ctx.db.get(claimId);
 
   if (!claim) {
-    throw new ConvexError(
-      'Claim not found.',
-    );
+    throw new ConvexError("Claim not found.");
   }
 
-  if (
-    claim.householdId !==
-    householdId
-  ) {
-    throw new ConvexError(
-      'This Claim does not belong to this Household.',
-    );
+  if (claim.householdId !== householdId) {
+    throw new ConvexError("This Claim does not belong to this Household.");
   }
 
-  if (
-    claim.childId !==
-    childId
-  ) {
-    throw new ConvexError(
-      'This Claim belongs to another Child.',
-    );
+  if (claim.childId !== childId) {
+    throw new ConvexError("This Claim belongs to another Child.");
   }
 
   /*
@@ -84,30 +46,18 @@ export async function unclaimClaimableClaim(
    * has already committed the work for
    * review and cannot use unclaim.
    */
-  if (
-    claim.state !==
-    'claimed'
-  ) {
-    throw new ConvexError(
-      'Only an active unsubmitted Claim can be unclaimed.',
-    );
+  if (claim.state !== "claimed") {
+    throw new ConvexError("Only an active unsubmitted Claim can be unclaimed.");
   }
 
-  const occurrence =
-    await ctx.db.get(
-      claim.occurrenceId,
-    );
+  const occurrence = await ctx.db.get(claim.occurrenceId);
 
   if (
     !occurrence ||
-    occurrence.householdId !==
-      householdId ||
-    occurrence.kind !==
-      'claimable'
+    occurrence.householdId !== householdId ||
+    occurrence.kind !== "claimable"
   ) {
-    throw new ConvexError(
-      'Claimable Chore occurrence not found.',
-    );
+    throw new ConvexError("Claimable Chore occurrence not found.");
   }
 
   /*
@@ -118,27 +68,22 @@ export async function unclaimClaimableClaim(
    * The client cannot supply or authorize
    * either value.
    */
-  const usage =
-    await getWeeklyUnclaimUsageForChild(
-      ctx,
-      household,
-      childId,
-      now,
-    );
+  const usage = await getWeeklyUnclaimUsageForChild(
+    ctx,
+    household,
+    childId,
+    now,
+  );
 
-  const status =
-    getClaimUnclaimStatus({
-      deadlineAt:
-        occurrence.deadlineAt,
+  const status = getClaimUnclaimStatus({
+    deadlineAt: occurrence.deadlineAt,
 
-      now,
+    now,
 
-      weeklyUnclaimAllowance:
-        usage.allowance,
+    weeklyUnclaimAllowance: usage.allowance,
 
-      usedUnclaims:
-        usage.usedUnclaims,
-    });
+    usedUnclaims: usage.usedUnclaims,
+  });
 
   /*
    * D-10:
@@ -147,20 +92,14 @@ export async function unclaimClaimableClaim(
    * at lockAt      => locked
    * after lockAt   => locked
    */
-  if (
-    status.isTimeLocked
-  ) {
+  if (status.isTimeLocked) {
     throw new ConvexError(
-      'This Claim is locked because it is within two hours of the deadline.',
+      "This Claim is locked because it is within two hours of the deadline.",
     );
   }
 
-  if (
-    !status.hasUnclaimAllowance
-  ) {
-    throw new ConvexError(
-      'This Child has no weekly unclaims remaining.',
-    );
+  if (!status.hasUnclaimAllowance) {
+    throw new ConvexError("This Child has no weekly unclaims remaining.");
   }
 
   /*
@@ -175,40 +114,25 @@ export async function unclaimClaimableClaim(
    * historical `unclaimed` Claims, which
    * returns the occurrence to the pool.
    */
-  await ctx.db.patch(
-    claim._id,
-    {
-      state:
-        'unclaimed',
+  await ctx.db.patch(claim._id, {
+    state: "unclaimed",
 
-      unclaimedAt:
-        now,
-    },
-  );
+    unclaimedAt: now,
+  });
 
   return {
-    claimId:
-      claim._id,
+    claimId: claim._id,
 
-    occurrenceId:
-      occurrence._id,
+    occurrenceId: occurrence._id,
 
     childId,
 
-    state:
-      'unclaimed' as const,
+    state: "unclaimed" as const,
 
-    unclaimedAt:
-      now,
+    unclaimedAt: now,
 
-    payoutWeek:
-      usage.payoutWeek,
+    payoutWeek: usage.payoutWeek,
 
-    remainingUnclaims:
-      Math.max(
-        status.remainingUnclaims -
-          1,
-        0,
-      ),
+    remainingUnclaims: Math.max(status.remainingUnclaims - 1, 0),
   };
 }

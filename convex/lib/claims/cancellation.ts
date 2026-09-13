@@ -1,87 +1,51 @@
-import {
-  ConvexError,
-} from 'convex/values';
+import { ConvexError } from "convex/values";
 
-import type {
-  Id,
-} from '../../_generated/dataModel';
-import type {
-  MutationCtx,
-} from '../../_generated/server';
+import type { Id } from "../../_generated/dataModel";
+import type { MutationCtx } from "../../_generated/server";
 
 const parentCancellableClaimStates = [
-  'claimed',
-  'submitted',
-  'redo_required',
+  "claimed",
+  "submitted",
+  "redo_required",
 ] as const;
 
 export async function cancelClaimableClaimForParent(
   ctx: MutationCtx,
-  householdId:
-    Id<'households'>,
-  claimId:
-    Id<'choreClaims'>,
-  cancelledByAuthUserId:
-    string,
-  now =
-    Date.now(),
+  householdId: Id<"households">,
+  claimId: Id<"choreClaims">,
+  cancelledByAuthUserId: string,
+  now = Date.now(),
 ) {
-  if (
-    !Number.isFinite(
-      now,
-    )
-  ) {
-    throw new ConvexError(
-      'Cancellation timestamp must be finite.',
-    );
+  if (!Number.isFinite(now)) {
+    throw new ConvexError("Cancellation timestamp must be finite.");
   }
 
-  const claim =
-    await ctx.db.get(
-      claimId,
-    );
+  const claim = await ctx.db.get(claimId);
 
   if (!claim) {
-    throw new ConvexError(
-      'Claim not found.',
-    );
+    throw new ConvexError("Claim not found.");
   }
 
-  if (
-    claim.householdId !==
-    householdId
-  ) {
-    throw new ConvexError(
-      'This Claim does not belong to this Household.',
-    );
+  if (claim.householdId !== householdId) {
+    throw new ConvexError("This Claim does not belong to this Household.");
   }
 
   if (
     !parentCancellableClaimStates.includes(
-      claim.state as
-        (typeof parentCancellableClaimStates)[number],
+      claim.state as (typeof parentCancellableClaimStates)[number],
     )
   ) {
-    throw new ConvexError(
-      'Only an unresolved Claim can be cancelled.',
-    );
+    throw new ConvexError("Only an unresolved Claim can be cancelled.");
   }
 
-  const occurrence =
-    await ctx.db.get(
-      claim.occurrenceId,
-    );
+  const occurrence = await ctx.db.get(claim.occurrenceId);
 
   if (
     !occurrence ||
-    occurrence.householdId !==
-      householdId ||
-    occurrence.kind !==
-      'claimable'
+    occurrence.householdId !== householdId ||
+    occurrence.kind !== "claimable"
   ) {
-    throw new ConvexError(
-      'Claimable Chore occurrence not found.',
-    );
+    throw new ConvexError("Claimable Chore occurrence not found.");
   }
 
   /*
@@ -98,14 +62,9 @@ export async function cancelClaimableClaimForParent(
    * commitment and cannot use Parent
    * cancellation to erase the consequence.
    */
-  if (
-    claim.state ===
-      'claimed' &&
-    now >
-      occurrence.deadlineAt
-  ) {
+  if (claim.state === "claimed" && now > occurrence.deadlineAt) {
     throw new ConvexError(
-      'This Claim has already missed its deadline and can no longer be cancelled.',
+      "This Claim has already missed its deadline and can no longer be cancelled.",
     );
   }
 
@@ -118,48 +77,24 @@ export async function cancelClaimableClaimForParent(
    * A Redo has its own immutable
    * Parent-authored deadline.
    */
-  if (
-    claim.state ===
-    'redo_required'
-  ) {
-    const redo =
-      await ctx.db
-        .query(
-          'choreRedos',
-        )
-        .withIndex(
-          'by_occurrence',
-          (q) =>
-            q.eq(
-              'occurrenceId',
-              occurrence._id,
-            ),
-        )
-        .unique();
+  if (claim.state === "redo_required") {
+    const redo = await ctx.db
+      .query("choreRedos")
+      .withIndex("by_occurrence", (q) => q.eq("occurrenceId", occurrence._id))
+      .unique();
 
     if (!redo) {
+      throw new ConvexError("Redo opportunity not found.");
+    }
+
+    if (redo.householdId !== householdId) {
       throw new ConvexError(
-        'Redo opportunity not found.',
+        "Redo Household does not match its Chore Occurrence.",
       );
     }
 
-    if (
-      redo.householdId !==
-      householdId
-    ) {
-      throw new ConvexError(
-        'Redo Household does not match its Chore Occurrence.',
-      );
-    }
-
-    if (
-      !Number.isFinite(
-        redo.deadlineAt,
-      )
-    ) {
-      throw new ConvexError(
-        'Redo deadline must be finite.',
-      );
+    if (!Number.isFinite(redo.deadlineAt)) {
+      throw new ConvexError("Redo deadline must be finite.");
     }
 
     /*
@@ -170,12 +105,9 @@ export async function cancelClaimableClaimForParent(
      * redo_required Claim has already
      * failed by time.
      */
-    if (
-      now >
-      redo.deadlineAt
-    ) {
+    if (now > redo.deadlineAt) {
       throw new ConvexError(
-        'This Redo has already missed its deadline and can no longer be cancelled.',
+        "This Redo has already missed its deadline and can no longer be cancelled.",
       );
     }
   }
@@ -192,42 +124,28 @@ export async function cancelClaimableClaimForParent(
    * commitment.
    */
 
-  await ctx.db.patch(
-    claim._id,
-    {
-      state:
-        'cancelled',
+  await ctx.db.patch(claim._id, {
+    state: "cancelled",
 
-      cancelledAt:
-        now,
+    cancelledAt: now,
 
-      cancelledByAuthUserId,
-    },
-  );
+    cancelledByAuthUserId,
+  });
 
-  await ctx.db.patch(
-    occurrence._id,
-    {
-      state:
-        'cancelled',
-    },
-  );
+  await ctx.db.patch(occurrence._id, {
+    state: "cancelled",
+  });
 
   return {
-    claimId:
-      claim._id,
+    claimId: claim._id,
 
-    occurrenceId:
-      occurrence._id,
+    occurrenceId: occurrence._id,
 
-    childId:
-      claim.childId,
+    childId: claim.childId,
 
-    state:
-      'cancelled' as const,
+    state: "cancelled" as const,
 
-    cancelledAt:
-      now,
+    cancelledAt: now,
 
     cancelledByAuthUserId,
   };

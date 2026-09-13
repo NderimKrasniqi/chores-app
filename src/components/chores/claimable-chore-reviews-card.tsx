@@ -1,56 +1,29 @@
-import { useServerConfirmedMutation } from '@/hooks/use-server-confirmed-mutation';
-import {
-  useQuery,
-} from 'convex/react';
-import {
-  Text,
-  View,
-} from 'react-native';
+import { useServerConfirmedMutation } from "@/hooks/use-server-confirmed-mutation";
+import { useQuery } from "convex/react";
+import { Text, View } from "react-native";
 
-import { api } from '../../../convex/_generated/api';
-import type {
-  Id,
-} from '../../../convex/_generated/dataModel';
-import { ClaimableChoreReviewsView } from './claimable-chore-reviews-view';
+import { api } from "../../../convex/_generated/api";
+import type { Id } from "../../../convex/_generated/dataModel";
+import { ClaimableChoreReviewsView } from "./claimable-chore-reviews-view";
 
 type ClaimableChoreReviewsCardProps = {
-  householdId:
-    Id<'households'>;
+  householdId: Id<"households">;
 };
 
 export function ClaimableChoreReviewsCard({
   householdId,
 }: ClaimableChoreReviewsCardProps) {
-  const pending =
-    useQuery(
-      api
-        .claimableChoreReviews
-        .listPending,
-      {
-        householdId,
-      },
-    );
+  const pending = useQuery(api.claimableChoreReviews.listPending, {
+    householdId,
+  });
 
-  const approve =
-    useServerConfirmedMutation(
-      api
-        .claimableChoreReviews
-        .approve,
-    );
+  const approve = useServerConfirmedMutation(api.claimableChoreReviews.approve);
 
-  const reject =
-    useServerConfirmedMutation(
-      api
-        .claimableChoreReviews
-        .reject,
-    );
+  const reject = useServerConfirmedMutation(api.claimableChoreReviews.reject);
 
-  if (
-    pending ===
-    undefined
-  ) {
+  if (pending === undefined) {
     return (
-      <View className="pt-6 mt-6 border-t border-slate-800">
+      <View className="mt-6 border-t border-slate-800 pt-6">
         <Text className="text-lg font-semibold text-white">
           Claimable chore reviews
         </Text>
@@ -64,12 +37,8 @@ export function ClaimableChoreReviewsCard({
 
   return (
     <ClaimableChoreReviewsView
-      pending={
-        pending
-      }
-      onApprove={async (
-        submissionId,
-      ) => {
+      pending={pending}
+      onApprove={async (submissionId) => {
         return await approve({
           submissionId,
         });

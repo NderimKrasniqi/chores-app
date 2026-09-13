@@ -1,223 +1,85 @@
-import { useServerConfirmedMutation } from '@/hooks/use-server-confirmed-mutation';
-import {
-  useQuery,
-} from 'convex/react';
-import {
-  useState,
-} from 'react';
-import {
-  Alert,
-  Text,
-  View,
-} from 'react-native';
+import { useServerConfirmedMutation } from "@/hooks/use-server-confirmed-mutation";
+import { AppText, Surface } from "@/design-system";
+import { useQuery } from "convex/react";
+import { Alert } from "react-native";
 
-import { api } from '../../../convex/_generated/api';
-import type {
-  Id,
-} from '../../../convex/_generated/dataModel';
-import { ChildRedoRequiredCard } from './child-redo-required-card';
-import { ClaimableChoresView } from './claimable-chores-view';
+import { api } from "../../../convex/_generated/api";
+import {
+  ClaimableChoresView,
+  type UnlockChoreSummary,
+} from "./claimable-chores-view";
 
 export function ClaimableChoresCard() {
-  const result =
-    useQuery(
-      api.claimableChores.listMine,
-    );
+  const result = useQuery(api.claimableChores.listMine);
 
-  const redos =
-    useQuery(
-      api.childRedos.listMine,
-    );
+  const redos = useQuery(api.childRedos.listMine);
 
-  const claim =
-    useServerConfirmedMutation(
-      api.claimableChores.claim,
-    );
+  const personalChores = useQuery(api.personalChores.listMine);
 
-  const unclaim =
-    useServerConfirmedMutation(
-      api.claimableChores.unclaim,
-    );
+  const claim = useServerConfirmedMutation(api.claimableChores.claim);
 
-  const submit =
-    useServerConfirmedMutation(
-      api
-        .claimableChoreSubmissions
-        .submit,
-    );
+  const unclaim = useServerConfirmedMutation(api.claimableChores.unclaim);
 
-  const submitRedo =
-    useServerConfirmedMutation(
-      api
-        .claimableChoreSubmissions
-        .submitRedo,
-    );
+  const submit = useServerConfirmedMutation(
+    api.claimableChoreSubmissions.submit,
+  );
 
-  const [
-    submittingRedoClaimId,
-    setSubmittingRedoClaimId,
-  ] =
-    useState<
-      Id<'choreClaims'> |
-        null
-    >(null);
+  const submitRedo = useServerConfirmedMutation(
+    api.claimableChoreSubmissions.submitRedo,
+  );
 
   if (
-    result ===
-      undefined ||
-    redos ===
-      undefined
+    result === undefined ||
+    redos === undefined ||
+    personalChores === undefined
   ) {
     return (
-      <View className="p-5 mt-4 rounded-2xl bg-slate-900">
-        <Text className="text-lg font-semibold text-white">
-          Extra chores
-        </Text>
-
-        <Text className="mt-2 text-sm text-slate-500">
-          Loading Claimable Chores…
-        </Text>
-      </View>
-    );
-  }
-
-  const myRedoClaim =
-    result.claimedOccurrences.find(
-      (
-        occurrence,
-      ) =>
-        occurrence.isMine &&
-        occurrence.claimState ===
-          'redo_required',
-    );
-
-  if (myRedoClaim) {
-    const redo =
-      redos.find(
-        (
-          item,
-        ) =>
-          item.occurrenceId ===
-          myRedoClaim
-            .occurrenceId,
-      );
-
-    if (!redo) {
-      return (
-        <View className="p-5 mt-4 border rounded-2xl border-red-900 bg-slate-900">
-          <Text className="text-lg font-semibold text-white">
-            Extra chore Redo
-          </Text>
-
-          <Text className="mt-2 text-sm leading-5 text-red-300">
-            This Claim requires a Redo,
-            but its Redo deadline could
-            not be loaded. Refresh before
-            submitting again.
-          </Text>
-        </View>
-      );
-    }
-
-    return (
-      <ChildRedoRequiredCard
-        occurrenceId={
-          myRedoClaim
-            .occurrenceId
-        }
-        title={
-          myRedoClaim.title
-        }
-        description={
-          myRedoClaim.description
-        }
-        valueSek={
-          myRedoClaim.valueSek
-        }
-        deadlineAt={
-          redo.deadlineAt
-        }
-        timezone={
-          myRedoClaim.timezone
-        }
-        claimRemainsActive
-        canSubmit={
-          redo.canSubmitRedo
-        }
-        submitting={
-          submittingRedoClaimId ===
-          myRedoClaim.claimId
-        }
-        submitTestID={`claimable-redo-submit-${myRedoClaim.claimId}`}
-        onSubmit={async (
-          evidenceUploadIntentId,
-        ) => {
-          setSubmittingRedoClaimId(
-            myRedoClaim.claimId,
-          );
-
-          try {
-            await submitRedo({
-              claimId:
-                myRedoClaim.claimId,
-
-              evidenceUploadIntentId,
-            });
-
-            Alert.alert(
-              'Redo submitted',
-              `${myRedoClaim.title} was sent back to your parent for review.`,
-            );
-          } catch (
-            error
-          ) {
-            Alert.alert(
-              'Could not submit Redo',
-              error instanceof
-                Error
-                ? error.message
-                : 'Please try again.',
-            );
-          } finally {
-            setSubmittingRedoClaimId(
-              null,
-            );
-          }
-        }}
-      />
+      <Surface className="mt-4 p-5">
+        <AppText variant="cardTitle">Extra chores</AppText>
+        <AppText variant="bodySmall" color="ink-muted" className="mt-2">
+          Loading Extras…
+        </AppText>
+      </Surface>
     );
   }
 
   return (
     <ClaimableChoresView
-      result={
-        result
+      result={result}
+      unlockChore={
+        result.gate.currentUnlockOccurrence
+          ? (personalChores.find(
+              (occurrence) =>
+                occurrence.occurrenceId ===
+                result.gate.currentUnlockOccurrence?.occurrenceId,
+            ) as UnlockChoreSummary | undefined)
+          : undefined
       }
-      onClaim={async (
-        occurrenceId,
-        acceptImmediateLock,
-      ) => {
+      onClaim={async (occurrenceId, acceptImmediateLock) => {
         await claim({
           occurrenceId,
           acceptImmediateLock,
         });
       }}
-      onUnclaim={async (
-        claimId,
-      ) => {
+      onUnclaim={async (claimId) => {
         await unclaim({
           claimId,
         });
       }}
-      onSubmit={async (
-        claimId,
-        evidenceUploadIntentId,
-      ) => {
+      onSubmit={async (claimId, evidenceUploadIntentId) => {
         await submit({
           claimId,
 
           evidenceUploadIntentId,
         });
+      }}
+      redos={redos}
+      onSubmitRedo={async (claimId, evidenceUploadIntentId) => {
+        await submitRedo({ claimId, evidenceUploadIntentId });
+        Alert.alert(
+          "Redo submitted",
+          "Your corrected work was sent back to your parent for review.",
+        );
       }}
     />
   );

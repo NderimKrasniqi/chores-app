@@ -5,14 +5,14 @@ import {
   useContext,
   useMemo,
   useState,
-} from 'react';
+} from "react";
 
 import {
   activateAuthStoragePrefix,
   type AppAuthClient,
   authClient,
   PARENT_AUTH_STORAGE_PREFIX,
-} from '@/lib/auth/client';
+} from "@/lib/auth/client";
 
 type AuthRuntimeContextValue = {
   authClient: AppAuthClient;
@@ -35,7 +35,7 @@ export function AuthRuntimeProvider({ children }: PropsWithChildren) {
       const normalized = nextStoragePrefix.trim();
 
       if (!normalized) {
-        throw new Error('Auth storage prefix cannot be empty.');
+        throw new Error("Auth storage prefix cannot be empty.");
       }
 
       if (normalized === storagePrefix) {
@@ -76,7 +76,7 @@ export function useAuthRuntime() {
   const context = useContext(AuthRuntimeContext);
 
   if (!context) {
-    throw new Error('useAuthRuntime must be used inside AuthRuntimeProvider.');
+    throw new Error("useAuthRuntime must be used inside AuthRuntimeProvider.");
   }
 
   return context;

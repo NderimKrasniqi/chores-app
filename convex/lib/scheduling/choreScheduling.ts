@@ -1,32 +1,32 @@
-import { TZDate } from '@date-fns/tz';
+import { TZDate } from "@date-fns/tz";
 
 export type Weekday =
-  | 'monday'
-  | 'tuesday'
-  | 'wednesday'
-  | 'thursday'
-  | 'friday'
-  | 'saturday'
-  | 'sunday';
+  | "monday"
+  | "tuesday"
+  | "wednesday"
+  | "thursday"
+  | "friday"
+  | "saturday"
+  | "sunday";
 
 export type ChoreRecurrence =
   | {
-      kind: 'one_off';
+      kind: "one_off";
       scheduledDate: string;
     }
   | {
-      kind: 'daily';
+      kind: "daily";
       startDate: string;
       interval: number;
     }
   | {
-      kind: 'weekly';
+      kind: "weekly";
       startDate: string;
       interval: number;
       weekdays: Weekday[];
     }
   | {
-      kind: 'monthly';
+      kind: "monthly";
       startDate: string;
       interval: number;
       dayOfMonth: number;
@@ -37,51 +37,39 @@ export type ResolveOccurrenceScheduleInput = {
 
   timezone: string;
 
-  availabilityLocalTime?:
-    string;
+  availabilityLocalTime?: string;
 
-  deadlineLocalTime:
-    string;
+  deadlineLocalTime: string;
 
-  deadlineDayOffset:
-    number;
+  deadlineDayOffset: number;
 };
 
 export type ResolvedOccurrenceSchedule = {
-  scheduledLocalDate:
-    string;
+  scheduledLocalDate: string;
 
-  timezone:
-    string;
+  timezone: string;
 
-  availabilityLocalTime?:
-    string;
+  availabilityLocalTime?: string;
 
-  deadlineLocalTime:
-    string;
+  deadlineLocalTime: string;
 
-  deadlineDayOffset:
-    number;
+  deadlineDayOffset: number;
 
-  availabilityStartsAt:
-    number;
+  availabilityStartsAt: number;
 
-  deadlineAt:
-    number;
+  deadlineAt: number;
 };
 
-const millisecondsPerDay =
-  24 * 60 * 60 * 1000;
+const millisecondsPerDay = 24 * 60 * 60 * 1000;
 
-const weekdayOrder:
-  Weekday[] = [
-  'monday',
-  'tuesday',
-  'wednesday',
-  'thursday',
-  'friday',
-  'saturday',
-  'sunday',
+const weekdayOrder: Weekday[] = [
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+  "saturday",
+  "sunday",
 ];
 
 type LocalDateParts = {
@@ -95,47 +83,21 @@ type LocalTimeParts = {
   minute: number;
 };
 
-function parseLocalDate(
-  value: string,
-): LocalDateParts {
-  if (
-    !/^\d{4}-\d{2}-\d{2}$/.test(
-      value,
-    )
-  ) {
-    throw new Error(
-      `Invalid local date "${value}". Expected YYYY-MM-DD.`,
-    );
+function parseLocalDate(value: string): LocalDateParts {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    throw new Error(`Invalid local date "${value}". Expected YYYY-MM-DD.`);
   }
 
-  const [
-    year,
-    month,
-    day,
-  ] = value
-    .split('-')
-    .map(Number);
+  const [year, month, day] = value.split("-").map(Number);
 
-  const date =
-    new Date(
-      Date.UTC(
-        year,
-        month - 1,
-        day,
-      ),
-    );
+  const date = new Date(Date.UTC(year, month - 1, day));
 
   if (
-    date.getUTCFullYear() !==
-      year ||
-    date.getUTCMonth() !==
-      month - 1 ||
-    date.getUTCDate() !==
-      day
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
   ) {
-    throw new Error(
-      `Invalid calendar date "${value}".`,
-    );
+    throw new Error(`Invalid calendar date "${value}".`);
   }
 
   return {
@@ -145,25 +107,12 @@ function parseLocalDate(
   };
 }
 
-function parseLocalTime(
-  value: string,
-): LocalTimeParts {
-  if (
-    !/^([01]\d|2[0-3]):[0-5]\d$/.test(
-      value,
-    )
-  ) {
-    throw new Error(
-      `Invalid local time "${value}". Expected HH:mm.`,
-    );
+function parseLocalTime(value: string): LocalTimeParts {
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(value)) {
+    throw new Error(`Invalid local time "${value}". Expected HH:mm.`);
   }
 
-  const [
-    hour,
-    minute,
-  ] = value
-    .split(':')
-    .map(Number);
+  const [hour, minute] = value.split(":").map(Number);
 
   return {
     hour,
@@ -171,58 +120,24 @@ function parseLocalTime(
   };
 }
 
-function formatLocalDate(
-  parts:
-    LocalDateParts,
-) {
+function formatLocalDate(parts: LocalDateParts) {
   return [
-    parts.year
-      .toString()
-      .padStart(4, '0'),
+    parts.year.toString().padStart(4, "0"),
 
-    parts.month
-      .toString()
-      .padStart(2, '0'),
+    parts.month.toString().padStart(2, "0"),
 
-    parts.day
-      .toString()
-      .padStart(2, '0'),
-  ].join('-');
+    parts.day.toString().padStart(2, "0"),
+  ].join("-");
 }
 
-function localDateDayNumber(
-  value: string,
-) {
-  const {
-    year,
-    month,
-    day,
-  } =
-    parseLocalDate(
-      value,
-    );
+function localDateDayNumber(value: string) {
+  const { year, month, day } = parseLocalDate(value);
 
-  return Math.floor(
-    Date.UTC(
-      year,
-      month - 1,
-      day,
-    ) /
-      millisecondsPerDay,
-  );
+  return Math.floor(Date.UTC(year, month - 1, day) / millisecondsPerDay);
 }
 
-function weekdayIndex(
-  localDate: string,
-) {
-  const {
-    year,
-    month,
-    day,
-  } =
-    parseLocalDate(
-      localDate,
-    );
+function weekdayIndex(localDate: string) {
+  const { year, month, day } = parseLocalDate(localDate);
 
   /*
    * getUTCDay:
@@ -235,282 +150,132 @@ function weekdayIndex(
    * ...
    * Sunday = 6
    */
-  const utcWeekday =
-    new Date(
-      Date.UTC(
-        year,
-        month - 1,
-        day,
-      ),
-    ).getUTCDay();
+  const utcWeekday = new Date(Date.UTC(year, month - 1, day)).getUTCDay();
 
-  return (
-    utcWeekday + 6
-  ) % 7;
+  return (utcWeekday + 6) % 7;
 }
 
-function monthNumber(
-  localDate: string,
-) {
-  const {
-    year,
-    month,
-  } =
-    parseLocalDate(
-      localDate,
-    );
+function monthNumber(localDate: string) {
+  const { year, month } = parseLocalDate(localDate);
 
-  return (
-    year * 12 +
-    (month - 1)
-  );
+  return year * 12 + (month - 1);
 }
 
-function requirePositiveInterval(
-  value: number,
-) {
-  if (
-    !Number.isSafeInteger(
-      value,
-    ) ||
-    value <= 0
-  ) {
-    throw new Error(
-      'Recurrence interval must be a positive whole number.',
-    );
+function requirePositiveInterval(value: number) {
+  if (!Number.isSafeInteger(value) || value <= 0) {
+    throw new Error("Recurrence interval must be a positive whole number.");
   }
 }
 
-function requireValidTimeZone(
-  timezone: string,
-) {
+function requireValidTimeZone(timezone: string) {
   try {
-    new Intl.DateTimeFormat(
-      'en-US',
-      {
-        timeZone:
-          timezone,
-      },
-    ).format(
-      new Date(),
-    );
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: timezone,
+    }).format(new Date());
   } catch {
-    throw new Error(
-      `Invalid IANA timezone "${timezone}".`,
-    );
+    throw new Error(`Invalid IANA timezone "${timezone}".`);
   }
 }
 
-export function addLocalDays(
-  localDate: string,
-  days: number,
-) {
-  if (
-    !Number.isSafeInteger(
-      days,
-    )
-  ) {
-    throw new Error(
-      'Calendar day offset must be a whole number.',
-    );
+export function addLocalDays(localDate: string, days: number) {
+  if (!Number.isSafeInteger(days)) {
+    throw new Error("Calendar day offset must be a whole number.");
   }
 
-  const {
-    year,
-    month,
-    day,
-  } =
-    parseLocalDate(
-      localDate,
-    );
+  const { year, month, day } = parseLocalDate(localDate);
 
-  const result =
-    new Date(
-      Date.UTC(
-        year,
-        month - 1,
-        day + days,
-      ),
-    );
+  const result = new Date(Date.UTC(year, month - 1, day + days));
 
   return formatLocalDate({
-    year:
-      result.getUTCFullYear(),
+    year: result.getUTCFullYear(),
 
-    month:
-      result.getUTCMonth() +
-      1,
+    month: result.getUTCMonth() + 1,
 
-    day:
-      result.getUTCDate(),
+    day: result.getUTCDate(),
   });
 }
 
-export function getWeekday(
-  localDate: string,
-): Weekday {
-  return weekdayOrder[
-    weekdayIndex(
-      localDate,
-    )
-  ];
+export function getWeekday(localDate: string): Weekday {
+  return weekdayOrder[weekdayIndex(localDate)];
 }
 
 export function matchesRecurrenceOnDate(
-  recurrence:
-    ChoreRecurrence,
-  candidateLocalDate:
-    string,
+  recurrence: ChoreRecurrence,
+  candidateLocalDate: string,
 ) {
-  parseLocalDate(
-    candidateLocalDate,
-  );
+  parseLocalDate(candidateLocalDate);
 
-  switch (
-    recurrence.kind
-  ) {
-    case 'one_off':
-      return (
-        candidateLocalDate ===
-        recurrence
-          .scheduledDate
-      );
+  switch (recurrence.kind) {
+    case "one_off":
+      return candidateLocalDate === recurrence.scheduledDate;
 
-    case 'daily': {
-      requirePositiveInterval(
-        recurrence.interval,
-      );
+    case "daily": {
+      requirePositiveInterval(recurrence.interval);
 
-      parseLocalDate(
-        recurrence.startDate,
-      );
+      parseLocalDate(recurrence.startDate);
 
       const difference =
-        localDateDayNumber(
-          candidateLocalDate,
-        ) -
-        localDateDayNumber(
-          recurrence.startDate,
-        );
+        localDateDayNumber(candidateLocalDate) -
+        localDateDayNumber(recurrence.startDate);
 
-      return (
-        difference >= 0 &&
-        difference %
-          recurrence.interval ===
-          0
-      );
+      return difference >= 0 && difference % recurrence.interval === 0;
     }
 
-    case 'weekly': {
-      requirePositiveInterval(
-        recurrence.interval,
-      );
+    case "weekly": {
+      requirePositiveInterval(recurrence.interval);
 
-      parseLocalDate(
-        recurrence.startDate,
-      );
+      parseLocalDate(recurrence.startDate);
 
-      if (
-        candidateLocalDate <
-        recurrence.startDate
-      ) {
+      if (candidateLocalDate < recurrence.startDate) {
         return false;
       }
 
-      const candidateWeekday =
-        getWeekday(
-          candidateLocalDate,
-        );
+      const candidateWeekday = getWeekday(candidateLocalDate);
 
-      if (
-        !recurrence.weekdays.includes(
-          candidateWeekday,
-        )
-      ) {
+      if (!recurrence.weekdays.includes(candidateWeekday)) {
         return false;
       }
 
       const startWeekStart =
-        localDateDayNumber(
-          recurrence.startDate,
-        ) -
-        weekdayIndex(
-          recurrence.startDate,
-        );
+        localDateDayNumber(recurrence.startDate) -
+        weekdayIndex(recurrence.startDate);
 
       const candidateWeekStart =
-        localDateDayNumber(
-          candidateLocalDate,
-        ) -
-        weekdayIndex(
-          candidateLocalDate,
-        );
+        localDateDayNumber(candidateLocalDate) -
+        weekdayIndex(candidateLocalDate);
 
-      const weekDifference =
-        Math.floor(
-          (
-            candidateWeekStart -
-            startWeekStart
-          ) / 7,
-        );
-
-      return (
-        weekDifference >= 0 &&
-        weekDifference %
-          recurrence.interval ===
-          0
+      const weekDifference = Math.floor(
+        (candidateWeekStart - startWeekStart) / 7,
       );
+
+      return weekDifference >= 0 && weekDifference % recurrence.interval === 0;
     }
 
-    case 'monthly': {
-      requirePositiveInterval(
-        recurrence.interval,
-      );
+    case "monthly": {
+      requirePositiveInterval(recurrence.interval);
 
       if (
-        !Number.isSafeInteger(
-          recurrence.dayOfMonth,
-        ) ||
-        recurrence.dayOfMonth <
-          1 ||
-        recurrence.dayOfMonth >
-          31
+        !Number.isSafeInteger(recurrence.dayOfMonth) ||
+        recurrence.dayOfMonth < 1 ||
+        recurrence.dayOfMonth > 31
       ) {
-        throw new Error(
-          'Monthly day must be between 1 and 31.',
-        );
+        throw new Error("Monthly day must be between 1 and 31.");
       }
 
-      parseLocalDate(
-        recurrence.startDate,
-      );
+      parseLocalDate(recurrence.startDate);
 
-      if (
-        candidateLocalDate <
-        recurrence.startDate
-      ) {
+      if (candidateLocalDate < recurrence.startDate) {
         return false;
       }
 
-      const candidate =
-        parseLocalDate(
-          candidateLocalDate,
-        );
+      const candidate = parseLocalDate(candidateLocalDate);
 
-      if (
-        candidate.day !==
-        recurrence.dayOfMonth
-      ) {
+      if (candidate.day !== recurrence.dayOfMonth) {
         return false;
       }
 
       const difference =
-        monthNumber(
-          candidateLocalDate,
-        ) -
-        monthNumber(
-          recurrence.startDate,
-        );
+        monthNumber(candidateLocalDate) - monthNumber(recurrence.startDate);
 
       /*
        * Months without the configured day are skipped.
@@ -521,70 +286,37 @@ export function matchesRecurrenceOnDate(
        *
        * February is not silently clamped to Feb 28.
        */
-      return (
-        difference >= 0 &&
-        difference %
-          recurrence.interval ===
-          0
-      );
+      return difference >= 0 && difference % recurrence.interval === 0;
     }
   }
 }
 
 export function getScheduledLocalDates(
-  recurrence:
-    ChoreRecurrence,
+  recurrence: ChoreRecurrence,
 
-  fromLocalDate:
-    string,
+  fromLocalDate: string,
 
-  throughLocalDate:
-    string,
+  throughLocalDate: string,
 ) {
-  parseLocalDate(
-    fromLocalDate,
-  );
+  parseLocalDate(fromLocalDate);
 
-  parseLocalDate(
-    throughLocalDate,
-  );
+  parseLocalDate(throughLocalDate);
 
-  if (
-    throughLocalDate <
-    fromLocalDate
-  ) {
+  if (throughLocalDate < fromLocalDate) {
     return [];
   }
 
-  if (
-    recurrence.kind ===
-    'one_off'
-  ) {
-    parseLocalDate(
-      recurrence
-        .scheduledDate,
-    );
+  if (recurrence.kind === "one_off") {
+    parseLocalDate(recurrence.scheduledDate);
 
-    return recurrence
-      .scheduledDate >=
-        fromLocalDate &&
-      recurrence
-        .scheduledDate <=
-        throughLocalDate
-      ? [
-          recurrence
-            .scheduledDate,
-        ]
+    return recurrence.scheduledDate >= fromLocalDate &&
+      recurrence.scheduledDate <= throughLocalDate
+      ? [recurrence.scheduledDate]
       : [];
   }
 
   const dayCount =
-    localDateDayNumber(
-      throughLocalDate,
-    ) -
-    localDateDayNumber(
-      fromLocalDate,
-    );
+    localDateDayNumber(throughLocalDate) - localDateDayNumber(fromLocalDate);
 
   /*
    * Guard against accidentally requesting an enormous
@@ -593,37 +325,17 @@ export function getScheduledLocalDates(
    * Normal occurrence generation will use a much smaller
    * rolling horizon.
    */
-  if (
-    dayCount > 3660
-  ) {
-    throw new Error(
-      'Recurrence window cannot exceed 3660 days.',
-    );
+  if (dayCount > 3660) {
+    throw new Error("Recurrence window cannot exceed 3660 days.");
   }
 
-  const dates:
-    string[] = [];
+  const dates: string[] = [];
 
-  for (
-    let offset = 0;
-    offset <= dayCount;
-    offset += 1
-  ) {
-    const candidate =
-      addLocalDays(
-        fromLocalDate,
-        offset,
-      );
+  for (let offset = 0; offset <= dayCount; offset += 1) {
+    const candidate = addLocalDays(fromLocalDate, offset);
 
-    if (
-      matchesRecurrenceOnDate(
-        recurrence,
-        candidate,
-      )
-    ) {
-      dates.push(
-        candidate,
-      );
+    if (matchesRecurrenceOnDate(recurrence, candidate)) {
+      dates.push(candidate);
     }
   }
 
@@ -635,26 +347,11 @@ export function resolveLocalDateTimeToEpochMs(
   localTime: string,
   timezone: string,
 ) {
-  const {
-    year,
-    month,
-    day,
-  } =
-    parseLocalDate(
-      localDate,
-    );
+  const { year, month, day } = parseLocalDate(localDate);
 
-  const {
-    hour,
-    minute,
-  } =
-    parseLocalTime(
-      localTime,
-    );
+  const { hour, minute } = parseLocalTime(localTime);
 
-  requireValidTimeZone(
-    timezone,
-  );
+  requireValidTimeZone(timezone);
 
   /*
    * TZDate resolves the supplied wall-clock components
@@ -663,26 +360,20 @@ export function resolveLocalDateTimeToEpochMs(
    * We never depend on the device timezone or the
    * server's process timezone.
    */
-  const resolved =
-    new TZDate(
-      year,
-      month - 1,
-      day,
-      hour,
-      minute,
-      0,
-      0,
-      timezone,
-    );
+  const resolved = new TZDate(
+    year,
+    month - 1,
+    day,
+    hour,
+    minute,
+    0,
+    0,
+    timezone,
+  );
 
-  const timestamp =
-    resolved.getTime();
+  const timestamp = resolved.getTime();
 
-  if (
-    !Number.isFinite(
-      timestamp,
-    )
-  ) {
+  if (!Number.isFinite(timestamp)) {
     throw new Error(
       `Could not resolve ${localDate} ${localTime} in ${timezone}.`,
     );
@@ -692,108 +383,65 @@ export function resolveLocalDateTimeToEpochMs(
 }
 
 export function resolveOccurrenceSchedule(
-  input:
-    ResolveOccurrenceScheduleInput,
+  input: ResolveOccurrenceScheduleInput,
 ): ResolvedOccurrenceSchedule {
-  parseLocalDate(
-    input
-      .scheduledLocalDate,
+  parseLocalDate(input.scheduledLocalDate);
+
+  requireValidTimeZone(input.timezone);
+
+  if (
+    !Number.isSafeInteger(input.deadlineDayOffset) ||
+    input.deadlineDayOffset < 0
+  ) {
+    throw new Error("Deadline day offset must be a non-negative whole number.");
+  }
+
+  const availabilityLocalTime = input.availabilityLocalTime ?? "00:00";
+
+  parseLocalTime(availabilityLocalTime);
+
+  parseLocalTime(input.deadlineLocalTime);
+
+  const deadlineLocalDate = addLocalDays(
+    input.scheduledLocalDate,
+
+    input.deadlineDayOffset,
   );
 
-  requireValidTimeZone(
+  const availabilityStartsAt = resolveLocalDateTimeToEpochMs(
+    input.scheduledLocalDate,
+
+    availabilityLocalTime,
+
     input.timezone,
   );
 
-  if (
-    !Number.isSafeInteger(
-      input
-        .deadlineDayOffset,
-    ) ||
-    input
-      .deadlineDayOffset <
-      0
-  ) {
-    throw new Error(
-      'Deadline day offset must be a non-negative whole number.',
-    );
-  }
+  const deadlineAt = resolveLocalDateTimeToEpochMs(
+    deadlineLocalDate,
 
-  const availabilityLocalTime =
-    input
-      .availabilityLocalTime ??
-    '00:00';
+    input.deadlineLocalTime,
 
-  parseLocalTime(
-    availabilityLocalTime,
+    input.timezone,
   );
 
-  parseLocalTime(
-    input
-      .deadlineLocalTime,
-  );
-
-  const deadlineLocalDate =
-    addLocalDays(
-      input
-        .scheduledLocalDate,
-
-      input
-        .deadlineDayOffset,
-    );
-
-  const availabilityStartsAt =
-    resolveLocalDateTimeToEpochMs(
-      input
-        .scheduledLocalDate,
-
-      availabilityLocalTime,
-
-      input.timezone,
-    );
-
-  const deadlineAt =
-    resolveLocalDateTimeToEpochMs(
-      deadlineLocalDate,
-
-      input
-        .deadlineLocalTime,
-
-      input.timezone,
-    );
-
-  if (
-    deadlineAt <=
-    availabilityStartsAt
-  ) {
-    throw new Error(
-      'Resolved deadline must be after availability start.',
-    );
+  if (deadlineAt <= availabilityStartsAt) {
+    throw new Error("Resolved deadline must be after availability start.");
   }
 
   return {
-    scheduledLocalDate:
-      input
-        .scheduledLocalDate,
+    scheduledLocalDate: input.scheduledLocalDate,
 
-    timezone:
-      input.timezone,
+    timezone: input.timezone,
 
-    ...(input
-      .availabilityLocalTime
+    ...(input.availabilityLocalTime
       ? {
-          availabilityLocalTime:
-            input
-              .availabilityLocalTime,
+          availabilityLocalTime: input.availabilityLocalTime,
         }
       : {}),
 
-    deadlineLocalTime:
-      input
-        .deadlineLocalTime,
+    deadlineLocalTime: input.deadlineLocalTime,
 
-    deadlineDayOffset:
-      input
-        .deadlineDayOffset,
+    deadlineDayOffset: input.deadlineDayOffset,
 
     availabilityStartsAt,
 

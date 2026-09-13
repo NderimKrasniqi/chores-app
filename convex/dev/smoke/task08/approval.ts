@@ -1,16 +1,8 @@
-import {
-  ConvexError,
-} from 'convex/values';
+import { ConvexError } from "convex/values";
 
-import {
-  internalMutation,
-} from '../../../_generated/server';
-import {
-  approvePersonalSubmission,
-} from '../../../lib/reviews/personal';
-import {
-  listPendingPersonalReviews,
-} from '../../../lib/reviews/pendingPersonal';
+import { internalMutation } from "../../../_generated/server";
+import { approvePersonalSubmission } from "../../../lib/reviews/personal";
+import { listPendingPersonalReviews } from "../../../lib/reviews/pendingPersonal";
 
 type SmokeTestResult = {
   label: string;
@@ -35,10 +27,7 @@ function result(
   };
 }
 
-async function expectReject(
-  operation:
-    () => Promise<unknown>,
-) {
+async function expectReject(operation: () => Promise<unknown>) {
   try {
     await operation();
 
@@ -48,490 +37,290 @@ async function expectReject(
   }
 }
 
-export const run =
-  internalMutation({
-    args: {},
+export const run = internalMutation({
+  args: {},
 
-    handler:
-      async (
-        ctx,
-      ): Promise<
-        SmokeTestResult[]
-      > => {
-        if (
-          process.env
-            .APP_ENV ===
-          'production'
-        ) {
-          throw new ConvexError(
-            'Developer smoke tests are disabled in production.',
-          );
-        }
+  handler: async (ctx): Promise<SmokeTestResult[]> => {
+    if (process.env.APP_ENV === "production") {
+      throw new ConvexError(
+        "Developer smoke tests are disabled in production.",
+      );
+    }
 
-        const results:
-          SmokeTestResult[] =
-          [];
+    const results: SmokeTestResult[] = [];
 
-        const submittedAt =
-          Date.UTC(
-            2030,
-            0,
-            15,
-            17,
-            59,
-            0,
-            0,
-          );
+    const submittedAt = Date.UTC(2030, 0, 15, 17, 59, 0, 0);
 
-        /*
-         * Parent deliberately reviews
-         * after the deadline.
-         */
-        const reviewedAt =
-          Date.UTC(
-            2030,
-            0,
-            16,
-            12,
-            0,
-            0,
-            0,
-          );
+    /*
+     * Parent deliberately reviews
+     * after the deadline.
+     */
+    const reviewedAt = Date.UTC(2030, 0, 16, 12, 0, 0, 0);
 
-        const deadlineAt =
-          Date.UTC(
-            2030,
-            0,
-            15,
-            18,
-            0,
-            0,
-            0,
-          );
+    const deadlineAt = Date.UTC(2030, 0, 15, 18, 0, 0, 0);
 
-        const householdId =
-          await ctx.db.insert(
-            'households',
-            {
-              name:
-                'TASK-08 Approval Smoke',
+    const householdId = await ctx.db.insert("households", {
+      name: "TASK-08 Approval Smoke",
 
-              timezone:
-                'UTC',
+      timezone: "UTC",
 
-              payoutWeekday:
-                'friday',
+      payoutWeekday: "friday",
 
-              weeklyUnclaimAllowance:
-                1,
+      weeklyUnclaimAllowance: 1,
 
-              createdAt:
-                submittedAt,
+      createdAt: submittedAt,
 
-              updatedAt:
-                submittedAt,
-            },
-          );
+      updatedAt: submittedAt,
+    });
 
-        const childId =
-          await ctx.db.insert(
-            'children',
-            {
-              householdId,
+    const childId = await ctx.db.insert("children", {
+      householdId,
 
-              displayName:
-                'TASK-08 Approval Child',
+      displayName: "TASK-08 Approval Child",
 
-              createdAt:
-                submittedAt,
+      createdAt: submittedAt,
 
-              updatedAt:
-                submittedAt,
-            },
-          );
+      updatedAt: submittedAt,
+    });
 
-        const definitionId =
-          await ctx.db.insert(
-            'choreDefinitions',
-            {
-              householdId,
+    const definitionId = await ctx.db.insert("choreDefinitions", {
+      householdId,
 
-              kind:
-                'personal',
+      kind: "personal",
 
-              title:
-                'TASK-08 Approval Chore',
+      title: "TASK-08 Approval Chore",
 
-              valueSek: 40,
+      valueSek: 40,
 
-              recurrence: {
-                kind:
-                  'one_off',
+      recurrence: {
+        kind: "one_off",
 
-                scheduledDate:
-                  '2030-01-15',
-              },
+        scheduledDate: "2030-01-15",
+      },
 
-              deadlineLocalTime:
-                '18:00',
+      deadlineLocalTime: "18:00",
 
-              deadlineDayOffset:
-                0,
+      deadlineDayOffset: 0,
 
-              personalChildId:
-                childId,
+      personalChildId: childId,
 
-              isUnlockChore:
-                false,
+      isUnlockChore: false,
 
-              createdByAuthUserId:
-                'task08-smoke',
+      createdByAuthUserId: "task08-smoke",
 
-              createdAt:
-                submittedAt,
+      createdAt: submittedAt,
 
-              updatedAt:
-                submittedAt,
-            },
-          );
+      updatedAt: submittedAt,
+    });
 
-        const occurrenceId =
-          await ctx.db.insert(
-            'choreOccurrences',
-            {
-              householdId,
+    const occurrenceId = await ctx.db.insert("choreOccurrences", {
+      householdId,
 
-              choreDefinitionId:
-                definitionId,
+      choreDefinitionId: definitionId,
 
-              kind:
-                'personal',
+      kind: "personal",
 
-              title:
-                'TASK-08 Approval Chore',
+      title: "TASK-08 Approval Chore",
 
-              valueSek: 40,
+      valueSek: 40,
 
-              scheduledLocalDate:
-                '2030-01-15',
+      scheduledLocalDate: "2030-01-15",
 
-              timezone:
-                'UTC',
+      timezone: "UTC",
 
-              deadlineLocalTime:
-                '18:00',
+      deadlineLocalTime: "18:00",
 
-              deadlineDayOffset:
-                0,
+      deadlineDayOffset: 0,
 
-              availabilityStartsAt:
-                Date.UTC(
-                  2030,
-                  0,
-                  15,
-                  0,
-                  0,
-                  0,
-                  0,
-                ),
+      availabilityStartsAt: Date.UTC(2030, 0, 15, 0, 0, 0, 0),
 
-              deadlineAt,
+      deadlineAt,
 
-              personalChildId:
-                childId,
+      personalChildId: childId,
 
-              isUnlockChore:
-                false,
+      isUnlockChore: false,
 
-              state:
-                'submitted',
+      state: "submitted",
 
-              createdAt:
-                submittedAt,
-            },
-          );
+      createdAt: submittedAt,
+    });
 
-        const submissionId =
-          await ctx.db.insert(
-            'choreSubmissions',
-            {
-              householdId,
+    const submissionId = await ctx.db.insert("choreSubmissions", {
+      householdId,
 
-              occurrenceId,
+      occurrenceId,
 
-              childId,
+      childId,
 
-              attemptNumber:
-                1,
+      attemptNumber: 1,
 
-              submittedAt,
-            },
-          );
+      submittedAt,
+    });
 
-        /*
-         * 1. Pending review appears.
-         */
-        const pendingBefore =
-          await listPendingPersonalReviews(
-            ctx,
-            householdId,
-          );
+    /*
+     * 1. Pending review appears.
+     */
+    const pendingBefore = await listPendingPersonalReviews(ctx, householdId);
 
-        results.push(
-          result(
-            'Submitted Personal Chore appears in Parent review queue',
-            pendingBefore.length ===
-              1 &&
-              pendingBefore[0]
-                .submissionId ===
-                submissionId,
-            `${pendingBefore.length} pending`,
-          ),
-        );
+    results.push(
+      result(
+        "Submitted Personal Chore appears in Parent review queue",
+        pendingBefore.length === 1 &&
+          pendingBefore[0].submissionId === submissionId,
+        `${pendingBefore.length} pending`,
+      ),
+    );
 
-        /*
-         * 2. Review delay after
-         * deadline does not hurt an
-         * on-time submission.
-         */
-        const approval =
-          await approvePersonalSubmission(
+    /*
+     * 2. Review delay after
+     * deadline does not hurt an
+     * on-time submission.
+     */
+    const approval = await approvePersonalSubmission(
+      ctx,
+      submissionId,
+      "task08-parent",
+      reviewedAt,
+    );
+
+    results.push(
+      result(
+        "On-time submission can be approved after deadline",
+        approval.state === "approved" &&
+          approval.amountSek === 40 &&
+          approval.reviewedAt === reviewedAt,
+        JSON.stringify(approval),
+      ),
+    );
+
+    /*
+     * 3. Occurrence becomes
+     * approved.
+     */
+    const approvedOccurrence = await ctx.db.get(occurrenceId);
+
+    results.push(
+      result(
+        "Approval completes Personal Chore occurrence",
+        approvedOccurrence?.state === "approved",
+        approvedOccurrence?.state,
+      ),
+    );
+
+    /*
+     * 4. Review is durable.
+     */
+    const reviews = await ctx.db
+      .query("choreReviews")
+      .withIndex("by_submission", (q) => q.eq("submissionId", submissionId))
+      .collect();
+
+    results.push(
+      result(
+        "Approval creates one durable review",
+        reviews.length === 1 &&
+          reviews[0].decision === "approved" &&
+          reviews[0].reviewedByAuthUserId === "task08-parent",
+        `${reviews.length} review(s)`,
+      ),
+    );
+
+    /*
+     * 5. Approval creates exactly
+     * one positive earning.
+     */
+    const earnings = await ctx.db
+      .query("ledgerEntries")
+      .withIndex("by_occurrence_kind", (q) =>
+        q.eq("occurrenceId", occurrenceId).eq("kind", "earning"),
+      )
+      .collect();
+
+    results.push(
+      result(
+        "Approval creates one positive earning",
+        earnings.length === 1 &&
+          earnings[0].amountSek === 40 &&
+          earnings[0].childId === childId,
+        earnings.length === 1
+          ? `${earnings[0].amountSek} SEK`
+          : `${earnings.length} earning(s)`,
+      ),
+    );
+
+    /*
+     * 6. Review queue clears.
+     */
+    const pendingAfter = await listPendingPersonalReviews(ctx, householdId);
+
+    results.push(
+      result(
+        "Approved submission leaves Parent review queue",
+        pendingAfter.length === 0,
+        `${pendingAfter.length} pending`,
+      ),
+    );
+
+    /*
+     * 7. Duplicate approval is
+     * rejected.
+     */
+    results.push(
+      result(
+        "Duplicate approval is rejected",
+        await expectReject(() =>
+          approvePersonalSubmission(
             ctx,
             submissionId,
-            'task08-parent',
-            reviewedAt,
-          );
-
-        results.push(
-          result(
-            'On-time submission can be approved after deadline',
-            approval.state ===
-              'approved' &&
-              approval.amountSek ===
-                40 &&
-              approval.reviewedAt ===
-                reviewedAt,
-            JSON.stringify(
-              approval,
-            ),
+            "task08-parent-2",
+            reviewedAt + 1000,
           ),
-        );
+        ),
+      ),
+    );
 
-        /*
-         * 3. Occurrence becomes
-         * approved.
-         */
-        const approvedOccurrence =
-          await ctx.db.get(
-            occurrenceId,
-          );
+    /*
+     * 8. No duplicate earning was
+     * produced.
+     */
+    const earningsAfterDuplicate = await ctx.db
+      .query("ledgerEntries")
+      .withIndex("by_occurrence_kind", (q) =>
+        q.eq("occurrenceId", occurrenceId).eq("kind", "earning"),
+      )
+      .collect();
 
-        results.push(
-          result(
-            'Approval completes Personal Chore occurrence',
-            approvedOccurrence
-              ?.state ===
-              'approved',
-            approvedOccurrence
-              ?.state,
-          ),
-        );
+    results.push(
+      result(
+        "Duplicate review attempt cannot duplicate earnings",
+        earningsAfterDuplicate.length === 1,
+        `${earningsAfterDuplicate.length} earning(s)`,
+      ),
+    );
 
-        /*
-         * 4. Review is durable.
-         */
-        const reviews =
-          await ctx.db
-            .query(
-              'choreReviews',
-            )
-            .withIndex(
-              'by_submission',
-              (q) =>
-                q.eq(
-                  'submissionId',
-                  submissionId,
-                ),
-            )
-            .collect();
+    /*
+     * Cleanup.
+     */
+    for (const ledgerEntry of earningsAfterDuplicate) {
+      await ctx.db.delete(ledgerEntry._id);
+    }
 
-        results.push(
-          result(
-            'Approval creates one durable review',
-            reviews.length ===
-              1 &&
-              reviews[0]
-                .decision ===
-                'approved' &&
-              reviews[0]
-                .reviewedByAuthUserId ===
-                'task08-parent',
-            `${reviews.length} review(s)`,
-          ),
-        );
+    for (const review of reviews) {
+      await ctx.db.delete(review._id);
+    }
 
-        /*
-         * 5. Approval creates exactly
-         * one positive earning.
-         */
-        const earnings =
-          await ctx.db
-            .query(
-              'ledgerEntries',
-            )
-            .withIndex(
-              'by_occurrence_kind',
-              (q) =>
-                q
-                  .eq(
-                    'occurrenceId',
-                    occurrenceId,
-                  )
-                  .eq(
-                    'kind',
-                    'earning',
-                  ),
-            )
-            .collect();
+    await ctx.db.delete(submissionId);
 
-        results.push(
-          result(
-            'Approval creates one positive earning',
-            earnings.length ===
-              1 &&
-              earnings[0]
-                .amountSek ===
-                40 &&
-              earnings[0]
-                .childId ===
-                childId,
-            earnings.length ===
-              1
-              ? `${earnings[0].amountSek} SEK`
-              : `${earnings.length} earning(s)`,
-          ),
-        );
+    await ctx.db.delete(occurrenceId);
 
-        /*
-         * 6. Review queue clears.
-         */
-        const pendingAfter =
-          await listPendingPersonalReviews(
-            ctx,
-            householdId,
-          );
+    await ctx.db.delete(definitionId);
 
-        results.push(
-          result(
-            'Approved submission leaves Parent review queue',
-            pendingAfter.length ===
-              0,
-            `${pendingAfter.length} pending`,
-          ),
-        );
+    await ctx.db.delete(childId);
 
-        /*
-         * 7. Duplicate approval is
-         * rejected.
-         */
-        results.push(
-          result(
-            'Duplicate approval is rejected',
-            await expectReject(
-              () =>
-                approvePersonalSubmission(
-                  ctx,
-                  submissionId,
-                  'task08-parent-2',
-                  reviewedAt +
-                    1000,
-                ),
-            ),
-          ),
-        );
+    await ctx.db.delete(householdId);
 
-        /*
-         * 8. No duplicate earning was
-         * produced.
-         */
-        const earningsAfterDuplicate =
-          await ctx.db
-            .query(
-              'ledgerEntries',
-            )
-            .withIndex(
-              'by_occurrence_kind',
-              (q) =>
-                q
-                  .eq(
-                    'occurrenceId',
-                    occurrenceId,
-                  )
-                  .eq(
-                    'kind',
-                    'earning',
-                  ),
-            )
-            .collect();
+    results.push(result("Test data cleanup", true));
 
-        results.push(
-          result(
-            'Duplicate review attempt cannot duplicate earnings',
-            earningsAfterDuplicate
-              .length ===
-              1,
-            `${earningsAfterDuplicate.length} earning(s)`,
-          ),
-        );
-
-        /*
-         * Cleanup.
-         */
-        for (
-          const ledgerEntry of
-          earningsAfterDuplicate
-        ) {
-          await ctx.db.delete(
-            ledgerEntry._id,
-          );
-        }
-
-        for (
-          const review of
-          reviews
-        ) {
-          await ctx.db.delete(
-            review._id,
-          );
-        }
-
-        await ctx.db.delete(
-          submissionId,
-        );
-
-        await ctx.db.delete(
-          occurrenceId,
-        );
-
-        await ctx.db.delete(
-          definitionId,
-        );
-
-        await ctx.db.delete(
-          childId,
-        );
-
-        await ctx.db.delete(
-          householdId,
-        );
-
-        results.push(
-          result(
-            'Test data cleanup',
-            true,
-          ),
-        );
-
-        return results;
-      },
-  });
+    return results;
+  },
+});
