@@ -13,6 +13,7 @@ export const DirectionC = {
     inkMuted: DesignTokens.color.inkMuted,
     green: DesignTokens.color.action,
     greenDeep: DesignTokens.color.actionPressed,
+    info: DesignTokens.color.info,
     coral: DesignTokens.color.urgency,
     coralSoft: DesignTokens.color.urgencySoft,
     yellow: DesignTokens.color.reward,

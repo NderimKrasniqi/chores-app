@@ -1,4 +1,8 @@
 import { DirectionCIcon } from "@/components/ui/direction-c-icon";
+import {
+  childAvatarTone,
+  DirectionCAvatar,
+} from "@/components/ui/direction-c-avatar";
 import { DirectionC } from "@/constants/direction-c";
 import { ActionButton, AppText } from "@/design-system";
 import {
@@ -7,7 +11,6 @@ import {
   type LocalChildContext,
 } from "@/lib/child-access/local-access";
 import { useAuthRuntime } from "@/providers/auth-runtime-provider";
-import { Image } from "expo-image";
 import { StatusBar } from "expo-status-bar";
 import { useState } from "react";
 import { KeyboardAvoidingView, Platform, TextInput, View } from "react-native";
@@ -18,7 +21,15 @@ type ChildPinUnlockScreenProps = {
   onUnlocked: () => void;
 };
 
-const childAvatar = require("../../../assets/images/direction-c/alex-avatar.png");
+const alexAvatar = require("../../../assets/images/direction-c/alex-avatar.png");
+const mayaAvatar = require("../../../assets/images/direction-c/maya-avatar.png");
+
+function childAvatar(displayName: string) {
+  const normalized = displayName.trim().toLowerCase();
+  if (normalized === "maya") return mayaAvatar;
+  if (normalized === "alex") return alexAvatar;
+  return null;
+}
 
 function normalizePinInput(value: string) {
   const { maxLength } = getChildPinRequirements();
@@ -88,16 +99,16 @@ export function ChildPinUnlockScreen({
           <AppText variant="display" className="mt-3">
             Hi, {context.childDisplayName}
           </AppText>
-          <AppText color="ink-muted" className="mt-2">
+          <AppText color="ink-muted" className="mt-2 max-w-[280px]">
             Enter your local PIN to unlock this Child profile.
           </AppText>
 
           <View className="my-6 items-center">
-            <Image
-              source={childAvatar}
-              className="h-32 w-32 rounded-full"
-              contentFit="contain"
-              accessible={false}
+            <DirectionCAvatar
+              source={childAvatar(context.childDisplayName)}
+              tone={childAvatarTone(context.childDisplayName)}
+              className="h-40 w-40"
+              fallbackLabel={context.childDisplayName}
             />
             <AppText variant="sectionTitle" className="mt-2">
               {context.childDisplayName}

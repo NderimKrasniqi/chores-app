@@ -1,4 +1,4 @@
-import { Image } from "expo-image";
+import { AppImage as Image } from "@/components/ui/app-image";
 import { StyleSheet, View } from "react-native";
 import Animated, { Keyframe, Easing } from "react-native-reanimated";
 

@@ -5,26 +5,37 @@ import {
 import { forgetLocalChildGrant } from "@/lib/child-access/grant-status";
 import { setChildExplicitlyLocked } from "@/lib/child-access/unlock-policy";
 import { useAuthRuntime } from "@/providers/auth-runtime-provider";
-import { DirectionCIcon } from "@/components/ui/direction-c-icon";
+import { AppImage as Image } from "@/components/ui/app-image";
 import { DirectionC } from "@/constants/direction-c";
 import { ActionButton, AppText } from "@/design-system";
+import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 
 import { ChildJoinScreen } from "./child-join-screen";
 
+const recoveryArtwork = require("../../../assets/images/direction-c/child-access-recovery.png");
+
 type CleanupState = "checking" | "join" | "cleaning" | "error";
 
-export function ChildNoAccessScreen() {
+export function ChildNoAccessScreen({
+  visualState,
+}: {
+  visualState?: Extract<CleanupState, "error">;
+} = {}) {
   const { authClient, storagePrefix, activateParentStorage } = useAuthRuntime();
 
-  const [cleanupState, setCleanupState] = useState<CleanupState>("checking");
+  const [cleanupState, setCleanupState] = useState<CleanupState>(
+    visualState ?? "checking",
+  );
 
   const [cleanupAttempt, setCleanupAttempt] = useState(0);
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
+    if (visualState) return;
+
     let cancelled = false;
 
     async function reconcileAccess() {
@@ -97,7 +108,13 @@ export function ChildNoAccessScreen() {
     return () => {
       cancelled = true;
     };
-  }, [authClient, storagePrefix, activateParentStorage, cleanupAttempt]);
+  }, [
+    authClient,
+    storagePrefix,
+    activateParentStorage,
+    cleanupAttempt,
+    visualState,
+  ]);
 
   if (cleanupState === "join") {
     return <ChildJoinScreen />;
@@ -106,13 +123,12 @@ export function ChildNoAccessScreen() {
   if (cleanupState === "error") {
     return (
       <View className="flex-1 items-center justify-center bg-canvas px-5">
-        <View className="h-48 w-48 items-center justify-center rounded-full bg-urgencySoft">
-          <DirectionCIcon
-            name="brokenLink"
-            color={DirectionC.color.coral}
-            size={82}
-          />
-        </View>
+        <Image
+          source={recoveryArtwork}
+          className="h-56 w-64"
+          contentFit="contain"
+          accessible={false}
+        />
         <AppText
           variant="label"
           color="urgency"
@@ -154,9 +170,15 @@ export function ChildNoAccessScreen() {
 
   return (
     <View className="flex-1 items-center justify-center bg-canvas px-6">
-      <ActivityIndicator color={DirectionC.color.green} />
+      <StatusBar style="dark" />
+      <View className="h-16 w-16 items-center justify-center rounded-full bg-actionSoft">
+        <ActivityIndicator color={DirectionC.color.green} />
+      </View>
 
-      <AppText color="ink-muted" className="mt-3 text-center">
+      <AppText variant="sectionTitle" className="mt-4 text-center">
+        Getting access ready
+      </AppText>
+      <AppText color="ink-muted" className="mt-1 text-center">
         {cleanupState === "cleaning"
           ? "Removing revoked Child access…"
           : "Checking Child access…"}

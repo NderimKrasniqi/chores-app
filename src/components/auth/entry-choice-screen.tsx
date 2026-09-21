@@ -15,20 +15,32 @@ import {
   setChildExplicitlyLocked,
 } from "@/lib/child-access/unlock-policy";
 import { DirectionCIcon } from "@/components/ui/direction-c-icon";
+import {
+  childAvatarTone,
+  DirectionCAvatar,
+} from "@/components/ui/direction-c-avatar";
 import { DirectionC } from "@/constants/direction-c";
 import { AppText, Surface } from "@/design-system";
 import { useAuthRuntime } from "@/providers/auth-runtime-provider";
 import { useQuery } from "convex/react";
-import { Image } from "expo-image";
+import { AppImage as Image } from "@/components/ui/app-image";
 import { StatusBar } from "expo-status-bar";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { api } from "../../../convex/_generated/api";
 
-const childAvatar = require("../../../assets/images/direction-c/alex-avatar.png");
-const chooserHero = require("../../../assets/images/direction-c/parent-access-hero.png");
+const alexAvatar = require("../../../assets/images/direction-c/alex-avatar.png");
+const mayaAvatar = require("../../../assets/images/direction-c/maya-avatar.png");
+const chooserHero = require("../../../assets/images/direction-c/household-home.png");
+
+function childAvatar(displayName: string) {
+  const normalized = displayName.trim().toLowerCase();
+  if (normalized === "maya") return mayaAvatar;
+  if (normalized === "alex") return alexAvatar;
+  return null;
+}
 
 type EntryChoiceScreenProps = {
   onChooseParent: () => void;
@@ -92,10 +104,14 @@ export function EntryChoiceScreen({ onChooseParent }: EntryChoiceScreenProps) {
    * grant, the chooser is hidden before
    * cleanup begins.
    */
-  const detectedRevokedGrantIds = new Set(
-    grantStatuses
-      ?.filter((status) => !status.isActive)
-      .map((status) => status.accessGrantId) ?? [],
+  const detectedRevokedGrantIds = useMemo(
+    () =>
+      new Set(
+        grantStatuses
+          ?.filter((status) => !status.isActive)
+          .map((status) => status.accessGrantId) ?? [],
+      ),
+    [grantStatuses],
   );
 
   const hasDetectedRevocation = detectedRevokedGrantIds.size > 0;
@@ -459,20 +475,26 @@ export function EntryChoiceScreen({ onChooseParent }: EntryChoiceScreenProps) {
    * gets a full-screen spinner.
    */
   if (loadingContexts || updatingAccess || switchingContextId !== null) {
-    let message = "Loading profiles...";
+    let message = "Loading profiles…";
 
     if (updatingAccess) {
-      message = "Updating access...";
+      message = "Updating access…";
     }
 
     if (switchingContextId !== null) {
-      message = "Opening child profile...";
+      message = "Opening child profile…";
     }
 
     return (
       <View className="flex-1 items-center justify-center bg-canvas px-6">
-        <ActivityIndicator color={DirectionC.color.green} />
-        <AppText color="ink-muted" className="mt-3">
+        <StatusBar style="dark" />
+        <View className="h-16 w-16 items-center justify-center rounded-full bg-actionSoft">
+          <ActivityIndicator color={DirectionC.color.green} />
+        </View>
+        <AppText variant="sectionTitle" className="mt-4 text-center">
+          Getting things ready
+        </AppText>
+        <AppText color="ink-muted" className="mt-1 text-center">
           {message}
         </AppText>
       </View>
@@ -487,23 +509,25 @@ export function EntryChoiceScreen({ onChooseParent }: EntryChoiceScreenProps) {
         showsVerticalScrollIndicator={false}
       >
         <View className="min-h-[250px]">
-          <AppText
-            variant="label"
-            color="ink-faint"
-            className="uppercase tracking-widest"
-          >
-            Chores App
-          </AppText>
-          <AppText variant="display" className="mt-4 w-[70%]">
-            Who’s using this device?
-          </AppText>
-          <AppText className="mt-3 w-[72%]">
-            Choose a saved Child profile, sign in as a Parent, or pair another
-            Child.
-          </AppText>
+          <View className="relative z-10">
+            <AppText
+              variant="label"
+              color="ink-faint"
+              className="uppercase tracking-widest"
+            >
+              Chores App
+            </AppText>
+            <AppText variant="display" className="mt-4 w-[70%]">
+              Who’s using this device?
+            </AppText>
+            <AppText className="mt-3 w-[82%]">
+              Choose a saved Child profile, sign in{"\n"}as a Parent, or pair
+              another Child.
+            </AppText>
+          </View>
           <Image
             source={chooserHero}
-            className="absolute -right-12 top-4 h-64 w-52"
+            className="absolute -right-16 top-2 z-0 h-60 w-48"
             contentFit="contain"
             accessible={false}
           />
@@ -522,14 +546,16 @@ export function EntryChoiceScreen({ onChooseParent }: EntryChoiceScreenProps) {
             {localChildContexts.map((context) => (
               <Pressable
                 key={context.contextId}
+                accessibilityRole="button"
+                accessibilityLabel={`Open ${context.childDisplayName} in ${context.householdName}`}
                 className="mt-3 min-h-[92px] flex-row items-center rounded-large bg-surface p-3 shadow-md"
                 onPress={() => handleChooseSavedChild(context)}
               >
-                <Image
-                  source={childAvatar}
-                  className="h-[76px] w-[76px] rounded-full"
-                  contentFit="contain"
-                  accessible={false}
+                <DirectionCAvatar
+                  source={childAvatar(context.childDisplayName)}
+                  tone={childAvatarTone(context.childDisplayName)}
+                  className="h-[76px] w-[76px]"
+                  fallbackLabel={context.childDisplayName}
                 />
                 <View className="ml-4 flex-1">
                   <AppText variant="sectionTitle">
@@ -548,6 +574,8 @@ export function EntryChoiceScreen({ onChooseParent }: EntryChoiceScreenProps) {
         ) : null}
 
         <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Continue as a parent"
           className="mt-6 min-h-[94px] flex-row items-center rounded-large bg-actionSoft p-4"
           onPress={handleChooseParent}
         >
@@ -572,6 +600,8 @@ export function EntryChoiceScreen({ onChooseParent }: EntryChoiceScreenProps) {
         </Pressable>
 
         <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Pair another child"
           className="mt-4 min-h-[94px] flex-row items-center rounded-large border-2 border-infoSoftStrong bg-surface p-4"
           disabled={startingChildSession}
           onPress={handleAddChild}
@@ -590,7 +620,7 @@ export function EntryChoiceScreen({ onChooseParent }: EntryChoiceScreenProps) {
                 : "Pair another child"}
             </AppText>
             <AppText variant="bodySmall" color="ink-muted" className="mt-1">
-              Add another Child profile to this device.
+              Add another Child profile to this device
             </AppText>
           </View>
           <DirectionCIcon

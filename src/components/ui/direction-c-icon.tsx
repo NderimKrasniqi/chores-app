@@ -1,4 +1,5 @@
 import { SymbolView } from "expo-symbols";
+import { Platform, View } from "react-native";
 import type { ComponentProps } from "react";
 
 type SymbolName = ComponentProps<typeof SymbolView>["name"];
@@ -28,6 +29,11 @@ const iconNames = {
     ios: "chevron.right",
     android: "chevron_right",
     web: "chevron_right",
+  },
+  chevronDown: {
+    ios: "chevron.down",
+    android: "expand_more",
+    web: "expand_more",
   },
   clock: {
     ios: "clock.fill",
@@ -64,15 +70,35 @@ const iconNames = {
     android: "groups",
     web: "groups",
   },
+  housePair: {
+    ios: "building.2.fill",
+    android: "other_houses",
+    web: "other_houses",
+  },
   plus: {
     ios: "plus",
     android: "add",
     web: "add",
   },
+  personPlus: {
+    ios: "person.badge.plus",
+    android: "person_add",
+    web: "person_add",
+  },
+  minus: {
+    ios: "minus",
+    android: "remove",
+    web: "remove",
+  },
   calendar: {
     ios: "calendar",
     android: "calendar_month",
     web: "calendar_month",
+  },
+  globe: {
+    ios: "globe",
+    android: "language",
+    web: "language",
   },
   refresh: {
     ios: "arrow.trianglehead.2.clockwise.rotate.90",
@@ -83,6 +109,11 @@ const iconNames = {
     ios: "iphone",
     android: "smartphone",
     web: "smartphone",
+  },
+  deviceOff: {
+    ios: "iphone.slash",
+    android: "phonelink_erase",
+    web: "phonelink_erase",
   },
   info: {
     ios: "info.circle",
@@ -119,6 +150,11 @@ const iconNames = {
     android: "center_focus_strong",
     web: "center_focus_strong",
   },
+  qrCode: {
+    ios: "qrcode",
+    android: "qr_code_2",
+    web: "qr_code_2",
+  },
   check: {
     ios: "checkmark",
     android: "check",
@@ -130,9 +166,14 @@ const iconNames = {
     web: "verified_user",
   },
   brokenLink: {
-    ios: "link.badge.plus",
+    ios: "link",
     android: "link_off",
     web: "link_off",
+  },
+  link: {
+    ios: "link",
+    android: "link",
+    web: "link",
   },
   bell: {
     ios: "bell.fill",
@@ -148,6 +189,11 @@ const iconNames = {
     ios: "lock.rotation",
     android: "switch_account",
     web: "switch_account",
+  },
+  lock: {
+    ios: "lock.fill",
+    android: "lock",
+    web: "lock",
   },
   star: {
     ios: "star.fill",
@@ -184,6 +230,21 @@ const iconNames = {
     android: "refresh",
     web: "refresh",
   },
+  repeat: {
+    ios: "arrow.trianglehead.2.clockwise.rotate.90",
+    android: "repeat",
+    web: "repeat",
+  },
+  edit: {
+    ios: "pencil",
+    android: "edit",
+    web: "edit",
+  },
+  more: {
+    ios: "ellipsis",
+    android: "more_horiz",
+    web: "more_horiz",
+  },
   missed: {
     ios: "clock.badge.xmark.fill",
     android: "timer_off",
@@ -202,6 +263,47 @@ export function DirectionCIcon({
   color: string;
   size?: number;
 }) {
+  if (name === "brokenLink" && Platform.OS === "ios") {
+    return (
+      <View
+        pointerEvents="none"
+        style={{
+          width: size,
+          height: size,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <SymbolView
+          name={iconNames[name]}
+          size={size}
+          tintColor={color}
+          weight="semibold"
+        />
+        <View
+          style={{
+            position: "absolute",
+            width: Math.max(2, size * 0.1),
+            height: size * 0.72,
+            borderRadius: size * 0.05,
+            backgroundColor: color,
+            transform: [{ rotate: "45deg" }],
+          }}
+        />
+        <View
+          style={{
+            position: "absolute",
+            width: Math.max(2, size * 0.1),
+            height: size * 0.72,
+            borderRadius: size * 0.05,
+            backgroundColor: color,
+            transform: [{ rotate: "-45deg" }],
+          }}
+        />
+      </View>
+    );
+  }
+
   return (
     <SymbolView
       name={iconNames[name]}

@@ -3,7 +3,7 @@ import { DirectionC } from "@/constants/direction-c";
 import { ActionButton, AppText, Surface } from "@/design-system";
 import { useAuthRuntime } from "@/providers/auth-runtime-provider";
 import { useAction } from "convex/react";
-import { Image } from "expo-image";
+import { AppImage as Image } from "@/components/ui/app-image";
 import { StatusBar } from "expo-status-bar";
 import { useState } from "react";
 import {
@@ -21,7 +21,8 @@ import { ChildQrScannerScreen } from "./child-qr-scanner-screen";
 
 type JoinMode = "manual" | "qr";
 
-const childAvatar = require("../../../assets/images/direction-c/alex-avatar.png");
+const childPairingHero = require("../../../assets/images/direction-c/child-pairing-hero.png");
+const qrScanPhone = require("../../../assets/images/direction-c/qr-scan-phone.png");
 
 function formatManualCodeInput(value: string) {
   const normalized = value
@@ -123,12 +124,12 @@ export function ChildJoinScreen() {
             <AppText variant="display" className="mt-3 w-[65%]">
               Join your family
             </AppText>
-            <AppText color="ink-muted" className="mt-3 w-[75%]">
+            <AppText color="ink-muted" className="mt-3 w-[62%]">
               Scan the QR code shown on the Parent device or enter the manual
               pairing code.
             </AppText>
             <Image
-              source={childAvatar}
+              source={childPairingHero}
               className="absolute -right-3 top-0 h-52 w-44"
               contentFit="contain"
               accessible={false}
@@ -143,13 +144,12 @@ export function ChildJoinScreen() {
             }}
             className="mt-2 min-h-[124px] flex-row items-center rounded-large bg-actionSoft p-4"
           >
-            <View className="h-24 w-24 items-center justify-center rounded-full bg-actionSoftStrong">
-              <DirectionCIcon
-                name="scan"
-                color={DirectionC.color.greenDeep}
-                size={46}
-              />
-            </View>
+            <Image
+              source={qrScanPhone}
+              className="h-24 w-24"
+              contentFit="contain"
+              accessible={false}
+            />
             <View className="ml-4 flex-1">
               <AppText variant="sectionTitle">Scan QR code</AppText>
               <AppText color="ink-muted" className="mt-1">
@@ -177,8 +177,8 @@ export function ChildJoinScreen() {
 
           <AppText variant="cardTitle">Manual pairing code</AppText>
           <TextInput
-            className="mt-2 min-h-[74px] rounded-control border-2 border-infoSoftStrong bg-surface px-4 text-center font-rounded text-[24px] font-black tracking-[6px] text-ink"
-            placeholder="ABCDE-23456"
+            className="mt-2 min-h-[74px] rounded-control border-2 border-infoSoftStrong bg-surface px-4 text-center font-rounded text-[24px] font-black tracking-[2px] text-ink"
+            placeholder="A B C D E - 2 3 4 5 6"
             placeholderTextColor="#8D73BC"
             value={manualCode}
             onChangeText={(value) =>
@@ -186,7 +186,9 @@ export function ChildJoinScreen() {
             }
             autoCapitalize="characters"
             autoCorrect={false}
-            maxLength={11}
+            // Allow a typed separator in addition to the ten credential
+            // characters. Formatting still caps the normalized value at ten.
+            maxLength={12}
           />
           <AppText variant="bodySmall" color="ink-muted" className="mt-3">
             Pairing credentials expire after 15 minutes and can only be used

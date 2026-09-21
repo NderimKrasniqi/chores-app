@@ -9,16 +9,20 @@ import {
 } from "@/design-system";
 import { useServerConfirmedMutation } from "@/hooks/use-server-confirmed-mutation";
 import { useQuery } from "convex/react";
-import { Image } from "expo-image";
-import { useMemo, useState } from "react";
+import { AppImage as Image } from "@/components/ui/app-image";
+import { useEffect, useMemo, useState } from "react";
 import { Alert, Modal, Pressable, ScrollView, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
+import { formatTimestampDateTime } from "@/lib/direction-c/dates";
 import { ChildSubmissionActions } from "../evidence/child-submission-actions";
 
-type OccurrenceState =
+export type OccurrenceState =
   | "scheduled"
   | "available"
   | "submitted"
@@ -29,7 +33,7 @@ type OccurrenceState =
   | "cancelled"
   | "expired_unclaimed";
 
-type ChildHomeChoreOccurrence = {
+export type ChildHomeChoreOccurrence = {
   occurrenceId: Id<"choreOccurrences">;
   choreDefinitionId: Id<"choreDefinitions">;
   title: string;
@@ -44,7 +48,7 @@ type ChildHomeChoreOccurrence = {
   canSubmit: boolean;
 };
 
-type ChildHomeRedo = {
+export type ChildHomeRedo = {
   occurrenceId: Id<"choreOccurrences">;
   deadlineAt: number;
   canSubmitRedo: boolean;
@@ -52,14 +56,42 @@ type ChildHomeRedo = {
 
 const artwork = {
   bedroom: require("../../../assets/images/direction-c/chore-bedroom.png"),
+  dishwasher: require("../../../assets/images/direction-c/chore-dishwasher.png"),
   dog: require("../../../assets/images/direction-c/chore-dog-bowl.png"),
   dogWalk: require("../../../assets/images/direction-c/chore-dog-walk.png"),
   carWash: require("../../../assets/images/direction-c/chore-car-wash.png"),
+  laundry: require("../../../assets/images/direction-c/chore-laundry.png"),
+  plants: require("../../../assets/images/direction-c/chore-plants.png"),
   recycling: require("../../../assets/images/direction-c/chore-recycling.png"),
+  table: require("../../../assets/images/direction-c/chore-table.png"),
 };
+const detailNoteArtwork = require("../../../assets/images/direction-c/chore-detail-note.png");
+const startsCalendarArtwork = require("../../../assets/images/direction-c/chore-starts-calendar.png");
+const extrasArtwork = require("../../../assets/images/direction-c/extras-unlocked.png");
+const parentAvatarArtwork = require("../../../assets/images/direction-c/sam-avatar.png");
+const youveGotThisArtwork = require("../../../assets/images/direction-c/youve-got-this-note.png");
+const scheduledNoteArtwork = require("../../../assets/images/direction-c/child-chore-note-scheduled.png");
+const missedNoteArtwork = require("../../../assets/images/direction-c/child-chore-note-missed.png");
+const redoNoteArtwork = require("../../../assets/images/direction-c/child-chore-note-redo.png");
+const moneyWalletArtwork = require("../../../assets/images/direction-c/money-wallet.png");
+const redoDeadlineArtwork = require("../../../assets/images/direction-c/redo-deadline.png");
 
 function artworkForTitle(title: string) {
   const normalized = title.toLocaleLowerCase();
+
+  if (normalized.includes("dishwasher") || normalized.includes("dishes")) {
+    return artwork.dishwasher;
+  }
+
+  if (normalized.includes("table")) return artwork.table;
+
+  if (normalized.includes("laundry") || normalized.includes("fold")) {
+    return artwork.laundry;
+  }
+
+  if (normalized.includes("plant") || normalized.includes("water")) {
+    return artwork.plants;
+  }
 
   if (normalized.includes("car") || normalized.includes("wash")) {
     return artwork.carWash;
@@ -118,27 +150,47 @@ function formatTime(timestamp: number, timezone: string) {
 
 function formatDate(timestamp: number, timezone: string) {
   try {
-    return new Intl.DateTimeFormat("en-SE", {
-      timeZone: timezone,
-      month: "short",
-      day: "numeric",
-    }).format(new Date(timestamp));
+    return formatTimestampDateTime(timestamp, timezone).split(" at ")[0];
   } catch {
     return new Date(timestamp).toLocaleDateString();
   }
 }
 
-function currentLocalDate(timezone: string) {
+function localDateAt(timestamp: number, timezone: string) {
   try {
     return new Intl.DateTimeFormat("en-CA", {
       timeZone: timezone,
       year: "numeric",
       month: "2-digit",
       day: "2-digit",
-    }).format(new Date());
+    }).format(new Date(timestamp));
   } catch {
     return "";
   }
+}
+
+function currentLocalDate(timezone: string) {
+  return localDateAt(Date.now(), timezone);
+}
+
+function relativeDayLabel(timestamp: number, timezone: string) {
+  const targetDate = localDateAt(timestamp, timezone);
+  const today = currentLocalDate(timezone);
+
+  if (!targetDate || !today) return formatDate(timestamp, timezone);
+
+  const toDayNumber = (value: string) => {
+    const [year, month, day] = value.split("-").map(Number);
+    return Date.UTC(year, month - 1, day) / 86_400_000;
+  };
+
+  const dayDelta = toDayNumber(targetDate) - toDayNumber(today);
+
+  if (dayDelta === 0) return "today";
+  if (dayDelta === 1) return "tomorrow";
+  if (dayDelta === -1) return "yesterday";
+
+  return formatDate(timestamp, timezone);
 }
 
 function statusLabel(
@@ -149,18 +201,18 @@ function statusLabel(
 
   if (occurrence.state === "redo_required") {
     return redo
-      ? `Redo due ${formatDate(redo.deadlineAt, occurrence.timezone)}, ${formatTime(redo.deadlineAt, occurrence.timezone)}`
+      ? `Redo due ${relativeDayLabel(redo.deadlineAt, occurrence.timezone)}, ${formatTime(redo.deadlineAt, occurrence.timezone)}`
       : "Redo required";
   }
 
   if (occurrence.state === "scheduled") {
-    return `Available ${formatDate(occurrence.availabilityStartsAt, occurrence.timezone)}`;
+    return `Available ${relativeDayLabel(occurrence.availabilityStartsAt, occurrence.timezone)}, ${formatTime(occurrence.availabilityStartsAt, occurrence.timezone)}`;
   }
 
-  const dateLabel =
-    occurrence.scheduledLocalDate === currentLocalDate(occurrence.timezone)
-      ? "today"
-      : formatDate(occurrence.deadlineAt, occurrence.timezone);
+  const dateLabel = relativeDayLabel(
+    occurrence.deadlineAt,
+    occurrence.timezone,
+  );
 
   return `Due ${dateLabel}, ${formatTime(occurrence.deadlineAt, occurrence.timezone)}`;
 }
@@ -168,13 +220,29 @@ function statusLabel(
 function ChoreArtwork({
   title,
   large = false,
+  compact = false,
+  submission = false,
 }: {
   title: string;
   large?: boolean;
+  compact?: boolean;
+  submission?: boolean;
 }) {
   const source = artworkForTitle(title);
-  const frameClass = large ? "h-[210px] w-full" : "h-[96px] w-[96px]";
-  const imageClass = large ? "h-[190px] w-[250px]" : "h-[90px] w-[90px]";
+  const frameClass = large
+    ? "h-[220px] w-full"
+    : compact
+      ? "h-[64px] w-[64px]"
+      : submission
+        ? "h-[118px] w-[142px]"
+        : "h-[96px] w-[96px]";
+  const imageClass = large
+    ? "h-[215px] w-[310px]"
+    : compact
+      ? "h-[60px] w-[60px]"
+      : submission
+        ? "h-[116px] w-[145px]"
+        : "h-[90px] w-[90px]";
 
   return (
     <View
@@ -198,9 +266,28 @@ function ChoreArtwork({
   );
 }
 
-export function ChildHomeChoreList() {
-  const occurrences = useQuery(api.personalChores.listMine);
-  const redos = useQuery(api.childRedos.listMine);
+export function ChildHomeChoreList({
+  initialOccurrenceId,
+  onInitialOccurrenceHandled,
+  visualOccurrences,
+  visualRedos,
+}: {
+  initialOccurrenceId?: Id<"choreOccurrences"> | null;
+  onInitialOccurrenceHandled?: () => void;
+  visualOccurrences?: ChildHomeChoreOccurrence[];
+  visualRedos?: ChildHomeRedo[];
+}) {
+  const safeAreaInsets = useSafeAreaInsets();
+  const queriedOccurrences = useQuery(
+    api.personalChores.listMine,
+    visualOccurrences ? "skip" : {},
+  );
+  const queriedRedos = useQuery(
+    api.childRedos.listMine,
+    visualRedos ? "skip" : {},
+  );
+  const occurrences = visualOccurrences ?? queriedOccurrences;
+  const redos = visualRedos ?? queriedRedos;
   const submit = useServerConfirmedMutation(api.personalChores.submit);
   const submitRedo = useServerConfirmedMutation(api.personalChores.submitRedo);
 
@@ -212,6 +299,10 @@ export function ChildHomeChoreList() {
   const [submissionAttempt, setSubmissionAttempt] = useState<1 | 2 | null>(
     null,
   );
+  const [submissionControlState, setSubmissionControlState] = useState<{
+    evidenceUploadIntentId?: Id<"submissionEvidenceUploads">;
+    busy: boolean;
+  }>({ busy: false });
 
   const redoByOccurrence = useMemo(
     () =>
@@ -224,15 +315,17 @@ export function ChildHomeChoreList() {
     [redos],
   );
 
-  const visibleOccurrences = useMemo(() => {
+  const presentation = useMemo(() => {
     if (!occurrences || !redos) return undefined;
+
+    const typedOccurrences = occurrences as ChildHomeChoreOccurrence[];
 
     const groups = new Map<
       Id<"choreDefinitions">,
       ChildHomeChoreOccurrence[]
     >();
 
-    for (const occurrence of occurrences as ChildHomeChoreOccurrence[]) {
+    for (const occurrence of typedOccurrences) {
       const group = groups.get(occurrence.choreDefinitionId) ?? [];
       group.push(occurrence);
       groups.set(occurrence.choreDefinitionId, group);
@@ -261,18 +354,78 @@ export function ChildHomeChoreList() {
       }
     }
 
-    return result.sort((left, right) => {
+    const currentAndNext = result.sort((left, right) => {
       const priority = statePriority(left.state) - statePriority(right.state);
       return priority || left.deadlineAt - right.deadlineAt;
     });
+
+    const recentHistory = typedOccurrences
+      .filter(
+        (occurrence) =>
+          occurrence.state === "approved" ||
+          occurrence.state === "missed" ||
+          occurrence.state === "failed",
+      )
+      .sort(
+        (left, right) => right.availabilityStartsAt - left.availabilityStartsAt,
+      )
+      .slice(0, 3);
+
+    return { currentAndNext, recentHistory };
   }, [occurrences, redos]);
 
-  const selectedOccurrence = visibleOccurrences?.find(
+  const visibleOccurrences = presentation?.currentAndNext ?? [];
+  const recentHistory = presentation?.recentHistory ?? [];
+  const allVisibleOccurrences = useMemo(
+    () =>
+      presentation
+        ? [...presentation.currentAndNext, ...presentation.recentHistory]
+        : undefined,
+    [presentation],
+  );
+
+  const selectedOccurrence = allVisibleOccurrences?.find(
     (occurrence) => occurrence.occurrenceId === selectedId,
   );
   const selectedRedo = selectedOccurrence
     ? redoByOccurrence.get(selectedOccurrence.occurrenceId)
     : undefined;
+
+  const selectedNoteArtwork = selectedOccurrence
+    ? selectedOccurrence.state === "scheduled" &&
+      relativeDayLabel(
+        selectedOccurrence.availabilityStartsAt,
+        selectedOccurrence.timezone,
+      ) === "tomorrow"
+      ? scheduledNoteArtwork
+      : selectedOccurrence.state === "missed" ||
+          selectedOccurrence.state === "failed"
+        ? missedNoteArtwork
+        : selectedOccurrence.state === "redo_required"
+          ? redoNoteArtwork
+          : selectedOccurrence.state === "available" ||
+              selectedOccurrence.state === "submitted" ||
+              selectedOccurrence.state === "approved"
+            ? youveGotThisArtwork
+            : null
+    : null;
+
+  useEffect(() => {
+    if (!initialOccurrenceId || !allVisibleOccurrences) return;
+
+    const occurrence = allVisibleOccurrences.find(
+      (item) => item.occurrenceId === initialOccurrenceId,
+    );
+
+    if (!occurrence) return;
+
+    const frame = requestAnimationFrame(() => {
+      setSelectedId(occurrence.occurrenceId);
+      onInitialOccurrenceHandled?.();
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [allVisibleOccurrences, initialOccurrenceId, onInitialOccurrenceHandled]);
 
   async function handleSubmit(
     occurrence: ChildHomeChoreOccurrence,
@@ -310,17 +463,18 @@ export function ChildHomeChoreList() {
     }
   }
 
-  if (visibleOccurrences === undefined) {
+  if (presentation === undefined) {
     return (
       <Surface className="mx-1 p-5">
-        <AppText variant="label" color="ink-muted">
-          Loading your chores…
+        <AppText variant="cardTitle">Loading your chores…</AppText>
+        <AppText variant="bodySmall" color="ink-muted" className="mt-1">
+          Today’s responsibilities will appear here.
         </AppText>
       </Surface>
     );
   }
 
-  if (visibleOccurrences.length === 0) {
+  if (visibleOccurrences.length === 0 && recentHistory.length === 0) {
     return (
       <Surface className="mx-1 p-5">
         <AppText variant="cardTitle">Nothing coming up</AppText>
@@ -335,7 +489,7 @@ export function ChildHomeChoreList() {
     <>
       <ScrollView
         className="flex-1"
-        contentContainerClassName="gap-2.5 px-1 pb-2"
+        contentContainerClassName="gap-2 px-1 pb-2"
         showsVerticalScrollIndicator
       >
         {visibleOccurrences.map((occurrence) => {
@@ -351,11 +505,11 @@ export function ChildHomeChoreList() {
               accessibilityRole="button"
               accessibilityLabel={`Open ${occurrence.title}`}
               onPress={() => setSelectedId(occurrence.occurrenceId)}
-              className="min-h-[112px] flex-row items-center rounded-large bg-surface p-2.5 shadow-md"
+              className="min-h-[116px] flex-row items-center rounded-large bg-surface p-2 shadow-md"
             >
               <ChoreArtwork title={occurrence.title} />
 
-              <View className="flex-1 px-3.5">
+              <View className="flex-1 px-3">
                 <AppText variant="cardTitle" numberOfLines={2}>
                   {occurrence.title}
                 </AppText>
@@ -388,10 +542,10 @@ export function ChildHomeChoreList() {
                           ? DirectionC.color.coral
                           : DirectionC.color.inkMuted
                     }
-                    size={16}
+                    size={18}
                   />
                   <AppText
-                    variant="caption"
+                    variant="label"
                     color={
                       waiting ? "ink-faint" : urgent ? "urgency" : "ink-muted"
                     }
@@ -411,6 +565,72 @@ export function ChildHomeChoreList() {
             </Pressable>
           );
         })}
+
+        {recentHistory.length > 0 ? (
+          <View className="mt-1 gap-2">
+            <View className="px-1 pt-1">
+              <AppText variant="label" color="ink-muted">
+                Recent
+              </AppText>
+              <AppText variant="bodySmall" color="ink-muted" className="mt-0.5">
+                Your latest chore outcomes.
+              </AppText>
+            </View>
+
+            {recentHistory.map((occurrence) => {
+              const approved = occurrence.state === "approved";
+              const missed =
+                occurrence.state === "missed" || occurrence.state === "failed";
+              const status = approved
+                ? `${occurrence.valueSek} kr earned`
+                : "0 kr earned";
+
+              return (
+                <Pressable
+                  key={occurrence.occurrenceId}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Open ${occurrence.title}`}
+                  onPress={() => setSelectedId(occurrence.occurrenceId)}
+                  className="min-h-[80px] flex-row items-center rounded-large bg-surface p-2 shadow-md"
+                >
+                  <ChoreArtwork title={occurrence.title} compact />
+
+                  <View className="flex-1 px-3">
+                    <AppText variant="cardTitle" numberOfLines={1}>
+                      {occurrence.title}
+                    </AppText>
+                    <View className="mt-1 flex-row items-center">
+                      <DirectionCIcon
+                        name={approved ? "check" : "missed"}
+                        color={
+                          approved
+                            ? DirectionC.color.greenDeep
+                            : missed
+                              ? DirectionC.color.coral
+                              : DirectionC.color.inkMuted
+                        }
+                        size={16}
+                      />
+                      <AppText
+                        variant="bodySmall"
+                        color={approved ? "action" : "urgency"}
+                        className="ml-1"
+                      >
+                        {status}
+                      </AppText>
+                    </View>
+                  </View>
+
+                  <DirectionCIcon
+                    name="chevron"
+                    color={DirectionC.color.ink}
+                    size={20}
+                  />
+                </Pressable>
+              );
+            })}
+          </View>
+        ) : null}
       </ScrollView>
 
       <Modal
@@ -423,7 +643,11 @@ export function ChildHomeChoreList() {
         }}
       >
         {selectedOccurrence ? (
-          <SafeAreaView className="flex-1 bg-canvas">
+          <SafeAreaView
+            edges={["bottom"]}
+            className="flex-1 bg-canvas"
+            style={{ paddingTop: safeAreaInsets.top }}
+          >
             <View className="px-3">
               <TopBar
                 title="Chore details"
@@ -437,6 +661,12 @@ export function ChildHomeChoreList() {
             >
               <View>
                 <ChoreArtwork title={selectedOccurrence.title} large />
+                <Image
+                  source={detailNoteArtwork}
+                  className="absolute right-0 top-2 h-[142px] w-[132px]"
+                  contentFit="contain"
+                  accessible={false}
+                />
                 {selectedOccurrence.isUnlockChore ? (
                   <View className="absolute bottom-3 left-3 flex-row items-center rounded-full bg-surfaceRaised px-3 py-2 shadow-md">
                     <DirectionCIcon
@@ -467,6 +697,32 @@ export function ChildHomeChoreList() {
                     />
                   }
                 />
+                {selectedOccurrence.state === "available" ? (
+                  <StatusChip
+                    label={statusLabel(selectedOccurrence, selectedRedo)}
+                    tone="urgent"
+                    icon={
+                      <DirectionCIcon
+                        name="clock"
+                        color={DirectionC.color.coral}
+                        size={15}
+                      />
+                    }
+                  />
+                ) : null}
+                {selectedOccurrence.state === "available" ? (
+                  <StatusChip
+                    label="Not submitted"
+                    tone="neutral"
+                    icon={
+                      <DirectionCIcon
+                        name="document"
+                        color={DirectionC.color.inkMuted}
+                        size={15}
+                      />
+                    }
+                  />
+                ) : null}
                 {selectedOccurrence.state === "scheduled" ? (
                   <StatusChip
                     label="Upcoming"
@@ -486,7 +742,7 @@ export function ChildHomeChoreList() {
                     tone="success"
                     icon={
                       <DirectionCIcon
-                        name="waiting"
+                        name="clock"
                         color={DirectionC.color.greenDeep}
                         size={15}
                       />
@@ -545,7 +801,7 @@ export function ChildHomeChoreList() {
                     />
                     <AppText color="action" className="ml-2 font-bold">
                       Available{" "}
-                      {formatDate(
+                      {relativeDayLabel(
                         selectedOccurrence.availabilityStartsAt,
                         selectedOccurrence.timezone,
                       )}
@@ -564,7 +820,7 @@ export function ChildHomeChoreList() {
                     />
                     <AppText color="urgency" className="ml-2 font-bold">
                       Due{" "}
-                      {formatDate(
+                      {relativeDayLabel(
                         selectedOccurrence.deadlineAt,
                         selectedOccurrence.timezone,
                       )}
@@ -576,7 +832,7 @@ export function ChildHomeChoreList() {
                     </AppText>
                   </View>
                 </View>
-              ) : (
+              ) : selectedOccurrence.state !== "available" ? (
                 <View className="mt-3 flex-row items-center">
                   <DirectionCIcon
                     name={
@@ -605,13 +861,11 @@ export function ChildHomeChoreList() {
                   >
                     {selectedOccurrence.state === "redo_required" &&
                     selectedRedo
-                      ? `Redo due ${formatDate(selectedRedo.deadlineAt, selectedOccurrence.timezone)}, ${formatTime(selectedRedo.deadlineAt, selectedOccurrence.timezone)}`
-                      : selectedOccurrence.state === "available"
-                        ? statusLabel(selectedOccurrence, selectedRedo)
-                        : `Original deadline ${formatDate(selectedOccurrence.deadlineAt, selectedOccurrence.timezone)}, ${formatTime(selectedOccurrence.deadlineAt, selectedOccurrence.timezone)}`}
+                      ? `Redo due ${relativeDayLabel(selectedRedo.deadlineAt, selectedOccurrence.timezone)}, ${formatTime(selectedRedo.deadlineAt, selectedOccurrence.timezone)}`
+                      : `Original deadline ${relativeDayLabel(selectedOccurrence.deadlineAt, selectedOccurrence.timezone)}, ${formatTime(selectedOccurrence.deadlineAt, selectedOccurrence.timezone)}`}
                   </AppText>
                 </View>
-              )}
+              ) : null}
 
               {selectedOccurrence.description ? (
                 <Surface className="mt-5 p-[18px]">
@@ -626,23 +880,33 @@ export function ChildHomeChoreList() {
                 <Surface
                   tone="lavender"
                   elevated={false}
-                  className="mt-4 flex-row items-center p-[18px]"
+                  className="mt-4 min-h-[112px] flex-row items-center p-[14px]"
                 >
-                  <View className="h-12 w-12 items-center justify-center rounded-full bg-surfaceRaised">
-                    <DirectionCIcon
-                      name="calendar"
-                      color={DirectionC.color.ink}
-                      size={25}
-                    />
-                  </View>
-                  <View className="ml-4 flex-1">
-                    <AppText variant="cardTitle">Starts soon</AppText>
+                  <Image
+                    source={startsCalendarArtwork}
+                    className="h-[82px] w-[82px]"
+                    contentFit="contain"
+                    accessible={false}
+                  />
+                  <View className="ml-3 flex-1">
+                    <AppText variant="cardTitle">
+                      Starts{" "}
+                      {relativeDayLabel(
+                        selectedOccurrence.availabilityStartsAt,
+                        selectedOccurrence.timezone,
+                      )}
+                    </AppText>
                     <AppText
                       variant="bodySmall"
                       color="ink-muted"
                       className="mt-1"
                     >
-                      Come back after the available time to submit your work.
+                      Come back after{" "}
+                      {formatTime(
+                        selectedOccurrence.availabilityStartsAt,
+                        selectedOccurrence.timezone,
+                      )}{" "}
+                      to submit your work.
                     </AppText>
                   </View>
                 </Surface>
@@ -679,16 +943,24 @@ export function ChildHomeChoreList() {
                 <Surface
                   tone="mint"
                   elevated={false}
-                  className="mt-4 flex-row items-center p-[18px]"
+                  className="mt-4 min-h-[112px] flex-row items-center overflow-hidden p-3"
                 >
-                  <View className="h-12 w-12 items-center justify-center rounded-full bg-action">
-                    <DirectionCIcon
-                      name="check"
-                      color={DirectionC.color.white}
-                      size={26}
+                  <View className="relative h-20 w-20">
+                    <Image
+                      source={moneyWalletArtwork}
+                      className="h-20 w-20"
+                      contentFit="contain"
+                      accessible={false}
                     />
+                    <View className="absolute bottom-1 right-0 h-8 w-8 items-center justify-center rounded-full bg-action">
+                      <DirectionCIcon
+                        name="check"
+                        color={DirectionC.color.white}
+                        size={18}
+                      />
+                    </View>
                   </View>
-                  <View className="ml-4 flex-1">
+                  <View className="ml-3 flex-1">
                     <AppText variant="cardTitle">
                       {selectedOccurrence.valueSek} kr added
                     </AppText>
@@ -708,16 +980,16 @@ export function ChildHomeChoreList() {
                 <Surface
                   tone="coral"
                   elevated={false}
-                  className="mt-4 flex-row items-center p-[18px]"
+                  className="mt-4 min-h-[112px] flex-row items-center overflow-hidden p-3"
                 >
-                  <View className="h-12 w-12 items-center justify-center rounded-full bg-surfaceRaised">
-                    <DirectionCIcon
-                      name="money"
-                      color={DirectionC.color.inkMuted}
-                      size={26}
-                    />
-                  </View>
-                  <View className="ml-4 flex-1">
+                  <Image
+                    source={moneyWalletArtwork}
+                    tintColor={DirectionC.color.disabled}
+                    className="h-20 w-20"
+                    contentFit="contain"
+                    accessible={false}
+                  />
+                  <View className="ml-3 flex-1">
                     <AppText variant="cardTitle">0 kr earned</AppText>
                     <AppText
                       variant="bodySmall"
@@ -735,16 +1007,15 @@ export function ChildHomeChoreList() {
                 <Surface
                   tone="coral"
                   elevated={false}
-                  className="mt-4 flex-row items-center p-[18px]"
+                  className="mt-4 min-h-[112px] flex-row items-center overflow-hidden p-3"
                 >
-                  <View className="h-12 w-12 items-center justify-center rounded-full bg-surfaceRaised">
-                    <DirectionCIcon
-                      name="redo"
-                      color={DirectionC.color.coral}
-                      size={26}
-                    />
-                  </View>
-                  <View className="ml-4 flex-1">
+                  <Image
+                    source={redoDeadlineArtwork}
+                    className="h-20 w-20"
+                    contentFit="contain"
+                    accessible={false}
+                  />
+                  <View className="ml-3 flex-1">
                     <AppText variant="cardTitle">One redo</AppText>
                     <AppText
                       variant="bodySmall"
@@ -762,58 +1033,84 @@ export function ChildHomeChoreList() {
                 <Surface
                   tone="lavender"
                   elevated={false}
-                  className="mt-4 p-[18px]"
+                  className="mt-4 min-h-[112px] flex-row items-center overflow-hidden px-0 py-3"
                 >
-                  <View className="flex-row items-center">
-                    <View className="h-12 w-12 items-center justify-center rounded-full bg-surfaceRaised">
-                      <DirectionCIcon
-                        name="key"
-                        color={DirectionC.color.greenDeep}
-                        size={26}
-                      />
-                    </View>
-                    <View className="ml-4 flex-1">
-                      <AppText variant="cardTitle">
-                        {selectedOccurrence.state === "approved"
-                          ? "Extras are open"
-                          : selectedOccurrence.state === "missed" ||
-                              selectedOccurrence.state === "failed"
-                            ? "Extras stay locked"
-                            : selectedOccurrence.state === "redo_required"
-                              ? `${selectedOccurrence.valueSek} kr still available`
-                              : "Why this chore matters"}
-                      </AppText>
-                      <AppText
-                        variant="bodySmall"
-                        color="ink-muted"
-                        className="mt-1"
-                      >
-                        {selectedOccurrence.state === "approved"
-                          ? "This current Unlock Chore was approved. Extras stay open until the next Unlock Chore becomes current."
-                          : selectedOccurrence.state === "missed" ||
-                              selectedOccurrence.state === "failed"
-                            ? "This missed Unlock Chore did not open Extras. Only approval of the current Unlock Chore can open them."
-                            : selectedOccurrence.state === "redo_required"
-                              ? `Parent approval of this redo earns ${selectedOccurrence.valueSek} kr and opens Extras. If it fails, you earn 0 kr with no penalty.`
-                              : `Parent approval opens Extras. Your ${selectedOccurrence.valueSek} kr is added after approval.`}
-                      </AppText>
-                    </View>
+                  <View className="h-24 w-[54px] overflow-hidden">
+                    <Image
+                      source={extrasArtwork}
+                      className="absolute -left-9 h-24 w-[204px]"
+                      contentFit="contain"
+                      accessible={false}
+                    />
+                  </View>
+                  <View className="flex-1 px-2">
+                    <AppText variant="cardTitle">
+                      {selectedOccurrence.state === "approved"
+                        ? "Extras are open"
+                        : selectedOccurrence.state === "missed" ||
+                            selectedOccurrence.state === "failed"
+                          ? "Extras stay locked"
+                          : selectedOccurrence.state === "redo_required"
+                            ? `${selectedOccurrence.valueSek} kr still available`
+                            : "Why this chore matters"}
+                    </AppText>
+                    <AppText
+                      variant="bodySmall"
+                      color="ink-muted"
+                      className="mt-1"
+                    >
+                      {selectedOccurrence.state === "approved"
+                        ? "This current Unlock Chore was approved. Extras stay open until the next Unlock Chore becomes current."
+                        : selectedOccurrence.state === "missed" ||
+                            selectedOccurrence.state === "failed"
+                          ? "This missed Unlock Chore did not open Extras. Only approval of the current Unlock Chore can open them."
+                          : selectedOccurrence.state === "redo_required"
+                            ? `Parent approval of this redo earns ${selectedOccurrence.valueSek} kr and opens Extras. If it fails, you earn 0 kr with no penalty.`
+                            : `Parent approval opens Extras. Your ${selectedOccurrence.valueSek} kr is added after approval.`}
+                    </AppText>
+                  </View>
+                  <View className="h-24 w-[54px] overflow-hidden">
+                    <Image
+                      source={extrasArtwork}
+                      className="absolute -right-1 h-24 w-[204px]"
+                      contentFit="contain"
+                      accessible={false}
+                    />
                   </View>
                 </Surface>
               ) : null}
 
-              <View className="mt-4 -rotate-2 self-start rounded-small bg-rewardSoft px-4 py-2 shadow-md">
-                <AppText className="font-bold italic">
-                  {selectedOccurrence.state === "scheduled"
-                    ? "See you soon! ♡"
-                    : selectedOccurrence.state === "missed" ||
-                        selectedOccurrence.state === "failed"
-                      ? "Fresh start next time. ♡"
-                      : selectedOccurrence.state === "redo_required"
-                        ? "You can fix this. ♡"
-                        : "You’ve got this. ♡"}
-                </AppText>
-              </View>
+              {selectedNoteArtwork ? (
+                <Image
+                  source={selectedNoteArtwork}
+                  className="mt-1 h-[72px] w-[250px]"
+                  contentFit="contain"
+                  accessible={false}
+                />
+              ) : (
+                <View className="mt-4 -rotate-2 self-start rounded-small bg-rewardSoft px-4 py-2 shadow-md">
+                  <AppText className="font-bold italic">
+                    {selectedOccurrence.state === "scheduled"
+                      ? `See you ${
+                          relativeDayLabel(
+                            selectedOccurrence.availabilityStartsAt,
+                            selectedOccurrence.timezone,
+                          ) === "today"
+                            ? "soon"
+                            : relativeDayLabel(
+                                selectedOccurrence.availabilityStartsAt,
+                                selectedOccurrence.timezone,
+                              )
+                        }! ♡`
+                      : selectedOccurrence.state === "missed" ||
+                          selectedOccurrence.state === "failed"
+                        ? "Fresh start next time. ♡"
+                        : selectedOccurrence.state === "redo_required"
+                          ? "You can fix this. ♡"
+                          : "You’ve got this. ♡"}
+                  </AppText>
+                </View>
+              )}
             </ScrollView>
 
             {selectedOccurrence.canSubmit ? (
@@ -827,7 +1124,10 @@ export function ChildHomeChoreList() {
                       size={22}
                     />
                   }
-                  onPress={() => setSubmissionAttempt(1)}
+                  onPress={() => {
+                    setSubmissionControlState({ busy: false });
+                    setSubmissionAttempt(1);
+                  }}
                 />
               </View>
             ) : null}
@@ -844,7 +1144,10 @@ export function ChildHomeChoreList() {
                       size={22}
                     />
                   }
-                  onPress={() => setSubmissionAttempt(2)}
+                  onPress={() => {
+                    setSubmissionControlState({ busy: false });
+                    setSubmissionAttempt(2);
+                  }}
                 />
               </View>
             ) : null}
@@ -853,29 +1156,61 @@ export function ChildHomeChoreList() {
               visible={submissionAttempt !== null}
               animationType="slide"
               presentationStyle="fullScreen"
-              onRequestClose={() => setSubmissionAttempt(null)}
+              onRequestClose={() => {
+                setSubmissionControlState({ busy: false });
+                setSubmissionAttempt(null);
+              }}
             >
               <SafeAreaView className="flex-1 bg-canvas">
-                <View className="px-3">
+                <View className="px-3 pt-9">
                   <TopBar
                     title={
                       submissionAttempt === 2 ? "Submit redo" : "Submit work"
                     }
-                    onBack={() => setSubmissionAttempt(null)}
+                    onBack={() => {
+                      setSubmissionControlState({ busy: false });
+                      setSubmissionAttempt(null);
+                    }}
                   />
                 </View>
 
                 <ScrollView
-                  contentContainerClassName="flex-grow px-5 pb-7"
+                  contentContainerClassName="flex-grow px-5 pb-32"
                   keyboardShouldPersistTaps="handled"
                 >
                   <Surface
                     elevated={false}
-                    className="flex-row items-center overflow-hidden bg-[#F7EDDF] p-3"
+                    className="min-h-[140px] flex-row items-center overflow-hidden bg-[#F7EDDF] p-3"
                   >
-                    <ChoreArtwork title={selectedOccurrence.title} />
-                    <View className="ml-4 flex-1">
-                      <AppText variant="sectionTitle" numberOfLines={2}>
+                    <View className="relative">
+                      <ChoreArtwork
+                        title={selectedOccurrence.title}
+                        submission
+                      />
+                      <Image
+                        source={detailNoteArtwork}
+                        className="absolute right-0 top-0 h-[78px] w-[72px]"
+                        contentFit="contain"
+                        accessible={false}
+                      />
+                      {selectedOccurrence.isUnlockChore ? (
+                        <View className="absolute bottom-0 left-0">
+                          <StatusChip
+                            label="Unlock chore"
+                            tone="urgent"
+                            icon={
+                              <DirectionCIcon
+                                name="key"
+                                color={DirectionC.color.coral}
+                                size={14}
+                              />
+                            }
+                          />
+                        </View>
+                      ) : null}
+                    </View>
+                    <View className="ml-3 flex-1">
+                      <AppText variant="cardTitle" numberOfLines={1}>
                         {selectedOccurrence.title}
                       </AppText>
                       <View className="mt-2 flex-row flex-wrap gap-2">
@@ -890,19 +1225,6 @@ export function ChildHomeChoreList() {
                             />
                           }
                         />
-                        {selectedOccurrence.isUnlockChore ? (
-                          <StatusChip
-                            label="Unlock chore"
-                            tone="urgent"
-                            icon={
-                              <DirectionCIcon
-                                name="key"
-                                color={DirectionC.color.coral}
-                                size={14}
-                              />
-                            }
-                          />
-                        ) : null}
                       </View>
                       <AppText
                         variant="caption"
@@ -910,7 +1232,7 @@ export function ChildHomeChoreList() {
                         className="mt-2 font-bold"
                       >
                         {submissionAttempt === 2 && selectedRedo
-                          ? `Redo due ${formatDate(selectedRedo.deadlineAt, selectedOccurrence.timezone)}, ${formatTime(selectedRedo.deadlineAt, selectedOccurrence.timezone)}`
+                          ? `Redo due ${relativeDayLabel(selectedRedo.deadlineAt, selectedOccurrence.timezone)}, ${formatTime(selectedRedo.deadlineAt, selectedOccurrence.timezone)}`
                           : statusLabel(selectedOccurrence, selectedRedo)}
                       </AppText>
                     </View>
@@ -919,10 +1241,7 @@ export function ChildHomeChoreList() {
                   <AppText variant="display" className="mt-7">
                     Ready for review?
                   </AppText>
-                  <AppText
-                    variant="sectionTitle"
-                    className="mb-5 mt-1 font-semibold"
-                  >
+                  <AppText variant="body" className="mb-5 mt-1 font-semibold">
                     Send your finished chore to a parent.
                   </AppText>
 
@@ -940,21 +1259,36 @@ export function ChildHomeChoreList() {
                         : "Submit for review"
                     }
                     submittingLabel="Submitting…"
+                    hideSubmitButton
+                    onControlStateChange={setSubmissionControlState}
                     footerBeforeSubmit={
                       <Surface
                         tone="lavender"
                         elevated={false}
-                        className="mt-4 flex-row items-center p-[18px]"
+                        className="mt-4 min-h-[100px] flex-row items-center overflow-hidden p-0 pr-3"
                       >
-                        <View className="h-14 w-14 items-center justify-center rounded-full bg-action">
-                          <DirectionCIcon
-                            name="checkShield"
-                            color={DirectionC.color.white}
-                            size={29}
+                        <View className="relative h-[92px] w-[84px]">
+                          <Image
+                            source={parentAvatarArtwork}
+                            className="h-[92px] w-[84px]"
+                            contentFit="cover"
+                            accessible={false}
                           />
+                          <View className="absolute bottom-2 right-0 h-9 w-9 items-center justify-center rounded-full bg-action">
+                            <DirectionCIcon
+                              name="check"
+                              color={DirectionC.color.white}
+                              size={21}
+                            />
+                          </View>
                         </View>
-                        <View className="ml-4 flex-1">
-                          <AppText variant="cardTitle">
+                        <View className="ml-3 flex-1">
+                          <AppText
+                            variant="cardTitle"
+                            numberOfLines={1}
+                            adjustsFontSizeToFit
+                            minimumFontScale={0.84}
+                          >
                             A parent checks your work.
                           </AppText>
                           <AppText
@@ -978,6 +1312,40 @@ export function ChildHomeChoreList() {
                     }}
                   />
                 </ScrollView>
+
+                <View className="absolute bottom-0 left-0 right-0 bg-canvas px-5 pb-7 pt-3">
+                  <ActionButton
+                    testID={`${submissionAttempt === 2 ? "personal-redo-submit" : "personal-submit"}-${selectedOccurrence.occurrenceId}`}
+                    accessibilityLabel={
+                      submissionAttempt === 2
+                        ? "Submit redo"
+                        : "Submit for review"
+                    }
+                    disabled={submissionControlState.busy}
+                    loading={submittingId === selectedOccurrence.occurrenceId}
+                    label={
+                      submittingId === selectedOccurrence.occurrenceId
+                        ? "Submitting…"
+                        : submissionAttempt === 2
+                          ? "Submit redo"
+                          : "Submit for review"
+                    }
+                    trailing={
+                      <DirectionCIcon
+                        name="chevron"
+                        color={DirectionC.color.white}
+                        size={22}
+                      />
+                    }
+                    onPress={() =>
+                      void handleSubmit(
+                        selectedOccurrence,
+                        submissionAttempt ?? 1,
+                        submissionControlState.evidenceUploadIntentId,
+                      )
+                    }
+                  />
+                </View>
               </SafeAreaView>
             </Modal>
           </SafeAreaView>

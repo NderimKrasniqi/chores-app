@@ -1,22 +1,34 @@
 import { SubmissionEvidenceViewer } from "@/components/evidence/submission-evidence-viewer";
 import { DirectionCIcon } from "@/components/ui/direction-c-icon";
-import { DirectionC } from "@/constants/direction-c";
 import {
-  ActionButton,
-  AppText,
-  FormField,
-  Surface,
-  TopBar,
-} from "@/design-system";
+  childAvatarTone,
+  DirectionCAvatar,
+} from "@/components/ui/direction-c-avatar";
+import { DirectionC } from "@/constants/direction-c";
+import { ActionButton, AppText, Surface, TopBar } from "@/design-system";
 import { useServerConfirmedMutation } from "@/hooks/use-server-confirmed-mutation";
 import { useQuery } from "convex/react";
-import { Image } from "expo-image";
+import { AppImage as Image } from "@/components/ui/app-image";
 import { useState } from "react";
-import { Alert, Modal, Pressable, ScrollView, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  Alert,
+  Modal,
+  Pressable,
+  ScrollView,
+  TextInput,
+  View,
+} from "react-native";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
+import {
+  formatLocalDate,
+  formatTimestampDateTime,
+} from "@/lib/direction-c/dates";
 
 type ReviewSource = "personal" | "claimable" | "redo";
 type ReviewItem = {
@@ -37,12 +49,33 @@ type ReviewItem = {
 
 const artwork = {
   bedroom: require("../../../assets/images/direction-c/chore-bedroom.png"),
+  dishwasher: require("../../../assets/images/direction-c/chore-dishwasher.png"),
   dog: require("../../../assets/images/direction-c/chore-dog-bowl.png"),
+  laundry: require("../../../assets/images/direction-c/chore-laundry.png"),
+  plants: require("../../../assets/images/direction-c/chore-plants.png"),
   recycling: require("../../../assets/images/direction-c/chore-recycling.png"),
+  table: require("../../../assets/images/direction-c/chore-table.png"),
 };
+const alexAvatar = require("../../../assets/images/direction-c/alex-avatar.png");
+const mayaAvatar = require("../../../assets/images/direction-c/maya-avatar.png");
+const reviewClipboard = require("../../../assets/images/direction-c/review-clipboard.png");
+const redoDeadlineArtwork = require("../../../assets/images/direction-c/redo-deadline.png");
+
+function avatarForName(name: string) {
+  const normalized = name.trim().toLowerCase();
+  if (normalized === "alex") return alexAvatar;
+  if (normalized === "maya") return mayaAvatar;
+  return null;
+}
 
 function getArtwork(title: string) {
   const value = title.toLowerCase();
+  if (value.includes("dishwasher") || value.includes("dishes"))
+    return artwork.dishwasher;
+  if (value.includes("table")) return artwork.table;
+  if (value.includes("laundry") || value.includes("fold"))
+    return artwork.laundry;
+  if (value.includes("plant") || value.includes("water")) return artwork.plants;
   if (value.includes("dog") || value.includes("pet")) return artwork.dog;
   if (value.includes("recycl") || value.includes("trash"))
     return artwork.recycling;
@@ -62,14 +95,66 @@ function formatTime(timestamp: number, timezone?: string) {
   }
 }
 
-function tomorrowDate() {
-  const date = new Date();
-  date.setDate(date.getDate() + 1);
-  return [
-    date.getFullYear(),
-    String(date.getMonth() + 1).padStart(2, "0"),
-    String(date.getDate()).padStart(2, "0"),
-  ].join("-");
+function submittedLabel(timestamp: number, timezone?: string) {
+  try {
+    const dateTime = formatTimestampDateTime(timestamp, timezone);
+    const date = dateTime.split(" at ")[0];
+    const today = formatTimestampDateTime(Date.now(), timezone).split(
+      " at ",
+    )[0];
+    return `${date === today ? "Today" : date}, ${formatTime(timestamp, timezone)}`;
+  } catch {
+    return formatTime(timestamp, timezone);
+  }
+}
+
+function tomorrowDate(timezone: string) {
+  try {
+    const today = new Intl.DateTimeFormat("en-CA", {
+      timeZone: timezone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(new Date());
+    const [year, month, day] = today.split("-").map(Number);
+    const tomorrow = new Date(Date.UTC(year, month - 1, day + 1, 12));
+    return [
+      tomorrow.getUTCFullYear(),
+      String(tomorrow.getUTCMonth() + 1).padStart(2, "0"),
+      String(tomorrow.getUTCDate()).padStart(2, "0"),
+    ].join("-");
+  } catch {
+    const date = new Date();
+    date.setDate(date.getDate() + 1);
+    return [
+      date.getFullYear(),
+      String(date.getMonth() + 1).padStart(2, "0"),
+      String(date.getDate()).padStart(2, "0"),
+    ].join("-");
+  }
+}
+
+function formatRedoDate(value: string, timezone: string) {
+  const [year, month, day] = value.split("-").map(Number);
+  if (!year || !month || !day) return value;
+
+  const date = new Date(Date.UTC(year, month - 1, day, 12));
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  )
+    return value;
+
+  const label =
+    value === tomorrowDate(timezone)
+      ? "Tomorrow"
+      : new Intl.DateTimeFormat("en-GB", {
+          timeZone: "UTC",
+          weekday: "short",
+        }).format(date);
+  const compactDate = formatLocalDate(value);
+  return `${label}, ${compactDate}`;
 }
 
 export function ParentReviewsContent({
@@ -79,6 +164,7 @@ export function ParentReviewsContent({
   householdId: Id<"households">;
   householdTimezone: string;
 }) {
+  const insets = useSafeAreaInsets();
   const personal = useQuery(api.personalChoreReviews.listPending, {
     householdId,
   });
@@ -113,8 +199,13 @@ export function ParentReviewsContent({
 
   const [selected, setSelected] = useState<ReviewItem | null>(null);
   const [settingRedo, setSettingRedo] = useState(false);
-  const [redoDate, setRedoDate] = useState(tomorrowDate);
+  const [redoDate, setRedoDate] = useState(() =>
+    tomorrowDate(householdTimezone),
+  );
   const [redoTime, setRedoTime] = useState("18:00");
+  const [editingDeadlineField, setEditingDeadlineField] = useState<
+    "date" | "time" | null
+  >(null);
   const [working, setWorking] = useState<"approve" | "reject" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -136,6 +227,7 @@ export function ParentReviewsContent({
 
   const loading =
     personal === undefined || claimable === undefined || redos === undefined;
+  const waitingNames = [...new Set(items.map((item) => item.childDisplayName))];
 
   async function approve(item: ReviewItem) {
     setWorking("approve");
@@ -229,15 +321,24 @@ export function ParentReviewsContent({
         elevated={false}
         className="flex-row items-center p-4"
       >
-        <View
-          className={`h-16 w-16 items-center justify-center rounded-full ${items.length > 0 ? "bg-urgency" : "bg-action"}`}
-        >
-          <DirectionCIcon
-            name={items.length > 0 ? "chores" : "check"}
-            color={DirectionC.color.white}
-            size={31}
-          />
-        </View>
+        {items.length > 0 ? (
+          <View className="bg-urgencySoftStrong h-16 w-16 items-center justify-center rounded-full">
+            <Image
+              source={reviewClipboard}
+              className="h-16 w-16"
+              contentFit="contain"
+              accessible={false}
+            />
+          </View>
+        ) : (
+          <View className="h-16 w-16 items-center justify-center rounded-full bg-action">
+            <DirectionCIcon
+              name="check"
+              color={DirectionC.color.white}
+              size={31}
+            />
+          </View>
+        )}
         <View className="ml-4 flex-1">
           <AppText variant="sectionTitle">
             {loading
@@ -248,7 +349,9 @@ export function ParentReviewsContent({
           </AppText>
           <AppText className="mt-1">
             {items.length > 0
-              ? "Completed work is ready to check."
+              ? waitingNames.length > 0
+                ? `${waitingNames.join(" and ")} sent work to check.`
+                : "Completed work is ready to check."
               : "New submissions will appear here."}
           </AppText>
         </View>
@@ -277,19 +380,40 @@ export function ParentReviewsContent({
                 <Image
                   source={getArtwork(item.title)}
                   className="h-24 w-24 rounded-control bg-infoSoft"
-                  contentFit="cover"
+                  contentFit="contain"
                 />
                 <View className="ml-3 flex-1">
                   <View className="flex-row items-start">
                     <View className="flex-1">
                       <AppText variant="cardTitle">{item.title}</AppText>
-                      <AppText
-                        variant="cardTitle"
-                        color="urgency"
-                        className="mt-0.5"
-                      >
-                        {item.valueSek} kr
-                      </AppText>
+                      <View className="mt-0.5 flex-row flex-wrap items-center gap-2">
+                        <AppText variant="cardTitle" color="urgency">
+                          {item.valueSek} kr
+                        </AppText>
+                        {item.isUnlockChore ? (
+                          <View className="flex-row items-center rounded-full bg-actionSoft px-2 py-1">
+                            <DirectionCIcon
+                              name="key"
+                              color={DirectionC.color.green}
+                              size={13}
+                            />
+                            <AppText variant="caption" color="action">
+                              {" "}
+                              Unlock chore
+                            </AppText>
+                          </View>
+                        ) : null}
+                        {item.hasEvidence ? (
+                          <View className="flex-row items-center rounded-full bg-infoSoft px-2 py-1">
+                            <DirectionCIcon
+                              name="camera"
+                              color={DirectionC.color.ink}
+                              size={13}
+                            />
+                            <AppText variant="caption"> Photo</AppText>
+                          </View>
+                        ) : null}
+                      </View>
                     </View>
                     {item.source === "redo" ? (
                       <View className="rounded-full bg-urgencySoft px-2 py-1">
@@ -300,36 +424,32 @@ export function ParentReviewsContent({
                     ) : null}
                   </View>
                   <View className="mt-2 flex-row items-center">
-                    <View className="h-8 w-8 items-center justify-center rounded-full bg-rewardSoft">
-                      <AppText variant="caption">
-                        {item.childDisplayName.charAt(0)}
-                      </AppText>
-                    </View>
+                    {avatarForName(item.childDisplayName) ? (
+                      <DirectionCAvatar
+                        source={avatarForName(item.childDisplayName)}
+                        tone={childAvatarTone(item.childDisplayName)}
+                        className="h-9 w-9"
+                      />
+                    ) : (
+                      <View className="h-8 w-8 items-center justify-center rounded-full bg-rewardSoft">
+                        <AppText variant="caption">
+                          {item.childDisplayName.charAt(0)}
+                        </AppText>
+                      </View>
+                    )}
                     <AppText variant="bodySmall" className="ml-2">
                       {item.childDisplayName}
                     </AppText>
-                    <DirectionCIcon
-                      name="calendar"
-                      color={DirectionC.color.inkMuted}
-                      size={18}
-                    />
-                    <AppText variant="bodySmall" className="ml-1">
-                      {formatTime(item.submittedAt, item.timezone)}
-                    </AppText>
-                  </View>
-                  <View className="mt-2 flex-row gap-2">
-                    {item.isUnlockChore ? (
-                      <View className="rounded-full bg-actionSoft px-2 py-1">
-                        <AppText variant="caption" color="action">
-                          Unlock chore
-                        </AppText>
-                      </View>
-                    ) : null}
-                    {item.hasEvidence ? (
-                      <View className="rounded-full bg-infoSoft px-2 py-1">
-                        <AppText variant="caption">Photo</AppText>
-                      </View>
-                    ) : null}
+                    <View className="ml-3 flex-row items-center">
+                      <DirectionCIcon
+                        name="calendar"
+                        color={DirectionC.color.inkMuted}
+                        size={18}
+                      />
+                      <AppText variant="bodySmall" className="ml-1">
+                        {submittedLabel(item.submittedAt, item.timezone)}
+                      </AppText>
+                    </View>
                   </View>
                 </View>
                 <DirectionCIcon
@@ -388,7 +508,11 @@ export function ParentReviewsContent({
         onRequestClose={() => setSelected(null)}
       >
         {selected ? (
-          <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-canvas">
+          <SafeAreaView
+            edges={["bottom"]}
+            className="flex-1 bg-canvas"
+            style={{ paddingTop: insets.top }}
+          >
             <View className="px-5">
               <TopBar
                 title={settingRedo ? "Set Redo deadline" : "Review work"}
@@ -401,36 +525,66 @@ export function ParentReviewsContent({
               contentContainerClassName="px-5 pb-7"
               showsVerticalScrollIndicator={false}
             >
-              <Surface className="mt-2 p-4">
+              <Surface className="mt-2 p-3">
                 <View className="flex-row items-center">
-                  <Image
-                    source={getArtwork(selected.title)}
-                    className="h-24 w-24 rounded-full bg-rewardSoft"
-                    contentFit="cover"
-                  />
+                  {avatarForName(selected.childDisplayName) ? (
+                    <DirectionCAvatar
+                      source={avatarForName(selected.childDisplayName)!}
+                      tone={childAvatarTone(selected.childDisplayName)}
+                      className={
+                        settingRedo ? "h-[72px] w-[72px]" : "h-[84px] w-[84px]"
+                      }
+                    />
+                  ) : (
+                    <Image
+                      source={getArtwork(selected.title)}
+                      className={`${settingRedo ? "h-[72px] w-[72px]" : "h-[84px] w-[84px]"} rounded-full bg-rewardSoft`}
+                      contentFit="cover"
+                    />
+                  )}
                   <View className="ml-4 flex-1">
-                    <View className="self-start rounded-full bg-infoSoft px-3 py-1">
-                      <AppText variant="caption">
-                        {selected.source === "redo"
-                          ? "Redo submission"
-                          : "First submission"}
-                      </AppText>
-                    </View>
-                    <AppText variant="cardTitle" className="mt-2">
+                    {!settingRedo ? (
+                      <View className="self-start rounded-full bg-infoSoft px-3 py-1">
+                        <AppText variant="caption">
+                          {selected.source === "redo"
+                            ? "Redo submission"
+                            : "First submission"}
+                        </AppText>
+                      </View>
+                    ) : null}
+                    <AppText
+                      variant="cardTitle"
+                      className={settingRedo ? "" : "mt-2"}
+                    >
                       {selected.childDisplayName}
                     </AppText>
                     <AppText variant="sectionTitle" className="mt-0.5">
                       {selected.title}
                     </AppText>
                     <View className="mt-2 flex-row gap-2">
-                      <View className="rounded-control bg-urgencySoft px-3 py-2">
-                        <AppText variant="cardTitle" color="urgency">
+                      <View className="flex-row items-center rounded-control bg-urgencySoft px-3 py-2">
+                        <DirectionCIcon
+                          name="tag"
+                          color={DirectionC.color.coral}
+                          size={17}
+                        />
+                        <AppText
+                          variant="cardTitle"
+                          color="urgency"
+                          className="ml-2"
+                        >
                           {selected.valueSek} kr
                         </AppText>
                       </View>
-                      {selected.isUnlockChore ? (
-                        <View className="rounded-control bg-actionSoft px-3 py-2">
+                      {selected.isUnlockChore && !settingRedo ? (
+                        <View className="flex-row items-center rounded-control bg-actionSoft px-3 py-2">
+                          <DirectionCIcon
+                            name="key"
+                            color={DirectionC.color.green}
+                            size={17}
+                          />
                           <AppText variant="label" color="action">
+                            {" "}
                             Unlock chore
                           </AppText>
                         </View>
@@ -438,36 +592,40 @@ export function ParentReviewsContent({
                     </View>
                   </View>
                 </View>
-                <View className="mt-4 h-px bg-line" />
-                <View className="mt-4 flex-row">
-                  <View className="flex-1 flex-row items-center">
-                    <DirectionCIcon
-                      name="calendar"
-                      color={DirectionC.color.inkMuted}
-                      size={23}
-                    />
-                    <AppText variant="bodySmall" className="ml-2">
-                      Submitted{" "}
-                      {formatTime(selected.submittedAt, selected.timezone)}
-                    </AppText>
-                  </View>
-                  {selected.deadlineAt || selected.redoDeadlineAt ? (
-                    <View className="flex-1 flex-row items-center">
-                      <DirectionCIcon
-                        name="clock"
-                        color={DirectionC.color.inkMuted}
-                        size={23}
-                      />
-                      <AppText variant="bodySmall" className="ml-2">
-                        Deadline{" "}
-                        {formatTime(
-                          selected.redoDeadlineAt ?? selected.deadlineAt!,
-                          selected.timezone,
-                        )}
-                      </AppText>
+                {!settingRedo ? (
+                  <>
+                    <View className="mt-4 h-px bg-line" />
+                    <View className="mt-4 flex-row">
+                      <View className="flex-1 flex-row items-center">
+                        <DirectionCIcon
+                          name="calendar"
+                          color={DirectionC.color.inkMuted}
+                          size={23}
+                        />
+                        <AppText variant="bodySmall" className="ml-2">
+                          Submitted{" "}
+                          {formatTime(selected.submittedAt, selected.timezone)}
+                        </AppText>
+                      </View>
+                      {selected.deadlineAt || selected.redoDeadlineAt ? (
+                        <View className="flex-1 flex-row items-center">
+                          <DirectionCIcon
+                            name="clock"
+                            color={DirectionC.color.inkMuted}
+                            size={23}
+                          />
+                          <AppText variant="bodySmall" className="ml-2">
+                            Deadline{" "}
+                            {formatTime(
+                              selected.redoDeadlineAt ?? selected.deadlineAt!,
+                              selected.timezone,
+                            )}
+                          </AppText>
+                        </View>
+                      ) : null}
                     </View>
-                  ) : null}
-                </View>
+                  </>
+                ) : null}
               </Surface>
 
               {settingRedo ? (
@@ -475,67 +633,135 @@ export function ParentReviewsContent({
                   <Surface
                     tone="coral"
                     elevated={false}
-                    className="mt-5 flex-row items-center p-5"
+                    className="mt-4 flex-row items-center p-4"
                   >
-                    <View className="h-16 w-16 items-center justify-center rounded-full bg-urgency">
-                      <DirectionCIcon
-                        name="refresh"
-                        color={DirectionC.color.white}
-                        size={31}
+                    <View className="h-[76px] w-[76px] items-center justify-center">
+                      <Image
+                        source={redoDeadlineArtwork}
+                        className="h-[108px] w-[108px]"
+                        contentFit="contain"
                       />
                     </View>
-                    <View className="ml-4 flex-1">
+                    <View className="ml-3 flex-1">
                       <AppText variant="cardTitle">
                         Give {selected.childDisplayName} one more try
                       </AppText>
                       <AppText className="mt-1">
-                        They can submit this chore once more before the new
-                        deadline.
+                        {selected.childDisplayName} can submit this chore once
+                        more before the new deadline.
                       </AppText>
                     </View>
                   </Surface>
-                  <AppText variant="sectionTitle" className="mt-6">
+                  <AppText variant="sectionTitle" className="mt-5">
                     New deadline
                   </AppText>
-                  <Surface className="mt-3 gap-4 p-4">
-                    <FormField
-                      label="Date"
-                      placeholder="YYYY-MM-DD"
-                      value={redoDate}
-                      onChangeText={setRedoDate}
-                      autoCapitalize="none"
-                    />
-                    <FormField
-                      label="Time"
-                      placeholder="HH:mm"
-                      value={redoTime}
-                      onChangeText={setRedoTime}
-                      autoCapitalize="none"
-                    />
+                  <Surface className="mt-3 px-4 py-3">
+                    <View className="flex-row items-center">
+                      <DirectionCIcon
+                        name="calendar"
+                        color={DirectionC.color.inkMuted}
+                        size={30}
+                      />
+                      <View className="ml-4 flex-1">
+                        <AppText variant="bodySmall" color="ink-muted">
+                          Date
+                        </AppText>
+                        <TextInput
+                          accessibilityLabel="Redo deadline date"
+                          autoCapitalize="none"
+                          className="m-0 p-0 font-rounded text-[20px] font-bold leading-[24px] text-ink"
+                          onBlur={() => setEditingDeadlineField(null)}
+                          onChangeText={setRedoDate}
+                          onFocus={() => setEditingDeadlineField("date")}
+                          placeholder="YYYY-MM-DD"
+                          value={
+                            editingDeadlineField === "date"
+                              ? redoDate
+                              : formatRedoDate(redoDate, householdTimezone)
+                          }
+                        />
+                      </View>
+                      <DirectionCIcon
+                        name="chevron"
+                        color={DirectionC.color.inkMuted}
+                        size={21}
+                      />
+                    </View>
                   </Surface>
+                  <Surface className="mt-3 px-4 py-3">
+                    <View className="flex-row items-center">
+                      <DirectionCIcon
+                        name="clock"
+                        color={DirectionC.color.inkMuted}
+                        size={30}
+                      />
+                      <View className="ml-4 flex-1">
+                        <AppText variant="bodySmall" color="ink-muted">
+                          Time
+                        </AppText>
+                        <TextInput
+                          accessibilityLabel="Redo deadline time"
+                          autoCapitalize="none"
+                          className="m-0 p-0 font-rounded text-[20px] font-bold leading-[24px] text-ink"
+                          onBlur={() => setEditingDeadlineField(null)}
+                          onChangeText={setRedoTime}
+                          onFocus={() => setEditingDeadlineField("time")}
+                          placeholder="HH:mm"
+                          value={redoTime}
+                        />
+                      </View>
+                      <DirectionCIcon
+                        name="chevron"
+                        color={DirectionC.color.inkMuted}
+                        size={21}
+                      />
+                    </View>
+                  </Surface>
+                  <View className="mt-3 flex-row items-center">
+                    <DirectionCIcon
+                      name="globe"
+                      color={DirectionC.color.inkMuted}
+                      size={21}
+                    />
+                    <AppText
+                      variant="bodySmall"
+                      color="ink-muted"
+                      className="ml-2"
+                    >
+                      Household time · {householdTimezone}
+                    </AppText>
+                  </View>
                   <AppText
                     variant="bodySmall"
                     color="ink-muted"
-                    className="mt-3"
+                    className="mt-2"
                   >
-                    Household time · {householdTimezone}
+                    The deadline must be later than now.
                   </AppText>
                   <Surface
                     tone="lavender"
                     elevated={false}
-                    className="mt-4 p-4"
+                    className="mt-4 flex-row p-4"
                   >
-                    <AppText variant="bodySmall">
-                      Extras stay locked until an Unlock Chore Redo is approved.
+                    <DirectionCIcon
+                      name="info"
+                      color={DirectionC.color.ink}
+                      size={23}
+                    />
+                    <AppText variant="bodySmall" className="ml-3 flex-1">
+                      Extras stay locked until the Redo is approved.{"\n"}
+                      {selected.kind === "personal"
+                        ? `If this Personal Chore fails, ${selected.childDisplayName} earns 0 kr with no penalty.`
+                        : `If this claimed chore fails, ${selected.childDisplayName} receives the full ${selected.valueSek} kr penalty.`}
                     </AppText>
                   </Surface>
                 </View>
               ) : (
                 <View>
                   {selected.description ? (
-                    <View className="mt-5">
+                    <View className="mt-4">
                       <AppText variant="cardTitle">Parent instructions</AppText>
-                      <AppText className="mt-2">{selected.description}</AppText>
+                      <AppText className="mt-1">{selected.description}</AppText>
                     </View>
                   ) : null}
                   {selected.hasEvidence ? (
@@ -543,7 +769,7 @@ export function ParentReviewsContent({
                       submissionId={selected.submissionId}
                     />
                   ) : null}
-                  <View className="mt-5 flex-row items-center justify-center">
+                  <View className="mt-4 flex-row items-center justify-center">
                     <DirectionCIcon
                       name="check"
                       color={DirectionC.color.green}
@@ -568,33 +794,75 @@ export function ParentReviewsContent({
 
             <View className="border-t border-line bg-surfaceRaised px-5 pt-3">
               {settingRedo ? (
-                <ActionButton
-                  tone="destructive"
-                  label="Reject & require Redo"
-                  loading={working === "reject"}
-                  onPress={() => void rejectInitial(selected)}
-                />
+                <View>
+                  <AppText
+                    variant="bodySmall"
+                    color="ink-muted"
+                    className="mb-3 text-center"
+                  >
+                    This sends the chore back to {selected.childDisplayName}.
+                  </AppText>
+                  <ActionButton
+                    tone="destructive"
+                    label="Reject & require Redo"
+                    trailing={
+                      <DirectionCIcon
+                        name="check"
+                        color={DirectionC.color.white}
+                        size={20}
+                      />
+                    }
+                    loading={working === "reject"}
+                    onPress={() => void rejectInitial(selected)}
+                  />
+                </View>
               ) : (
                 <View className="gap-2">
                   <ActionButton
+                    className="min-h-[44px]"
                     label={`Approve ${selected.valueSek} kr`}
+                    trailing={
+                      <DirectionCIcon
+                        name="check"
+                        color={DirectionC.color.white}
+                        size={20}
+                      />
+                    }
                     loading={working === "approve"}
                     onPress={() => void approve(selected)}
                   />
-                  <ActionButton
-                    tone="secondary"
-                    label={
-                      selected.source === "redo"
-                        ? "Mark incomplete"
-                        : "Set Redo deadline"
-                    }
-                    loading={working === "reject"}
+                  <Pressable
+                    accessibilityRole="button"
+                    disabled={working === "reject"}
                     onPress={() =>
                       selected.source === "redo"
                         ? rejectRedo(selected)
                         : setSettingRedo(true)
                     }
-                  />
+                    className="min-h-[58px] items-center justify-center rounded-control border-2 border-urgency bg-surfaceRaised px-12"
+                  >
+                    <AppText variant="cardTitle" color="urgency">
+                      {selected.source === "redo"
+                        ? "Mark incomplete"
+                        : "Set Redo deadline"}
+                    </AppText>
+                    {selected.source !== "redo" ? (
+                      <AppText
+                        variant="caption"
+                        color="urgency"
+                        className="mt-0.5"
+                      >
+                        Confirm rejection on the next screen
+                      </AppText>
+                    ) : null}
+                    <View className="absolute right-4">
+                      <DirectionCIcon
+                        name="chevron"
+                        color={DirectionC.color.coral}
+                        size={19}
+                      />
+                    </View>
+                  </Pressable>
                 </View>
               )}
             </View>

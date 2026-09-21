@@ -1,10 +1,10 @@
 import { useServerConfirmedMutation } from "@/hooks/use-server-confirmed-mutation";
 import { DirectionCIcon } from "@/components/ui/direction-c-icon";
 import { DirectionC } from "@/constants/direction-c";
-import { ActionButton, AppText, Surface } from "@/design-system";
+import { AppText, Surface } from "@/design-system";
 
-import { useState } from "react";
-import { Image, Pressable, View } from "react-native";
+import { useEffect, useState } from "react";
+import { Image, View } from "react-native";
 
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
@@ -60,19 +60,17 @@ export function SubmissionEvidenceViewer({
     }
   }
 
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => void viewPhoto());
+
+    return () => cancelAnimationFrame(frame);
+    // A new viewer instance receives a fresh short-lived private URL.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [submissionId]);
+
   return (
-    <Surface className="mt-4 p-4">
-      <View className="flex-row items-center">
-        <View className="h-11 w-11 items-center justify-center rounded-full bg-infoSoft">
-          <DirectionCIcon name="photo" color={DirectionC.color.ink} size={24} />
-        </View>
-        <View className="ml-3 flex-1">
-          <AppText variant="cardTitle">Photo evidence</AppText>
-          <AppText variant="bodySmall" color="ink-muted" className="mt-0.5">
-            Attached by the Child for this submission.
-          </AppText>
-        </View>
-      </View>
+    <Surface className="mt-3 p-3">
+      <AppText variant="sectionTitle">Photo evidence</AppText>
 
       {imageUrl ? (
         <>
@@ -80,35 +78,26 @@ export function SubmissionEvidenceViewer({
             source={{
               uri: imageUrl,
             }}
-            className="mt-4 h-56 w-full rounded-large bg-surfaceMuted"
+            className="mt-3 h-40 w-full rounded-large bg-surfaceMuted"
             resizeMode="cover"
           />
-
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Hide chore evidence photo"
-            onPress={() => setImageUrl(null)}
-            className="mt-2 min-h-target items-center justify-center rounded-control bg-infoSoft px-4"
-          >
-            <AppText variant="label">Hide photo</AppText>
-          </Pressable>
+          <View className="mt-2 flex-row items-center">
+            <DirectionCIcon
+              name="lock"
+              color={DirectionC.color.inkMuted}
+              size={20}
+            />
+            <AppText variant="bodySmall" color="ink-muted" className="ml-2">
+              Private to your household.
+            </AppText>
+          </View>
         </>
       ) : (
-        <ActionButton
-          className="mt-4"
-          tone="secondary"
-          accessibilityLabel="View chore evidence photo"
-          loading={loading}
-          label={loading ? "Loading photo…" : "View photo"}
-          leading={
-            <DirectionCIcon
-              name="photo"
-              color={DirectionC.color.ink}
-              size={21}
-            />
-          }
-          onPress={() => void viewPhoto()}
-        />
+        <View className="mt-3 h-40 items-center justify-center rounded-large bg-surfaceMuted">
+          <AppText variant="label" color="ink-muted">
+            {loading ? "Loading photo…" : "Photo unavailable"}
+          </AppText>
+        </View>
       )}
 
       {error ? (

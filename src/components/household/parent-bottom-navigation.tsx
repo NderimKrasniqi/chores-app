@@ -12,11 +12,11 @@ import type { Id } from "../../../convex/_generated/dataModel";
 
 export type ParentSection = "home" | "chores" | "reviews" | "money" | "family";
 
-const items: Array<{
+const items: {
   section: ParentSection;
   label: string;
   icon: DirectionCIconName;
-}> = [
+}[] = [
   { section: "home", label: "Home", icon: "home" },
   { section: "chores", label: "Chores", icon: "chores" },
   { section: "reviews", label: "Reviews", icon: "reviews" },
@@ -28,19 +28,19 @@ export function ParentBottomNavigation({
   householdId,
   activeSection,
   onSelect,
+  visualReviewCount,
 }: {
   householdId: Id<"households">;
   activeSection: ParentSection;
   onSelect: (section: ParentSection) => void;
+  visualReviewCount?: number;
 }) {
-  const personal = useQuery(api.personalChoreReviews.listPending, {
-    householdId,
-  });
-  const claimable = useQuery(api.claimableChoreReviews.listPending, {
-    householdId,
-  });
-  const redos = useQuery(api.redoChoreReviews.listPending, { householdId });
+  const queryArgs = visualReviewCount === undefined ? { householdId } : "skip";
+  const personal = useQuery(api.personalChoreReviews.listPending, queryArgs);
+  const claimable = useQuery(api.claimableChoreReviews.listPending, queryArgs);
+  const redos = useQuery(api.redoChoreReviews.listPending, queryArgs);
   const reviewCount =
+    visualReviewCount ??
     (personal?.length ?? 0) + (claimable?.length ?? 0) + (redos?.length ?? 0);
 
   return (

@@ -1,4 +1,9 @@
 import { DirectionCIcon } from "@/components/ui/direction-c-icon";
+import {
+  childAvatarTone,
+  DirectionCAvatar,
+} from "@/components/ui/direction-c-avatar";
+import { AppImage as Image } from "@/components/ui/app-image";
 import { DirectionC } from "@/constants/direction-c";
 import { ActionButton, AppText, Surface, TopBar } from "@/design-system";
 import {
@@ -8,11 +13,25 @@ import {
 } from "@/hooks/use-server-confirmed-mutation";
 import { useQuery } from "convex/react";
 import { useEffect, useState } from "react";
-import { Modal, Pressable, ScrollView, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  ActivityIndicator,
+  Modal,
+  Pressable,
+  ScrollView,
+  View,
+} from "react-native";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
+import {
+  formatLocalDate,
+  formatLocalDateRange,
+  formatTimestampDateTime,
+} from "@/lib/direction-c/dates";
 
 const weekdays = [
   "monday",
@@ -41,33 +60,210 @@ type SelectedPayout = Payout & {
   runningBalanceSek: number;
 };
 
+const alexAvatar = require("../../../assets/images/direction-c/alex-avatar.png");
+const mayaAvatar = require("../../../assets/images/direction-c/maya-avatar.png");
+const moneyArtwork = require("../../../assets/images/direction-c/money-wallet-calendar.png");
+
 function formatWeekday(day: string) {
   return day.charAt(0).toUpperCase() + day.slice(1);
 }
 
 function formatDateRange(start: string, end: string) {
-  const startDate = new Date(`${start}T12:00:00`);
-  const endDate = new Date(`${end}T12:00:00`);
-  if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime()))
-    return `${start}–${end}`;
-  const month = new Intl.DateTimeFormat("en-SE", { month: "short" }).format(
-    endDate,
-  );
-  return `${startDate.getDate()}–${endDate.getDate()} ${month}`;
+  return formatLocalDateRange(start, end);
 }
 
-function formatMoment(timestamp: number) {
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(timestamp));
+function formatShortDate(value: string) {
+  return formatLocalDate(value);
 }
 
-function InitialAvatar({ name }: { name: string }) {
+function formatMoment(timestamp: number, timezone: string) {
+  return formatTimestampDateTime(timestamp, timezone);
+}
+
+function formatPaidMoment(timestamp: number, timezone: string) {
+  const paidDate = formatMoment(timestamp, timezone).split(" at ")[0];
+  const todayDate = formatMoment(Date.now(), timezone).split(" at ")[0];
+  const time = formatMoment(timestamp, timezone).split(" at ")[1] ?? "";
+  return paidDate === todayDate
+    ? `Paid today at ${time}`
+    : `Paid ${formatMoment(timestamp, timezone)}`;
+}
+
+function ChildAvatar({
+  name,
+  className = "h-14 w-14",
+}: {
+  name: string;
+  className?: string;
+}) {
+  const normalized = name.trim().toLowerCase();
+  const source =
+    normalized === "alex"
+      ? alexAvatar
+      : normalized === "maya"
+        ? mayaAvatar
+        : null;
+
+  if (source)
+    return (
+      <DirectionCAvatar
+        source={source}
+        tone={childAvatarTone(name)}
+        className={className}
+      />
+    );
+
   return (
-    <View className="h-14 w-14 items-center justify-center rounded-full bg-rewardSoft">
+    <View
+      className={`${className} items-center justify-center rounded-full bg-rewardSoft`}
+    >
       <AppText variant="cardTitle">{name.charAt(0).toUpperCase()}</AppText>
     </View>
+  );
+}
+
+function RecoveryPayoutDetail({
+  selected,
+  insetTop,
+  onBack,
+}: {
+  selected: SelectedPayout;
+  insetTop: number;
+  onBack: () => void;
+}) {
+  return (
+    <SafeAreaView
+      edges={["bottom"]}
+      className="flex-1 bg-canvas"
+      style={{ paddingTop: insetTop }}
+    >
+      <View className="px-5">
+        <TopBar title="Payout detail" onBack={onBack} />
+      </View>
+      <ScrollView contentContainerClassName="px-5 pb-8">
+        <Surface className="mt-2 flex-row items-center p-4">
+          <ChildAvatar name={selected.childDisplayName} className="h-20 w-20" />
+          <View className="ml-4 flex-1">
+            <AppText variant="sectionTitle">
+              {selected.childDisplayName}
+            </AppText>
+            <AppText variant="bodySmall" color="ink-muted" className="mt-1">
+              Period ended {formatShortDate(selected.periodEndLocalDate)}
+            </AppText>
+            <View className="mt-2 flex-row items-center self-start rounded-full bg-infoSoft px-3 py-1.5">
+              <DirectionCIcon
+                name="refresh"
+                color={DirectionC.color.inkMuted}
+                size={16}
+              />
+              <AppText variant="label"> Status unknown</AppText>
+            </View>
+            <AppText variant="display" color="urgency" className="mt-2">
+              {selected.amountDueSek} kr
+            </AppText>
+          </View>
+        </Surface>
+
+        <AppText variant="sectionTitle" className="mt-5">
+          Pay manually
+        </AppText>
+        <View className="mt-4 flex-row">
+          <View className="w-12 items-center">
+            <View className="h-11 w-11 items-center justify-center rounded-full bg-infoSoft">
+              <AppText variant="cardTitle">1</AppText>
+            </View>
+            <View className="mt-2 h-8 border-l-2 border-dashed border-infoSoftStrong" />
+          </View>
+          <View className="ml-3 flex-1">
+            <AppText variant="cardTitle">
+              Pay {selected.amountDueSek} kr manually with Swish.
+            </AppText>
+            <AppText variant="bodySmall" color="ink-muted" className="mt-1">
+              Payment happens outside this app.
+            </AppText>
+          </View>
+        </View>
+        <View className="mt-1 flex-row">
+          <View className="w-12 items-center">
+            <View className="h-11 w-11 items-center justify-center rounded-full bg-infoSoft">
+              <AppText variant="cardTitle">2</AppText>
+            </View>
+          </View>
+          <View className="ml-3 flex-1">
+            <AppText variant="cardTitle">Return here and mark it paid.</AppText>
+            <AppText variant="bodySmall" color="ink-muted" className="mt-1">
+              Only confirm after the payment is complete.
+            </AppText>
+          </View>
+        </View>
+
+        <Surface tone="lavender" elevated={false} className="mt-5 p-4">
+          <AppText variant="cardTitle">Included in running balance</AppText>
+          <View className="mt-3 flex-row items-center rounded-control bg-surfaceRaised px-3 py-4">
+            <View className="flex-1">
+              <AppText variant="caption" color="ink-muted">
+                Current balance
+              </AppText>
+              <AppText variant="cardTitle" className="mt-1">
+                {selected.runningBalanceSek} kr
+              </AppText>
+            </View>
+            <AppText variant="sectionTitle">−</AppText>
+            <View className="flex-1 items-center">
+              <AppText variant="caption" color="ink-muted">
+                This payout
+              </AppText>
+              <AppText variant="cardTitle" color="urgency" className="mt-1">
+                {selected.amountDueSek} kr
+              </AppText>
+            </View>
+            <AppText variant="sectionTitle">=</AppText>
+            <View className="flex-1 items-end">
+              <AppText variant="caption" color="ink-muted">
+                After marking paid
+              </AppText>
+              <AppText variant="cardTitle" className="mt-1">
+                {selected.runningBalanceSek - selected.amountDueSek} kr
+              </AppText>
+            </View>
+          </View>
+          {selected.pendingOutcomeCount > 0 ? (
+            <View className="mt-3 flex-row items-center rounded-control bg-infoSoftStrong/40 px-3 py-2">
+              <DirectionCIcon
+                name="info"
+                color={DirectionC.color.inkMuted}
+                size={21}
+              />
+              <AppText variant="caption" className="ml-2 flex-1">
+                {selected.pendingOutcomeCount} unresolved chore outcome moves to
+                a later payout.
+              </AppText>
+            </View>
+          ) : null}
+        </Surface>
+
+        <Surface
+          tone="coral"
+          elevated={false}
+          className="mt-3 flex-row items-center p-3"
+        >
+          <ActivityIndicator color={DirectionC.color.coral} size="large" />
+          <View className="ml-3 flex-1">
+            <AppText variant="cardTitle">Checking payment status</AppText>
+            <AppText variant="bodySmall" className="mt-1">
+              Don’t mark it paid again yet. We’re confirming whether the{" "}
+              {selected.amountDueSek} kr payout was recorded.
+            </AppText>
+          </View>
+        </Surface>
+        <View className="mt-3 min-h-control flex-row items-center justify-center rounded-control bg-infoSoftStrong">
+          <ActivityIndicator color={DirectionC.color.inkMuted} />
+          <AppText variant="cardTitle" color="ink-muted" className="ml-3">
+            Checking with server…
+          </AppText>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
@@ -76,6 +272,7 @@ export function ParentMoneyContent({
 }: {
   householdId: Id<"households">;
 }) {
+  const insets = useSafeAreaInsets();
   const overview = useQuery(api.payouts.getOverview, { householdId });
   const ensureCurrent = useServerConfirmedMutation(api.payouts.ensureCurrent);
   const setPayoutWeekday = useServerConfirmedMutation(
@@ -144,7 +341,14 @@ export function ParentMoneyContent({
   }
 
   if (!overview) {
-    return <AppText color="ink-muted">Loading payout information…</AppText>;
+    return (
+      <Surface className="p-5">
+        <AppText variant="cardTitle">Loading payout information…</AppText>
+        <AppText variant="bodySmall" color="ink-muted" className="mt-1">
+          Your household balances will appear here.
+        </AppText>
+      </Surface>
+    );
   }
 
   const pending = overview.children.flatMap((child) =>
@@ -177,36 +381,36 @@ export function ParentMoneyContent({
 
   return (
     <View>
-      <Surface tone="mint" elevated={false} className="overflow-hidden p-5">
+      <Surface tone="mint" elevated={false} className="overflow-hidden p-3">
         <View className="flex-row items-center">
-          <View className="h-24 w-28 items-center justify-center rounded-large bg-rewardSoft">
-            <DirectionCIcon
-              name="money"
-              color={DirectionC.color.green}
-              size={45}
+          <View className="h-[82px] w-[118px] items-center justify-center">
+            <Image
+              source={moneyArtwork}
+              className="h-[100px] w-[142px]"
+              contentFit="contain"
             />
           </View>
-          <View className="ml-4 flex-1">
-            <AppText variant="label" color="action">
+          <View className="ml-2 flex-1">
+            <AppText variant="cardTitle" color="action">
               Current payout week
             </AppText>
-            <AppText variant="screenTitle" className="mt-1">
+            <AppText className="mt-0.5 text-[28px] font-black leading-[32px]">
               {formatDateRange(
                 overview.currentPeriod.startLocalDate,
                 overview.currentPeriod.endLocalDate,
               )}
             </AppText>
-            <View className="mt-2 flex-row items-center">
+            <View className="mt-1 flex-row items-center">
               <DirectionCIcon
                 name="calendar"
                 color={DirectionC.color.ink}
                 size={22}
               />
-              <AppText className="ml-2">
+              <AppText variant="bodySmall" className="ml-2">
                 Closes {formatWeekday(overview.currentPeriod.payoutWeekday)}
               </AppText>
             </View>
-            <AppText variant="bodySmall" color="ink-muted" className="mt-1">
+            <AppText variant="bodySmall" color="ink-muted" className="mt-0.5">
               This week settles after it closes.
             </AppText>
           </View>
@@ -214,9 +418,9 @@ export function ParentMoneyContent({
         <Pressable
           accessibilityRole="button"
           onPress={() => setShowWeekdayPicker(true)}
-          className="mt-4 min-h-target flex-row items-center justify-end border-t border-actionSoftStrong pt-3"
+          className="mt-2 min-h-[36px] flex-row items-center justify-end border-t border-actionSoftStrong pt-2"
         >
-          <AppText variant="label" color="action">
+          <AppText variant="bodySmall" color="action" className="font-black">
             Payout day: {formatWeekday(overview.configuredPayoutWeekday)}
           </AppText>
           <DirectionCIcon
@@ -235,25 +439,60 @@ export function ParentMoneyContent({
           accessibilityRole="button"
           onPress={() => setSelected(displayPayout)}
         >
-          <Surface className="mt-2 p-4">
-            <View className="flex-row items-start">
-              <InitialAvatar name={displayPayout.childDisplayName} />
+          <Surface className="mt-2 p-3">
+            <View className="flex-row items-center">
+              <ChildAvatar
+                name={displayPayout.childDisplayName}
+                className="h-20 w-20"
+              />
               <View className="ml-3 flex-1">
-                <AppText variant="cardTitle">
+                <AppText className="text-[18px] font-extrabold leading-[21px]">
                   {displayPayout.childDisplayName}
                 </AppText>
-                <AppText variant="bodySmall" color="ink-muted" className="mt-1">
-                  Period ended {displayPayout.periodEndLocalDate}
+                <AppText variant="caption" color="ink-muted" className="mt-0.5">
+                  Period ended{" "}
+                  {formatShortDate(displayPayout.periodEndLocalDate)}
                 </AppText>
+              </View>
+              <DirectionCIcon
+                name="chevron"
+                color={DirectionC.color.ink}
+                size={22}
+              />
+            </View>
+            <View className="ml-[92px] mt-1">
+              <View className="flex-row items-center">
                 <AppText
-                  variant="screenTitle"
-                  color={displayPayout.status === "paid" ? "action" : "urgency"}
-                  className="mt-1"
+                  color={
+                    displayPayout.status === "paid"
+                      ? "action"
+                      : displayPayout.status === "no_payment"
+                        ? "ink-muted"
+                        : "urgency"
+                  }
+                  className="text-[28px] font-black leading-[32px]"
                 >
                   {displayPayout.amountDueSek} kr
                 </AppText>
-                <View className="mt-2 self-start rounded-full bg-actionSoft px-3 py-1.5">
-                  <AppText variant="label" color="action">
+                <View
+                  className={`ml-2 flex-row items-center rounded-full px-2.5 py-1 ${displayPayout.status === "no_payment" ? "bg-infoSoft" : "bg-actionSoft"}`}
+                >
+                  {displayPayout.status !== "no_payment" ? (
+                    <DirectionCIcon
+                      name="check"
+                      color={DirectionC.color.green}
+                      size={13}
+                    />
+                  ) : null}
+                  <AppText
+                    variant="label"
+                    color={
+                      displayPayout.status === "no_payment"
+                        ? "ink-muted"
+                        : "action"
+                    }
+                  >
+                    {displayPayout.status !== "no_payment" ? " " : ""}
                     {displayPayout.status === "paid"
                       ? "Paid"
                       : displayPayout.status === "no_payment"
@@ -261,53 +500,46 @@ export function ParentMoneyContent({
                         : "Ready to pay"}
                   </AppText>
                 </View>
-                {displayPayout.status === "pending" ? (
-                  <>
-                    <AppText
-                      variant="bodySmall"
-                      color="ink-muted"
-                      className="mt-2"
-                    >
-                      {displayPayout.amountDueSek} kr of{" "}
-                      {displayPayout.childDisplayName}’s{" "}
-                      {displayPayout.runningBalanceSek} kr total unpaid balance.
-                    </AppText>
-                    <AppText
-                      variant="bodySmall"
-                      color="ink-muted"
-                      className="mt-1"
-                    >
-                      Pay manually with Swish, then mark paid.
-                    </AppText>
-                  </>
-                ) : (
-                  <AppText
-                    variant="bodySmall"
-                    color="ink-muted"
-                    className="mt-2"
-                  >
-                    {displayPayout.status === "paid"
-                      ? "Payment recorded and complete."
-                      : "Nothing was due for this payout period."}
-                  </AppText>
-                )}
-                {displayPayout.pendingOutcomeCount > 0 ? (
-                  <View className="mt-2 rounded-full bg-infoSoft px-3 py-1.5">
-                    <AppText variant="caption">
-                      {displayPayout.pendingOutcomeCount} unresolved{" "}
-                      {displayPayout.pendingOutcomeCount === 1
-                        ? "chore moves"
-                        : "chores move"}{" "}
-                      to a later payout.
-                    </AppText>
-                  </View>
-                ) : null}
               </View>
-              <DirectionCIcon
-                name="chevron"
-                color={DirectionC.color.ink}
-                size={22}
-              />
+              {displayPayout.status === "pending" ? (
+                <>
+                  <AppText variant="caption" color="ink-muted" className="mt-1">
+                    {displayPayout.amountDueSek} kr of{" "}
+                    {displayPayout.childDisplayName}’s{" "}
+                    {displayPayout.runningBalanceSek} kr total unpaid balance.
+                  </AppText>
+                  <AppText
+                    variant="caption"
+                    color="ink-muted"
+                    className="mt-0.5"
+                  >
+                    Pay manually with Swish, then mark paid.
+                  </AppText>
+                </>
+              ) : (
+                <AppText variant="caption" color="ink-muted" className="mt-1">
+                  {displayPayout.status === "paid"
+                    ? "Payment recorded and complete."
+                    : "Nothing was due for this payout period."}
+                </AppText>
+              )}
+              {displayPayout.pendingOutcomeCount > 0 ? (
+                <View className="mt-1.5 flex-row items-center rounded-full bg-infoSoft px-2.5 py-1">
+                  <DirectionCIcon
+                    name="info"
+                    color={DirectionC.color.inkMuted}
+                    size={14}
+                  />
+                  <AppText className="text-[11px] font-semibold leading-[14px]">
+                    {" "}
+                    {displayPayout.pendingOutcomeCount} unresolved{" "}
+                    {displayPayout.pendingOutcomeCount === 1
+                      ? "chore moves"
+                      : "chores move"}{" "}
+                    to a later payout.
+                  </AppText>
+                </View>
+              ) : null}
             </View>
           </Surface>
         </Pressable>
@@ -323,7 +555,7 @@ export function ParentMoneyContent({
       <AppText variant="sectionTitle" className="mt-5">
         Running balances
       </AppText>
-      <View className="mt-2 gap-3">
+      <View className="mt-2 gap-2">
         {overview.children.map((child) => {
           const readyAmount = child.pendingPayouts.reduce(
             (sum, payout) => sum + payout.amountDueSek,
@@ -333,42 +565,58 @@ export function ParentMoneyContent({
           return (
             <Surface
               key={child.childId}
-              className="min-h-[78px] flex-row items-center p-3"
+              className="min-h-[72px] flex-row items-center px-3 py-1.5"
             >
-              <InitialAvatar name={child.displayName} />
+              <ChildAvatar name={child.displayName} className="h-14 w-14" />
               <View className="ml-3 flex-1">
-                <AppText variant="cardTitle">{child.displayName}</AppText>
+                <AppText className="text-[18px] font-extrabold leading-[21px]">
+                  {child.displayName}
+                </AppText>
                 {readyAmount > 0 ? (
                   <AppText
-                    variant="bodySmall"
+                    variant="caption"
                     color="ink-muted"
-                    className="mt-1"
+                    className="mt-0.5"
                   >
                     {readyAmount} kr ready to pay · {remaining} kr remains
                   </AppText>
                 ) : child.latestPayout?.status === "paid" ? (
-                  <AppText variant="bodySmall" color="action" className="mt-1">
-                    Latest payout paid · {child.latestPayout.amountDueSek} kr
-                  </AppText>
+                  <View className="mt-0.5 flex-row items-center">
+                    <DirectionCIcon
+                      name="check"
+                      color={DirectionC.color.green}
+                      size={14}
+                    />
+                    <AppText variant="caption" color="action" className="ml-1">
+                      Latest payout paid · {child.latestPayout.amountDueSek} kr
+                    </AppText>
+                  </View>
                 ) : child.runningBalanceSek < 0 ? (
                   <AppText
-                    variant="bodySmall"
+                    variant="caption"
                     color="ink-muted"
-                    className="mt-1"
+                    className="mt-0.5"
                   >
                     Negative balance carries forward
                   </AppText>
                 ) : (
                   <AppText
-                    variant="bodySmall"
+                    variant="caption"
                     color="ink-muted"
-                    className="mt-1"
+                    className="mt-0.5"
                   >
                     Nothing ready to pay yet
                   </AppText>
                 )}
               </View>
-              <AppText variant="amount">{child.runningBalanceSek} kr</AppText>
+              <AppText className="text-[22px] font-black leading-[26px]">
+                {child.runningBalanceSek} kr
+              </AppText>
+              <DirectionCIcon
+                name="chevron"
+                color={DirectionC.color.ink}
+                size={20}
+              />
             </Surface>
           );
         })}
@@ -378,14 +626,14 @@ export function ParentMoneyContent({
         <Surface
           tone="lavender"
           elevated={false}
-          className="mt-4 flex-row items-center p-3"
+          className="mt-2 flex-row items-center px-3 py-2"
         >
           <DirectionCIcon
             name="info"
             color={DirectionC.color.inkMuted}
             size={22}
           />
-          <AppText variant="bodySmall" className="ml-3 flex-1">
+          <AppText variant="caption" className="ml-2 flex-1">
             After you mark {nextPayout.amountDueSek} kr paid,{" "}
             {nextPayout.childDisplayName}’s balance becomes{" "}
             {nextPayout.runningBalanceSek - nextPayout.amountDueSek} kr.
@@ -408,319 +656,385 @@ export function ParentMoneyContent({
         onRequestClose={() => setSelected(null)}
       >
         {selected ? (
-          <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-canvas">
-            <View className="px-5">
-              <TopBar title="Payout details" onBack={() => setSelected(null)} />
-            </View>
-            <ScrollView contentContainerClassName="px-5 pb-8">
-              <Surface className="mt-4 flex-row items-center p-6">
-                <InitialAvatar name={selected.childDisplayName} />
-                <View className="ml-5 flex-1">
-                  <AppText variant="sectionTitle">
-                    {selected.childDisplayName}
-                  </AppText>
-                  <AppText
-                    variant="bodySmall"
-                    color="ink-muted"
-                    className="mt-1"
-                  >
-                    Period ended {selected.periodEndLocalDate}
-                  </AppText>
-                  <View
-                    className={`mt-3 self-start rounded-full px-4 py-2 ${selected.status === "paid" ? "bg-actionSoft" : selected.status === "no_payment" ? "bg-infoSoft" : "bg-urgencySoft"}`}
-                  >
+          recoveringPayment ? (
+            <RecoveryPayoutDetail
+              selected={selected}
+              insetTop={insets.top}
+              onBack={() => setSelected(null)}
+            />
+          ) : (
+            <SafeAreaView
+              edges={["bottom"]}
+              className="flex-1 bg-canvas"
+              style={{ paddingTop: insets.top }}
+            >
+              <View className="px-5">
+                <TopBar
+                  title="Payout detail"
+                  onBack={() => setSelected(null)}
+                />
+              </View>
+              <ScrollView contentContainerClassName="px-5 pb-8">
+                <Surface className="mt-2 flex-row items-center p-4">
+                  <ChildAvatar
+                    name={selected.childDisplayName}
+                    className="h-20 w-20"
+                  />
+                  <View className="ml-4 flex-1">
+                    <AppText variant="sectionTitle">
+                      {selected.childDisplayName}
+                    </AppText>
                     <AppText
-                      variant="label"
+                      variant="bodySmall"
+                      color="ink-muted"
+                      className="mt-1"
+                    >
+                      Period ended{" "}
+                      {formatShortDate(selected.periodEndLocalDate)}
+                    </AppText>
+                    <View
+                      className={`mt-2 flex-row items-center self-start rounded-full px-3 py-1.5 ${selected.status === "paid" ? "bg-actionSoft" : selected.status === "no_payment" ? "bg-infoSoft" : "bg-actionSoft"}`}
+                    >
+                      {selected.status !== "no_payment" ? (
+                        <DirectionCIcon
+                          name="check"
+                          color={DirectionC.color.green}
+                          size={16}
+                        />
+                      ) : null}
+                      <AppText
+                        variant="label"
+                        color={
+                          selected.status === "paid"
+                            ? "action"
+                            : selected.status === "pending"
+                              ? "action"
+                              : "ink-muted"
+                        }
+                      >
+                        {selected.status !== "no_payment" ? " " : ""}
+                        {selected.status === "paid"
+                          ? "Paid"
+                          : selected.status === "no_payment"
+                            ? "No payment"
+                            : "Ready to pay"}
+                      </AppText>
+                    </View>
+                    <AppText
+                      variant="display"
                       color={
                         selected.status === "paid"
                           ? "action"
-                          : selected.status === "pending"
-                            ? "urgency"
-                            : "ink-muted"
+                          : selected.status === "no_payment"
+                            ? "ink-muted"
+                            : "urgency"
                       }
-                    >
-                      {selected.status === "paid"
-                        ? "✓  Paid"
-                        : selected.status === "no_payment"
-                          ? "No payment"
-                          : "Ready to pay"}
-                    </AppText>
-                  </View>
-                  <AppText
-                    variant="display"
-                    color={selected.status === "paid" ? "action" : "urgency"}
-                    className="mt-3"
-                  >
-                    {selected.amountDueSek} kr
-                  </AppText>
-                </View>
-              </Surface>
-
-              {selected.status === "paid" ? (
-                <>
-                  <Surface
-                    tone="mint"
-                    elevated={false}
-                    className="mt-6 flex-row items-center p-5"
-                  >
-                    <View className="h-14 w-14 items-center justify-center rounded-full bg-action">
-                      <DirectionCIcon
-                        name="check"
-                        color={DirectionC.color.white}
-                        size={29}
-                      />
-                    </View>
-                    <View className="ml-4 flex-1">
-                      <AppText variant="sectionTitle">Payment recorded</AppText>
-                      <AppText color="ink-muted" className="mt-1">
-                        {selected.paidAt
-                          ? `Paid ${formatMoment(selected.paidAt)}`
-                          : "Paid"}
-                      </AppText>
-                      <AppText
-                        variant="bodySmall"
-                        color="ink-muted"
-                        className="mt-2"
-                      >
-                        This payout is complete and can’t be reopened.
-                      </AppText>
-                    </View>
-                  </Surface>
-                  <Surface
-                    tone="lavender"
-                    elevated={false}
-                    className="mt-4 p-5"
-                  >
-                    <AppText variant="sectionTitle">Balance updated</AppText>
-                    <View className="mt-4 flex-row items-end rounded-control bg-surfaceRaised p-4">
-                      <View className="flex-1">
-                        <AppText variant="caption" color="ink-muted">
-                          At period close
-                        </AppText>
-                        <AppText variant="cardTitle" className="mt-1">
-                          {selected.balanceAtCloseSek} kr
-                        </AppText>
-                      </View>
-                      <AppText variant="sectionTitle">−</AppText>
-                      <View className="flex-1 items-center">
-                        <AppText variant="caption" color="ink-muted">
-                          Paid
-                        </AppText>
-                        <AppText
-                          variant="cardTitle"
-                          color="action"
-                          className="mt-1"
-                        >
-                          {selected.amountDueSek} kr
-                        </AppText>
-                      </View>
-                      <AppText variant="sectionTitle">=</AppText>
-                      <View className="flex-1 items-end">
-                        <AppText variant="caption" color="ink-muted">
-                          Current balance
-                        </AppText>
-                        <AppText variant="cardTitle" className="mt-1">
-                          {selected.runningBalanceSek} kr
-                        </AppText>
-                      </View>
-                    </View>
-                  </Surface>
-                </>
-              ) : selected.status === "pending" ? (
-                <>
-                  <AppText variant="sectionTitle" className="mt-6">
-                    Before marking paid
-                  </AppText>
-                  <Surface tone="mint" elevated={false} className="mt-3 p-5">
-                    <AppText variant="cardTitle">
-                      Pay {selected.amountDueSek} kr manually with Swish
-                    </AppText>
-                    <AppText className="mt-2">
-                      This app records settlement; it does not send the payment.
-                    </AppText>
-                  </Surface>
-                  <Surface className="mt-3 p-4">
-                    <View className="flex-row justify-between">
-                      <AppText color="ink-muted">Total unpaid balance</AppText>
-                      <AppText variant="label">
-                        {selected.runningBalanceSek} kr
-                      </AppText>
-                    </View>
-                    <View className="mt-3 flex-row justify-between">
-                      <AppText color="ink-muted">This payout</AppText>
-                      <AppText variant="label">
-                        − {selected.amountDueSek} kr
-                      </AppText>
-                    </View>
-                    <View className="my-3 h-px bg-line" />
-                    <View className="flex-row justify-between">
-                      <AppText>Balance after payment</AppText>
-                      <AppText variant="cardTitle">
-                        {selected.runningBalanceSek - selected.amountDueSek} kr
-                      </AppText>
-                    </View>
-                  </Surface>
-                </>
-              ) : (
-                <Surface tone="lavender" elevated={false} className="mt-6 p-5">
-                  <AppText variant="sectionTitle">Nothing was due</AppText>
-                  <AppText className="mt-2">
-                    This payout period closed without a positive amount to pay.
-                  </AppText>
-                </Surface>
-              )}
-              {selected.pendingOutcomeCount > 0 ? (
-                <Surface tone="lavender" elevated={false} className="mt-3 p-4">
-                  <AppText variant="bodySmall">
-                    {selected.pendingOutcomeCount} unresolved chore outcome will
-                    be handled in a later payout.
-                  </AppText>
-                </Surface>
-              ) : null}
-            </ScrollView>
-            {selected.status === "pending" ? (
-              <View className="border-t border-line bg-surfaceRaised px-5 pt-3">
-                <ActionButton
-                  label={`Mark ${selected.amountDueSek} kr paid`}
-                  onPress={() => setShowConfirmation(true)}
-                />
-              </View>
-            ) : null}
-          </SafeAreaView>
-        ) : null}
-      </Modal>
-
-      <Modal
-        visible={showConfirmation}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowConfirmation(false)}
-      >
-        <View className="flex-1 justify-end bg-scrim">
-          <SafeAreaView
-            edges={["bottom"]}
-            className="rounded-t-sheet bg-canvas px-5 pb-2 pt-5"
-          >
-            <AppText variant="sectionTitle">Confirm payment</AppText>
-            <AppText className="mt-2">
-              Only confirm after you have paid {selected?.childDisplayName}{" "}
-              {selected?.amountDueSek} kr outside the app.
-            </AppText>
-            <ActionButton
-              className="mt-5"
-              label="Yes, mark paid"
-              loading={working}
-              onPress={() => void confirmPaid()}
-            />
-            <ActionButton
-              tone="quiet"
-              label="Not yet"
-              onPress={() => setShowConfirmation(false)}
-            />
-          </SafeAreaView>
-        </View>
-      </Modal>
-
-      <Modal
-        visible={recoveringPayment}
-        animationType="fade"
-        presentationStyle="fullScreen"
-      >
-        {selected ? (
-          <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-canvas">
-            <View className="px-5">
-              <TopBar title="Payout details" />
-            </View>
-            <ScrollView contentContainerClassName="px-5 pb-8">
-              <Surface className="mt-4 flex-row items-center p-6">
-                <InitialAvatar name={selected.childDisplayName} />
-                <View className="ml-5 flex-1">
-                  <AppText variant="sectionTitle">
-                    {selected.childDisplayName}
-                  </AppText>
-                  <AppText
-                    variant="bodySmall"
-                    color="ink-muted"
-                    className="mt-1"
-                  >
-                    Period ended {selected.periodEndLocalDate}
-                  </AppText>
-                  <View className="mt-3 self-start rounded-full bg-infoSoft px-4 py-2">
-                    <AppText variant="label">Status unknown</AppText>
-                  </View>
-                  <AppText variant="display" color="urgency" className="mt-3">
-                    {selected.amountDueSek} kr
-                  </AppText>
-                </View>
-              </Surface>
-
-              <AppText variant="sectionTitle" className="mt-6">
-                Pay manually
-              </AppText>
-              <Surface tone="lavender" elevated={false} className="mt-4 p-5">
-                <AppText variant="sectionTitle">
-                  Included in running balance
-                </AppText>
-                <View className="mt-4 flex-row items-end rounded-control bg-surfaceRaised p-4">
-                  <View className="flex-1">
-                    <AppText variant="caption" color="ink-muted">
-                      Current balance
-                    </AppText>
-                    <AppText variant="cardTitle" className="mt-1">
-                      {selected.runningBalanceSek} kr
-                    </AppText>
-                  </View>
-                  <AppText variant="sectionTitle">−</AppText>
-                  <View className="flex-1 items-center">
-                    <AppText variant="caption" color="ink-muted">
-                      This payout
-                    </AppText>
-                    <AppText
-                      variant="cardTitle"
-                      color="urgency"
-                      className="mt-1"
+                      className="mt-2"
                     >
                       {selected.amountDueSek} kr
                     </AppText>
                   </View>
-                  <AppText variant="sectionTitle">=</AppText>
-                  <View className="flex-1 items-end">
-                    <AppText variant="caption" color="ink-muted">
-                      After paid
-                    </AppText>
-                    <AppText variant="cardTitle" className="mt-1">
-                      {selected.runningBalanceSek - selected.amountDueSek} kr
-                    </AppText>
-                  </View>
-                </View>
-              </Surface>
+                </Surface>
 
-              <Surface
-                tone="coral"
-                elevated={false}
-                className="mt-4 flex-row items-center p-4"
-              >
-                <DirectionCIcon
-                  name="refresh"
-                  color={DirectionC.color.coral}
-                  size={32}
-                />
-                <View className="ml-4 flex-1">
-                  <AppText variant="cardTitle">Checking payment status</AppText>
-                  <AppText className="mt-1">
-                    Don’t mark it paid again yet. We’re confirming whether the
-                    payout was recorded.
-                  </AppText>
+                {selected.status === "paid" ? (
+                  <>
+                    <Surface
+                      tone="mint"
+                      elevated={false}
+                      className="mt-5 flex-row items-center p-4"
+                    >
+                      <View className="h-16 w-16 items-center justify-center">
+                        <DirectionCIcon
+                          name="money"
+                          color={DirectionC.color.green}
+                          size={42}
+                        />
+                        <View className="absolute bottom-1 right-0 h-7 w-7 items-center justify-center rounded-full bg-action">
+                          <DirectionCIcon
+                            name="check"
+                            color={DirectionC.color.white}
+                            size={17}
+                          />
+                        </View>
+                      </View>
+                      <View className="ml-4 flex-1">
+                        <AppText variant="cardTitle">Payment recorded</AppText>
+                        <AppText color="ink-muted" className="mt-1">
+                          {selected.paidAt
+                            ? formatPaidMoment(
+                                selected.paidAt,
+                                overview.currentPeriod.timezone,
+                              )
+                            : "Paid"}
+                        </AppText>
+                        <AppText
+                          variant="bodySmall"
+                          color="ink-muted"
+                          className="mt-2"
+                        >
+                          This payout is complete and can’t be reopened.
+                        </AppText>
+                      </View>
+                    </Surface>
+                    <Surface
+                      tone="lavender"
+                      elevated={false}
+                      className="mt-4 p-4"
+                    >
+                      <AppText variant="cardTitle">Balance updated</AppText>
+                      <View className="mt-3 flex-row items-center rounded-control bg-surfaceRaised px-3 py-4">
+                        <View className="flex-1">
+                          <AppText variant="caption" color="ink-muted">
+                            Before payment
+                          </AppText>
+                          <AppText variant="cardTitle" className="mt-1">
+                            {selected.runningBalanceSek + selected.amountDueSek}{" "}
+                            kr
+                          </AppText>
+                        </View>
+                        <AppText variant="sectionTitle">−</AppText>
+                        <View className="flex-1 items-center">
+                          <AppText variant="caption" color="ink-muted">
+                            Paid
+                          </AppText>
+                          <AppText
+                            variant="cardTitle"
+                            color="action"
+                            className="mt-1"
+                          >
+                            {selected.amountDueSek} kr
+                          </AppText>
+                        </View>
+                        <AppText variant="sectionTitle">=</AppText>
+                        <View className="flex-1 items-end">
+                          <AppText variant="caption" color="ink-muted">
+                            Current balance
+                          </AppText>
+                          <AppText variant="cardTitle" className="mt-1">
+                            {selected.runningBalanceSek} kr
+                          </AppText>
+                        </View>
+                      </View>
+                      {selected.pendingOutcomeCount > 0 ? (
+                        <View className="mt-3 flex-row items-center rounded-control bg-infoSoftStrong/40 px-3 py-2">
+                          <DirectionCIcon
+                            name="info"
+                            color={DirectionC.color.inkMuted}
+                            size={21}
+                          />
+                          <AppText variant="caption" className="ml-2 flex-1">
+                            {selected.pendingOutcomeCount} unresolved chore
+                            outcome moves to a later payout.
+                          </AppText>
+                        </View>
+                      ) : null}
+                    </Surface>
+                  </>
+                ) : selected.status === "pending" ? (
+                  <>
+                    <AppText variant="sectionTitle" className="mt-5">
+                      Pay manually
+                    </AppText>
+                    <View className="mt-4 flex-row">
+                      <View className="w-12 items-center">
+                        <View className="h-11 w-11 items-center justify-center rounded-full bg-infoSoft">
+                          <AppText variant="cardTitle">1</AppText>
+                        </View>
+                        <View className="mt-2 h-8 border-l-2 border-dashed border-infoSoftStrong" />
+                      </View>
+                      <View className="ml-3 flex-1">
+                        <AppText variant="cardTitle">
+                          Pay {selected.amountDueSek} kr manually with Swish.
+                        </AppText>
+                        <AppText
+                          variant="bodySmall"
+                          color="ink-muted"
+                          className="mt-1"
+                        >
+                          Payment happens outside this app.
+                        </AppText>
+                      </View>
+                    </View>
+                    <View className="mt-1 flex-row">
+                      <View className="w-12 items-center">
+                        <View className="h-11 w-11 items-center justify-center rounded-full bg-infoSoft">
+                          <AppText variant="cardTitle">2</AppText>
+                        </View>
+                      </View>
+                      <View className="ml-3 flex-1">
+                        <AppText variant="cardTitle">
+                          Return here and mark it paid.
+                        </AppText>
+                        <AppText
+                          variant="bodySmall"
+                          color="ink-muted"
+                          className="mt-1"
+                        >
+                          Only confirm after the payment is complete.
+                        </AppText>
+                      </View>
+                    </View>
+                    <Surface
+                      tone="lavender"
+                      elevated={false}
+                      className="mt-5 p-4"
+                    >
+                      <AppText variant="cardTitle">
+                        Included in running balance
+                      </AppText>
+                      <View className="mt-3 flex-row items-center rounded-control bg-surfaceRaised px-3 py-4">
+                        <View className="flex-1">
+                          <AppText variant="caption" color="ink-muted">
+                            Current balance
+                          </AppText>
+                          <AppText variant="cardTitle" className="mt-1">
+                            {selected.runningBalanceSek} kr
+                          </AppText>
+                        </View>
+                        <AppText variant="sectionTitle">−</AppText>
+                        <View className="flex-1 items-center">
+                          <AppText variant="caption" color="ink-muted">
+                            This payout
+                          </AppText>
+                          <AppText
+                            variant="cardTitle"
+                            color="urgency"
+                            className="mt-1"
+                          >
+                            {selected.amountDueSek} kr
+                          </AppText>
+                        </View>
+                        <AppText variant="sectionTitle">=</AppText>
+                        <View className="flex-1 items-end">
+                          <AppText variant="caption" color="ink-muted">
+                            After marking paid
+                          </AppText>
+                          <AppText variant="cardTitle" className="mt-1">
+                            {selected.runningBalanceSek - selected.amountDueSek}{" "}
+                            kr
+                          </AppText>
+                        </View>
+                      </View>
+                      {selected.pendingOutcomeCount > 0 ? (
+                        <View className="mt-3 flex-row items-center rounded-control bg-infoSoftStrong/40 px-3 py-2">
+                          <DirectionCIcon
+                            name="info"
+                            color={DirectionC.color.inkMuted}
+                            size={21}
+                          />
+                          <AppText variant="caption" className="ml-2 flex-1">
+                            {selected.pendingOutcomeCount} unresolved chore
+                            outcome moves to a later payout.
+                          </AppText>
+                        </View>
+                      ) : null}
+                    </Surface>
+                  </>
+                ) : (
+                  <Surface
+                    tone="lavender"
+                    elevated={false}
+                    className="mt-6 p-5"
+                  >
+                    <AppText variant="sectionTitle">Nothing was due</AppText>
+                    <AppText className="mt-2">
+                      This payout period closed without a positive amount to
+                      pay.
+                    </AppText>
+                  </Surface>
+                )}
+                {selected.pendingOutcomeCount > 0 &&
+                selected.status === "no_payment" ? (
+                  <Surface
+                    tone="lavender"
+                    elevated={false}
+                    className="mt-3 p-4"
+                  >
+                    <AppText variant="bodySmall">
+                      {selected.pendingOutcomeCount} unresolved chore outcome
+                      will be handled in a later payout.
+                    </AppText>
+                  </Surface>
+                ) : null}
+              </ScrollView>
+              {selected.status === "pending" ? (
+                <View className="border-t border-line bg-surfaceRaised px-5 pt-3">
+                  <ActionButton
+                    label={`Mark ${selected.amountDueSek} kr paid`}
+                    onPress={() => setShowConfirmation(true)}
+                  />
                 </View>
-              </Surface>
-              <ActionButton
-                className="mt-3"
-                label="Checking with server…"
-                disabled
-                loading
-              />
-            </ScrollView>
-          </SafeAreaView>
+              ) : null}
+              {showConfirmation ? (
+                <View className="absolute inset-0 justify-end bg-scrim">
+                  <SafeAreaView
+                    edges={["bottom"]}
+                    className="rounded-t-sheet bg-canvas px-5 pb-3 pt-3"
+                  >
+                    <View className="h-1.5 w-20 self-center rounded-full bg-line" />
+                    <View className="mt-4 h-20 w-20 items-center justify-center self-center rounded-full bg-actionSoft">
+                      <DirectionCIcon
+                        name="money"
+                        color={DirectionC.color.green}
+                        size={40}
+                      />
+                      <View className="absolute bottom-2 right-2 h-7 w-7 items-center justify-center rounded-full bg-action">
+                        <DirectionCIcon
+                          name="check"
+                          color={DirectionC.color.white}
+                          size={17}
+                        />
+                      </View>
+                    </View>
+                    <AppText
+                      variant="sectionTitle"
+                      className="mt-4 text-center"
+                    >
+                      Mark {selected.amountDueSek} kr paid?
+                    </AppText>
+                    <AppText color="ink-muted" className="mt-3 text-center">
+                      Confirm only after the payment is complete outside this
+                      app.
+                    </AppText>
+                    <AppText
+                      variant="cardTitle"
+                      color="action"
+                      className="mt-4 text-center"
+                    >
+                      {selected.childDisplayName}’s running balance will become{" "}
+                      {selected.runningBalanceSek - selected.amountDueSek} kr.
+                    </AppText>
+                    <View className="mt-4 flex-row items-center justify-center">
+                      <DirectionCIcon
+                        name="info"
+                        color={DirectionC.color.inkMuted}
+                        size={22}
+                      />
+                      <AppText
+                        variant="bodySmall"
+                        color="ink-muted"
+                        className="ml-2"
+                      >
+                        Paid payouts can’t be reopened.
+                      </AppText>
+                    </View>
+                    <ActionButton
+                      className="mt-5"
+                      label="Mark paid"
+                      loading={working}
+                      onPress={() => void confirmPaid()}
+                    />
+                    <ActionButton
+                      className="mt-3"
+                      tone="secondary"
+                      label="Not yet"
+                      onPress={() => setShowConfirmation(false)}
+                    />
+                  </SafeAreaView>
+                </View>
+              ) : null}
+            </SafeAreaView>
+          )
         ) : null}
       </Modal>
 

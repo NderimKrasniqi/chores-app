@@ -1,5 +1,10 @@
 import { DirectionCIcon } from "@/components/ui/direction-c-icon";
+import { DirectionCAvatar } from "@/components/ui/direction-c-avatar";
 import { ParentHouseholdActivity } from "@/components/activity/parent-household-activity";
+import {
+  ParentChildAccessContent,
+  type ParentChildAccessVisualFixture,
+} from "@/components/child-access/parent-child-access-content";
 import { DirectionC } from "@/constants/direction-c";
 import {
   ActionButton,
@@ -9,37 +14,93 @@ import {
   TopBar,
 } from "@/design-system";
 import { useServerConfirmedMutation } from "@/hooks/use-server-confirmed-mutation";
-import { Image } from "expo-image";
+import { AppImage as Image } from "@/components/ui/app-image";
 import { useState } from "react";
 import { Linking, Modal, Pressable, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { api } from "../../../convex/_generated/api";
-import type { HouseholdSummary } from "./household-card";
+import type { Id } from "../../../convex/_generated/dataModel";
+import type { HouseholdSummary, PayoutWeekday } from "./household-card";
 
 const parentAvatar = require("../../../assets/images/direction-c/sam-avatar.png");
-const familyArtwork = require("../../../assets/images/direction-c/onboarding-family.png");
-const houseArtwork = require("../../../assets/images/direction-c/parent-access-hero.png");
+const familyArtwork = require("../../../assets/images/direction-c/household-family.png");
+const houseArtwork = require("../../../assets/images/direction-c/household-home.png");
+const grandmaHouseArtwork = require("../../../assets/images/direction-c/household-grandma.png");
 
 function formatWeekday(day: string) {
   return day.charAt(0).toUpperCase() + day.slice(1);
+}
+
+const payoutWeekdays: PayoutWeekday[] = [
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+  "saturday",
+  "sunday",
+];
+
+export function ParentChildAccessScreen({
+  householdId,
+  timezone,
+  child,
+  onBack,
+  visualFixture,
+}: {
+  householdId: Id<"households">;
+  timezone: string;
+  child: HouseholdSummary["children"][number];
+  onBack: () => void;
+  visualFixture?: ParentChildAccessVisualFixture;
+}) {
+  return (
+    <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-canvas">
+      <View className="px-5">
+        <TopBar title="Child access" onBack={onBack} />
+      </View>
+      <ScrollView
+        contentContainerClassName="px-5 pb-8 pt-4"
+        showsVerticalScrollIndicator={false}
+      >
+        <ParentChildAccessContent
+          householdId={householdId}
+          childId={child.childId}
+          childDisplayName={child.displayName}
+          timezone={timezone}
+          visualFixture={visualFixture}
+        />
+      </ScrollView>
+    </SafeAreaView>
+  );
 }
 
 function SettingRow({
   icon,
   label,
   value,
+  tone = "lavender",
   onPress,
 }: {
-  icon: "info" | "calendar" | "refresh";
+  icon: "globe" | "calendar" | "refresh";
   label: string;
   value: string;
+  tone?: "mint" | "lavender";
   onPress?: () => void;
 }) {
   const content = (
     <View className="min-h-[76px] flex-row items-center px-4">
-      <View className="h-12 w-12 items-center justify-center rounded-full bg-infoSoft">
-        <DirectionCIcon name={icon} color={DirectionC.color.ink} size={25} />
+      <View
+        className={`h-12 w-12 items-center justify-center rounded-full ${tone === "mint" ? "bg-actionSoftStrong" : "bg-infoSoft"}`}
+      >
+        <DirectionCIcon
+          name={icon}
+          color={
+            tone === "mint" ? DirectionC.color.greenDeep : DirectionC.color.ink
+          }
+          size={25}
+        />
       </View>
       <AppText color="ink-muted" className="ml-4 flex-1">
         {label}
@@ -84,16 +145,20 @@ export function ParentActivityScreen({
         contentContainerClassName="px-5 pb-8"
         showsVerticalScrollIndicator={false}
       >
-        <AppText variant="display" className="mt-4">
-          Household activity
-        </AppText>
-        <AppText variant="sectionTitle" className="mt-2 font-semibold">
-          Approved chore wins from {household.name}.
-        </AppText>
         <ParentHouseholdActivity
           householdId={household.householdId}
           showHistory
           onAddChore={onAddChore}
+          historyHeader={
+            <View>
+              <AppText variant="screenTitle" className="mt-3">
+                Household activity
+              </AppText>
+              <AppText variant="bodySmall" className="mt-1">
+                Approved chore wins from {household.name}.
+              </AppText>
+            </View>
+          }
         />
       </ScrollView>
     </SafeAreaView>
@@ -104,6 +169,7 @@ export function ParentAccountScreen({
   parentName,
   parentEmail,
   household,
+  canSwitchHousehold,
   onBack,
   onSwitchHousehold,
   onOpenHelp,
@@ -113,6 +179,7 @@ export function ParentAccountScreen({
   parentName: string;
   parentEmail: string;
   household: HouseholdSummary;
+  canSwitchHousehold: boolean;
   onBack: () => void;
   onSwitchHousehold: () => void;
   onOpenHelp: () => void;
@@ -129,10 +196,10 @@ export function ParentAccountScreen({
         showsVerticalScrollIndicator={false}
       >
         <Surface className="mt-3 flex-row items-center p-5">
-          <Image
+          <DirectionCAvatar
             source={parentAvatar}
-            className="h-24 w-24 rounded-full bg-rewardSoft"
-            contentFit="cover"
+            tone="parent"
+            className="h-24 w-24"
           />
           <View className="ml-5 flex-1">
             <AppText variant="screenTitle">{parentName}</AppText>
@@ -158,28 +225,30 @@ export function ParentAccountScreen({
             <AppText className="mt-1">Current household</AppText>
           </View>
         </Surface>
-        <Pressable accessibilityRole="button" onPress={onSwitchHousehold}>
-          <Surface className="mt-3 min-h-[82px] flex-row items-center p-4">
-            <View className="h-12 w-12 items-center justify-center rounded-full bg-actionSoft">
+        {canSwitchHousehold ? (
+          <Pressable accessibilityRole="button" onPress={onSwitchHousehold}>
+            <Surface className="mt-3 min-h-[82px] flex-row items-center p-4">
+              <View className="h-12 w-12 items-center justify-center rounded-full bg-actionSoft">
+                <DirectionCIcon
+                  name="family"
+                  color={DirectionC.color.green}
+                  size={26}
+                />
+              </View>
+              <View className="ml-4 flex-1">
+                <AppText variant="cardTitle">Switch household</AppText>
+                <AppText variant="bodySmall" className="mt-1">
+                  Choose another household you belong to
+                </AppText>
+              </View>
               <DirectionCIcon
-                name="family"
-                color={DirectionC.color.green}
-                size={26}
+                name="chevron"
+                color={DirectionC.color.ink}
+                size={22}
               />
-            </View>
-            <View className="ml-4 flex-1">
-              <AppText variant="cardTitle">Switch household</AppText>
-              <AppText variant="bodySmall" className="mt-1">
-                Choose another household you belong to
-              </AppText>
-            </View>
-            <DirectionCIcon
-              name="chevron"
-              color={DirectionC.color.ink}
-              size={22}
-            />
-          </Surface>
-        </Pressable>
+            </Surface>
+          </Pressable>
+        ) : null}
 
         <AppText variant="sectionTitle" className="mt-6">
           Preferences
@@ -191,7 +260,7 @@ export function ParentAccountScreen({
           <Surface className="mt-2 min-h-[82px] flex-row items-center p-4">
             <View className="h-12 w-12 items-center justify-center rounded-full bg-actionSoft">
               <DirectionCIcon
-                name="info"
+                name="bell"
                 color={DirectionC.color.green}
                 size={25}
               />
@@ -212,7 +281,11 @@ export function ParentAccountScreen({
         <Pressable accessibilityRole="button" onPress={onOpenHelp}>
           <Surface className="mt-3 min-h-[82px] flex-row items-center p-4">
             <View className="h-12 w-12 items-center justify-center rounded-full bg-infoSoft">
-              <AppText variant="sectionTitle">?</AppText>
+              <DirectionCIcon
+                name="help"
+                color={DirectionC.color.info}
+                size={26}
+              />
             </View>
             <View className="ml-4 flex-1">
               <AppText variant="cardTitle">Help & onboarding</AppText>
@@ -270,6 +343,9 @@ export function HouseholdSwitcherScreen({
         <View className="mt-6 gap-4">
           {households.map((household) => {
             const current = household.householdId === currentHouseholdId;
+            const isGrandmasHouse = household.name
+              .toLowerCase()
+              .includes("grandma");
             return (
               <Pressable
                 key={household.householdId}
@@ -282,7 +358,13 @@ export function HouseholdSwitcherScreen({
                   className={`min-h-[132px] overflow-hidden p-4 ${current ? "border-2 border-action" : "border border-infoSoftStrong"}`}
                 >
                   <Image
-                    source={familyArtwork}
+                    source={
+                      current
+                        ? familyArtwork
+                        : isGrandmasHouse
+                          ? grandmaHouseArtwork
+                          : houseArtwork
+                    }
                     className="absolute -bottom-9 -left-2 h-[170px] w-[200px]"
                     contentFit="contain"
                   />
@@ -333,7 +415,7 @@ export function HouseholdSwitcherScreen({
           className="mt-6 flex-row items-center p-4"
         >
           <DirectionCIcon
-            name="family"
+            name="housePair"
             color={DirectionC.color.green}
             size={32}
           />
@@ -356,28 +438,35 @@ export function HouseholdSwitcherScreen({
 export function HouseholdSettingsScreen({
   household,
   onBack,
-  onOpenMoney,
 }: {
   household: HouseholdSummary;
   onBack: () => void;
-  onOpenMoney: () => void;
 }) {
   const setTimezoneSetting = useServerConfirmedMutation(
     api.households.setTimezone,
   );
+  const setPayoutWeekdaySetting = useServerConfirmedMutation(
+    api.households.setPayoutWeekday,
+  );
   const setWeeklyUnclaimAllowance = useServerConfirmedMutation(
     api.households.setWeeklyUnclaimAllowance,
   );
-  const [editor, setEditor] = useState<"timezone" | "unclaims" | null>(null);
+  const [editor, setEditor] = useState<
+    "timezone" | "payout" | "unclaims" | null
+  >(null);
   const [timezone, setTimezone] = useState(household.timezone);
+  const [payoutWeekday, setPayoutWeekday] = useState<PayoutWeekday>(
+    household.payoutWeekday,
+  );
   const [weeklyUnclaims, setWeeklyUnclaims] = useState(
     String(household.weeklyUnclaimAllowance),
   );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  function openEditor(nextEditor: "timezone" | "unclaims") {
+  function openEditor(nextEditor: "timezone" | "payout" | "unclaims") {
     setTimezone(household.timezone);
+    setPayoutWeekday(household.payoutWeekday);
     setWeeklyUnclaims(String(household.weeklyUnclaimAllowance));
     setError(null);
     setEditor(nextEditor);
@@ -393,19 +482,19 @@ export function HouseholdSettingsScreen({
     const normalizedTimezone = timezone.trim();
     const normalizedAllowance = weeklyUnclaims.trim();
 
-    if (!normalizedTimezone) {
+    if (editor === "timezone" && !normalizedTimezone) {
       setError("Timezone is required.");
       return;
     }
 
-    if (!/^\d+$/.test(normalizedAllowance)) {
+    if (editor === "unclaims" && !/^\d+$/.test(normalizedAllowance)) {
       setError("Weekly unclaims must be a non-negative whole number.");
       return;
     }
 
     const allowance = Number(normalizedAllowance);
 
-    if (!Number.isSafeInteger(allowance)) {
+    if (editor === "unclaims" && !Number.isSafeInteger(allowance)) {
       setError("Weekly unclaims is too large.");
       return;
     }
@@ -418,6 +507,11 @@ export function HouseholdSettingsScreen({
         await setTimezoneSetting({
           householdId: household.householdId,
           timezone: normalizedTimezone,
+        });
+      } else if (editor === "payout") {
+        await setPayoutWeekdaySetting({
+          householdId: household.householdId,
+          payoutWeekday,
         });
       } else {
         await setWeeklyUnclaimAllowance({
@@ -469,7 +563,7 @@ export function HouseholdSettingsScreen({
           </AppText>
           <Surface className="mt-3 overflow-hidden">
             <SettingRow
-              icon="info"
+              icon="globe"
               label="Timezone"
               value={household.timezone}
               onPress={() => openEditor("timezone")}
@@ -479,7 +573,7 @@ export function HouseholdSettingsScreen({
               icon="calendar"
               label="Payout day"
               value={formatWeekday(household.payoutWeekday)}
-              onPress={onOpenMoney}
+              onPress={() => openEditor("payout")}
             />
           </Surface>
           <Surface
@@ -506,6 +600,7 @@ export function HouseholdSettingsScreen({
               icon="refresh"
               label="Weekly unclaims"
               value={`${household.weeklyUnclaimAllowance} per child`}
+              tone="mint"
               onPress={() => openEditor("unclaims")}
             />
           </Surface>
@@ -526,7 +621,7 @@ export function HouseholdSettingsScreen({
               color="ink-muted"
               className="ml-4 flex-1"
             >
-              Every Parent has equal authority to change household settings.
+              Every parent has equal authority to change household settings.
             </AppText>
           </View>
         </ScrollView>
@@ -542,7 +637,11 @@ export function HouseholdSettingsScreen({
           <View className="px-5">
             <TopBar
               title={
-                editor === "timezone" ? "Change timezone" : "Weekly unclaims"
+                editor === "timezone"
+                  ? "Change timezone"
+                  : editor === "payout"
+                    ? "Payout day"
+                    : "Weekly unclaims"
               }
               onBack={closeEditor}
             />
@@ -576,6 +675,46 @@ export function HouseholdSettingsScreen({
                   <AppText variant="bodySmall" className="ml-3 flex-1">
                     Existing chores and the open payout period keep their saved
                     times. The new timezone applies to future scheduling.
+                  </AppText>
+                </Surface>
+              </>
+            ) : editor === "payout" ? (
+              <>
+                <AppText variant="label">Payout weekday</AppText>
+                <View className="mt-3 flex-row flex-wrap gap-2">
+                  {payoutWeekdays.map((day) => {
+                    const selected = payoutWeekday === day;
+                    return (
+                      <Pressable
+                        key={day}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected }}
+                        onPress={() => setPayoutWeekday(day)}
+                        className={`min-h-target min-w-[92px] flex-1 items-center justify-center rounded-control px-3 ${selected ? "bg-action" : "border-2 border-infoSoftStrong bg-surfaceRaised"}`}
+                      >
+                        <AppText
+                          variant="label"
+                          color={selected ? "white" : "ink"}
+                        >
+                          {formatWeekday(day)}
+                        </AppText>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+                <Surface
+                  tone="lavender"
+                  elevated={false}
+                  className="mt-5 flex-row p-4"
+                >
+                  <DirectionCIcon
+                    name="calendar"
+                    color={DirectionC.color.ink}
+                    size={26}
+                  />
+                  <AppText variant="bodySmall" className="ml-3 flex-1">
+                    The current payout period keeps its saved closing boundary.{" "}
+                    {formatWeekday(payoutWeekday)} starts the next period.
                   </AppText>
                 </Surface>
               </>

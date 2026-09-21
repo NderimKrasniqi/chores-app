@@ -1,8 +1,8 @@
 import { useServerConfirmedMutation } from "@/hooks/use-server-confirmed-mutation";
 import { useAction, useQuery } from "convex/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Pressable, Share, Text, View } from "react-native";
-import QRCode from "react-native-qrcode-svg";
+import { PairingQrCode } from "@/components/ui/pairing-qr-code";
 
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
@@ -54,6 +54,19 @@ export function ChildPairingCard({
     useState<Id<"childPairingCredentials"> | null>(null);
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [expiredCredentialId, setExpiredCredentialId] =
+    useState<Id<"childPairingCredentials"> | null>(null);
+
+  useEffect(() => {
+    if (!generatedCredential) return;
+
+    const timeout = setTimeout(
+      () => setExpiredCredentialId(generatedCredential.pairingCredentialId),
+      Math.max(0, generatedCredential.expiresAt - Date.now()),
+    );
+
+    return () => clearTimeout(timeout);
+  }, [generatedCredential]);
 
   async function handleGenerate() {
     setGenerating(true);
@@ -136,7 +149,8 @@ export function ChildPairingCard({
   }
 
   const generatedCredentialExpired =
-    generatedCredential !== null && generatedCredential.expiresAt <= Date.now();
+    generatedCredential !== null &&
+    generatedCredential.pairingCredentialId === expiredCredentialId;
 
   return (
     <View className="mt-5 border-t border-slate-700 pt-5">
@@ -158,7 +172,7 @@ export function ChildPairingCard({
           ) : (
             <>
               <View className="mt-4 items-center rounded-xl bg-white p-4">
-                <QRCode
+                <PairingQrCode
                   value={generatedCredential.qrToken}
                   size={200}
                   quietZone={12}

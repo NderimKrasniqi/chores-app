@@ -31,7 +31,7 @@ export function TopBar({
         <View className="h-11 w-11" />
       )}
 
-      <AppText variant="cardTitle" className="text-center">
+      <AppText variant="sectionTitle" className="text-center">
         {title}
       </AppText>
 

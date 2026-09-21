@@ -7,9 +7,12 @@ import {
   consumeTrustedSingleChildAutoOpen,
   setChildExplicitlyLocked,
 } from "@/lib/child-access/unlock-policy";
+import { DirectionC } from "@/constants/direction-c";
+import { AppText, Surface } from "@/design-system";
 import { useAuthRuntime } from "@/providers/auth-runtime-provider";
+import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Text, View } from "react-native";
+import { ActivityIndicator, View } from "react-native";
 
 import type { Id } from "../../../convex/_generated/dataModel";
 
@@ -147,22 +150,38 @@ export function ChildAccessGate({ access }: ChildAccessGateProps) {
 
   if (loading) {
     return (
-      <View className="flex-1 items-center justify-center bg-slate-950">
-        <ActivityIndicator />
+      <View className="flex-1 items-center justify-center bg-canvas px-6">
+        <StatusBar style="dark" />
+        <View className="h-16 w-16 items-center justify-center rounded-full bg-actionSoft">
+          <ActivityIndicator color={DirectionC.color.green} />
+        </View>
 
-        <Text className="mt-3 text-slate-400">Loading child profile...</Text>
+        <AppText variant="sectionTitle" className="mt-4 text-center">
+          Getting your profile ready
+        </AppText>
+        <AppText color="ink-muted" className="mt-1 text-center">
+          Loading child profile…
+        </AppText>
       </View>
     );
   }
 
   if (errorMessage) {
     return (
-      <View className="flex-1 justify-center bg-slate-950 px-6">
-        <Text className="text-xl font-bold text-white">
+      <View className="flex-1 justify-center bg-canvas px-5">
+        <AppText
+          variant="label"
+          color="urgency"
+          className="uppercase tracking-widest"
+        >
           Child profile error
-        </Text>
-
-        <Text className="mt-3 leading-6 text-red-400">{errorMessage}</Text>
+        </AppText>
+        <AppText variant="screenTitle" className="mt-3">
+          We couldn’t open this profile
+        </AppText>
+        <Surface tone="coral" elevated={false} className="mt-5 p-4">
+          <AppText color="urgency">{errorMessage}</AppText>
+        </Surface>
       </View>
     );
   }

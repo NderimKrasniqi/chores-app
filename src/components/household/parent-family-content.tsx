@@ -1,9 +1,12 @@
-import { ParentChildAccessContent } from "@/components/child-access/parent-child-access-content";
 import { DirectionCIcon } from "@/components/ui/direction-c-icon";
+import {
+  childAvatarTone,
+  DirectionCAvatar,
+} from "@/components/ui/direction-c-avatar";
 import { DirectionC } from "@/constants/direction-c";
 import { AppText, Surface } from "@/design-system";
 import { useQuery } from "convex/react";
-import { Image } from "expo-image";
+import { AppImage as Image } from "@/components/ui/app-image";
 import { useState } from "react";
 import { Modal, Pressable, View } from "react-native";
 
@@ -12,8 +15,17 @@ import type { Id } from "../../../convex/_generated/dataModel";
 import type { HouseholdSummary } from "./household-card";
 import { ParentInviteCard } from "./parent-invite-card";
 
-const familyArtwork = require("../../../assets/images/direction-c/onboarding-family.png");
+const familyArtwork = require("../../../assets/images/direction-c/household-family.png");
 const parentAvatar = require("../../../assets/images/direction-c/sam-avatar.png");
+const alexAvatar = require("../../../assets/images/direction-c/alex-avatar.png");
+const mayaAvatar = require("../../../assets/images/direction-c/maya-avatar.png");
+
+function childAvatar(displayName: string) {
+  const normalized = displayName.trim().toLowerCase();
+  if (normalized === "maya") return mayaAvatar;
+  if (normalized === "alex") return alexAvatar;
+  return null;
+}
 
 function shortTimezone(timezone: string) {
   return timezone.split("/").at(-1)?.replaceAll("_", " ") ?? timezone;
@@ -24,89 +36,82 @@ function formatWeekday(day: string) {
 }
 
 function ChildAccessRow({
-  householdId,
   child,
+  onOpen,
+  visualDeviceCount,
 }: {
-  householdId: Id<"households">;
   child: HouseholdSummary["children"][number];
+  onOpen: () => void;
+  visualDeviceCount?: number;
 }) {
-  const devices = useQuery(api.childAccess.listDevicesForChild, {
-    childId: child.childId,
-  });
-  const activeCount = devices?.filter((device) => device.isActive).length ?? 0;
-  const [expanded, setExpanded] = useState(false);
+  const devices = useQuery(
+    api.childAccess.listDevicesForChild,
+    visualDeviceCount === undefined ? { childId: child.childId } : "skip",
+  );
+  const activeCount =
+    visualDeviceCount ??
+    devices?.filter((device) => device.isActive).length ??
+    0;
+  const deviceStatusLoaded =
+    visualDeviceCount !== undefined || devices !== undefined;
 
   return (
-    <View>
-      <Pressable
-        accessibilityRole="button"
-        onPress={() => setExpanded((current) => !current)}
-      >
-        <Surface className="min-h-[78px] flex-row items-center px-4 py-3">
-          <View className="h-14 w-14 items-center justify-center rounded-full bg-rewardSoft">
-            <AppText variant="cardTitle">
-              {child.displayName.charAt(0).toUpperCase()}
+    <Pressable accessibilityRole="button" onPress={onOpen}>
+      <Surface className="min-h-[62px] flex-row items-center px-3 py-2">
+        <DirectionCAvatar
+          source={childAvatar(child.displayName)}
+          tone={childAvatarTone(child.displayName)}
+          className="h-12 w-12"
+          fallbackLabel={child.displayName}
+        />
+        <View className="ml-3 flex-1">
+          <AppText variant="cardTitle">{child.displayName}</AppText>
+          <View className="mt-1 flex-row items-center">
+            <DirectionCIcon
+              name="phone"
+              color={
+                activeCount > 0
+                  ? DirectionC.color.green
+                  : DirectionC.color.disabled
+              }
+              size={19}
+            />
+            <AppText
+              variant="bodySmall"
+              color={activeCount > 0 ? "action" : "ink-muted"}
+              className="ml-2"
+            >
+              {!deviceStatusLoaded
+                ? "Checking devices…"
+                : activeCount > 0
+                  ? `${activeCount} active paired ${activeCount === 1 ? "device" : "devices"}`
+                  : "No paired devices"}
             </AppText>
           </View>
-          <View className="ml-3 flex-1">
-            <AppText variant="cardTitle">{child.displayName}</AppText>
-            <View className="mt-1 flex-row items-center">
-              <DirectionCIcon
-                name="phone"
-                color={
-                  activeCount > 0
-                    ? DirectionC.color.green
-                    : DirectionC.color.disabled
-                }
-                size={19}
-              />
-              <AppText
-                variant="bodySmall"
-                color={activeCount > 0 ? "action" : "ink-muted"}
-                className="ml-2"
-              >
-                {devices === undefined
-                  ? "Checking devices…"
-                  : activeCount > 0
-                    ? `${activeCount} active paired ${activeCount === 1 ? "device" : "devices"}`
-                    : "No paired devices"}
-              </AppText>
-            </View>
+        </View>
+        {deviceStatusLoaded && activeCount === 0 ? (
+          <View className="mr-2 rounded-full bg-actionSoft px-3 py-2">
+            <AppText variant="label" color="action">
+              Pair device
+            </AppText>
           </View>
-          {activeCount === 0 ? (
-            <View className="mr-2 rounded-full bg-actionSoft px-3 py-2">
-              <AppText variant="label" color="action">
-                Pair device
-              </AppText>
-            </View>
-          ) : null}
-          <DirectionCIcon
-            name="chevron"
-            color={DirectionC.color.ink}
-            size={22}
-          />
-        </Surface>
-      </Pressable>
-
-      {expanded ? (
-        <Surface tone="lavender" elevated={false} className="mt-2 p-4">
-          <ParentChildAccessContent
-            householdId={householdId}
-            childId={child.childId}
-            childDisplayName={child.displayName}
-          />
-        </Surface>
-      ) : null}
-    </View>
+        ) : null}
+        <DirectionCIcon name="chevron" color={DirectionC.color.ink} size={22} />
+      </Surface>
+    </Pressable>
   );
 }
 
 export function ParentFamilyContent({
   household,
   onOpenSettings,
+  onOpenChildAccess,
+  visualDeviceCounts,
 }: {
   household: HouseholdSummary;
   onOpenSettings: () => void;
+  onOpenChildAccess: (childId: Id<"children">) => void;
+  visualDeviceCounts?: Partial<Record<string, number>>;
 }) {
   const [showInvite, setShowInvite] = useState(false);
 
@@ -115,11 +120,11 @@ export function ParentFamilyContent({
       <Surface
         tone="lavender"
         elevated={false}
-        className="mt-5 h-[145px] overflow-hidden p-4"
+        className="mt-3 h-[116px] overflow-hidden p-3"
       >
         <Image
           source={familyArtwork}
-          className="absolute -bottom-9 -left-2 h-[190px] w-[210px]"
+          className="absolute -bottom-8 -left-2 h-[158px] w-[178px]"
           contentFit="contain"
           accessible={false}
         />
@@ -134,36 +139,37 @@ export function ParentFamilyContent({
         </View>
       </Surface>
 
-      <AppText variant="sectionTitle" className="mt-5">
+      <AppText variant="sectionTitle" className="mt-3">
         Children
       </AppText>
-      <View className="mt-2 gap-3">
+      <View className="mt-2 gap-2">
         {household.children.map((child) => (
           <ChildAccessRow
             key={child.childId}
-            householdId={household.householdId}
             child={child}
+            onOpen={() => onOpenChildAccess(child.childId)}
+            visualDeviceCount={visualDeviceCounts?.[child.childId]}
           />
         ))}
       </View>
 
-      <AppText variant="sectionTitle" className="mt-5">
+      <AppText variant="sectionTitle" className="mt-3">
         Parents
       </AppText>
-      <View className="mt-2 gap-3">
+      <View className="mt-2 gap-2">
         {household.parents.map((parent) => (
           <Surface
             key={parent.membershipId}
-            className="min-h-[78px] flex-row items-center px-4 py-3"
+            className="min-h-[62px] flex-row items-center px-3 py-2"
           >
             {parent.isCurrent ? (
-              <Image
+              <DirectionCAvatar
                 source={parentAvatar}
-                className="h-14 w-14 rounded-full"
-                contentFit="cover"
+                tone="parent"
+                className="h-12 w-12"
               />
             ) : (
-              <View className="h-14 w-14 items-center justify-center rounded-full bg-infoSoftStrong">
+              <View className="h-12 w-12 items-center justify-center rounded-full bg-infoSoftStrong">
                 <AppText variant="cardTitle">
                   {parent.displayName.trim().charAt(0).toUpperCase()}
                 </AppText>
@@ -182,18 +188,18 @@ export function ParentFamilyContent({
       <Pressable
         accessibilityRole="button"
         onPress={() => setShowInvite((current) => !current)}
-        className="mt-3 min-h-[78px] flex-row items-center rounded-control bg-actionSoft px-4"
+        className="mt-2 min-h-[62px] flex-row items-center rounded-control bg-actionSoft px-3"
       >
-        <View className="h-12 w-12 items-center justify-center rounded-full bg-action">
+        <View className="h-11 w-11 items-center justify-center rounded-full bg-action">
           <DirectionCIcon
-            name="plus"
+            name="personPlus"
             color={DirectionC.color.white}
             size={24}
           />
         </View>
         <View className="ml-3 flex-1">
           <AppText variant="cardTitle" color="action">
-            Invite another Parent
+            Invite another parent
           </AppText>
           <AppText variant="bodySmall" color="ink-muted" className="mt-1">
             Parents share the same controls.
@@ -214,7 +220,7 @@ export function ParentFamilyContent({
         />
       </Modal>
 
-      <View className="mt-6 flex-row items-center justify-between">
+      <View className="mt-4 flex-row items-center justify-between">
         <AppText variant="sectionTitle">Household</AppText>
         <Pressable
           accessibilityRole="button"
@@ -232,9 +238,9 @@ export function ParentFamilyContent({
         </Pressable>
       </View>
 
-      <View className="mt-2 flex-row rounded-card bg-surfaceRaised px-2 py-4 shadow-md">
+      <View className="mt-1 flex-row px-2 py-2">
         <View className="flex-1 items-center border-r border-infoSoftStrong px-1">
-          <DirectionCIcon name="info" color={DirectionC.color.ink} size={22} />
+          <DirectionCIcon name="globe" color={DirectionC.color.ink} size={22} />
           <AppText variant="caption" color="ink-muted" className="mt-2">
             Timezone
           </AppText>

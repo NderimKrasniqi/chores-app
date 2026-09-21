@@ -106,6 +106,8 @@ export const listMine = query({
           ? {
               occurrenceId: visible.gate.currentUnlockOccurrence.occurrenceId,
 
+              title: visible.gate.currentUnlockOccurrence.title,
+
               state: visible.gate.currentUnlockOccurrence.state,
 
               scheduledLocalDate:

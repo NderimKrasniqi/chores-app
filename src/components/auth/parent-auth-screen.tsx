@@ -6,7 +6,7 @@ import {
   TopBar,
 } from "@/design-system";
 import { authClient } from "@/lib/auth/client";
-import { Image } from "expo-image";
+import { AppImage as Image } from "@/components/ui/app-image";
 import { StatusBar } from "expo-status-bar";
 import { useState } from "react";
 import {
@@ -83,11 +83,11 @@ export function ParentAuthScreen({ onBack }: ParentAuthScreenProps) {
           contentContainerClassName="px-5 pb-6"
         >
           <View className="mt-3 min-h-[190px]">
-            <View className="w-[58%]">
+            <View className="relative z-10">
               <AppText variant="screenTitle">
                 {mode === "sign-up" ? "Create parent account" : "Welcome back"}
               </AppText>
-              <AppText className="mt-2">
+              <AppText className="mt-2 w-[62%]">
                 {mode === "sign-up"
                   ? "Set up and manage your family’s chores and rewards."
                   : "Sign in to open your household."}
@@ -95,7 +95,7 @@ export function ParentAuthScreen({ onBack }: ParentAuthScreenProps) {
             </View>
             <Image
               source={parentAccessHero}
-              className="absolute -right-5 top-0 h-[190px] w-[210px]"
+              className="absolute -right-4 -top-2 z-0 h-[230px] w-[205px]"
               contentFit="contain"
               accessible={false}
             />
@@ -130,7 +130,7 @@ export function ParentAuthScreen({ onBack }: ParentAuthScreenProps) {
               value={password}
               onChangeText={setPassword}
               secureTextEntry
-              textContentType={mode === "sign-up" ? "newPassword" : "password"}
+              textContentType="password"
             />
           </View>
 

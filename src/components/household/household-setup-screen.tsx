@@ -10,7 +10,7 @@ import {
 import { useServerConfirmedMutation } from "@/hooks/use-server-confirmed-mutation";
 import { authClient } from "@/lib/auth/client";
 import { useAction } from "convex/react";
-import { Image } from "expo-image";
+import { AppImage as Image } from "@/components/ui/app-image";
 import { StatusBar } from "expo-status-bar";
 import { useState } from "react";
 import {
@@ -24,8 +24,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { api } from "../../../convex/_generated/api";
 
-const createArtwork = require("../../../assets/images/direction-c/parent-access-hero.png");
-const joinArtwork = require("../../../assets/images/direction-c/onboarding-family.png");
+const createArtwork = require("../../../assets/images/direction-c/household-create.png");
+const joinArtwork = require("../../../assets/images/direction-c/household-invitation.png");
+const joinHeroArtwork = require("../../../assets/images/direction-c/household-join.png");
 
 const PAYOUT_WEEKDAYS = [
   "monday",
@@ -74,16 +75,16 @@ function getInviteError(message: string) {
       detail: "Check the code and try again.",
     },
     revoked: {
-      title: "This invite was revoked.",
-      detail: "Ask a Parent in the household for a new invite.",
+      title: "This parent invite has been revoked.",
+      detail: "Ask the inviting parent for a new invite.",
     },
     used: {
-      title: "This invite has already been used.",
-      detail: "Parent invites can be used once.",
+      title: "This parent invite has already been used.",
+      detail: "Ask the inviting parent for a new invite.",
     },
     expired: {
-      title: "This invite has expired.",
-      detail: "Ask a Parent in the household for a new invite.",
+      title: "This parent invite has expired.",
+      detail: "Ask the inviting parent for a new invite.",
     },
     other: {
       title: "Could not join household.",
@@ -265,29 +266,30 @@ function CreateHousehold(props: CreateScreenProps) {
           <Surface
             tone="mint"
             elevated={false}
-            className="h-[118px] overflow-hidden px-5"
+            className="h-[90px] overflow-hidden px-4"
           >
             <Image
               source={createArtwork}
-              className="absolute -bottom-5 left-1 h-[130px] w-[190px]"
+              className="absolute -bottom-5 left-1 h-[108px] w-[160px]"
               contentFit="contain"
               accessible={false}
             />
-            <AppText variant="cardTitle" className="ml-[43%] mt-7">
+            <AppText variant="cardTitle" className="ml-[43%] mt-5">
               Choose the defaults for your family.
             </AppText>
           </Surface>
 
-          <AppText variant="sectionTitle" className="mt-5">
+          <AppText variant="sectionTitle" className="mt-3">
             Household
           </AppText>
-          <Surface className="mt-2 gap-4 p-4">
+          <Surface className="mt-1 gap-3 p-3">
             <FormField
               label="Household name"
               placeholder="Krasniqi Family"
               value={props.householdName}
               onChangeText={props.setHouseholdName}
               autoCapitalize="words"
+              className="min-h-target py-2"
             />
             <FormField
               label="Household timezone"
@@ -297,15 +299,16 @@ function CreateHousehold(props: CreateScreenProps) {
               onChangeText={props.setTimezone}
               autoCapitalize="none"
               autoCorrect={false}
+              className="min-h-target py-2"
             />
           </Surface>
 
-          <AppText variant="sectionTitle" className="mt-5">
+          <AppText variant="sectionTitle" className="mt-3">
             Weekly settings
           </AppText>
-          <Surface className="mt-2 p-4">
+          <Surface className="mt-1 p-3">
             <AppText variant="label">Payout weekday</AppText>
-            <View className="mt-3 flex-row overflow-hidden rounded-control bg-infoSoft">
+            <View className="mt-2 flex-row overflow-hidden rounded-control bg-infoSoft">
               {PAYOUT_WEEKDAYS.map((day) => {
                 const selected = props.payoutWeekday === day;
                 return (
@@ -329,7 +332,7 @@ function CreateHousehold(props: CreateScreenProps) {
                 );
               })}
             </View>
-            <View className="mt-4">
+            <View className="mt-3">
               <FormField
                 label="Weekly unclaim allowance"
                 helper="The same allowance applies to every child each payout week."
@@ -337,15 +340,16 @@ function CreateHousehold(props: CreateScreenProps) {
                 value={props.weeklyUnclaimAllowance}
                 onChangeText={props.setWeeklyUnclaimAllowance}
                 keyboardType="number-pad"
+                className="min-h-target py-2"
               />
             </View>
           </Surface>
 
-          <AppText variant="sectionTitle" className="mt-5">
+          <AppText variant="sectionTitle" className="mt-3">
             Children
           </AppText>
-          <Surface className="mt-2 p-4">
-            <View className="gap-4">
+          <Surface className="mt-1 p-3">
+            <View className="gap-3">
               {props.children.map((child, index) => (
                 <View key={index}>
                   <FormField
@@ -358,6 +362,7 @@ function CreateHousehold(props: CreateScreenProps) {
                     value={child}
                     onChangeText={(value) => props.updateChild(index, value)}
                     autoCapitalize="words"
+                    className="min-h-target py-2"
                   />
                   {props.children.length > 1 ? (
                     <Pressable
@@ -375,9 +380,15 @@ function CreateHousehold(props: CreateScreenProps) {
             </View>
             <ActionButton
               tone="secondary"
-              className="mt-4"
+              className="mt-3"
               label="Add child"
-              leading={<AppText variant="sectionTitle">＋</AppText>}
+              leading={
+                <DirectionCIcon
+                  name="plus"
+                  color={DirectionC.color.ink}
+                  size={24}
+                />
+              }
               onPress={props.addChild}
             />
           </Surface>
@@ -439,14 +450,12 @@ function JoinHousehold({
           contentContainerClassName="px-5 pb-8"
         >
           <Image
-            source={joinArtwork}
-            className="mt-1 h-[225px] w-full"
+            source={joinHeroArtwork}
+            className="mt-1 h-[190px] w-full"
             contentFit="contain"
             accessible={false}
           />
-          <AppText variant="display" className="mt-1">
-            Join a household
-          </AppText>
+          <AppText variant="display">Join a household</AppText>
           <AppText className="mt-2">
             Paste the Parent invite shared with you.
           </AppText>
@@ -454,14 +463,21 @@ function JoinHousehold({
           <Surface
             tone="mint"
             elevated={false}
-            className="mt-5 flex-row items-center p-4"
+            className="mt-3 flex-row items-center p-3"
           >
-            <View className="h-14 w-14 items-center justify-center rounded-full bg-action">
+            <View className="relative h-12 w-12 items-center justify-center rounded-full bg-action">
               <DirectionCIcon
-                name="checkShield"
+                name="family"
                 color={DirectionC.color.white}
-                size={28}
+                size={30}
               />
+              <View className="absolute bottom-[-2px] right-[-2px] h-5 w-5 items-center justify-center rounded-full bg-surfaceRaised">
+                <DirectionCIcon
+                  name="check"
+                  color={DirectionC.color.green}
+                  size={13}
+                />
+              </View>
             </View>
             <View className="ml-4 flex-1">
               <AppText variant="cardTitle" color="action">
@@ -473,7 +489,7 @@ function JoinHousehold({
             </View>
           </Surface>
 
-          <View className="mt-5">
+          <View className="mt-3">
             <FormField
               label="Parent invite code"
               placeholder="Paste invite code"
@@ -489,7 +505,7 @@ function JoinHousehold({
             <Surface
               tone="coral"
               elevated={false}
-              className="mt-3 flex-row items-center p-4"
+              className="mt-2 flex-row items-center p-3"
             >
               <View className="h-10 w-10 items-center justify-center rounded-full bg-urgency">
                 <AppText variant="cardTitle" color="white">
@@ -513,13 +529,13 @@ function JoinHousehold({
                 size={24}
               />
               <AppText variant="bodySmall" color="ink-muted" className="ml-3">
-                A Parent invite can be used once.
+                An invite can be used once.
               </AppText>
             </View>
           )}
 
           <ActionButton
-            className="mt-6"
+            className="mt-4"
             label="Join household"
             loading={joiningHousehold}
             onPress={onJoin}
@@ -536,20 +552,47 @@ function JoinHousehold({
   );
 }
 
-export function HouseholdSetupScreen() {
-  const [mode, setMode] = useState<SetupMode>("start");
-  const [householdName, setHouseholdName] = useState("");
-  const [timezone, setTimezone] = useState(getDeviceTimezone);
-  const [payoutWeekday, setPayoutWeekday] = useState<PayoutWeekday | null>(
-    "friday",
+export type HouseholdSetupVisualFixture = {
+  mode: SetupMode;
+  householdName?: string;
+  timezone?: string;
+  payoutWeekday?: PayoutWeekday;
+  weeklyUnclaimAllowance?: string;
+  children?: string[];
+  parentInviteToken?: string;
+  errorMessage?: string;
+};
+
+export function HouseholdSetupScreen({
+  visualFixture,
+}: {
+  visualFixture?: HouseholdSetupVisualFixture;
+} = {}) {
+  const [mode, setMode] = useState<SetupMode>(visualFixture?.mode ?? "start");
+  const [householdName, setHouseholdName] = useState(
+    visualFixture?.householdName ?? "",
   );
-  const [weeklyUnclaimAllowance, setWeeklyUnclaimAllowance] = useState("2");
-  const [children, setChildren] = useState<string[]>([""]);
-  const [parentInviteToken, setParentInviteToken] = useState("");
+  const [timezone, setTimezone] = useState(
+    visualFixture?.timezone ?? getDeviceTimezone,
+  );
+  const [payoutWeekday, setPayoutWeekday] = useState<PayoutWeekday | null>(
+    visualFixture?.payoutWeekday ?? "friday",
+  );
+  const [weeklyUnclaimAllowance, setWeeklyUnclaimAllowance] = useState(
+    visualFixture?.weeklyUnclaimAllowance ?? "2",
+  );
+  const [children, setChildren] = useState<string[]>(
+    visualFixture?.children ?? [""],
+  );
+  const [parentInviteToken, setParentInviteToken] = useState(
+    visualFixture?.parentInviteToken ?? "",
+  );
   const [creatingHousehold, setCreatingHousehold] = useState(false);
   const [joiningHousehold, setJoiningHousehold] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(
+    visualFixture?.errorMessage ?? null,
+  );
 
   const createHousehold = useServerConfirmedMutation(api.households.create);
   const acceptParentInvite = useAction(api.parentInvites.accept);

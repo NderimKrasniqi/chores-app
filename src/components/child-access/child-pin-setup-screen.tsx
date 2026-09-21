@@ -1,4 +1,8 @@
 import { DirectionCIcon } from "@/components/ui/direction-c-icon";
+import {
+  childAvatarTone,
+  DirectionCAvatar,
+} from "@/components/ui/direction-c-avatar";
 import { DirectionC } from "@/constants/direction-c";
 import { ActionButton, AppText, Surface } from "@/design-system";
 import { PARENT_AUTH_STORAGE_PREFIX } from "@/lib/auth/client";
@@ -9,7 +13,6 @@ import {
   type LocalChildContext,
 } from "@/lib/child-access/local-access";
 import { useAuthRuntime } from "@/providers/auth-runtime-provider";
-import { Image } from "expo-image";
 import { StatusBar } from "expo-status-bar";
 import { useState } from "react";
 import {
@@ -30,7 +33,15 @@ type ChildPinSetupScreenProps = {
   onComplete: (context: LocalChildContext) => void;
 };
 
-const childAvatar = require("../../../assets/images/direction-c/alex-avatar.png");
+const alexAvatar = require("../../../assets/images/direction-c/alex-avatar.png");
+const mayaAvatar = require("../../../assets/images/direction-c/maya-avatar.png");
+
+function childAvatar(displayName: string) {
+  const normalized = displayName.trim().toLowerCase();
+  if (normalized === "maya") return mayaAvatar;
+  if (normalized === "alex") return alexAvatar;
+  return null;
+}
 
 function normalizePinInput(value: string) {
   const { maxLength } = getChildPinRequirements();
@@ -186,11 +197,11 @@ export function ChildPinSetupScreen({
           </AppText>
 
           <Surface className="mt-5 flex-row items-center p-3">
-            <Image
-              source={childAvatar}
-              className="h-[84px] w-[84px] rounded-full"
-              contentFit="contain"
-              accessible={false}
+            <DirectionCAvatar
+              source={childAvatar(childDisplayName)}
+              tone={childAvatarTone(childDisplayName)}
+              className="h-[84px] w-[84px]"
+              fallbackLabel={childDisplayName}
             />
             <View className="ml-4 flex-1">
               <AppText variant="sectionTitle">{childDisplayName}</AppText>

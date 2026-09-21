@@ -5,11 +5,14 @@ import { ChildNoAccessScreen } from "@/components/child-access/child-no-access-s
 import { HouseholdListScreen } from "@/components/household/household-list-screen";
 import { HouseholdSetupScreen } from "@/components/household/household-setup-screen";
 import { OnboardingScreen } from "@/components/onboarding/onboarding-screen";
+import { DirectionC } from "@/constants/direction-c";
+import { AppText } from "@/design-system";
 import { authClient } from "@/lib/auth/client";
 import { hasCompletedOnboarding } from "@/lib/onboarding";
 import { useConvexAuth, useQuery } from "convex/react";
+import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Text, View } from "react-native";
+import { ActivityIndicator, View } from "react-native";
 
 import { api } from "../../convex/_generated/api";
 
@@ -23,10 +26,18 @@ function isAnonymousUser(user: object) {
 
 function LoadingScreen({ message }: { message: string }) {
   return (
-    <View className="flex-1 items-center justify-center bg-slate-950">
-      <ActivityIndicator />
+    <View className="flex-1 items-center justify-center bg-canvas px-6">
+      <StatusBar style="dark" />
+      <View className="h-16 w-16 items-center justify-center rounded-full bg-actionSoft">
+        <ActivityIndicator color={DirectionC.color.green} />
+      </View>
 
-      <Text className="mt-3 text-slate-400">{message}</Text>
+      <AppText variant="sectionTitle" className="mt-4 text-center">
+        Getting things ready
+      </AppText>
+      <AppText color="ink-muted" className="mt-1 text-center">
+        {message}
+      </AppText>
     </View>
   );
 }
@@ -82,7 +93,7 @@ export default function HomeScreen() {
   );
 
   if (onboardingState === "loading" || sessionPending || convexAuthLoading) {
-    return <LoadingScreen message="Checking session..." />;
+    return <LoadingScreen message="Checking session…" />;
   }
 
   if (onboardingState === "required") {
@@ -109,12 +120,12 @@ export default function HomeScreen() {
   }
 
   if (!isAuthenticated) {
-    return <LoadingScreen message="Connecting secure session..." />;
+    return <LoadingScreen message="Connecting secure session…" />;
   }
 
   if (anonymousSession) {
     if (childAccess === undefined) {
-      return <LoadingScreen message="Checking child access..." />;
+      return <LoadingScreen message="Checking child access…" />;
     }
 
     if (childAccess === null) {
@@ -125,7 +136,7 @@ export default function HomeScreen() {
   }
 
   if (households === undefined) {
-    return <LoadingScreen message="Loading household..." />;
+    return <LoadingScreen message="Loading household…" />;
   }
 
   if (households.length > 0) {

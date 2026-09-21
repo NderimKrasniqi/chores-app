@@ -4,12 +4,17 @@ import { useQuery } from "convex/react";
 import { Alert } from "react-native";
 
 import { api } from "../../../convex/_generated/api";
+import type { Id } from "../../../convex/_generated/dataModel";
 import {
   ClaimableChoresView,
   type UnlockChoreSummary,
 } from "./claimable-chores-view";
 
-export function ClaimableChoresCard() {
+export function ClaimableChoresCard({
+  onOpenChore,
+}: {
+  onOpenChore?: (occurrenceId: Id<"choreOccurrences">) => void;
+}) {
   const result = useQuery(api.claimableChores.listMine);
 
   const redos = useQuery(api.childRedos.listMine);
@@ -46,6 +51,7 @@ export function ClaimableChoresCard() {
   return (
     <ClaimableChoresView
       result={result}
+      onOpenChore={onOpenChore}
       unlockChore={
         result.gate.currentUnlockOccurrence
           ? (personalChores.find(
