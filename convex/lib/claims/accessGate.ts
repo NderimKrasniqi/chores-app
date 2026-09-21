@@ -14,6 +14,8 @@ export type ClaimableAccessGate = {
   currentUnlockOccurrence: {
     occurrenceId: Id<"choreOccurrences">;
 
+    title: string;
+
     state:
       | "scheduled"
       | "available"
@@ -107,6 +109,8 @@ export async function getClaimableAccessGateForChild(
       currentUnlockOccurrence: {
         occurrenceId: currentUnlock._id,
 
+        title: currentUnlock.title,
+
         state: currentUnlock.state,
 
         scheduledLocalDate: currentUnlock.scheduledLocalDate,
@@ -129,6 +133,8 @@ export async function getClaimableAccessGateForChild(
 
     currentUnlockOccurrence: {
       occurrenceId: currentUnlock._id,
+
+      title: currentUnlock.title,
 
       state: currentUnlock.state,
 

@@ -4,7 +4,13 @@ import { ActivityIndicator, Pressable, View } from "react-native";
 import { AppText } from "./text";
 import { DesignTokens } from "./tokens";
 
-type ButtonTone = "primary" | "destructive" | "secondary" | "quiet";
+type ButtonTone =
+  | "primary"
+  | "soft"
+  | "destructive"
+  | "destructiveSecondary"
+  | "secondary"
+  | "quiet";
 
 type ActionButtonProps = Omit<ComponentProps<typeof Pressable>, "children"> & {
   label: string;
@@ -16,7 +22,9 @@ type ActionButtonProps = Omit<ComponentProps<typeof Pressable>, "children"> & {
 
 const toneClass: Record<ButtonTone, string> = {
   primary: "bg-action",
+  soft: "bg-actionSoftStrong",
   destructive: "bg-urgency",
+  destructiveSecondary: "border-2 border-urgency bg-surfaceRaised",
   secondary: "border-2 border-infoSoftStrong bg-surfaceRaised",
   quiet: "bg-transparent",
 };
@@ -51,7 +59,15 @@ export function ActionButton({
           {leading}
           <AppText
             variant="cardTitle"
-            color={lightLabel ? "white" : tone === "quiet" ? "action" : "ink"}
+            color={
+              lightLabel
+                ? "white"
+                : tone === "quiet" || tone === "soft"
+                  ? "action"
+                  : tone === "destructiveSecondary"
+                    ? "urgency"
+                    : "ink"
+            }
             className="text-center"
           >
             {label}

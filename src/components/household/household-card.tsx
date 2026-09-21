@@ -35,19 +35,19 @@ export type HouseholdSummary = {
 
   weeklyUnclaimAllowance: number;
 
-  parents: Array<{
+  parents: {
     membershipId: Id<"householdMembers">;
 
     displayName: string;
 
     isCurrent: boolean;
-  }>;
+  }[];
 
-  children: Array<{
+  children: {
     childId: Id<"children">;
 
     displayName: string;
-  }>;
+  }[];
 };
 
 type HouseholdCardProps = {

@@ -1,14 +1,26 @@
 import { OnboardingScreen } from "@/components/onboarding/onboarding-screen";
 import { DirectionCIcon } from "@/components/ui/direction-c-icon";
+import {
+  childAvatarTone,
+  DirectionCAvatar,
+} from "@/components/ui/direction-c-avatar";
 import { DirectionC } from "@/constants/direction-c";
 import { ActionButton, AppText, Surface, TopBar } from "@/design-system";
-import { Image } from "expo-image";
+import { AppImage as Image } from "@/components/ui/app-image";
 import { useState } from "react";
 import { Linking, Modal, Pressable, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const avatar = require("../../../assets/images/direction-c/alex-avatar.png");
-const familyArtwork = require("../../../assets/images/direction-c/onboarding-family.png");
+const alexAvatar = require("../../../assets/images/direction-c/alex-avatar.png");
+const mayaAvatar = require("../../../assets/images/direction-c/maya-avatar.png");
+const familyArtwork = require("../../../assets/images/direction-c/household-family.png");
+
+function childAvatar(displayName: string) {
+  const normalized = displayName.trim().toLowerCase();
+  if (normalized === "maya") return mayaAvatar;
+  if (normalized === "alex") return alexAvatar;
+  return null;
+}
 
 function SettingsRow({
   title,
@@ -82,10 +94,11 @@ export function ChildProfileScreen({
         showsVerticalScrollIndicator={false}
       >
         <Surface className="mt-2 min-h-[148px] flex-row items-center p-4">
-          <Image
-            source={avatar}
-            className="h-32 w-32 rounded-full bg-rewardSoft"
-            contentFit="cover"
+          <DirectionCAvatar
+            source={childAvatar(childName)}
+            tone={childAvatarTone(childName)}
+            className="h-32 w-32"
+            fallbackLabel={childName}
           />
           <View className="ml-5 flex-1">
             <AppText variant="screenTitle" numberOfLines={1}>
@@ -107,12 +120,11 @@ export function ChildProfileScreen({
         >
           <Image
             source={familyArtwork}
-            className="h-[150px] w-[230px]"
-            contentFit="cover"
-            contentPosition="top"
+            className="h-[132px] w-[164px]"
+            contentFit="contain"
           />
-          <View className="ml-2 flex-1">
-            <AppText variant="cardTitle" numberOfLines={2}>
+          <View className="ml-3 flex-1">
+            <AppText variant="cardTitle" numberOfLines={1}>
               {householdName}
             </AppText>
             <AppText className="mt-1" color="ink-muted">

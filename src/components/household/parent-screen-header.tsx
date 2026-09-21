@@ -1,5 +1,5 @@
 import { AppText } from "@/design-system";
-import { Image } from "expo-image";
+import { DirectionCAvatar } from "@/components/ui/direction-c-avatar";
 import { Pressable, View } from "react-native";
 
 const parentAvatar = require("../../../assets/images/direction-c/sam-avatar.png");
@@ -23,12 +23,12 @@ export function ParentScreenHeader({
         accessibilityRole="button"
         accessibilityLabel="Open Parent account"
         onPress={onOpenAccount}
-        className="h-[76px] w-[76px] overflow-hidden rounded-full bg-rewardSoft"
+        className="h-[64px] w-[64px]"
       >
-        <Image
+        <DirectionCAvatar
           source={parentAvatar}
+          tone="parent"
           className="h-full w-full"
-          contentFit="cover"
         />
       </Pressable>
     </View>

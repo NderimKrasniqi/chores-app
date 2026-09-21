@@ -7,8 +7,10 @@ import { ActiveClaimableClaimsView } from "./active-claimable-claims-view";
 
 export function ActiveClaimableClaimsCard({
   householdId,
+  homeVariant = false,
 }: {
   householdId: Id<"households">;
+  homeVariant?: boolean;
 }) {
   const claims = useQuery(api.claimableChores.listActiveForParent, {
     householdId,
@@ -31,6 +33,7 @@ export function ActiveClaimableClaimsCard({
   return (
     <ActiveClaimableClaimsView
       claims={claims}
+      homeVariant={homeVariant}
       onCancel={async (claimId) => {
         await cancelClaim({
           householdId,

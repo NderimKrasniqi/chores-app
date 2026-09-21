@@ -22,6 +22,7 @@ import {
   HouseholdSwitcherScreen,
   ParentActivityScreen,
   ParentAccountScreen,
+  ParentChildAccessScreen,
 } from "./parent-secondary-screens";
 
 type HouseholdListScreenProps = {
@@ -31,7 +32,13 @@ type HouseholdListScreenProps = {
 };
 
 type ParentRoute =
-  "main" | "account" | "switcher" | "settings" | "activity" | "help";
+  | "main"
+  | "account"
+  | "switcher"
+  | "settings"
+  | "activity"
+  | "childAccess"
+  | "help";
 
 const sectionCopy: Record<
   Exclude<ParentSection, "home">,
@@ -57,6 +64,9 @@ export function HouseholdListScreen({
     HouseholdSummary["householdId"]
   >(households[0].householdId);
   const [signingOut, setSigningOut] = useState(false);
+  const [selectedChildId, setSelectedChildId] = useState<
+    HouseholdSummary["children"][number]["childId"] | null
+  >(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const household = useMemo(
@@ -85,6 +95,7 @@ export function HouseholdListScreen({
         parentName={parentName}
         parentEmail={parentEmail}
         household={household}
+        canSwitchHousehold={households.length > 1}
         onBack={() => setRoute("main")}
         onSwitchHousehold={() => setRoute("switcher")}
         onOpenHelp={() => setRoute("help")}
@@ -113,10 +124,6 @@ export function HouseholdListScreen({
       <HouseholdSettingsScreen
         household={household}
         onBack={() => setRoute("main")}
-        onOpenMoney={() => {
-          setActiveSection("money");
-          setRoute("main");
-        }}
       />
     );
   }
@@ -132,6 +139,22 @@ export function HouseholdListScreen({
         }}
       />
     );
+  }
+
+  if (route === "childAccess") {
+    const child = household.children.find(
+      (item) => item.childId === selectedChildId,
+    );
+    if (child) {
+      return (
+        <ParentChildAccessScreen
+          householdId={household.householdId}
+          timezone={household.timezone}
+          child={child}
+          onBack={() => setRoute("main")}
+        />
+      );
+    }
   }
 
   if (route === "help") {
@@ -200,6 +223,10 @@ export function HouseholdListScreen({
               <ParentFamilyContent
                 household={household}
                 onOpenSettings={() => setRoute("settings")}
+                onOpenChildAccess={(childId) => {
+                  setSelectedChildId(childId);
+                  setRoute("childAccess");
+                }}
               />
             ) : null}
           </View>

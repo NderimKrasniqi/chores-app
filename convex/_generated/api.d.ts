@@ -68,6 +68,8 @@ import type * as dev_smoke_task22_financialProjection from "../dev/smoke/task22/
 import type * as dev_smoke_task22_maintenanceFanout from "../dev/smoke/task22/maintenanceFanout.js";
 import type * as dev_smoke_task22_parentPrincipalSeparation from "../dev/smoke/task22/parentPrincipalSeparation.js";
 import type * as dev_smoke_task22_unlockActivation from "../dev/smoke/task22/unlockActivation.js";
+import type * as dev_visualFixtureEvidence from "../dev/visualFixtureEvidence.js";
+import type * as dev_visualFixtures from "../dev/visualFixtures.js";
 import type * as health from "../health.js";
 import type * as householdActivity from "../householdActivity.js";
 import type * as households from "../households.js";
@@ -222,6 +224,8 @@ declare const fullApi: ApiFromModules<{
   "dev/smoke/task22/maintenanceFanout": typeof dev_smoke_task22_maintenanceFanout;
   "dev/smoke/task22/parentPrincipalSeparation": typeof dev_smoke_task22_parentPrincipalSeparation;
   "dev/smoke/task22/unlockActivation": typeof dev_smoke_task22_unlockActivation;
+  "dev/visualFixtureEvidence": typeof dev_visualFixtureEvidence;
+  "dev/visualFixtures": typeof dev_visualFixtures;
   health: typeof health;
   householdActivity: typeof householdActivity;
   households: typeof households;

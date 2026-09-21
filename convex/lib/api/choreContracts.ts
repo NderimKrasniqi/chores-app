@@ -354,6 +354,8 @@ const claimableAccessGateValidator = v.object({
     v.object({
       occurrenceId: v.id("choreOccurrences"),
 
+      title: v.string(),
+
       state: choreOccurrenceStateValidator,
 
       scheduledLocalDate: v.string(),

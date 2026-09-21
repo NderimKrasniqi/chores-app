@@ -1,28 +1,8 @@
-import { DirectionCIcon } from "@/components/ui/direction-c-icon";
-import { DirectionC } from "@/constants/direction-c";
-import {
-  ActionButton,
-  AppText,
-  FormField,
-  Surface,
-  TopBar,
-} from "@/design-system";
+import { AppText } from "@/design-system";
 import { useServerConfirmedMutation } from "@/hooks/use-server-confirmed-mutation";
 import { useQuery } from "convex/react";
 import { useState } from "react";
-import { Image } from "expo-image";
-import {
-  Alert,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { Alert, Pressable, Text, TextInput, View } from "react-native";
 
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
@@ -113,21 +93,6 @@ const weekdays: Weekday[] = [
   "sunday",
 ];
 
-const choreArtwork = {
-  bedroom: require("../../../assets/images/direction-c/chore-bedroom.png"),
-  dog: require("../../../assets/images/direction-c/chore-dog-bowl.png"),
-  recycling: require("../../../assets/images/direction-c/chore-recycling.png"),
-};
-
-function getChoreArtwork(title: string) {
-  const normalized = title.toLowerCase();
-  if (normalized.includes("dog") || normalized.includes("pet"))
-    return choreArtwork.dog;
-  if (normalized.includes("recycl") || normalized.includes("trash"))
-    return choreArtwork.recycling;
-  return choreArtwork.bedroom;
-}
-
 function formatWeekday(weekday: Weekday) {
   return weekday.charAt(0).toUpperCase() + weekday.slice(1);
 }
@@ -204,8 +169,6 @@ export function ChoreDefinitionsCard({
   );
 
   const [showingForm, setShowingForm] = useState(false);
-
-  const [listKind, setListKind] = useState<ChoreKind>("personal");
 
   const [editingDefinitionId, setEditingDefinitionId] = useState<
     Id<"choreDefinitions"> | undefined

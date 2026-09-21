@@ -1,9 +1,13 @@
 import { DirectionCIcon } from "@/components/ui/direction-c-icon";
+import {
+  childAvatarTone,
+  DirectionCAvatar,
+} from "@/components/ui/direction-c-avatar";
 import { ActiveClaimableClaimsCard } from "@/components/chores/active-claimable-claims-card";
 import { DirectionC } from "@/constants/direction-c";
 import { AppText, Surface } from "@/design-system";
 import { useQuery } from "convex/react";
-import { Image } from "expo-image";
+import { AppImage as Image } from "@/components/ui/app-image";
 import { Pressable, View } from "react-native";
 
 import { api } from "../../../convex/_generated/api";
@@ -12,15 +16,29 @@ import type { HouseholdSummary } from "./household-card";
 
 const artwork = {
   bedroom: require("../../../assets/images/direction-c/chore-bedroom.png"),
+  dishwasher: require("../../../assets/images/direction-c/chore-dishwasher.png"),
   dog: require("../../../assets/images/direction-c/chore-dog-bowl.png"),
   dogWalk: require("../../../assets/images/direction-c/chore-dog-walk.png"),
   carWash: require("../../../assets/images/direction-c/chore-car-wash.png"),
+  laundry: require("../../../assets/images/direction-c/chore-laundry.png"),
+  plants: require("../../../assets/images/direction-c/chore-plants.png"),
   recycling: require("../../../assets/images/direction-c/chore-recycling.png"),
+  table: require("../../../assets/images/direction-c/chore-table.png"),
 };
 const parentAvatar = require("../../../assets/images/direction-c/sam-avatar.png");
+const alexAvatar = require("../../../assets/images/direction-c/alex-avatar.png");
+const mayaAvatar = require("../../../assets/images/direction-c/maya-avatar.png");
+const reviewClipboard = require("../../../assets/images/direction-c/review-clipboard.png");
 
 function choreArtwork(title: string) {
   const normalized = title.toLowerCase();
+  if (normalized.includes("dishwasher") || normalized.includes("dishes"))
+    return artwork.dishwasher;
+  if (normalized.includes("table")) return artwork.table;
+  if (normalized.includes("laundry") || normalized.includes("fold"))
+    return artwork.laundry;
+  if (normalized.includes("plant") || normalized.includes("water"))
+    return artwork.plants;
   if (normalized.includes("car") || normalized.includes("wash"))
     return artwork.carWash;
   if (normalized.includes("walk") && normalized.includes("dog"))
@@ -32,30 +50,24 @@ function choreArtwork(title: string) {
   return artwork.bedroom;
 }
 
-function greeting() {
-  const hour = new Date().getHours();
+function greeting(timezone?: string) {
+  let hour = new Date().getHours();
+
+  try {
+    hour = Number(
+      new Intl.DateTimeFormat("en-GB", {
+        ...(timezone ? { timeZone: timezone } : {}),
+        hour: "2-digit",
+        hourCycle: "h23",
+      }).format(new Date()),
+    );
+  } catch {
+    // Keep the device-local fallback for an invalid or unavailable timezone.
+  }
+
   if (hour < 12) return "Good morning";
   if (hour < 18) return "Good afternoon";
   return "Good evening";
-}
-
-function formatDeadline(timestamp: number, timezone: string) {
-  try {
-    const date = new Date(timestamp);
-    const day = new Intl.DateTimeFormat("en-SE", {
-      timeZone: timezone,
-      weekday: "short",
-    }).format(date);
-    const time = new Intl.DateTimeFormat("en-SE", {
-      timeZone: timezone,
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    }).format(date);
-    return `${day}, ${time}`;
-  } catch {
-    return new Date(timestamp).toLocaleString();
-  }
 }
 
 function InitialAvatar({
@@ -65,6 +77,23 @@ function InitialAvatar({
   name: string;
   small?: boolean;
 }) {
+  const source =
+    name.trim().toLowerCase() === "alex"
+      ? alexAvatar
+      : name.trim().toLowerCase() === "maya"
+        ? mayaAvatar
+        : null;
+
+  if (source) {
+    return (
+      <DirectionCAvatar
+        source={source}
+        tone={childAvatarTone(name)}
+        className={small ? "h-11 w-11" : "h-14 w-14"}
+      />
+    );
+  }
+
   return (
     <View
       className={`${small ? "h-11 w-11" : "h-14 w-14"} items-center justify-center rounded-full bg-rewardSoft`}
@@ -103,6 +132,9 @@ export function ParentHomeContent({
   const activity = useQuery(api.householdActivity.listForParent, {
     householdId,
   });
+  const activeClaims = useQuery(api.claimableChores.listActiveForParent, {
+    householdId,
+  });
 
   const pending = [...(personal ?? []), ...(claimable ?? []), ...(redos ?? [])];
   const waitingNames = [
@@ -117,17 +149,23 @@ export function ParentHomeContent({
           accessibilityRole="button"
           accessibilityLabel="Open household switcher"
           onPress={onOpenSwitcher}
-          className="h-[76px] w-[76px] overflow-hidden rounded-full bg-rewardSoft"
+          className="h-[76px] w-[76px]"
         >
-          <Image
+          <DirectionCAvatar
             source={parentAvatar}
+            tone="parent"
             className="h-full w-full"
-            contentFit="cover"
           />
         </Pressable>
         <View className="ml-4 flex-1">
-          <AppText variant="sectionTitle">
-            {greeting()}, {parentName.split(" ")[0] || "Parent"}
+          <AppText
+            variant="display"
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.8}
+          >
+            {greeting(household.timezone)},{" "}
+            {parentName.split(" ")[0] || "Parent"}
           </AppText>
           <AppText className="mt-1">{household.name}</AppText>
         </View>
@@ -137,14 +175,15 @@ export function ParentHomeContent({
         <Surface
           tone="coral"
           elevated={false}
-          className="mt-5 overflow-hidden p-4"
+          className="mt-5 overflow-hidden p-2.5"
         >
           <View className="flex-row items-center">
-            <View className="h-16 w-16 items-center justify-center rounded-full bg-urgency">
-              <DirectionCIcon
-                name="chores"
-                color={DirectionC.color.white}
-                size={32}
+            <View className="bg-urgencySoftStrong h-[60px] w-[60px] items-center justify-center rounded-full">
+              <Image
+                source={reviewClipboard}
+                className="h-[60px] w-[60px]"
+                contentFit="contain"
+                accessible={false}
               />
             </View>
             <View className="ml-4 flex-1">
@@ -162,7 +201,7 @@ export function ParentHomeContent({
           <Pressable
             accessibilityRole="button"
             onPress={onOpenReviews}
-            className="mt-4 min-h-control flex-row items-center justify-center rounded-control bg-urgency px-5"
+            className="mt-2.5 min-h-[44px] flex-row items-center justify-center rounded-control bg-urgency px-5"
           >
             <AppText variant="cardTitle" color="white">
               Review work
@@ -201,13 +240,13 @@ export function ParentHomeContent({
       <Pressable
         accessibilityRole="button"
         onPress={onAddChore}
-        className="mt-3 min-h-control flex-row items-center rounded-control bg-actionSoft px-4"
+        className="mt-3 min-h-[72px] flex-row items-center rounded-control bg-actionSoft px-4"
       >
-        <View className="h-9 w-9 items-center justify-center rounded-full bg-action">
+        <View className="h-12 w-12 items-center justify-center rounded-full bg-action">
           <DirectionCIcon
             name="plus"
             color={DirectionC.color.white}
-            size={22}
+            size={25}
           />
         </View>
         <AppText variant="cardTitle" color="action" className="ml-3">
@@ -222,7 +261,7 @@ export function ParentHomeContent({
         </View>
       </Pressable>
 
-      <AppText variant="sectionTitle" className="mt-5">
+      <AppText variant="sectionTitle" className="mt-4">
         Your children
       </AppText>
       <View className="mt-2 gap-3">
@@ -233,18 +272,26 @@ export function ParentHomeContent({
           const childPendingCount = pending.filter(
             (item) => item.childDisplayName === child.displayName,
           ).length;
+          const childActiveCount =
+            activeClaims?.filter((item) => item.childId === child.childId)
+              .length ?? 0;
+          const childTodayCount = childPendingCount + childActiveCount;
           return (
             <Surface
               key={child.childId}
-              className="min-h-[78px] flex-row items-center px-4 py-3"
+              className="min-h-[70px] flex-row items-center px-4 py-2"
             >
               <InitialAvatar name={child.displayName} />
               <View className="ml-3 flex-1">
                 <AppText variant="cardTitle">{child.displayName}</AppText>
                 <AppText variant="bodySmall" className="mt-0.5">
                   {childPendingCount > 0
-                    ? `${childPendingCount} ${childPendingCount === 1 ? "chore" : "chores"} waiting for review`
-                    : "No work waiting for review"}
+                    ? childActiveCount > 0
+                      ? `${childTodayCount} chores today`
+                      : `${childPendingCount} ${childPendingCount === 1 ? "chore" : "chores"} waiting for review`
+                    : childActiveCount > 0
+                      ? `${childActiveCount} ${childActiveCount === 1 ? "chore" : "chores"} today`
+                      : "No work waiting for review"}
                 </AppText>
               </View>
               {childPayout ? (
@@ -252,16 +299,21 @@ export function ParentHomeContent({
                   {childPayout.runningBalanceSek} kr
                 </AppText>
               ) : null}
+              <DirectionCIcon
+                name="chevron"
+                color={DirectionC.color.ink}
+                size={22}
+              />
             </Surface>
           );
         })}
       </View>
 
-      <ActiveClaimableClaimsCard householdId={householdId} />
+      <ActiveClaimableClaimsCard householdId={householdId} homeVariant />
 
       {activity !== undefined ? (
         <View>
-          <AppText variant="sectionTitle" className="mt-5">
+          <AppText variant="sectionTitle" className="mt-4">
             Recent activity
           </AppText>
           <Pressable

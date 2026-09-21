@@ -1,12 +1,17 @@
 import { ChildHouseholdActivity } from "@/components/activity/child-household-activity";
+import type { ApprovalActivityItem } from "@/components/activity/approval-activity";
 import { ClaimableChoresCard } from "@/components/chores/claimable-chores-card";
 import { DirectionCIcon } from "@/components/ui/direction-c-icon";
+import {
+  childAvatarTone,
+  DirectionCAvatar,
+} from "@/components/ui/direction-c-avatar";
 import { DirectionC } from "@/constants/direction-c";
 import { AppText } from "@/design-system";
 import { setChildExplicitlyLocked } from "@/lib/child-access/unlock-policy";
 import { useAuthRuntime } from "@/providers/auth-runtime-provider";
 import { useQuery } from "convex/react";
-import { Image } from "expo-image";
+import { AppImage as Image } from "@/components/ui/app-image";
 import { StatusBar } from "expo-status-bar";
 import { useState } from "react";
 import { Alert, Modal, Pressable, ScrollView, View } from "react-native";
@@ -27,6 +32,15 @@ type ChildHomeScreenProps = {
     childDisplayName: string;
     grantedAt: number;
   };
+  visualFixture?: {
+    initialTab?: ChildTab;
+    balanceSek?: number;
+    activity?: {
+      items: ApprovalActivityItem[];
+      timezone: string;
+      initialCelebrationItem?: ApprovalActivityItem;
+    };
+  };
 };
 
 type ChildTab = "home" | "extras" | "activity" | "money";
@@ -38,14 +52,36 @@ const tabs: { key: ChildTab; label: string }[] = [
   { key: "money", label: "Money" },
 ];
 
-const avatar = require("../../../assets/images/direction-c/alex-avatar.png");
+const alexAvatar = require("../../../assets/images/direction-c/alex-avatar.png");
+const mayaAvatar = require("../../../assets/images/direction-c/maya-avatar.png");
 const extrasArtwork = require("../../../assets/images/direction-c/extras-unlocked.png");
+const balanceNoteArtwork = require("../../../assets/images/direction-c/running-balance-note.png");
 
-export function ChildHomeScreen({ access }: ChildHomeScreenProps) {
+function childAvatar(displayName: string) {
+  const normalized = displayName.trim().toLowerCase();
+  if (normalized === "maya") return mayaAvatar;
+  if (normalized === "alex") return alexAvatar;
+  return null;
+}
+
+export function ChildHomeScreen({
+  access,
+  visualFixture,
+}: ChildHomeScreenProps) {
   const { activateParentStorage } = useAuthRuntime();
-  const balance = useQuery(api.runningBalances.getMine);
-  const [activeTab, setActiveTab] = useState<ChildTab>("home");
+  const queriedBalance = useQuery(
+    api.runningBalances.getMine,
+    visualFixture ? "skip" : {},
+  );
+  const balance = visualFixture
+    ? { balanceSek: visualFixture.balanceSek ?? 0 }
+    : queriedBalance;
+  const [activeTab, setActiveTab] = useState<ChildTab>(
+    visualFixture?.initialTab ?? "home",
+  );
   const [profileOpen, setProfileOpen] = useState(false);
+  const [pendingChoreId, setPendingChoreId] =
+    useState<Id<"choreOccurrences"> | null>(null);
 
   async function handleLockAndSwitch() {
     try {
@@ -60,7 +96,7 @@ export function ChildHomeScreen({ access }: ChildHomeScreenProps) {
   }
 
   return (
-    <SafeAreaView edges={["top"]} className="flex-1 bg-canvas">
+    <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-canvas">
       <StatusBar style="dark" />
 
       {activeTab === "home" ? (
@@ -70,6 +106,8 @@ export function ChildHomeScreen({ access }: ChildHomeScreenProps) {
           onOpenProfile={() => setProfileOpen(true)}
           onOpenMoney={() => setActiveTab("money")}
           onOpenExtras={() => setActiveTab("extras")}
+          initialOccurrenceId={pendingChoreId}
+          onInitialOccurrenceHandled={() => setPendingChoreId(null)}
         />
       ) : (
         <ExistingFeatureTab
@@ -79,6 +117,11 @@ export function ChildHomeScreen({ access }: ChildHomeScreenProps) {
           householdName={access.householdName}
           onOpenProfile={() => setProfileOpen(true)}
           onOpenHome={() => setActiveTab("home")}
+          onOpenChore={(occurrenceId) => {
+            setPendingChoreId(occurrenceId);
+            setActiveTab("home");
+          }}
+          activityVisualFixture={visualFixture?.activity}
         />
       )}
 
@@ -107,12 +150,16 @@ function HomeTab({
   onOpenProfile,
   onOpenMoney,
   onOpenExtras,
+  initialOccurrenceId,
+  onInitialOccurrenceHandled,
 }: {
   childName: string;
   balanceSek: number | undefined;
   onOpenProfile: () => void;
   onOpenMoney: () => void;
   onOpenExtras: () => void;
+  initialOccurrenceId: Id<"choreOccurrences"> | null;
+  onInitialOccurrenceHandled: () => void;
 }) {
   return (
     <View className="flex-1 px-5 pt-3">
@@ -121,13 +168,21 @@ function HomeTab({
           accessibilityRole="button"
           accessibilityLabel={`Open ${childName}'s profile actions`}
           onPress={onOpenProfile}
-          className="h-avatar-hero w-avatar-hero overflow-hidden rounded-full bg-[#F4E3CC]"
+          className="relative h-avatar-hero w-avatar-hero"
         >
-          <Image
-            source={avatar}
-            className="h-avatar-hero w-avatar-hero"
-            contentFit="cover"
+          <DirectionCAvatar
+            source={childAvatar(childName)}
+            tone={childAvatarTone(childName)}
+            className="h-full w-full"
+            fallbackLabel={childName}
           />
+          <View className="absolute bottom-[-1px] right-[-1px] h-8 w-8 items-center justify-center rounded-full bg-surfaceRaised shadow-md">
+            <DirectionCIcon
+              name="chevronDown"
+              color={DirectionC.color.ink}
+              size={17}
+            />
+          </View>
         </Pressable>
 
         <View className="ml-3.5 flex-1">
@@ -144,10 +199,10 @@ function HomeTab({
         accessibilityRole="button"
         accessibilityLabel="Open running balance"
         onPress={onOpenMoney}
-        className="mt-3.5 min-h-[116px] flex-row items-center rounded-large bg-actionSoft px-3.5"
+        className="relative mt-2.5 h-[104px] shrink-0 flex-row items-center rounded-large bg-actionSoft px-3.5"
         testID="task14-running-balance-card"
       >
-        <View className="h-[70px] w-[70px] items-center justify-center rounded-full bg-action">
+        <View className="h-16 w-16 items-center justify-center rounded-full bg-action">
           <DirectionCIcon
             name="money"
             color={DirectionC.color.white}
@@ -155,48 +210,66 @@ function HomeTab({
           />
         </View>
 
-        <View className="ml-3.5 flex-1">
+        <View className="ml-3.5 flex-1 pr-[118px]">
           <AppText className="text-base font-semibold">Running balance</AppText>
           <AppText
-            className="mt-0.5 text-[35px] font-black leading-10"
+            variant="screenTitle"
+            className="mt-0.5"
             testID="task14-running-balance-value"
           >
             {balanceSek === undefined ? "…" : `${balanceSek} kr`}
           </AppText>
         </View>
 
-        <View className="mr-2 min-h-[104px] w-[92px] rotate-[5deg] items-center justify-center rounded-[5px] bg-[#FFE7BF] px-2 py-2 shadow-md">
-          <AppText className="text-center text-[13px] font-bold italic leading-[15px] text-[#20122F]">
-            Real effort{`\n`}brings real{`\n`}opportunities
-          </AppText>
-          <AppText className="text-[21px] leading-[22px] text-[#20122F]">
-            ♡
-          </AppText>
-        </View>
+        <Image
+          source={balanceNoteArtwork}
+          className="absolute -top-4 right-6 h-[148px] w-[140px]"
+          contentFit="contain"
+          accessible={false}
+        />
 
-        <DirectionCIcon name="chevron" color={DirectionC.color.ink} size={24} />
+        <View className="absolute right-2.5">
+          <DirectionCIcon
+            name="chevron"
+            color={DirectionC.color.ink}
+            size={24}
+          />
+        </View>
       </Pressable>
 
-      <AppText variant="sectionTitle" className="mb-2.5 mt-4">
+      <AppText variant="sectionTitle" className="mb-2 mt-3">
         Your chores
       </AppText>
-      <ChildHomeChoreList />
+      <ChildHomeChoreList
+        initialOccurrenceId={initialOccurrenceId}
+        onInitialOccurrenceHandled={onInitialOccurrenceHandled}
+      />
 
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Open Extras"
         onPress={onOpenExtras}
-        className="mb-2.5 mt-2.5 h-28 flex-row items-center overflow-hidden rounded-large bg-infoSoft pr-3"
+        className="mb-2 mt-2 h-24 shrink-0 flex-row items-center overflow-hidden rounded-large bg-infoSoft"
       >
-        <Image
-          source={extrasArtwork}
-          className="-ml-1.5 h-28 w-[150px]"
-          contentFit="contain"
-          accessible={false}
-        />
-        <AppText className="flex-1 text-base font-bold leading-[21px]">
+        <View className="h-24 w-[76px] overflow-hidden">
+          <Image
+            source={extrasArtwork}
+            className="absolute -left-8 h-24 w-[204px]"
+            contentFit="contain"
+            accessible={false}
+          />
+        </View>
+        <AppText variant="label" className="flex-1 px-2 text-center font-bold">
           Extras open when your{`\n`}Unlock Chore is approved.
         </AppText>
+        <View className="h-24 w-[76px] overflow-hidden">
+          <Image
+            source={extrasArtwork}
+            className="absolute -right-1 h-24 w-[204px]"
+            contentFit="contain"
+            accessible={false}
+          />
+        </View>
       </Pressable>
     </View>
   );
@@ -209,6 +282,8 @@ function ExistingFeatureTab({
   householdName,
   onOpenProfile,
   onOpenHome,
+  onOpenChore,
+  activityVisualFixture,
 }: {
   tab: Exclude<ChildTab, "home">;
   childId: Id<"children">;
@@ -216,6 +291,12 @@ function ExistingFeatureTab({
   householdName: string;
   onOpenProfile: () => void;
   onOpenHome: () => void;
+  onOpenChore: (occurrenceId: Id<"choreOccurrences">) => void;
+  activityVisualFixture?: {
+    items: ApprovalActivityItem[];
+    timezone: string;
+    initialCelebrationItem?: ApprovalActivityItem;
+  };
 }) {
   const title =
     tab === "extras" ? "Extras" : tab === "activity" ? "Activity" : "Money";
@@ -235,12 +316,13 @@ function ExistingFeatureTab({
             accessibilityRole="button"
             accessibilityLabel={`Open ${childName}'s profile`}
             onPress={onOpenProfile}
-            className="h-avatar-hero w-avatar-hero overflow-hidden rounded-full bg-[#F4E3CC]"
+            className="h-avatar-hero w-avatar-hero"
           >
-            <Image
-              source={avatar}
-              className="h-avatar-hero w-avatar-hero"
-              contentFit="cover"
+            <DirectionCAvatar
+              source={childAvatar(childName)}
+              tone={childAvatarTone(childName)}
+              className="h-full w-full"
+              fallbackLabel={childName}
             />
           </Pressable>
         ) : null}
@@ -257,12 +339,13 @@ function ExistingFeatureTab({
             accessibilityRole="button"
             accessibilityLabel={`Open ${childName}'s profile`}
             onPress={onOpenProfile}
-            className="h-avatar-hero w-avatar-hero overflow-hidden rounded-full bg-[#F4E3CC]"
+            className="h-avatar-hero w-avatar-hero"
           >
-            <Image
-              source={avatar}
-              className="h-avatar-hero w-avatar-hero"
-              contentFit="cover"
+            <DirectionCAvatar
+              source={childAvatar(childName)}
+              tone={childAvatarTone(childName)}
+              className="h-full w-full"
+              fallbackLabel={childName}
             />
           </Pressable>
         ) : null}
@@ -273,11 +356,14 @@ function ExistingFeatureTab({
         contentContainerClassName="pb-6"
         showsVerticalScrollIndicator={false}
       >
-        {tab === "extras" ? <ClaimableChoresCard /> : null}
+        {tab === "extras" ? (
+          <ClaimableChoresCard onOpenChore={onOpenChore} />
+        ) : null}
         {tab === "activity" ? (
           <ChildHouseholdActivity
             viewerChildId={childId}
             onOpenChores={onOpenHome}
+            visualFixture={activityVisualFixture}
           />
         ) : null}
         {tab === "money" ? <ChildMoneyContent /> : null}
@@ -294,7 +380,7 @@ function ChildTabBar({
   onChange: (tab: ChildTab) => void;
 }) {
   return (
-    <View className="min-h-bottom-navigation flex-row border-t border-line bg-surface px-1.5 pb-3 pt-2 shadow-md">
+    <View className="min-h-bottom-navigation flex-row border-t border-line bg-surface px-1.5 pt-2 shadow-md">
       {tabs.map((tab) => {
         const selected = activeTab === tab.key;
 

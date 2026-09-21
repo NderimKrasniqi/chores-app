@@ -1,4 +1,9 @@
 import { DirectionCIcon } from "@/components/ui/direction-c-icon";
+import {
+  childAvatarTone,
+  DirectionCAvatar,
+} from "@/components/ui/direction-c-avatar";
+import { AppImage as Image } from "@/components/ui/app-image";
 import { DirectionC } from "@/constants/direction-c";
 import { AppText, StatusChip, Surface } from "@/design-system";
 import { useQuery } from "convex/react";
@@ -6,35 +11,34 @@ import { useState } from "react";
 import { View } from "react-native";
 
 import { api } from "../../../convex/_generated/api";
+import {
+  formatLocalDate as formatDirectionCDate,
+  formatLocalDateRange,
+} from "@/lib/direction-c/dates";
+
+const alexAvatar = require("../../../assets/images/direction-c/alex-avatar.png");
+const mayaAvatar = require("../../../assets/images/direction-c/maya-avatar.png");
+const moneyWalletArtwork = require("../../../assets/images/direction-c/money-wallet.png");
+const moneyCalendarArtwork = require("../../../assets/images/direction-c/money-calendar.png");
+const moneyLightbulbArtwork = require("../../../assets/images/direction-c/money-lightbulb.png");
+
+function childAvatar(displayName: string) {
+  const normalized = displayName.trim().toLowerCase();
+  if (normalized === "maya") return mayaAvatar;
+  if (normalized === "alex") return alexAvatar;
+  return null;
+}
 
 function formatWeekday(day: string) {
   return day.charAt(0).toUpperCase() + day.slice(1);
 }
 
-function dateParts(localDate: string) {
-  const [year, month, day] = localDate.split("-").map(Number);
-  return { year, month, day };
-}
-
 function formatLocalDate(localDate: string) {
-  const { year, month, day } = dateParts(localDate);
-  return new Intl.DateTimeFormat("en-SE", {
-    month: "short",
-    day: "numeric",
-  }).format(new Date(Date.UTC(year, month - 1, day)));
+  return formatDirectionCDate(localDate);
 }
 
 function formatPeriod(startLocalDate: string, endLocalDate: string) {
-  const start = formatLocalDate(startLocalDate);
-  const end = formatLocalDate(endLocalDate);
-  const startParts = start.split(" ");
-  const endParts = end.split(" ");
-
-  if (startParts.at(-1) === endParts.at(-1)) {
-    return `${startParts[0]}–${end}`;
-  }
-
-  return `${start} – ${end}`;
+  return formatLocalDateRange(startLocalDate, endLocalDate);
 }
 
 export function ChildMoneyContent() {
@@ -45,6 +49,9 @@ export function ChildMoneyContent() {
     return (
       <Surface className="mt-4 p-5">
         <AppText variant="cardTitle">Loading your money…</AppText>
+        <AppText variant="bodySmall" color="ink-muted" className="mt-1">
+          Your balance and payout week will appear here.
+        </AppText>
       </Surface>
     );
   }
@@ -61,11 +68,12 @@ export function ChildMoneyContent() {
         elevated={false}
         className="mt-3 min-h-[170px] flex-row items-center p-4"
       >
-        <View className="h-28 w-28 items-center justify-center rounded-large bg-actionSoftStrong">
-          <DirectionCIcon
-            name="money"
-            color={DirectionC.color.greenDeep}
-            size={58}
+        <View className="h-28 w-28 items-center justify-center">
+          <Image
+            source={moneyWalletArtwork}
+            className="h-32 w-32"
+            contentFit="contain"
+            accessible={false}
           />
         </View>
         <View className="ml-4 flex-1">
@@ -91,11 +99,12 @@ export function ChildMoneyContent() {
         elevated={false}
         className="mt-3 min-h-[148px] flex-row items-center p-4"
       >
-        <View className="h-24 w-24 items-center justify-center rounded-large bg-infoSoftStrong">
-          <DirectionCIcon
-            name="calendar"
-            color={DirectionC.color.ink}
-            size={50}
+        <View className="h-24 w-24 items-center justify-center">
+          <Image
+            source={moneyCalendarArtwork}
+            className="h-28 w-28"
+            contentFit="contain"
+            accessible={false}
           />
         </View>
         <View className="ml-4 flex-1">
@@ -129,11 +138,12 @@ export function ChildMoneyContent() {
         {latest ? (
           <>
             <View className="flex-row items-center">
-              <View className="h-20 w-20 items-center justify-center rounded-full bg-rewardSoft">
-                <AppText variant="sectionTitle">
-                  {child.displayName.charAt(0).toUpperCase()}
-                </AppText>
-              </View>
+              <DirectionCAvatar
+                source={childAvatar(child.displayName)}
+                tone={childAvatarTone(child.displayName)}
+                className="h-20 w-20"
+                fallbackLabel={child.displayName}
+              />
               <View className="ml-4 flex-1">
                 <AppText variant="cardTitle">{child.displayName}</AppText>
                 <AppText variant="bodySmall" color="ink-muted" className="mt-1">
@@ -164,6 +174,26 @@ export function ChildMoneyContent() {
                           ? "urgent"
                           : "info"
                     }
+                    icon={
+                      <DirectionCIcon
+                        name={
+                          latest.status === "pending"
+                            ? "clock"
+                            : latest.status === "paid"
+                              ? "check"
+                              : "minus"
+                        }
+                        color={
+                          latest.status === "pending" ||
+                          latest.status === "paid"
+                            ? DirectionC.color.greenDeep
+                            : latest.balanceAtCloseSek < 0
+                              ? DirectionC.color.coral
+                              : DirectionC.color.inkMuted
+                        }
+                        size={15}
+                      />
+                    }
                   />
                 </View>
               </View>
@@ -182,21 +212,36 @@ export function ChildMoneyContent() {
                 <Surface
                   tone="mint"
                   elevated={false}
-                  className="mt-3 flex-row items-center justify-center p-3"
+                  className="mt-3 flex-row items-center justify-center px-3 py-3"
                 >
-                  <AppText variant="cardTitle">{balance} kr</AppText>
+                  <AppText variant="cardTitle" numberOfLines={1}>
+                    {balance} kr
+                  </AppText>
                   <AppText variant="cardTitle" className="mx-3">
                     −
                   </AppText>
-                  <AppText variant="cardTitle">
+                  <AppText variant="cardTitle" numberOfLines={1}>
                     {latest.amountDueSek} kr
                   </AppText>
                   <AppText variant="cardTitle" className="mx-3">
                     =
                   </AppText>
-                  <AppText variant="cardTitle" color="action">
-                    {balance - latest.amountDueSek} kr
-                  </AppText>
+                  <View className="items-center">
+                    <AppText
+                      variant="cardTitle"
+                      color="action"
+                      numberOfLines={1}
+                    >
+                      {balance - latest.amountDueSek} kr
+                    </AppText>
+                    <AppText
+                      variant="caption"
+                      color="action"
+                      className="mt-0.5 text-center"
+                    >
+                      after Parent marks paid
+                    </AppText>
+                  </View>
                 </Surface>
                 {latest.pendingOutcomeCount > 0 ? (
                   <Surface
@@ -266,16 +311,39 @@ export function ChildMoneyContent() {
 
       <Surface className="mt-4 flex-row items-center p-4">
         <View className="h-20 w-24 items-center justify-center rounded-control bg-rewardSoft">
-          <DirectionCIcon name="info" color={DirectionC.color.ink} size={42} />
+          <Image
+            source={moneyLightbulbArtwork}
+            className="h-24 w-24"
+            contentFit="contain"
+            accessible={false}
+          />
         </View>
         <View className="ml-4 flex-1">
           <AppText variant="cardTitle">How your balance works</AppText>
-          <AppText variant="bodySmall" color="action" className="mt-2">
-            ＋ Approved chores add their reward
-          </AppText>
-          <AppText variant="bodySmall" color="urgency" className="mt-1">
-            − Missed locked Extras subtract their full value
-          </AppText>
+          <View className="mt-2 flex-row items-center">
+            <View className="h-7 w-7 items-center justify-center rounded-full bg-action">
+              <DirectionCIcon
+                name="plus"
+                color={DirectionC.color.white}
+                size={17}
+              />
+            </View>
+            <AppText variant="bodySmall" color="action" className="ml-2">
+              Approved chores add their reward
+            </AppText>
+          </View>
+          <View className="mt-1 flex-row items-center">
+            <View className="h-7 w-7 items-center justify-center rounded-full bg-urgency">
+              <DirectionCIcon
+                name="minus"
+                color={DirectionC.color.white}
+                size={17}
+              />
+            </View>
+            <AppText variant="bodySmall" color="urgency" className="ml-2">
+              Missed locked Extras subtract their full value
+            </AppText>
+          </View>
         </View>
       </Surface>
     </View>

@@ -7,12 +7,13 @@ import {
   Surface,
   TopBar,
 } from "@/design-system";
-import { Image } from "expo-image";
+import { AppImage as Image } from "@/components/ui/app-image";
 import { useState } from "react";
 import { Modal, Pressable, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import type { Id } from "../../../convex/_generated/dataModel";
+import { formatLocalDate } from "@/lib/direction-c/dates";
 import { ChildSubmissionActions } from "../evidence/child-submission-actions";
 
 type UnlockState =
@@ -64,6 +65,7 @@ export type ClaimableChoresViewModel = {
     canAccessClaimables: boolean;
     currentUnlockOccurrence: {
       occurrenceId: Id<"choreOccurrences">;
+      title: string;
       state: UnlockState;
       scheduledLocalDate: string;
       availabilityStartsAt: number;
@@ -81,7 +83,7 @@ export type ClaimableChoresViewModel = {
       endAt: number;
     };
   };
-  claimableOccurrences: Array<{
+  claimableOccurrences: {
     occurrenceId: Id<"choreOccurrences">;
     title: string;
     description?: string;
@@ -89,8 +91,8 @@ export type ClaimableChoresViewModel = {
     timezone: string;
     deadlineAt: number;
     commitment: ClaimCommitmentStatus;
-  }>;
-  claimedOccurrences: Array<{
+  }[];
+  claimedOccurrences: {
     claimId: Id<"choreClaims">;
     occurrenceId: Id<"choreOccurrences">;
     childId: Id<"children">;
@@ -105,19 +107,37 @@ export type ClaimableChoresViewModel = {
     deadlineAt: number;
     isMine: boolean;
     commitment: ClaimCommitmentStatus | null;
-  }>;
+  }[];
 };
 
 const artwork = {
   bedroom: require("../../../assets/images/direction-c/chore-bedroom.png"),
+  dishwasher: require("../../../assets/images/direction-c/chore-dishwasher.png"),
   dog: require("../../../assets/images/direction-c/chore-dog-bowl.png"),
   dogWalk: require("../../../assets/images/direction-c/chore-dog-walk.png"),
   carWash: require("../../../assets/images/direction-c/chore-car-wash.png"),
+  laundry: require("../../../assets/images/direction-c/chore-laundry.png"),
+  plants: require("../../../assets/images/direction-c/chore-plants.png"),
   recycling: require("../../../assets/images/direction-c/chore-recycling.png"),
+  table: require("../../../assets/images/direction-c/chore-table.png"),
 };
+const extrasArtwork = require("../../../assets/images/direction-c/extras-unlocked.png");
+const extrasLockArtwork = require("../../../assets/images/direction-c/extras-lock.png");
+const extrasOpenLockArtwork = require("../../../assets/images/direction-c/extras-open-lock.png");
+const carWashHeroArtwork = require("../../../assets/images/direction-c/chore-car-wash-hero.png");
+const oneStepNoteArtwork = require("../../../assets/images/direction-c/one-step-note.png");
+const parentAvatarArtwork = require("../../../assets/images/direction-c/sam-avatar.png");
+const submitStepArtwork = require("../../../assets/images/direction-c/qr-scan-phone.png");
 
 function artworkForTitle(title: string) {
   const normalized = title.toLowerCase();
+  if (normalized.includes("dishwasher") || normalized.includes("dishes"))
+    return artwork.dishwasher;
+  if (normalized.includes("table")) return artwork.table;
+  if (normalized.includes("laundry") || normalized.includes("fold"))
+    return artwork.laundry;
+  if (normalized.includes("plant") || normalized.includes("water"))
+    return artwork.plants;
   if (normalized.includes("car") || normalized.includes("wash"))
     return artwork.carWash;
   if (normalized.includes("walk") && normalized.includes("dog"))
@@ -138,19 +158,31 @@ function artworkForTitle(title: string) {
 function ChoreArtwork({
   title,
   large = false,
+  detail = false,
+  activeClaim = false,
 }: {
   title: string;
   large?: boolean;
+  detail?: boolean;
+  activeClaim?: boolean;
 }) {
   const source = artworkForTitle(title);
   return (
     <View
-      className={`${large ? "h-[245px] w-full" : "h-24 w-28"} items-center justify-center overflow-hidden rounded-control bg-[#F7EDDF]`}
+      className={`${large ? "h-[245px] w-full" : activeClaim ? "h-[188px] w-[156px]" : detail ? "h-[128px] w-[132px]" : "h-24 w-28"} items-center justify-center overflow-hidden rounded-control bg-[#F7EDDF]`}
     >
       {source ? (
         <Image
           source={source}
-          className={large ? "h-[235px] w-full" : "h-[92px] w-[106px]"}
+          className={
+            large
+              ? "h-[235px] w-full"
+              : activeClaim
+                ? "h-[182px] w-[150px]"
+                : detail
+                  ? "h-[122px] w-[126px]"
+                  : "h-[92px] w-[106px]"
+          }
           contentFit="contain"
           accessible={false}
         />
@@ -161,6 +193,46 @@ function ChoreArtwork({
           size={large ? 70 : 42}
         />
       )}
+    </View>
+  );
+}
+
+function ChoreHero({ title }: { title: string }) {
+  const source = title.toLowerCase().includes("car")
+    ? carWashHeroArtwork
+    : artworkForTitle(title);
+
+  return (
+    <View className="relative h-[180px] w-full overflow-hidden rounded-card bg-[#F7EDDF]">
+      {source ? (
+        <Image
+          source={source}
+          className="h-full w-full"
+          contentFit="cover"
+          accessible={false}
+        />
+      ) : (
+        <View className="flex-1 items-center justify-center">
+          <DirectionCIcon
+            name="chores"
+            color={DirectionC.color.greenDeep}
+            size={70}
+          />
+        </View>
+      )}
+      <View className="absolute bottom-3 left-3">
+        <StatusChip
+          label="Redo required"
+          tone="urgent"
+          icon={
+            <DirectionCIcon
+              name="redo"
+              color={DirectionC.color.coral}
+              size={16}
+            />
+          }
+        />
+      </View>
     </View>
   );
 }
@@ -182,18 +254,42 @@ function formatTime(timestamp: number, timezone: string) {
 }
 
 function formatDeadline(timestamp: number, timezone: string) {
-  try {
-    return new Intl.DateTimeFormat("en-SE", {
-      timeZone: timezone,
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    }).format(new Date(timestamp));
-  } catch {
-    return new Date(timestamp).toLocaleString();
-  }
+  const formatLocalDateKey = (value: number) => {
+    try {
+      return new Intl.DateTimeFormat("en-CA", {
+        timeZone: timezone,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).format(new Date(value));
+    } catch {
+      return "";
+    }
+  };
+  const date = formatLocalDateKey(timestamp);
+  const today = formatLocalDateKey(Date.now());
+  const toDayNumber = (value: string) => {
+    const [year, month, day] = value.split("-").map(Number);
+    return Date.UTC(year, month - 1, day) / 86_400_000;
+  };
+  const dayDelta =
+    date && today ? toDayNumber(date) - toDayNumber(today) : Number.NaN;
+  const dayLabel =
+    dayDelta === 0
+      ? "Today"
+      : dayDelta === 1
+        ? "Tomorrow"
+        : dayDelta === -1
+          ? "Yesterday"
+          : formatLocalDate(date);
+  return `${dayLabel}, ${formatTime(timestamp, timezone)}`;
+}
+
+function formatDeadlineSentence(timestamp: number, timezone: string) {
+  const formatted = formatDeadline(timestamp, timezone);
+  return formatted
+    ? `${formatted[0].toLowerCase()}${formatted.slice(1)}`
+    : formatted;
 }
 
 function getErrorMessage(error: unknown) {
@@ -281,6 +377,7 @@ export function ClaimableChoresView({
   onSubmit,
   redos = [],
   onSubmitRedo,
+  onOpenChore,
 }: {
   result: ClaimableChoresViewModel;
   unlockChore?: UnlockChoreSummary;
@@ -293,15 +390,16 @@ export function ClaimableChoresView({
     claimId: Id<"choreClaims">,
     evidenceUploadIntentId?: Id<"submissionEvidenceUploads">,
   ) => Promise<void>;
-  redos?: Array<{
+  redos?: {
     occurrenceId: Id<"choreOccurrences">;
     deadlineAt: number;
     canSubmitRedo: boolean;
-  }>;
+  }[];
   onSubmitRedo?: (
     claimId: Id<"choreClaims">,
     evidenceUploadIntentId?: Id<"submissionEvidenceUploads">,
   ) => Promise<void>;
+  onOpenChore?: (occurrenceId: Id<"choreOccurrences">) => void;
 }) {
   const { gate, unclaimAllowance, claimableOccurrences, claimedOccurrences } =
     result;
@@ -323,6 +421,10 @@ export function ClaimableChoresView({
   const [submissionAttempt, setSubmissionAttempt] = useState<1 | 2 | null>(
     null,
   );
+  const [submissionControlState, setSubmissionControlState] = useState<{
+    evidenceUploadIntentId?: Id<"submissionEvidenceUploads">;
+    busy: boolean;
+  }>({ busy: false });
   const [actionError, setActionError] = useState<string | null>(null);
 
   const myClaim = claimedOccurrences.find((occurrence) => occurrence.isMine);
@@ -340,6 +442,16 @@ export function ClaimableChoresView({
   );
   const busy =
     claimingId !== null || submittingId !== null || unclaimingId !== null;
+
+  function openSubmission(attempt: 1 | 2) {
+    setSubmissionControlState({ busy: false });
+    setSubmissionAttempt(attempt);
+  }
+
+  function closeSubmission() {
+    setSubmissionControlState({ busy: false });
+    setSubmissionAttempt(null);
+  }
 
   async function executeClaim(
     occurrenceId: Id<"choreOccurrences">,
@@ -428,11 +540,12 @@ export function ClaimableChoresView({
           elevated={false}
           className="mt-3 flex-row items-center p-4"
         >
-          <View className="h-20 w-24 items-center justify-center">
-            <DirectionCIcon
-              name="key"
-              color={DirectionC.color.greenDeep}
-              size={54}
+          <View className="h-20 w-20 items-center justify-center">
+            <Image
+              source={extrasLockArtwork}
+              className="h-20 w-20"
+              contentFit="contain"
+              accessible={false}
             />
           </View>
           <View className="ml-2 flex-1">
@@ -469,6 +582,19 @@ export function ClaimableChoresView({
                   {unlockChore.valueSek} kr
                 </AppText>
               ) : null}
+              {unlockChore?.state === "submitted" ? (
+                <StatusChip
+                  label="Waiting for parent"
+                  tone="success"
+                  icon={
+                    <DirectionCIcon
+                      name="waiting"
+                      color={DirectionC.color.greenDeep}
+                      size={14}
+                    />
+                  }
+                />
+              ) : null}
               <View className="mt-1 flex-row items-center">
                 <DirectionCIcon
                   name="clock"
@@ -488,35 +614,90 @@ export function ClaimableChoresView({
               </View>
             </View>
           </View>
-          <Surface tone="mint" elevated={false} className="mt-3 p-3">
-            <AppText variant="bodySmall" color="action" className="text-center">
-              Open Home to view or submit this chore.
-            </AppText>
-          </Surface>
+          {unlockChore && onOpenChore ? (
+            <ActionButton
+              className="mt-3"
+              label="View chore"
+              trailing={
+                <DirectionCIcon
+                  name="chevron"
+                  color={DirectionC.color.white}
+                  size={22}
+                />
+              }
+              onPress={() => onOpenChore(unlockChore.occurrenceId)}
+            />
+          ) : (
+            <Surface tone="mint" elevated={false} className="mt-3 p-3">
+              <AppText
+                variant="bodySmall"
+                color="action"
+                className="text-center"
+              >
+                {unlockChore?.state === "submitted"
+                  ? "Waiting for Parent approval."
+                  : "Open Home to view or submit this chore."}
+              </AppText>
+            </Surface>
+          )}
         </Surface>
 
         <AppText variant="sectionTitle" className="mt-5">
           How Extras open
         </AppText>
-        {[
-          ["1", "Do the chore"],
-          ["2", "Submit your work"],
-          ["3", "Parent approves"],
-        ].map(([number, label], index) => (
-          <Surface
-            key={number}
-            className="mt-2 min-h-[66px] flex-row items-center px-3 py-2"
-          >
-            <View
-              className={`h-11 w-11 items-center justify-center rounded-full ${index === 0 ? "bg-actionSoftStrong" : index === 1 ? "bg-infoSoftStrong" : "bg-urgencySoft"}`}
-            >
-              <AppText variant="cardTitle">{number}</AppText>
-            </View>
-            <AppText variant="cardTitle" className="ml-4">
-              {label}
-            </AppText>
-          </Surface>
-        ))}
+        <View className="relative min-h-[224px]">
+          <View className="w-[73%]">
+            {[
+              ["1", "Do the chore", artwork.bedroom],
+              ["2", "Submit your work", submitStepArtwork],
+              ["3", "Parent approves", parentAvatarArtwork],
+            ].map(([number, label, source], index) => (
+              <Surface
+                key={number as string}
+                className="mt-2 min-h-[66px] flex-row items-center px-2 py-1.5"
+              >
+                <View
+                  className={`h-10 w-10 items-center justify-center rounded-full ${index === 0 ? "bg-actionSoftStrong" : index === 1 ? "bg-infoSoftStrong" : "bg-urgencySoft"}`}
+                >
+                  <AppText variant="cardTitle">{number as string}</AppText>
+                </View>
+                <View className="ml-2 h-12 w-12 overflow-hidden rounded-control bg-[#F7EDDF]">
+                  <Image
+                    source={source}
+                    className="h-12 w-12"
+                    contentFit="contain"
+                    accessible={false}
+                  />
+                </View>
+                <View className="ml-2 flex-1">
+                  <AppText variant="label" numberOfLines={2}>
+                    {label as string}
+                  </AppText>
+                  {index === 2 ? (
+                    <AppText variant="caption" color="ink-muted">
+                      Approval opens Extras.
+                    </AppText>
+                  ) : null}
+                </View>
+              </Surface>
+            ))}
+          </View>
+
+          <Image
+            source={oneStepNoteArtwork}
+            className="absolute right-0 top-1 h-[132px] w-[104px]"
+            contentFit="contain"
+            accessible={false}
+          />
+          <View className="absolute bottom-0 right-0 h-[92px] w-[96px] overflow-hidden">
+            <Image
+              source={extrasArtwork}
+              className="absolute -right-1 h-[92px] w-[196px]"
+              contentFit="contain"
+              accessible={false}
+            />
+          </View>
+        </View>
       </View>
     );
   }
@@ -528,17 +709,19 @@ export function ClaimableChoresView({
         elevated={false}
         className="mt-3 flex-row items-center p-4"
       >
-        <View className="h-16 w-20 items-center justify-center">
-          <DirectionCIcon
-            name="key"
-            color={DirectionC.color.greenDeep}
-            size={48}
+        <View className="h-20 w-20 items-center justify-center">
+          <Image
+            source={extrasOpenLockArtwork}
+            className="h-20 w-20"
+            contentFit="contain"
+            accessible={false}
           />
         </View>
         <View className="ml-2 flex-1">
           <AppText variant="sectionTitle">Extras are open</AppText>
           <AppText className="mt-1">
-            Your current Unlock Chore was approved.
+            {gate.currentUnlockOccurrence?.title ?? "Your Unlock Chore"} was
+            approved.
           </AppText>
         </View>
       </Surface>
@@ -685,7 +868,7 @@ export function ClaimableChoresView({
         animationType="slide"
         presentationStyle="fullScreen"
         onRequestClose={() => {
-          setSubmissionAttempt(null);
+          closeSubmission();
           setSelectedClaimId(null);
         }}
       >
@@ -699,155 +882,63 @@ export function ClaimableChoresView({
               contentContainerClassName={`${selectedClaim.claimState === "claimed" || (selectedClaim.claimState === "redo_required" && selectedRedo?.canSubmitRedo) ? "pb-32" : "pb-8"} px-5`}
               showsVerticalScrollIndicator={false}
             >
-              <Surface className="p-3">
-                <View className="flex-row items-center">
-                  <ChoreArtwork title={selectedClaim.title} />
-                  <View className="ml-4 flex-1">
-                    <StatusChip
-                      label={
-                        selectedClaim.claimState === "redo_required"
-                          ? "Redo required"
-                          : selectedClaim.claimState === "submitted"
-                            ? "Waiting for Parent"
-                            : "Claimed by you"
-                      }
-                      tone={
-                        selectedClaim.claimState === "redo_required"
-                          ? "urgent"
-                          : "success"
-                      }
-                    />
-                    <AppText variant="sectionTitle" className="mt-3">
-                      {selectedClaim.title}
-                    </AppText>
-                    <AppText variant="amount" className="mt-1">
-                      {selectedClaim.valueSek} kr
-                    </AppText>
-                  </View>
-                </View>
-                <View className="mt-4 h-px bg-line" />
-                <View className="mt-4 flex-row">
-                  <View className="flex-1 flex-row items-center pr-3">
-                    <DirectionCIcon
-                      name="clock"
-                      color={DirectionC.color.coral}
-                      size={25}
-                    />
-                    <AppText
-                      variant="bodySmall"
-                      color="urgency"
-                      className="ml-2 flex-1"
-                    >
-                      {selectedClaim.claimState === "redo_required" &&
-                      selectedRedo
-                        ? `Redo due ${formatDeadline(selectedRedo.deadlineAt, selectedClaim.timezone)}`
-                        : `Deadline ${formatDeadline(selectedClaim.deadlineAt, selectedClaim.timezone)}`}
-                    </AppText>
-                  </View>
-                  {selectedClaim.commitment?.canUnclaim ? (
-                    <View className="flex-1 flex-row items-center border-l border-line pl-4">
+              {selectedClaim.claimState === "redo_required" ? (
+                <>
+                  <ChoreHero title={selectedClaim.title} />
+                  <AppText variant="screenTitle" className="mt-1">
+                    {selectedClaim.title}
+                  </AppText>
+                  <View className="mt-1 flex-row gap-3">
+                    <View className="flex-row items-center rounded-control bg-urgencySoft px-3 py-2">
                       <DirectionCIcon
-                        name="refresh"
-                        color={DirectionC.color.ink}
-                        size={25}
+                        name="tag"
+                        color={DirectionC.color.coral}
+                        size={22}
                       />
-                      <AppText variant="bodySmall" className="ml-2 flex-1">
-                        Unclaim until{" "}
-                        {formatTime(
-                          selectedClaim.commitment.lockAt,
+                      <AppText
+                        variant="cardTitle"
+                        color="urgency"
+                        className="ml-2"
+                      >
+                        {selectedClaim.valueSek} kr
+                      </AppText>
+                    </View>
+                    <View className="flex-1 flex-row items-center rounded-control bg-urgencySoft px-3 py-2">
+                      <DirectionCIcon
+                        name="clock"
+                        color={DirectionC.color.coral}
+                        size={22}
+                      />
+                      <AppText
+                        variant="bodySmall"
+                        color="urgency"
+                        className="ml-2 flex-1"
+                        numberOfLines={2}
+                      >
+                        Redo due{" "}
+                        {formatDeadlineSentence(
+                          selectedRedo?.deadlineAt ?? selectedClaim.deadlineAt,
                           selectedClaim.timezone,
                         )}
                       </AppText>
                     </View>
+                  </View>
+
+                  {selectedClaim.description ? (
+                    <Surface className="mt-2 p-3">
+                      <AppText variant="sectionTitle">Instructions</AppText>
+                      <AppText variant="bodySmall" className="mt-2">
+                        {selectedClaim.description}
+                      </AppText>
+                    </Surface>
                   ) : null}
-                </View>
-              </Surface>
 
-              {selectedClaim.description ? (
-                <View className="mt-5">
-                  <AppText variant="sectionTitle">Instructions</AppText>
-                  <AppText className="mt-2">
-                    {selectedClaim.description}
-                  </AppText>
-                </View>
-              ) : null}
-
-              <Surface
-                tone="lavender"
-                elevated={false}
-                className="mt-5 flex-row items-center p-4"
-              >
-                <View className="h-14 w-14 items-center justify-center rounded-full bg-infoSoftStrong">
-                  <DirectionCIcon
-                    name="brokenLink"
-                    color={DirectionC.color.ink}
-                    size={28}
-                  />
-                </View>
-                <View className="ml-3 flex-1">
-                  <AppText variant="cardTitle">Active commitment</AppText>
-                  <AppText variant="bodySmall" className="mt-1">
-                    You can’t claim another Extra until this one is resolved.
-                  </AppText>
-                </View>
-              </Surface>
-
-              {selectedClaim.claimState === "claimed" &&
-              selectedClaim.commitment?.canUnclaim ? (
-                <View className="mt-5">
-                  <AppText variant="cardTitle">
-                    {unclaimAllowance.remainingUnclaims} of{" "}
-                    {unclaimAllowance.allowance} unclaims left this week.
-                  </AppText>
-                  <ActionButton
-                    className="mt-3"
-                    label="Unclaim"
-                    tone="secondary"
-                    onPress={() => setUnclaimCandidateId(selectedClaim.claimId)}
-                  />
-                  <AppText
-                    variant="bodySmall"
-                    color="ink-muted"
-                    className="mt-2 text-center"
-                  >
-                    Unclaiming uses one weekly unclaim.
-                  </AppText>
-                </View>
-              ) : null}
-
-              {selectedClaim.claimState === "claimed" &&
-              !selectedClaim.commitment?.canUnclaim ? (
-                <Surface tone="coral" elevated={false} className="mt-5 p-4">
-                  <AppText variant="cardTitle" color="urgency">
-                    Locked commitment
-                  </AppText>
-                  <AppText variant="bodySmall" className="mt-1">
-                    This claim can no longer be unclaimed. Missing it deducts{" "}
-                    {selectedClaim.valueSek} kr.
-                  </AppText>
-                </Surface>
-              ) : null}
-
-              {selectedClaim.claimState === "submitted" ? (
-                <Surface tone="mint" elevated={false} className="mt-5 p-4">
-                  <AppText variant="cardTitle" color="action">
-                    Waiting for Parent review
-                  </AppText>
-                  <AppText variant="bodySmall" className="mt-1">
-                    Your submission is recorded. This claim stays active until
-                    it is resolved.
-                  </AppText>
-                </Surface>
-              ) : null}
-
-              {selectedClaim.claimState === "redo_required" ? (
-                <>
                   <Surface
                     tone="coral"
                     elevated={false}
-                    className="mt-5 flex-row items-center p-4"
+                    className="mt-3 flex-row items-center p-4"
                   >
-                    <View className="h-14 w-14 items-center justify-center rounded-full bg-surfaceRaised">
+                    <View className="h-10 w-10 items-center justify-center rounded-full bg-surfaceRaised">
                       <DirectionCIcon
                         name="redo"
                         color={DirectionC.color.coral}
@@ -866,11 +957,11 @@ export function ClaimableChoresView({
                   <Surface
                     tone="lavender"
                     elevated={false}
-                    className="mt-4 flex-row items-center p-4"
+                    className="mt-3 flex-row items-center p-4"
                   >
-                    <View className="h-14 w-14 items-center justify-center rounded-full bg-infoSoftStrong">
+                    <View className="h-10 w-10 items-center justify-center rounded-full bg-infoSoftStrong">
                       <DirectionCIcon
-                        name="brokenLink"
+                        name="link"
                         color={DirectionC.color.ink}
                         size={30}
                       />
@@ -884,21 +975,21 @@ export function ClaimableChoresView({
                     </View>
                   </Surface>
 
-                  <Surface className="mt-4 p-4">
-                    <AppText variant="sectionTitle">What happens next?</AppText>
+                  <View className="mt-5">
+                    <AppText variant="cardTitle">What happens next?</AppText>
                     <Surface
                       tone="mint"
                       elevated={false}
-                      className="mt-3 flex-row items-center p-3"
+                      className="mt-2 flex-row items-center p-1.5"
                     >
-                      <View className="h-9 w-9 items-center justify-center rounded-full bg-action">
+                      <View className="h-7 w-7 items-center justify-center rounded-full bg-action">
                         <DirectionCIcon
                           name="check"
                           color={DirectionC.color.white}
-                          size={20}
+                          size={18}
                         />
                       </View>
-                      <AppText className="ml-3 flex-1">
+                      <AppText variant="caption" className="ml-2 flex-1">
                         <AppText color="action" className="font-black">
                           Approved:
                         </AppText>{" "}
@@ -908,16 +999,16 @@ export function ClaimableChoresView({
                     <Surface
                       tone="coral"
                       elevated={false}
-                      className="mt-2 flex-row items-center p-3"
+                      className="mt-2 flex-row items-center p-1.5"
                     >
-                      <View className="h-9 w-9 items-center justify-center rounded-full bg-urgency">
+                      <View className="h-7 w-7 items-center justify-center rounded-full bg-urgency">
                         <DirectionCIcon
                           name="close"
                           color={DirectionC.color.white}
-                          size={18}
+                          size={16}
                         />
                       </View>
-                      <AppText className="ml-3 flex-1">
+                      <AppText variant="caption" className="ml-2 flex-1">
                         <AppText color="urgency" className="font-black">
                           Missed or rejected:
                         </AppText>{" "}
@@ -925,13 +1016,170 @@ export function ClaimableChoresView({
                         ends.
                       </AppText>
                     </Surface>
-                  </Surface>
+                  </View>
                 </>
-              ) : null}
+              ) : (
+                <>
+                  <Surface className="p-3">
+                    <View className="flex-row items-center">
+                      <ChoreArtwork title={selectedClaim.title} activeClaim />
+                      <View className="ml-4 flex-1">
+                        <StatusChip
+                          label={
+                            selectedClaim.claimState === "submitted"
+                              ? "Waiting for review"
+                              : "Claimed by you"
+                          }
+                          tone="success"
+                          icon={
+                            <View className="h-3 w-3 rounded-full bg-action" />
+                          }
+                        />
+                        <AppText
+                          variant="sectionTitle"
+                          className="mt-3"
+                          numberOfLines={2}
+                        >
+                          {selectedClaim.title}
+                        </AppText>
+                        <AppText variant="amount" className="mt-1">
+                          {selectedClaim.valueSek} kr
+                        </AppText>
+                      </View>
+                    </View>
+                    <View className="mt-4 h-px bg-line" />
+                    <View className="mt-4 flex-row">
+                      <View className="flex-1 flex-row items-center pr-3">
+                        <DirectionCIcon
+                          name="clock"
+                          color={DirectionC.color.coral}
+                          size={25}
+                        />
+                        <AppText
+                          variant="bodySmall"
+                          color="urgency"
+                          className="ml-2 flex-1"
+                        >
+                          Deadline{" "}
+                          {formatDeadlineSentence(
+                            selectedClaim.deadlineAt,
+                            selectedClaim.timezone,
+                          )}
+                        </AppText>
+                      </View>
+                      {selectedClaim.commitment?.canUnclaim ? (
+                        <View className="flex-1 flex-row items-center border-l border-line pl-4">
+                          <DirectionCIcon
+                            name="refresh"
+                            color={DirectionC.color.ink}
+                            size={25}
+                          />
+                          <AppText variant="bodySmall" className="ml-2 flex-1">
+                            Unclaim until{" "}
+                            {formatTime(
+                              selectedClaim.commitment.lockAt,
+                              selectedClaim.timezone,
+                            )}
+                          </AppText>
+                        </View>
+                      ) : null}
+                    </View>
+                  </Surface>
+
+                  {selectedClaim.description ? (
+                    <View className="mt-5">
+                      <AppText variant="sectionTitle">Instructions</AppText>
+                      <AppText className="mt-2">
+                        {selectedClaim.description}
+                      </AppText>
+                    </View>
+                  ) : null}
+
+                  <Surface
+                    tone="lavender"
+                    elevated={false}
+                    className="mt-5 flex-row items-center p-4"
+                  >
+                    <View className="h-14 w-14 items-center justify-center rounded-full bg-infoSoftStrong">
+                      <DirectionCIcon
+                        name="link"
+                        color={DirectionC.color.ink}
+                        size={28}
+                      />
+                    </View>
+                    <View className="ml-3 flex-1">
+                      <AppText variant="cardTitle">Active commitment</AppText>
+                      <AppText variant="bodySmall" className="mt-1">
+                        You can’t claim another Extra until this one is
+                        resolved.
+                      </AppText>
+                    </View>
+                  </Surface>
+
+                  {selectedClaim.claimState === "claimed" &&
+                  selectedClaim.commitment?.canUnclaim ? (
+                    <View className="mt-5">
+                      <AppText variant="cardTitle">
+                        {unclaimAllowance.remainingUnclaims} of{" "}
+                        {unclaimAllowance.allowance} unclaims left this week.
+                      </AppText>
+                      <ActionButton
+                        className="mt-3"
+                        label="Unclaim"
+                        tone="secondary"
+                        testID="child-active-claim-unclaim"
+                        onPress={() =>
+                          setUnclaimCandidateId(selectedClaim.claimId)
+                        }
+                      />
+                      <AppText
+                        variant="bodySmall"
+                        color="ink-muted"
+                        className="mt-2 text-center"
+                      >
+                        Unclaiming uses one weekly unclaim.
+                      </AppText>
+                    </View>
+                  ) : null}
+
+                  {selectedClaim.claimState === "claimed" &&
+                  !selectedClaim.commitment?.canUnclaim ? (
+                    <Surface tone="coral" elevated={false} className="mt-5 p-4">
+                      <AppText variant="cardTitle" color="urgency">
+                        Locked commitment
+                      </AppText>
+                      <AppText variant="bodySmall" className="mt-1">
+                        This claim can no longer be unclaimed. Missing it
+                        deducts {selectedClaim.valueSek} kr.
+                      </AppText>
+                    </Surface>
+                  ) : null}
+
+                  {selectedClaim.claimState === "submitted" ? (
+                    <Surface tone="mint" elevated={false} className="mt-5 p-4">
+                      <AppText variant="cardTitle" color="action">
+                        Waiting for Parent review
+                      </AppText>
+                      <AppText variant="bodySmall" className="mt-1">
+                        Your submission is recorded. This claim stays active
+                        until it is resolved.
+                      </AppText>
+                    </Surface>
+                  ) : null}
+                </>
+              )}
             </ScrollView>
 
             {selectedClaim.claimState === "claimed" && onSubmit ? (
               <View className="absolute bottom-0 left-0 right-0 bg-canvas px-5 pb-7 pt-3">
+                <AppText
+                  variant="bodySmall"
+                  color="ink-muted"
+                  className="mb-3 text-center"
+                >
+                  Parent approval adds {selectedClaim.valueSek} kr to your
+                  Running Balance.
+                </AppText>
                 <ActionButton
                   label="Submit work"
                   trailing={
@@ -941,7 +1189,7 @@ export function ClaimableChoresView({
                       size={22}
                     />
                   }
-                  onPress={() => setSubmissionAttempt(1)}
+                  onPress={() => openSubmission(1)}
                 />
               </View>
             ) : null}
@@ -959,7 +1207,7 @@ export function ClaimableChoresView({
                       size={22}
                     />
                   }
-                  onPress={() => setSubmissionAttempt(2)}
+                  onPress={() => openSubmission(2)}
                 />
               </View>
             ) : null}
@@ -968,7 +1216,7 @@ export function ClaimableChoresView({
               visible={submissionAttempt !== null}
               animationType="slide"
               presentationStyle="fullScreen"
-              onRequestClose={() => setSubmissionAttempt(null)}
+              onRequestClose={closeSubmission}
             >
               <SafeAreaView
                 edges={["top", "bottom"]}
@@ -978,16 +1226,16 @@ export function ClaimableChoresView({
                   title={
                     submissionAttempt === 2 ? "Submit redo" : "Submit work"
                   }
-                  onBack={() => setSubmissionAttempt(null)}
+                  onBack={closeSubmission}
                 />
-                <ScrollView contentContainerClassName="flex-grow px-5 pb-7">
+                <ScrollView contentContainerClassName="flex-grow px-5 pb-32">
                   <Surface
                     elevated={false}
-                    className="flex-row items-center bg-[#F7EDDF] p-3"
+                    className="min-h-[140px] flex-row items-center bg-[#F7EDDF] p-3"
                   >
                     <ChoreArtwork title={selectedClaim.title} />
                     <View className="ml-4 flex-1">
-                      <AppText variant="sectionTitle" numberOfLines={2}>
+                      <AppText variant="cardTitle" numberOfLines={2}>
                         {selectedClaim.title}
                       </AppText>
                       <StatusChip
@@ -1033,21 +1281,36 @@ export function ClaimableChoresView({
                         : "Submit for review"
                     }
                     submittingLabel="Submitting…"
+                    hideSubmitButton
+                    onControlStateChange={setSubmissionControlState}
                     footerBeforeSubmit={
                       <Surface
                         tone="lavender"
                         elevated={false}
-                        className="mt-4 flex-row items-center p-4"
+                        className="mt-4 min-h-[100px] flex-row items-center overflow-hidden p-0 pr-3"
                       >
-                        <View className="h-14 w-14 items-center justify-center rounded-full bg-action">
-                          <DirectionCIcon
-                            name="checkShield"
-                            color={DirectionC.color.white}
-                            size={28}
+                        <View className="relative h-[92px] w-[84px]">
+                          <Image
+                            source={parentAvatarArtwork}
+                            className="h-[92px] w-[84px]"
+                            contentFit="cover"
+                            accessible={false}
                           />
+                          <View className="absolute bottom-2 right-0 h-9 w-9 items-center justify-center rounded-full bg-action">
+                            <DirectionCIcon
+                              name="check"
+                              color={DirectionC.color.white}
+                              size={21}
+                            />
+                          </View>
                         </View>
-                        <View className="ml-4 flex-1">
-                          <AppText variant="cardTitle">
+                        <View className="ml-3 flex-1">
+                          <AppText
+                            variant="cardTitle"
+                            numberOfLines={1}
+                            adjustsFontSizeToFit
+                            minimumFontScale={0.84}
+                          >
                             A parent checks your work.
                           </AppText>
                           <AppText
@@ -1076,7 +1339,130 @@ export function ClaimableChoresView({
                     }}
                   />
                 </ScrollView>
+                <View className="absolute bottom-0 left-0 right-0 bg-canvas px-5 pb-7 pt-3">
+                  <ActionButton
+                    testID={`${submissionAttempt === 2 ? "claimable-redo-submit" : "claimable-submit"}-${selectedClaim.claimId}`}
+                    accessibilityLabel={
+                      submissionAttempt === 2
+                        ? "Submit redo"
+                        : "Submit for review"
+                    }
+                    disabled={submissionControlState.busy || busy}
+                    loading={submittingId === selectedClaim.claimId}
+                    label={
+                      submittingId === selectedClaim.claimId
+                        ? "Submitting…"
+                        : submissionAttempt === 2
+                          ? "Submit redo"
+                          : "Submit for review"
+                    }
+                    trailing={
+                      <DirectionCIcon
+                        name="chevron"
+                        color={DirectionC.color.white}
+                        size={22}
+                      />
+                    }
+                    onPress={() => {
+                      if (submissionAttempt === 2) {
+                        void executeSubmitRedo(
+                          selectedClaim.claimId,
+                          submissionControlState.evidenceUploadIntentId,
+                        );
+                      } else {
+                        void executeSubmit(
+                          selectedClaim.claimId,
+                          submissionControlState.evidenceUploadIntentId,
+                        );
+                      }
+                    }}
+                  />
+                </View>
               </SafeAreaView>
+            </Modal>
+
+            <Modal
+              transparent
+              animationType="slide"
+              visible={unclaimCandidate !== undefined}
+              onRequestClose={() => setUnclaimCandidateId(null)}
+            >
+              <View className="flex-1 justify-end bg-scrim">
+                {unclaimCandidate ? (
+                  <SafeAreaView
+                    edges={["bottom"]}
+                    className="rounded-t-sheet bg-canvas px-5 pb-3 pt-3"
+                  >
+                    <View className="h-1.5 w-16 self-center rounded-full bg-infoSoftStrong" />
+                    <View className="mt-4 h-16 w-16 items-center justify-center self-center rounded-full bg-infoSoftStrong">
+                      <DirectionCIcon
+                        name="brokenLink"
+                        color={DirectionC.color.ink}
+                        size={34}
+                      />
+                    </View>
+                    <AppText
+                      variant="sectionTitle"
+                      className="mt-3 text-center"
+                    >
+                      Unclaim {unclaimCandidate.title}?
+                    </AppText>
+                    <AppText className="mt-2 text-center">
+                      The chore will return to Extras and another eligible Child
+                      can claim it.
+                    </AppText>
+                    <Surface
+                      tone="lavender"
+                      elevated={false}
+                      className="mt-4 flex-row items-center p-4"
+                    >
+                      <View className="h-12 w-12 items-center justify-center rounded-full bg-infoSoftStrong">
+                        <DirectionCIcon
+                          name="brokenLink"
+                          color={DirectionC.color.ink}
+                          size={26}
+                        />
+                      </View>
+                      <View className="ml-3 flex-1">
+                        <AppText variant="cardTitle">
+                          Uses 1 weekly unclaim
+                        </AppText>
+                        <AppText variant="bodySmall" className="mt-1">
+                          You’ll have {""}
+                          {Math.max(
+                            0,
+                            unclaimAllowance.remainingUnclaims - 1,
+                          )}{" "}
+                          of {unclaimAllowance.allowance} unclaims left this
+                          week.
+                        </AppText>
+                      </View>
+                    </Surface>
+                    <AppText
+                      variant="bodySmall"
+                      color="action"
+                      className="mt-3 text-center"
+                    >
+                      Your Running Balance will not change.
+                    </AppText>
+                    <ActionButton
+                      className="mt-4"
+                      label="Unclaim chore"
+                      tone="destructive"
+                      loading={unclaimingId === unclaimCandidate.claimId}
+                      onPress={() =>
+                        void executeUnclaim(unclaimCandidate.claimId)
+                      }
+                    />
+                    <ActionButton
+                      className="mt-2"
+                      label="Keep claim"
+                      tone="secondary"
+                      onPress={() => setUnclaimCandidateId(null)}
+                    />
+                  </SafeAreaView>
+                ) : null}
+              </View>
             </Modal>
           </SafeAreaView>
         ) : null}
@@ -1096,34 +1482,65 @@ export function ClaimableChoresView({
             >
               <View className="h-1.5 w-16 self-center rounded-full bg-infoSoftStrong" />
               <View className="mt-3 self-center">
-                <ChoreArtwork title={lockedCandidate.title} />
+                <ChoreArtwork title={lockedCandidate.title} detail />
               </View>
               <AppText variant="sectionTitle" className="mt-3 text-center">
                 Claim {lockedCandidate.title}?
               </AppText>
-              <View className="mt-2 flex-row justify-center gap-4">
-                <AppText variant="cardTitle" color="action">
+              <View className="mt-2 flex-row items-center justify-center">
+                <DirectionCIcon
+                  name="money"
+                  color={DirectionC.color.greenDeep}
+                  size={22}
+                />
+                <AppText variant="cardTitle" color="action" className="ml-2">
                   {lockedCandidate.valueSek} kr
                 </AppText>
-                <AppText color="urgency">
+                <View className="mx-4 h-7 w-px bg-line" />
+                <DirectionCIcon
+                  name="clock"
+                  color={DirectionC.color.coral}
+                  size={22}
+                />
+                <AppText color="urgency" className="ml-2">
                   {formatDeadline(
                     lockedCandidate.deadlineAt,
                     lockedCandidate.timezone,
                   )}
                 </AppText>
               </View>
-              <Surface tone="coral" elevated={false} className="mt-4 p-4">
-                <AppText variant="cardTitle" color="urgency">
-                  Locked immediately
-                </AppText>
-                <AppText variant="bodySmall" className="mt-1">
-                  {lockExplanation(lockedCandidate.commitment)}
-                </AppText>
+              <Surface
+                tone="coral"
+                elevated={false}
+                className="mt-4 flex-row items-center p-4"
+              >
+                <View className="h-14 w-14 items-center justify-center rounded-full bg-urgencySoft">
+                  <DirectionCIcon
+                    name="lock"
+                    color={DirectionC.color.coral}
+                    size={29}
+                  />
+                </View>
+                <View className="ml-4 flex-1">
+                  <AppText variant="cardTitle" color="urgency">
+                    Locked immediately
+                  </AppText>
+                  <AppText variant="bodySmall" className="mt-1">
+                    {lockExplanation(lockedCandidate.commitment)}
+                  </AppText>
+                </View>
               </Surface>
-              <AppText variant="bodySmall" className="mt-3 text-center">
-                If you miss this locked chore, {lockedCandidate.valueSek} kr
-                will be deducted from your Running Balance.
-              </AppText>
+              <View className="mt-3 flex-row items-center">
+                <View className="h-8 w-8 items-center justify-center rounded-full bg-urgencySoft">
+                  <AppText color="urgency" className="font-black">
+                    −
+                  </AppText>
+                </View>
+                <AppText variant="bodySmall" className="ml-3 flex-1">
+                  If you miss this locked chore, {lockedCandidate.valueSek} kr
+                  will be deducted from your Running Balance.
+                </AppText>
+              </View>
               <ActionButton
                 className="mt-4"
                 label="Cancel"
@@ -1138,66 +1555,6 @@ export function ClaimableChoresView({
                 onPress={() =>
                   void executeClaim(lockedCandidate.occurrenceId, true)
                 }
-              />
-            </SafeAreaView>
-          ) : null}
-        </View>
-      </Modal>
-
-      <Modal
-        transparent
-        animationType="slide"
-        visible={unclaimCandidate !== undefined}
-        onRequestClose={() => setUnclaimCandidateId(null)}
-      >
-        <View className="flex-1 justify-end bg-scrim">
-          {unclaimCandidate ? (
-            <SafeAreaView
-              edges={["bottom"]}
-              className="rounded-t-sheet bg-canvas px-5 pb-3 pt-3"
-            >
-              <View className="h-1.5 w-16 self-center rounded-full bg-infoSoftStrong" />
-              <View className="mt-4 h-16 w-16 items-center justify-center self-center rounded-full bg-infoSoftStrong">
-                <DirectionCIcon
-                  name="brokenLink"
-                  color={DirectionC.color.ink}
-                  size={34}
-                />
-              </View>
-              <AppText variant="sectionTitle" className="mt-3 text-center">
-                Unclaim {unclaimCandidate.title}?
-              </AppText>
-              <AppText className="mt-2 text-center">
-                The chore returns to Extras so another eligible Child can claim
-                it.
-              </AppText>
-              <Surface tone="lavender" elevated={false} className="mt-4 p-4">
-                <AppText variant="cardTitle">Uses 1 weekly unclaim</AppText>
-                <AppText variant="bodySmall" className="mt-1">
-                  You’ll have{" "}
-                  {Math.max(0, unclaimAllowance.remainingUnclaims - 1)} of{" "}
-                  {unclaimAllowance.allowance} unclaims left this week.
-                </AppText>
-              </Surface>
-              <AppText
-                variant="bodySmall"
-                color="action"
-                className="mt-3 text-center"
-              >
-                Your Running Balance will not change.
-              </AppText>
-              <ActionButton
-                className="mt-4"
-                label="Unclaim chore"
-                tone="destructive"
-                loading={unclaimingId === unclaimCandidate.claimId}
-                onPress={() => void executeUnclaim(unclaimCandidate.claimId)}
-              />
-              <ActionButton
-                className="mt-2"
-                label="Keep claim"
-                tone="secondary"
-                onPress={() => setUnclaimCandidateId(null)}
               />
             </SafeAreaView>
           ) : null}

@@ -8,11 +8,11 @@ import type { Id } from "../../../convex/_generated/dataModel";
 type Task06SmokeTestCardProps = {
   householdId: Id<"households">;
 
-  children: Array<{
+  children: {
     childId: Id<"children">;
 
     displayName: string;
-  }>;
+  }[];
 };
 
 type TestResult = {

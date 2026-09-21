@@ -10,6 +10,16 @@ type SmokeTestResult = {
   detail?: string;
 };
 
+type ActiveDefinition = {
+  choreDefinitionId: Id<"choreDefinitions">;
+  kind: "personal" | "claimable";
+  title: string;
+  description?: string;
+  valueSek: number;
+  personalChildId?: Id<"children">;
+  eligibleChildIds?: Id<"children">[];
+};
+
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : String(error);
 }
@@ -117,7 +127,7 @@ export const run = action({
           isUnlockChore: true,
         });
 
-        createdIds.push(unlockId);
+        createdIds.push(unlockId!);
 
         results.push({
           label: "Recurring Personal Unlock",
@@ -351,7 +361,7 @@ export const run = action({
           isUnlockChore: false,
         });
 
-        createdIds.push(updateTestId);
+        createdIds.push(updateTestId!);
 
         await ctx.runMutation(api.choreDefinitions.update, {
           choreDefinitionId: updateTestId,
@@ -389,7 +399,8 @@ export const run = action({
         );
 
         const updated = active.find(
-          (definition) => definition.choreDefinitionId === updateTestId,
+          (definition: ActiveDefinition) =>
+            definition.choreDefinitionId === updateTestId,
         );
 
         const passed =
@@ -438,7 +449,8 @@ export const run = action({
           );
 
           const stillActive = active.some(
-            (definition) => definition.choreDefinitionId === updateTestId,
+            (definition: ActiveDefinition) =>
+              definition.choreDefinitionId === updateTestId,
           );
 
           results.push({

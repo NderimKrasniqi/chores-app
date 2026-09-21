@@ -1,16 +1,20 @@
 import { useServerConfirmedMutation } from "@/hooks/use-server-confirmed-mutation";
+import { AppImage } from "@/components/ui/app-image";
 import { DirectionCIcon } from "@/components/ui/direction-c-icon";
 import { DirectionC } from "@/constants/direction-c";
 import { ActionButton, AppText, Surface } from "@/design-system";
 
 import * as ImageManipulator from "expo-image-manipulator";
 import * as ImagePicker from "expo-image-picker";
+import { File, UploadType } from "expo-file-system";
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Alert, Image, Pressable, View } from "react-native";
 
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
+
+const submissionPhotoArtwork = require("../../../assets/images/direction-c/submission-photo.png");
 
 type Props = {
   occurrenceId: Id<"choreOccurrences">;
@@ -32,6 +36,13 @@ type Props = {
   ) => Promise<void>;
 
   footerBeforeSubmit?: ReactNode;
+
+  hideSubmitButton?: boolean;
+
+  onControlStateChange?: (state: {
+    evidenceUploadIntentId?: Id<"submissionEvidenceUploads">;
+    busy: boolean;
+  }) => void;
 };
 
 type AttachedEvidence = {
@@ -50,6 +61,8 @@ export function ChildSubmissionActions({
   submitTestID,
   onSubmit,
   footerBeforeSubmit,
+  hideSubmitButton = false,
+  onControlStateChange,
 }: Props) {
   const generateUploadUrl = useServerConfirmedMutation(
     api.submissionEvidence.generateUploadUrl,
@@ -68,6 +81,13 @@ export function ChildSubmissionActions({
   const [uploading, setUploading] = useState(false);
 
   const busy = disabled || submitting || uploading;
+
+  useEffect(() => {
+    onControlStateChange?.({
+      ...(evidence ? { evidenceUploadIntentId: evidence.uploadIntentId } : {}),
+      busy,
+    });
+  }, [busy, evidence, onControlStateChange]);
 
   async function uploadImage(sourceUri: string) {
     setUploading(true);
@@ -99,29 +119,29 @@ export function ChildSubmissionActions({
 
       createdIntentId = upload.uploadIntentId;
 
-      const fileResponse = await fetch(prepared.uri);
-
-      if (!fileResponse.ok) {
-        throw new Error("Could not prepare the selected photo.");
-      }
-
-      const blob = await fileResponse.blob();
-
-      const uploadResponse = await fetch(upload.uploadUrl, {
-        method: "POST",
-
+      const preparedFile = new File(prepared.uri);
+      const uploadResponse = await preparedFile.upload(upload.uploadUrl, {
+        httpMethod: "POST",
+        uploadType: UploadType.BINARY_CONTENT,
+        sessionType: "foreground",
         headers: {
           "Content-Type": "image/jpeg",
         },
-
-        body: blob,
+        mimeType: "image/jpeg",
       });
 
-      if (!uploadResponse.ok) {
-        throw new Error("Photo upload failed.");
+      if (uploadResponse.status < 200 || uploadResponse.status >= 300) {
+        throw new Error(
+          `Photo upload failed (${uploadResponse.status})${uploadResponse.body ? `: ${uploadResponse.body.slice(0, 180)}` : "."}`,
+        );
       }
 
-      const payload: unknown = await uploadResponse.json();
+      let payload: unknown;
+      try {
+        payload = JSON.parse(uploadResponse.body) as unknown;
+      } catch {
+        throw new Error("Photo upload returned an invalid response.");
+      }
 
       if (
         !payload ||
@@ -300,7 +320,7 @@ export function ChildSubmissionActions({
           <View className="mt-3">
             <Image
               source={{ uri: evidence.previewUri }}
-              className="h-52 w-full rounded-large bg-surfaceMuted"
+              className="h-48 w-full rounded-large bg-surfaceMuted"
               resizeMode="cover"
             />
 
@@ -338,14 +358,13 @@ export function ChildSubmissionActions({
           </View>
         ) : (
           <>
-            <View className="mt-4 h-28 items-center justify-center rounded-large bg-infoSoft">
-              <View className="h-[74px] w-[74px] items-center justify-center rounded-full bg-surfaceRaised shadow-md">
-                <DirectionCIcon
-                  name="camera"
-                  color={DirectionC.color.green}
-                  size={38}
-                />
-              </View>
+            <View className="mt-4 h-32 items-center justify-center rounded-large bg-infoSoft">
+              <AppImage
+                source={submissionPhotoArtwork}
+                className="h-36 w-[240px]"
+                contentFit="contain"
+                accessible={false}
+              />
             </View>
 
             <View className="mt-4 flex-row gap-3">
@@ -393,22 +412,24 @@ export function ChildSubmissionActions({
 
       {footerBeforeSubmit}
 
-      <ActionButton
-        testID={submitTestID}
-        accessibilityLabel={submitLabel}
-        disabled={busy}
-        loading={submitting}
-        label={submitting ? submittingLabel : submitLabel}
-        trailing={
-          <DirectionCIcon
-            name="chevron"
-            color={DirectionC.color.white}
-            size={22}
-          />
-        }
-        onPress={() => void submit()}
-        className="mt-5"
-      />
+      {!hideSubmitButton ? (
+        <ActionButton
+          testID={submitTestID}
+          accessibilityLabel={submitLabel}
+          disabled={busy}
+          loading={submitting}
+          label={submitting ? submittingLabel : submitLabel}
+          trailing={
+            <DirectionCIcon
+              name="chevron"
+              color={DirectionC.color.white}
+              size={22}
+            />
+          }
+          onPress={() => void submit()}
+          className="mt-3"
+        />
+      ) : null}
     </View>
   );
 }

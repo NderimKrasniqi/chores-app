@@ -1,8 +1,8 @@
 import { DirectionCIcon } from "@/components/ui/direction-c-icon";
+import { AppImage as Image } from "@/components/ui/app-image";
 import { DirectionC } from "@/constants/direction-c";
 import { ActionButton, AppText, Surface } from "@/design-system";
 import { markOnboardingComplete } from "@/lib/onboarding";
-import { Image } from "expo-image";
 import { StatusBar } from "expo-status-bar";
 import { useState } from "react";
 import { Alert, Pressable, View } from "react-native";
@@ -13,6 +13,8 @@ const parentAvatar = require("../../../assets/images/direction-c/sam-avatar.png"
 const childAvatar = require("../../../assets/images/direction-c/alex-avatar.png");
 const bedroomArtwork = require("../../../assets/images/direction-c/chore-bedroom.png");
 const extrasArtwork = require("../../../assets/images/direction-c/extras-unlocked.png");
+const submitPhotoArtwork = require("../../../assets/images/direction-c/onboarding-submit-photo.png");
+const rewardsArtwork = require("../../../assets/images/direction-c/onboarding-rewards.png");
 
 type OnboardingScreenProps = {
   onChooseParent: () => void;
@@ -173,7 +175,7 @@ function HowItWorksPage() {
       number: "2",
       title: "Send it for review",
       body: "Add an optional photo, then submit for approval.",
-      art: bedroomArtwork,
+      art: submitPhotoArtwork,
       tone: "bg-urgencySoft",
     },
     {
@@ -257,7 +259,7 @@ function RealRewardsPage() {
 
       <View className="mt-6 flex-1 items-center justify-center">
         <Image
-          source={extrasArtwork}
+          source={rewardsArtwork}
           className="h-64 w-full"
           contentFit="contain"
           accessible={false}
