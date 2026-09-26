@@ -11,7 +11,8 @@ import { setChildExplicitlyLocked } from "@/lib/child-access/unlock-policy";
 import { useAuthRuntime } from "@/providers/auth-runtime-provider";
 import { useQuery } from "convex/react";
 import { StatusBar } from "expo-status-bar";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { onNotificationIntent } from "@/lib/notification-intent";
 import { Alert, Modal, Pressable, ScrollView, View } from "react-native";
 import {
   SafeAreaView,
@@ -83,6 +84,26 @@ export function ChildHomeScreen({
   const [profileOpen, setProfileOpen] = useState(false);
   const [pendingChoreId, setPendingChoreId] =
     useState<Id<"choreOccurrences"> | null>(null);
+
+  // A tapped notification opens the thing it was about.
+  useEffect(
+    () =>
+      onNotificationIntent((intent) => {
+        const extras =
+          intent.claimId !== undefined ||
+          intent.eventKind === "claimable_available" ||
+          intent.eventKind === "pre_lock_reminder";
+        if (extras) {
+          setActiveTab("extras");
+          return;
+        }
+        if (intent.occurrenceId) {
+          setPendingChoreId(intent.occurrenceId as Id<"choreOccurrences">);
+        }
+        setActiveTab("home");
+      }),
+    [],
+  );
 
   async function handleLockAndSwitch() {
     try {

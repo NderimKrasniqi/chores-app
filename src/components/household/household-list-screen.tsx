@@ -4,7 +4,8 @@ import { OnboardingScreen } from "@/components/onboarding/onboarding-screen";
 import { AppText, Surface } from "@/design-system";
 import { authClient } from "@/lib/auth/client";
 import { StatusBar } from "expo-status-bar";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { onNotificationIntent } from "@/lib/notification-intent";
 import { ScrollView, View } from "react-native";
 import {
   SafeAreaView,
@@ -74,6 +75,18 @@ export function HouseholdListScreen({
     HouseholdSummary["children"][number]["childId"] | null
   >(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // "Something to check" notifications open the review deck.
+  useEffect(
+    () =>
+      onNotificationIntent((intent) => {
+        if (intent.eventKind === "submission_review") {
+          setActiveSection("reviews");
+          setRoute("main");
+        }
+      }),
+    [],
+  );
 
   const household = useMemo(
     () =>
