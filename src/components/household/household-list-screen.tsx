@@ -12,7 +12,7 @@ import {
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 
-import type { HouseholdSummary } from "./household-card";
+import type { HouseholdSummary } from "./household-types";
 import {
   ParentBottomNavigation,
   type ParentSection,

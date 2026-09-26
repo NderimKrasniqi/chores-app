@@ -12,7 +12,7 @@ import { useTheme } from "@/design-system/theme";
 import { useServerConfirmedMutation } from "@/hooks/use-server-confirmed-mutation";
 
 import { api } from "../../../convex/_generated/api";
-import type { HouseholdSummary } from "./household-card";
+import type { HouseholdSummary } from "./household-types";
 import { ActionRow, ScreenFrame } from "./parent-secondary-screens";
 
 type ChoreState =

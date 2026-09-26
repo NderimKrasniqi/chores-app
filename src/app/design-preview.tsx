@@ -41,7 +41,7 @@ import {
 } from "@/components/household/parent-secondary-screens";
 import { HouseholdSetupScreen } from "@/components/household/household-setup-screen";
 import { OnboardingScreen } from "@/components/onboarding/onboarding-screen";
-import type { HouseholdSummary } from "@/components/household/household-card";
+import type { HouseholdSummary } from "@/components/household/household-types";
 import { ThemeScope, AppText } from "@/design-system";
 import { Redirect, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";

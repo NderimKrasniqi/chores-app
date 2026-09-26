@@ -18,7 +18,7 @@ import { useTheme } from "@/design-system/theme";
 
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
-import type { HouseholdSummary } from "./household-card";
+import type { HouseholdSummary } from "./household-types";
 import { ParentInviteCard } from "./parent-invite-card";
 
 function shortTimezone(timezone: string) {

@@ -18,7 +18,7 @@ import { useServerConfirmedMutation } from "@/hooks/use-server-confirmed-mutatio
 
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
-import type { HouseholdSummary, PayoutWeekday } from "./household-card";
+import type { HouseholdSummary, PayoutWeekday } from "./household-types";
 
 function formatWeekday(day: string) {
   return day.charAt(0).toUpperCase() + day.slice(1);
