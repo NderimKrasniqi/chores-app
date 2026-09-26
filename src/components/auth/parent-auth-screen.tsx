@@ -20,6 +20,28 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 type AuthMode = "sign-in" | "sign-up";
 
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const MIN_PASSWORD_LENGTH = 8;
+
+// Better Auth error codes → words a parent can act on.
+function friendlyAuthError(code: string | undefined, fallback?: string) {
+  switch (code) {
+    case "INVALID_EMAIL_OR_PASSWORD":
+      return "That email and password don’t match. Try again.";
+    case "USER_ALREADY_EXISTS":
+    case "USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL":
+      return "There’s already an account with that email. Sign in instead.";
+    case "PASSWORD_TOO_SHORT":
+      return `Use at least ${MIN_PASSWORD_LENGTH} characters for the password.`;
+    case "INVALID_EMAIL":
+      return "That email doesn’t look right.";
+    default:
+      return fallback && !fallback.includes("[body.")
+        ? fallback
+        : "Couldn’t sign you in. Check your details and try again.";
+  }
+}
+
 type ParentAuthScreenProps = {
   onBack?: () => void;
 };
@@ -32,7 +54,18 @@ export function ParentAuthScreen({ onBack }: ParentAuthScreenProps) {
   const [submittingAuth, setSubmittingAuth] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  const emailValid = EMAIL_PATTERN.test(email.trim());
+  const canSubmit =
+    emailValid &&
+    password.length > 0 &&
+    (mode === "sign-in" || parentName.trim().length > 0);
+
   async function handleAuthSubmit() {
+    if (!canSubmit) return;
+    if (mode === "sign-up" && password.length < MIN_PASSWORD_LENGTH) {
+      setErrorMessage(friendlyAuthError("PASSWORD_TOO_SHORT"));
+      return;
+    }
     setSubmittingAuth(true);
     setErrorMessage(null);
 
@@ -50,13 +83,13 @@ export function ParentAuthScreen({ onBack }: ParentAuthScreenProps) {
             });
 
       if (result.error) {
-        setErrorMessage(result.error.message ?? "Authentication failed.");
+        setErrorMessage(
+          friendlyAuthError(result.error.code, result.error.message),
+        );
       }
-    } catch (error) {
+    } catch {
       setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "Something went wrong. Please try again.",
+        "Couldn’t reach the server. Check your connection and try again.",
       );
     } finally {
       setSubmittingAuth(false);
@@ -146,6 +179,7 @@ export function ParentAuthScreen({ onBack }: ParentAuthScreenProps) {
             className="mt-6"
             label={mode === "sign-up" ? "Create account" : "Sign in"}
             loading={submittingAuth}
+            disabled={!canSubmit}
             onPress={() => void handleAuthSubmit()}
           />
 
