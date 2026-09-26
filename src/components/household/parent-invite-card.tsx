@@ -1,12 +1,18 @@
-import { Scene } from "@/components/art";
-import { Icon } from "@/components/ui/icon";
-import { homeTokens as themeColors } from "@/design-system/theme";
-import { ActionButton, AppText, Surface, TopBar } from "@/design-system";
-import { useServerConfirmedMutation } from "@/hooks/use-server-confirmed-mutation";
 import { useAction, useQuery } from "convex/react";
 import { useState } from "react";
 import { Modal, Pressable, ScrollView, Share, View } from "react-native";
+import Animated, {
+  interpolate,
+  useAnimatedStyle,
+} from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Svg, { Circle, Path, Rect } from "react-native-svg";
+
+import { useLoop } from "@/components/art";
+import { Icon } from "@/components/ui/icon";
+import { ActionButton, AppText } from "@/design-system";
+import { useTheme } from "@/design-system/theme";
+import { useServerConfirmedMutation } from "@/hooks/use-server-confirmed-mutation";
 
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
@@ -26,106 +32,50 @@ export type ParentInviteVisualFixture = {
   showRevokeConfirmation?: boolean;
 };
 
-function formatInviteToken(token: string) {
-  return token.match(/.{1,32}/g)?.join("\n") ?? token;
-}
-
-function AuthorityIcon({ compact = false }: { compact?: boolean }) {
+/** A sealed invite that bobs gently; the seal turns green once sent out. */
+function InviteSeal({ ready }: { ready: boolean }) {
+  const { tokens } = useTheme();
+  const bob = useLoop({ duration: 3000, reverse: true, rest: 0.5 });
+  const style = useAnimatedStyle(() => ({
+    transform: [
+      { translateY: interpolate(bob.get(), [0, 1], [-4, 4]) },
+      { rotate: `${interpolate(bob.get(), [0, 1], [-3, 3])}deg` },
+    ],
+  }));
   return (
-    <View
-      className={`${compact ? "h-11 w-11" : "h-12 w-12"} relative items-center justify-center rounded-full bg-action`}
-    >
-      <Icon
-        name="family"
-        color={themeColors.onAction}
-        size={compact ? 24 : 28}
-      />
-      <View className="absolute bottom-[-2px] right-[-2px] h-5 w-5 items-center justify-center rounded-full bg-surfaceRaised">
-        <Icon name="check" color={themeColors.action} size={13} />
-      </View>
-    </View>
-  );
-}
-
-function EqualAuthorityNotice({ compact = false }: { compact?: boolean }) {
-  if (compact) {
-    return (
-      <Surface
-        tone="mint"
-        elevated={false}
-        className="mt-2 flex-row items-center px-3 py-2"
-      >
-        <AuthorityIcon compact />
-        <AppText
-          color="action"
-          className="ml-3 flex-1"
-          style={{ fontSize: 14, lineHeight: 18, fontWeight: "600" }}
-        >
-          Every parent has equal household authority.
-        </AppText>
-      </Surface>
-    );
-  }
-
-  return (
-    <Surface
-      tone="mint"
-      elevated={false}
-      className="mt-4 flex-row items-center p-4"
-    >
-      <AuthorityIcon />
-      <View className="ml-3 flex-1">
-        <AppText variant="cardTitle" color="action">
-          Equal household authority
-        </AppText>
-        <AppText variant="bodySmall" color="ink-muted" className="mt-1">
-          Every parent can manage chores, reviews, money, and family settings.
-        </AppText>
-      </View>
-    </Surface>
-  );
-}
-
-function InviteActionRow({
-  title,
-  subtitle,
-  icon,
-  destructive = false,
-  onPress,
-}: {
-  title: string;
-  subtitle: string;
-  icon: "refresh" | "brokenLink";
-  destructive?: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={onPress}
-      className={`mt-2 min-h-[56px] flex-row items-center rounded-control px-3 ${
-        destructive ? "bg-urgencySoft" : "border-2 border-ink bg-surfaceRaised"
-      }`}
-    >
-      <Icon
-        name={icon}
-        color={destructive ? themeColors.urgency : themeColors.ink}
-        size={29}
-      />
-      <View className="ml-3 flex-1">
-        <AppText variant="cardTitle" color={destructive ? "urgency" : "ink"}>
-          {title}
-        </AppText>
-        <AppText variant="bodySmall" color="ink-muted" className="mt-0.5">
-          {subtitle}
-        </AppText>
-      </View>
-      <Icon
-        name="chevron"
-        color={destructive ? themeColors.urgency : themeColors.ink}
-        size={22}
-      />
-    </Pressable>
+    <Animated.View style={[{ alignSelf: "center" }, style]} accessible={false}>
+      <Svg width={170} height={120}>
+        <Rect
+          x={10}
+          y={20}
+          width={150}
+          height={96}
+          rx={12}
+          fill={tokens.surface}
+        />
+        <Path
+          d="M10 30 L85 78 L160 30"
+          fill="none"
+          stroke={tokens.line}
+          strokeWidth={4}
+          strokeLinejoin="round"
+        />
+        <Circle
+          cx={85}
+          cy={78}
+          r={15}
+          fill={ready ? tokens.action : tokens.urgency}
+        />
+        <Path
+          d="M78 78 l5 5 9 -10"
+          fill="none"
+          stroke={tokens.surface}
+          strokeWidth={3}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </Svg>
+    </Animated.View>
   );
 }
 
@@ -220,260 +170,155 @@ export function ParentInviteCard({
     }
   }
 
-  const statusLabel =
-    feedback === "regenerated"
-      ? "New parent invite ready"
-      : "Parent invite ready";
+  const { tokens } = useTheme();
 
   return (
     <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-canvas">
-      <View className="px-5">
-        <TopBar
-          title="Invite parent"
-          onBack={onClose}
-          titleStyle={{ fontSize: 20, lineHeight: 24 }}
-        />
+      <View className="flex-row items-center justify-between px-5 pt-2">
+        <AppText variant="sectionTitle">Invite a parent</AppText>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Close"
+          onPress={onClose}
+          hitSlop={8}
+          className="h-11 w-11 items-center justify-center rounded-full"
+          style={{ backgroundColor: tokens.surface }}
+        >
+          <Icon name="close" color={tokens.ink} size={18} />
+        </Pressable>
       </View>
-
       <ScrollView
-        className="flex-1"
-        contentContainerClassName="px-5 pb-8"
+        contentContainerClassName="px-5 pb-10 pt-4"
         showsVerticalScrollIndicator={false}
       >
-        <Scene name="mail" size={140} />
-
-        <AppText variant="screenTitle" className="mt-2">
-          Invite another parent
-        </AppText>
-        <AppText className="mt-2">
-          They’ll sign in with their own account and join {householdName}.
+        <InviteSeal ready={rawToken !== null} />
+        <AppText color="ink-muted" className="mt-4 text-center">
+          The person you invite joins {householdName} with the same controls as
+          you. Each invite works once.
         </AppText>
 
-        <EqualAuthorityNotice compact={inviteExists} />
-        <AppText variant="sectionTitle" className="mt-3">
-          Parent invite
-        </AppText>
-
-        {feedback === "revoked" && !inviteExists ? (
-          <Surface
-            tone="mint"
-            elevated={false}
-            className="mt-2 flex-row items-center p-3"
+        {rawToken ? (
+          <View
+            className="mt-6 overflow-hidden rounded-[24px]"
+            style={{ backgroundColor: tokens.surface }}
           >
-            <View className="h-11 w-11 items-center justify-center rounded-full bg-action">
-              <Icon name="brokenLink" color={themeColors.onAction} size={23} />
-            </View>
-            <AppText variant="cardTitle" color="action" className="ml-3">
-              Invite revoked
-            </AppText>
-          </Surface>
-        ) : null}
-
-        {inviteLoading ? (
-          <Surface className="mt-2 p-5">
-            <AppText variant="cardTitle">Checking parent invite…</AppText>
-            <AppText variant="bodySmall" color="ink-muted" className="mt-1">
-              Your current invite status will appear here.
-            </AppText>
-          </Surface>
-        ) : !inviteExists ? (
-          <>
-            <Surface className="mt-2 items-center px-5 py-7">
-              <View className="h-24 w-24 items-center justify-center rounded-full bg-infoSoft">
-                <Scene name="mail" size={80} />
-              </View>
-              <AppText variant="cardTitle" className="mt-3">
-                No active invite
-              </AppText>
-              <AppText
-                variant="bodySmall"
-                color="ink-muted"
-                className="mt-1 text-center"
-              >
-                {feedback === "revoked"
-                  ? "The previous invite can no longer be used."
-                  : "Generate a one-use invite when you’re ready."}
-              </AppText>
-            </Surface>
-            <ActionButton
-              className="mt-4"
-              label="Generate parent invite"
-              loading={working}
-              onPress={() => void handleGenerateInvite()}
-            />
-            {feedback !== "revoked" ? (
-              <View className="mt-4 flex-row items-center justify-center px-4">
-                <Icon name="checkShield" color={themeColors.action} size={21} />
-                <AppText variant="bodySmall" color="ink-muted" className="ml-2">
-                  You can revoke it before it is used.
-                </AppText>
-              </View>
-            ) : null}
-          </>
-        ) : rawToken ? (
-          <>
-            <Surface
-              tone="mint"
-              elevated={false}
-              className="mt-2 flex-row items-center p-3"
-            >
-              <View className="h-11 w-11 items-center justify-center rounded-full bg-action">
-                <Icon name="check" color={themeColors.onAction} size={23} />
-              </View>
-              <AppText variant="cardTitle" color="action" className="ml-3">
-                {statusLabel}
-              </AppText>
-            </Surface>
-
-            <Surface tone="lavender" elevated={false} className="mt-2 p-3">
-              <AppText
-                variant="caption"
-                color="ink-muted"
-                className="uppercase"
-              >
-                One-use invite code
+            <View className="px-5 pt-4">
+              <AppText variant="label" color="action">
+                {feedback === "regenerated"
+                  ? "New invite ready — the old one stopped working"
+                  : "Invite ready"}
               </AppText>
               <AppText
                 selectable
-                className="mt-2 font-mono text-[19px] leading-7"
+                className="mt-2 font-body-heavy text-ink"
+                style={{ fontSize: 15, lineHeight: 22, letterSpacing: 0.5 }}
               >
-                {formatInviteToken(rawToken)}
+                {rawToken}
               </AppText>
-              <ActionButton
-                className="mt-3"
-                label="Share invite"
-                leading={
-                  <Icon name="share" color={themeColors.onAction} size={22} />
-                }
-                onPress={() => void handleShareInvite()}
-              />
-              <AppText
-                variant="bodySmall"
-                color="ink-muted"
-                className="mt-2 text-center"
-              >
-                This code is shown only after generation.
-              </AppText>
-            </Surface>
-
-            <InviteActionRow
-              title="Generate a new invite"
-              subtitle="Replaces this invite"
-              icon="refresh"
-              onPress={() => void handleGenerateInvite()}
-            />
-            <InviteActionRow
-              title="Revoke this invite"
-              subtitle="Stops this invite from being used"
-              icon="brokenLink"
-              destructive
-              onPress={() => setShowRevokeConfirmation(true)}
-            />
-          </>
-        ) : (
-          <>
-            <Surface tone="lavender" elevated={false} className="mt-2 p-4">
-              <View className="flex-row items-center self-start rounded-full bg-actionSoft px-3 py-2">
-                <View className="h-9 w-9 items-center justify-center rounded-full bg-action">
-                  <Icon name="check" color={themeColors.onAction} size={20} />
-                </View>
-                <AppText variant="cardTitle" color="action" className="ml-2">
-                  Active invite
-                </AppText>
-              </View>
-              <View className="mt-4 flex-row items-center">
-                <Scene name="lock" size={112} />
-                <View className="ml-4 flex-1">
-                  <AppText variant="cardTitle">Invite code unavailable</AppText>
-                  <AppText
-                    variant="bodySmall"
-                    color="ink-muted"
-                    className="mt-2"
-                  >
-                    For security, the code isn’t stored after generation.
-                  </AppText>
-                  <AppText
-                    variant="bodySmall"
-                    color="ink-muted"
-                    className="mt-2"
-                  >
-                    Generate a new invite to get a shareable code.
-                  </AppText>
-                </View>
-              </View>
-            </Surface>
-            <ActionButton
-              className="mt-4"
-              label="Generate a new invite"
-              loading={working}
-              onPress={() => void handleGenerateInvite()}
-            />
-            <AppText
-              variant="bodySmall"
-              color="ink-muted"
-              className="mt-3 text-center"
+            </View>
+            <View
+              className="mt-4 border-t border-dashed px-5 py-3"
+              style={{ borderColor: tokens.line }}
             >
-              This replaces the current invite.
+              <AppText variant="caption" color="ink-muted">
+                Send it privately. It shows only once here.
+              </AppText>
+            </View>
+          </View>
+        ) : inviteLoading ? (
+          <AppText color="ink-muted" className="mt-6 text-center">
+            Checking for an open invite…
+          </AppText>
+        ) : inviteExists ? (
+          <View
+            className="mt-6 rounded-[20px] p-4"
+            style={{ backgroundColor: tokens.surface }}
+          >
+            <AppText variant="cardTitle">An invite is already out</AppText>
+            <AppText variant="caption" color="ink-muted" className="mt-1">
+              For safety it can’t be shown again. Make a new one to replace it,
+              or cancel it.
             </AppText>
-            <InviteActionRow
-              title="Revoke this invite"
-              subtitle="Stops this invite from being used"
-              icon="brokenLink"
-              destructive
-              onPress={() => setShowRevokeConfirmation(true)}
-            />
-          </>
-        )}
+          </View>
+        ) : feedback === "revoked" ? (
+          <AppText
+            variant="bodySmall"
+            color="action"
+            className="mt-6 text-center"
+          >
+            Invite cancelled. It no longer works.
+          </AppText>
+        ) : null}
 
         {inviteError ? (
-          <Surface tone="coral" elevated={false} className="mt-4 p-4">
+          <View
+            className="mt-4 rounded-[18px] px-4 py-3"
+            style={{ backgroundColor: tokens.urgencySoft }}
+          >
             <AppText variant="bodySmall" color="urgency">
               {inviteError}
             </AppText>
-          </Surface>
+          </View>
         ) : null}
+
+        <View className="mt-6 gap-2">
+          {rawToken ? (
+            <ActionButton
+              label="Share invite"
+              leading={<Icon name="share" color={tokens.onAction} size={18} />}
+              onPress={() => void handleShareInvite()}
+            />
+          ) : null}
+          <ActionButton
+            tone={rawToken ? "secondary" : "primary"}
+            label={
+              inviteExists || rawToken ? "Make a new invite" : "Make an invite"
+            }
+            loading={working && !showRevokeConfirmation}
+            disabled={inviteLoading}
+            onPress={() => void handleGenerateInvite()}
+          />
+          {inviteExists || rawToken ? (
+            <ActionButton
+              tone="destructiveSecondary"
+              label="Cancel invite"
+              disabled={working}
+              onPress={() => setShowRevokeConfirmation(true)}
+            />
+          ) : null}
+        </View>
       </ScrollView>
 
       <Modal
-        animationType="slide"
         transparent
+        animationType="fade"
         visible={showRevokeConfirmation}
         onRequestClose={() => setShowRevokeConfirmation(false)}
       >
         <View className="flex-1 justify-end bg-scrim">
           <SafeAreaView
             edges={["bottom"]}
-            className="rounded-t-sheet bg-canvas px-5 pb-3 pt-3"
+            className="rounded-t-sheet px-5 pt-4"
+            style={{ backgroundColor: tokens.canvas }}
           >
-            <View className="h-1.5 w-16 self-center rounded-full bg-infoSoftStrong" />
-            <View className="mt-4 h-16 w-16 items-center justify-center self-center rounded-full bg-urgencySoft">
-              <Icon name="brokenLink" color={themeColors.urgency} size={34} />
-            </View>
-            <AppText variant="sectionTitle" className="mt-3 text-center">
-              Revoke this invite?
+            <AppText variant="sectionTitle" className="text-center">
+              Cancel this invite?
             </AppText>
-            <AppText className="mt-2 text-center">
-              This invite will stop working immediately.
-            </AppText>
-            <AppText
-              variant="bodySmall"
-              color="action"
-              className="mt-2 text-center"
-            >
-              Parents already in {householdName} keep their access.
+            <AppText color="ink-muted" className="mt-1 text-center">
+              It stops working right away. Parents already in the household
+              aren’t affected.
             </AppText>
             <ActionButton
               className="mt-5"
-              label="Revoke invite"
               tone="destructive"
+              label="Cancel invite"
               loading={working}
               onPress={() => void handleRevokeInvite()}
             />
             <ActionButton
-              className="mt-2"
-              label="Keep invite"
-              tone="secondary"
-              disabled={working}
+              className="mb-2 mt-1"
+              tone="quiet"
+              label="Keep it"
               onPress={() => setShowRevokeConfirmation(false)}
             />
           </SafeAreaView>
