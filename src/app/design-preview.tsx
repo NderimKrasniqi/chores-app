@@ -321,7 +321,15 @@ function ChildMoneyFixture({
   const day = 86_400_000;
   const localDate = (offset: number) =>
     new Date(now + offset * day).toISOString().slice(0, 10);
-  const balance = state === "negative" ? -35 : state === "pending" ? 145 : 85;
+  // Balance = last week's close (still unpaid when pending) + this week.
+  const balance =
+    state === "negative"
+      ? -55
+      : state === "pending"
+        ? 175
+        : state === "first-week"
+          ? 0
+          : 55;
   const payoutId = "visual-payout" as Id<"payouts">;
   const payoutPeriodId = "visual-payout-period" as Id<"payoutPeriods">;
   const latestPayout: ChildMoneyOverview["child"]["latestPayout"] =

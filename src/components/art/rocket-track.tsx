@@ -74,10 +74,13 @@ export function RocketTrack({
   const track = Math.max(0, width - PLANET / 2);
   const stops = Math.max(2, dayLabels.length);
 
+  // Keep the rocket (and its flame) inside the card at the start of the week.
+  const minX = ROCKET * 0.3;
+  const targetX = Math.max(minX, clamped * track - ROCKET / 2);
   const rocketStyle = useAnimatedStyle(() => ({
     transform: [
       {
-        translateX: interpolate(arrive.get(), [0, 1], [0, clamped * track]),
+        translateX: interpolate(arrive.get(), [0, 1], [minX, targetX]),
       },
     ],
   }));
@@ -131,7 +134,7 @@ export function RocketTrack({
             </View>
             <Animated.View
               className="absolute"
-              style={[{ left: -ROCKET / 2, top: 3 }, rocketStyle]}
+              style={[{ left: 0, top: 3 }, rocketStyle]}
             >
               <Rocket size={ROCKET} />
             </Animated.View>

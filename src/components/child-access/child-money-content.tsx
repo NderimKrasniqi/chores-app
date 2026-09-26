@@ -1,7 +1,7 @@
 import { useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
-import { useState } from "react";
-import { View } from "react-native";
+import { useEffect, useState } from "react";
+import { AppState, View } from "react-native";
 
 import { PiggyPlanet, RocketTrack, StarBuddy } from "@/components/art";
 import { Icon } from "@/components/ui/icon";
@@ -16,6 +16,9 @@ type Entry = ChildMoneyOverview["child"]["thisPeriodEntries"][number];
 type Payout = NonNullable<ChildMoneyOverview["child"]["latestPayout"]>;
 
 const TIMELINE_LIMIT = 6;
+/** Matches the server's cap on this period's entries (convex/payouts.ts). */
+const SERVER_ENTRY_CAP = 100;
+const REFRESH_MS = 10 * 60_000;
 const DAY_MS = 86_400_000;
 
 function localDateKey(timestamp: number, timezone: string) {
@@ -68,7 +71,20 @@ function signed(value: number) {
 }
 
 export function ChildMoneyContent() {
-  const [queryNow] = useState(() => Date.now());
+  // `now` picks the payout period, so it must move forward while the tab
+  // stays mounted: on return to the app and every few minutes.
+  const [queryNow, setQueryNow] = useState(() => Date.now());
+  useEffect(() => {
+    const refresh = () => setQueryNow(Date.now());
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state === "active") refresh();
+    });
+    const timer = setInterval(refresh, REFRESH_MS);
+    return () => {
+      subscription.remove();
+      clearInterval(timer);
+    };
+  }, []);
   const overview = useQuery(api.payouts.getMine, { now: queryNow });
 
   if (overview === undefined) {
@@ -155,17 +171,15 @@ function WeekFlight({
     labels.length - 1,
     Math.max(0, dayNumber(today) - dayNumber(period.startLocalDate)),
   );
+  // The period ends as payday starts, so there's always at least a day left.
   const daysLeft = Math.max(
-    0,
+    1,
     dayNumber(period.endLocalDate) - dayNumber(today),
   );
   const span = Math.max(1, period.endAt - period.startAt);
   const progress = (now - period.startAt) / span;
   const payday = capitalize(period.payoutWeekday);
-  const countdown =
-    daysLeft === 0
-      ? "Payday is today!"
-      : `${daysLeft} ${daysLeft === 1 ? "day" : "days"} to go`;
+  const countdown = `${daysLeft} ${daysLeft === 1 ? "day" : "days"} to go`;
 
   return (
     <View
@@ -202,6 +216,8 @@ function CoinTimeline({
   timezone: string;
 }) {
   const total = entries.reduce((sum, entry) => sum + entry.amountSek, 0);
+  // Past the server cap the list is only the latest entries, so no total.
+  const complete = entries.length < SERVER_ENTRY_CAP;
   const shown = entries.slice(0, TIMELINE_LIMIT);
   const hidden = entries.length - shown.length;
 
@@ -209,7 +225,7 @@ function CoinTimeline({
     <View className="mt-6">
       <View className="flex-row items-baseline justify-between">
         <AppText variant="sectionTitle">This week’s coins</AppText>
-        {entries.length > 0 ? (
+        {entries.length > 0 && complete ? (
           <AppText
             className="font-display text-[18px]"
             color={total < 0 ? "pink" : "gold"}
@@ -244,7 +260,9 @@ function CoinTimeline({
               color="ink-muted"
               className="py-3 text-center"
             >
-              +{hidden} more this week
+              {complete
+                ? `+${hidden} more this week`
+                : "Showing your latest coins"}
             </AppText>
           ) : null}
         </View>
@@ -287,7 +305,7 @@ function CoinRow({
           {title}
         </AppText>
         <AppText variant="caption" color="ink-muted">
-          {penalty ? "Missed locked Extra" : "Approved"} ·{" "}
+          {penalty ? "Extra not finished" : "Approved"} ·{" "}
           {shortWeekday(entry.createdAt, timezone)}
         </AppText>
       </View>
@@ -317,7 +335,7 @@ function PayoutPostcard({
           <PostcardBody
             badge={{ icon: "star", label: "Coming up", tone: "accent" }}
             title="Your first payday is coming"
-            body="When this week closes, a Parent pays out what your planet holds."
+            body="When this week closes, a Parent pays out whatever your planet holds above 0 kr."
           />
         ) : payout.status === "pending" ? (
           <>
@@ -356,9 +374,9 @@ function PayoutPostcard({
         )}
         {payout && payout.pendingOutcomeCount > 0 ? (
           <AppText variant="caption" color="ink-muted" className="mt-3">
-            {payout.pendingOutcomeCount} chore{" "}
-            {payout.pendingOutcomeCount === 1 ? "result" : "results"} still
-            being checked will count next week.
+            {payout.pendingOutcomeCount === 1
+              ? "1 chore wasn’t decided yet when this week closed. It counts in a later week, once a Parent decides."
+              : `${payout.pendingOutcomeCount} chores weren’t decided yet when this week closed. They count in a later week, once a Parent decides.`}
           </AppText>
         ) : null}
       </View>
