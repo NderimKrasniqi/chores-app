@@ -19,6 +19,7 @@ import {
 import { ParentFamilyContent } from "./parent-family-content";
 import { ParentHomeContent } from "./parent-home-content";
 import { ParentMoneyContent } from "./parent-money-content";
+import { ParentKidScreen } from "./parent-kid-screen";
 import { ParentScreenHeader } from "./parent-screen-header";
 import {
   HouseholdSettingsScreen,
@@ -41,6 +42,7 @@ type ParentRoute =
   | "settings"
   | "activity"
   | "childAccess"
+  | "kid"
   | "help";
 
 const sectionCopy: Record<
@@ -155,7 +157,27 @@ export function HouseholdListScreen({
           householdId={household.householdId}
           timezone={household.timezone}
           child={child}
+          onBack={() => setRoute("kid")}
+        />
+      );
+    }
+  }
+
+  if (route === "kid") {
+    const child = household.children.find(
+      (item) => item.childId === selectedChildId,
+    );
+    if (child) {
+      return (
+        <ParentKidScreen
+          household={household}
+          child={child}
           onBack={() => setRoute("main")}
+          onOpenPhones={() => setRoute("childAccess")}
+          onRemoved={() => {
+            setSelectedChildId(null);
+            setRoute("main");
+          }}
         />
       );
     }
@@ -192,6 +214,10 @@ export function HouseholdListScreen({
             onAddChore={() => setActiveSection("chores")}
             onOpenActivity={() => setRoute("activity")}
             onOpenMoney={() => setActiveSection("money")}
+            onOpenKid={(childId) => {
+              setSelectedChildId(childId);
+              setRoute("kid");
+            }}
           />
         ) : (
           <View>
@@ -231,7 +257,7 @@ export function HouseholdListScreen({
                 onOpenSettings={() => setRoute("settings")}
                 onOpenChildAccess={(childId) => {
                   setSelectedChildId(childId);
-                  setRoute("childAccess");
+                  setRoute("kid");
                 }}
               />
             ) : null}

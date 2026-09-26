@@ -209,6 +209,7 @@ export function ParentHomeContent({
   onOpenSwitcher,
   onOpenActivity,
   onOpenMoney,
+  onOpenKid,
 }: {
   household: HouseholdSummary;
   parentName: string;
@@ -217,6 +218,7 @@ export function ParentHomeContent({
   onOpenSwitcher: () => void;
   onOpenActivity: () => void;
   onOpenMoney: () => void;
+  onOpenKid?: (childId: Id<"children">) => void;
 }) {
   const { tokens } = useTheme();
   const householdId: Id<"households"> = household.householdId;
@@ -335,7 +337,9 @@ export function ParentHomeContent({
           return (
             <Tile
               key={child.childId}
-              onPress={onOpenMoney}
+              onPress={() =>
+                onOpenKid ? onOpenKid(child.childId) : onOpenMoney()
+              }
               accessibilityLabel={`${child.displayName}: balance ${money?.runningBalanceSek ?? 0} kronor${owed > 0 ? `, ${owed} kronor to pay` : ""}`}
             >
               <View className="flex-row items-center gap-3">

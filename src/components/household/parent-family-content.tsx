@@ -1,6 +1,7 @@
 import { useQuery } from "convex/react";
 import { useState, type ReactNode } from "react";
-import { Modal, Pressable, View } from "react-native";
+import { Modal, Pressable, TextInput, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import Animated, {
   interpolate,
   useAnimatedStyle,
@@ -11,7 +12,8 @@ import { useLoop } from "@/components/art";
 import { Easings, PRESS, pressTransition } from "@/components/art/motion";
 import { childAvatarTone, Avatar } from "@/components/ui/avatar";
 import { Icon, type IconName } from "@/components/ui/icon";
-import { AppText } from "@/design-system";
+import { ActionButton, AppText } from "@/design-system";
+import { useServerConfirmedMutation } from "@/hooks/use-server-confirmed-mutation";
 import { useTheme } from "@/design-system/theme";
 
 import { api } from "../../../convex/_generated/api";
@@ -296,6 +298,28 @@ export function ParentFamilyContent({
 }) {
   const { tokens } = useTheme();
   const [showInvite, setShowInvite] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
+  const addChild = useServerConfirmedMutation(api.households.addChild);
+
+  async function saveKid() {
+    setSaving(true);
+    setAddError(null);
+    try {
+      await addChild({
+        householdId: household.householdId,
+        displayName: newName,
+      });
+      setAdding(false);
+      setNewName("");
+    } catch (error) {
+      setAddError(error instanceof Error ? error.message : "Could not add.");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   return (
     <View className="pb-8">
@@ -313,6 +337,23 @@ export function ParentFamilyContent({
             visualDeviceCount={visualDeviceCounts?.[child.childId]}
           />
         ))}
+        <Row
+          onPress={() => {
+            setAddError(null);
+            setAdding(true);
+          }}
+          accessibilityLabel="Add a kid"
+        >
+          <View
+            className="h-11 w-11 items-center justify-center rounded-full"
+            style={{ backgroundColor: tokens.actionSoft }}
+          >
+            <Icon name="plus" color={tokens.action} size={20} />
+          </View>
+          <AppText variant="cardTitle" color="action" className="flex-1">
+            Add a kid
+          </AppText>
+        </Row>
       </View>
 
       <AppText variant="sectionTitle" className="mt-6">
@@ -387,6 +428,56 @@ export function ParentFamilyContent({
           value={shortTimezone(household.timezone)}
         />
       </View>
+
+      <Modal
+        transparent
+        animationType="slide"
+        visible={adding}
+        onRequestClose={() => !saving && setAdding(false)}
+      >
+        <View className="flex-1 justify-end bg-scrim">
+          <SafeAreaView
+            edges={["bottom"]}
+            className="rounded-t-sheet px-5 pb-2 pt-5"
+            style={{ backgroundColor: tokens.canvas }}
+          >
+            <AppText variant="sectionTitle">Add a kid</AppText>
+            <AppText color="ink-muted" className="mt-1">
+              Then link their phone from their page.
+            </AppText>
+            <TextInput
+              accessibilityLabel="First name"
+              value={newName}
+              onChangeText={setNewName}
+              placeholder="First name"
+              placeholderTextColor={tokens.inkFaint}
+              autoFocus
+              maxLength={40}
+              className="mt-4 min-h-[52px] rounded-[16px] px-4 font-body-heavy text-ink"
+              style={{ backgroundColor: tokens.surfaceMuted }}
+            />
+            {addError ? (
+              <AppText variant="bodySmall" color="urgency" className="mt-3">
+                {addError}
+              </AppText>
+            ) : null}
+            <ActionButton
+              className="mt-5"
+              label="Add"
+              loading={saving}
+              disabled={!newName.trim()}
+              onPress={() => void saveKid()}
+            />
+            <ActionButton
+              className="mt-1"
+              tone="quiet"
+              label="Cancel"
+              disabled={saving}
+              onPress={() => setAdding(false)}
+            />
+          </SafeAreaView>
+        </View>
+      </Modal>
 
       <Modal
         animationType="slide"

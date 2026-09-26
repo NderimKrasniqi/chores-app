@@ -35,7 +35,7 @@ const payoutWeekdays: PayoutWeekday[] = [
 ];
 
 /** Shared frame for pushed parent screens: round back button + title. */
-function ScreenFrame({
+export function ScreenFrame({
   title,
   onBack,
   children,
@@ -73,7 +73,7 @@ function ScreenFrame({
   );
 }
 
-function ActionRow({
+export function ActionRow({
   icon,
   title,
   subtitle,

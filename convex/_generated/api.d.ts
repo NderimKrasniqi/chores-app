@@ -10,6 +10,7 @@
 
 import type * as auth from "../auth.js";
 import type * as childAccess from "../childAccess.js";
+import type * as childOverview from "../childOverview.js";
 import type * as childPairing from "../childPairing.js";
 import type * as childRedos from "../childRedos.js";
 import type * as choreDefinitions from "../choreDefinitions.js";
@@ -166,6 +167,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   childAccess: typeof childAccess;
+  childOverview: typeof childOverview;
   childPairing: typeof childPairing;
   childRedos: typeof childRedos;
   choreDefinitions: typeof choreDefinitions;
