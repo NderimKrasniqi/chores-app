@@ -236,6 +236,8 @@ function HomeTab({
             </Pressable>
           </View>
 
+          <RecentPenaltyNotice preview={visualOccurrences !== undefined} />
+
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={`Running balance ${balanceSek ?? "loading"} kronor. Open money.`}
@@ -427,6 +429,40 @@ function ChildTabBar({
           </Pressable>
         );
       })}
+    </View>
+  );
+}
+
+const PENALTY_NOTICE_MS = 48 * 60 * 60 * 1000;
+
+/**
+ * If a locked Extra wasn't finished in the last two days, say so plainly on
+ * Home — otherwise the only trace is a row in Money.
+ */
+function RecentPenaltyNotice({ preview }: { preview: boolean }) {
+  const [now] = useState(() => Date.now());
+  const money = useQuery(api.payouts.getMine, preview ? "skip" : { now });
+  const penalty = money?.child.thisPeriodEntries.find(
+    (entry) =>
+      entry.kind === "penalty" && now - entry.createdAt < PENALTY_NOTICE_MS,
+  );
+  if (!penalty) return null;
+  return (
+    <View
+      accessible
+      accessibilityLabel={`${penalty.choreTitle ?? "An Extra"} wasn't finished in time. ${Math.abs(penalty.amountSek)} kronor came off your balance.`}
+      className="mt-4 flex-row items-center gap-3 rounded-large bg-urgencySoft px-4 py-3"
+    >
+      <Icon name="missed" color={themeColors.pink} size={22} />
+      <View className="flex-1">
+        <AppText className="font-body-heavy text-[15px]">
+          {penalty.choreTitle ?? "An Extra"} wasn’t finished in time
+        </AppText>
+        <AppText variant="caption" color="ink-muted">
+          −{Math.abs(penalty.amountSek)} kr from your balance. Locked Extras
+          count — pick ones you can finish.
+        </AppText>
+      </View>
     </View>
   );
 }

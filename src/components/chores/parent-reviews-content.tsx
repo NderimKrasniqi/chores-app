@@ -184,9 +184,12 @@ export function ParentReviewsContent({
       return true;
     } catch (approveError) {
       setError(
-        approveError instanceof Error
-          ? approveError.message
-          : "Could not approve this submission.",
+        approveError instanceof Error &&
+          /not awaiting review/i.test(approveError.message)
+          ? "Another parent already reviewed this one."
+          : approveError instanceof Error
+            ? approveError.message
+            : "Could not approve this submission.",
       );
       return false;
     } finally {

@@ -378,7 +378,12 @@ export function ParentMoneyContent({
         onChange={() => setChangingDay((value) => !value)}
       />
       {changingDay ? (
-        <View className="mt-3 flex-row flex-wrap gap-2">
+        <AppText variant="caption" color="ink-muted" className="mt-3">
+          A new payday starts from next week.
+        </AppText>
+      ) : null}
+      {changingDay ? (
+        <View className="mt-2 flex-row flex-wrap gap-2">
           {weekdays.map((day) => {
             const active = day === overview.configuredPayoutWeekday;
             return (

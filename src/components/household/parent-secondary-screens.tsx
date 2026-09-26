@@ -450,7 +450,7 @@ export function HouseholdSettingsScreen({
       <RuleCard
         icon="calendar"
         title="Payday"
-        body="The week closes on this day and payouts are ready."
+        body="The day each week closes and payouts are ready. A change starts from next week."
         saving={saving === "payout"}
       >
         <View className="flex-row flex-wrap gap-2">

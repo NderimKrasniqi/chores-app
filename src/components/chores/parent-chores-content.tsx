@@ -134,8 +134,11 @@ export function ParentChoresContent({
   householdId,
   children,
   visualFixture,
+  timezone,
 }: {
   householdId: Id<"households">;
+  /** Household time zone, for the Today/Tomorrow date chips. */
+  timezone?: string;
   children: ChildSummary[];
   visualFixture?: ParentChoresVisualFixture;
 }) {
@@ -299,6 +302,10 @@ export function ParentChoresContent({
   }
 
   async function save() {
+    if (!(Number(valueSek) > 0)) {
+      setError("Give the chore a reward of at least 1 kr.");
+      return;
+    }
     setWorking(true);
     setError(null);
     const recurrence = buildRecurrence();
@@ -605,6 +612,7 @@ export function ParentChoresContent({
 
               <Field label={recurrenceKind === "one_off" ? "On" : "Starting"}>
                 <DatePicker
+                  timezone={timezone}
                   value={
                     recurrenceKind === "one_off" ? scheduledDate : startDate
                   }
@@ -1003,7 +1011,7 @@ function CoinStepper({
   const { tokens } = useTheme();
   const amount = Number(value) || 0;
   const step = (delta: number) =>
-    onChange(String(Math.max(0, Math.min(1000, amount + delta))));
+    onChange(String(Math.max(1, Math.min(1000, amount + delta))));
   return (
     <View className="flex-row items-center justify-center gap-5">
       <Pressable
@@ -1070,13 +1078,25 @@ function SmallInput({
   );
 }
 
-function isoDateInDays(days: number) {
-  const date = new Date();
-  date.setDate(date.getDate() + days);
+/** YYYY-MM-DD `days` from today in the household's time zone. */
+function isoDateInDays(days: number, timezone?: string) {
+  let today: string;
+  try {
+    today = new Intl.DateTimeFormat("en-CA", {
+      timeZone: timezone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(new Date());
+  } catch {
+    today = new Date().toISOString().slice(0, 10);
+  }
+  const [y, m, d] = today.split("-").map(Number);
+  const date = new Date(Date.UTC(y, m - 1, d + days, 12));
   return [
-    date.getFullYear(),
-    String(date.getMonth() + 1).padStart(2, "0"),
-    String(date.getDate()).padStart(2, "0"),
+    date.getUTCFullYear(),
+    String(date.getUTCMonth() + 1).padStart(2, "0"),
+    String(date.getUTCDate()).padStart(2, "0"),
   ].join("-");
 }
 
@@ -1084,18 +1104,20 @@ function isoDateInDays(days: number) {
 function DatePicker({
   value,
   onChange,
+  timezone,
 }: {
   value: string;
   onChange: (value: string) => void;
+  timezone?: string;
 }) {
   const quick = [0, 1, 2].map((days) => ({
-    key: isoDateInDays(days),
+    key: isoDateInDays(days, timezone),
     label:
       days === 0
         ? "Today"
         : days === 1
           ? "Tomorrow"
-          : formatScheduleDate(isoDateInDays(days)),
+          : formatScheduleDate(isoDateInDays(days, timezone)),
   }));
   return (
     <View>

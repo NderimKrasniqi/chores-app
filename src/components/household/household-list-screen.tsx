@@ -244,6 +244,7 @@ export function HouseholdListScreen({
               <View className="mt-2">
                 <ParentChoresContent
                   householdId={household.householdId}
+                  timezone={household.timezone}
                   children={household.children}
                 />
               </View>

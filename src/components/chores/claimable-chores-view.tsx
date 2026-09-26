@@ -262,9 +262,12 @@ function formatDeadlineSentence(timestamp: number, timezone: string) {
 }
 
 function getErrorMessage(error: unknown) {
-  return error instanceof Error && error.message
-    ? error.message
-    : "Could not complete this action. Please try again.";
+  const message = error instanceof Error ? error.message : "";
+  // Someone else won the first-come race: say so kindly.
+  if (/already been claimed/i.test(message)) {
+    return "Too slow — someone else just grabbed that one! Pick another.";
+  }
+  return message || "Could not complete this action. Please try again.";
 }
 
 function lockExplanation(commitment: ClaimCommitmentStatus) {
@@ -766,7 +769,7 @@ export function ClaimableChoresView({
           >
             A Parent approved{" "}
             {gate.currentUnlockOccurrence?.title ?? "your Unlock Chore"}. Claim
-            one Extra at a time.
+            one Extra at a time — open until your next Unlock Chore starts.
           </AppText>
         </View>
       </View>
