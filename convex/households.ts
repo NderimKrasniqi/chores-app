@@ -1,13 +1,14 @@
 import { ConvexError, v } from "convex/values";
 
 import type { Id } from "./_generated/dataModel";
-import { mutation, query } from "./_generated/server";
+import { mutation, query, type MutationCtx } from "./_generated/server";
 import { authComponent } from "./auth";
 import {
   isAnonymousAuthUser,
   requireCurrentParentAuthUser,
   requireCurrentParentForHousehold,
 } from "./lib/auth/parentAuthorization";
+import { calculateRunningBalanceForChild } from "./lib/finance/financialProjection";
 import { ensureCurrentPayoutPeriod } from "./lib/finance/payoutPeriods";
 import {
   normalizeHouseholdTimezone,
@@ -163,7 +164,10 @@ export const listForCurrentParent = query({
         ctx.db
           .query("children")
           .withIndex("by_household", (q) => q.eq("householdId", household._id))
-          .take(100),
+          .take(100)
+          .then((rows) =>
+            rows.filter((child) => child.archivedAt === undefined),
+          ),
         ctx.db
           .query("householdMembers")
           .withIndex("by_household", (q) => q.eq("householdId", household._id))
@@ -301,5 +305,199 @@ export const setPayoutWeekday = mutation({
 
       currentPeriodEndAt: currentPeriod.endAt,
     };
+  },
+});
+
+const MAX_CHILD_NAME_LENGTH = 40;
+
+function normalizeChildName(value: string) {
+  const displayName = value.trim();
+  if (!displayName) {
+    throw new ConvexError("Child name cannot be empty.");
+  }
+  if (displayName.length > MAX_CHILD_NAME_LENGTH) {
+    throw new ConvexError("Child name is too long.");
+  }
+  return displayName;
+}
+
+async function requireActiveChildForParent(
+  ctx: MutationCtx,
+  childId: Id<"children">,
+) {
+  const child = await ctx.db.get(childId);
+  if (!child || child.archivedAt !== undefined) {
+    throw new ConvexError("Child not found.");
+  }
+  const { authUser } = await requireCurrentParentForHousehold(
+    ctx,
+    child.householdId,
+  );
+  return { child, authUser };
+}
+
+export const addChild = mutation({
+  args: {
+    householdId: v.id("households"),
+    displayName: v.string(),
+  },
+  returns: v.id("children"),
+  handler: async (ctx, args) => {
+    await requireCurrentParentForHousehold(ctx, args.householdId);
+    const now = Date.now();
+    return await ctx.db.insert("children", {
+      householdId: args.householdId,
+      displayName: normalizeChildName(args.displayName),
+      createdAt: now,
+      updatedAt: now,
+    });
+  },
+});
+
+export const renameChild = mutation({
+  args: {
+    childId: v.id("children"),
+    displayName: v.string(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const { child } = await requireActiveChildForParent(ctx, args.childId);
+    await ctx.db.patch(child._id, {
+      displayName: normalizeChildName(args.displayName),
+      updatedAt: Date.now(),
+    });
+    return null;
+  },
+});
+
+/*
+ * Why a child can't be removed yet, so the Parent sees what to settle first.
+ * Removal is only allowed when nothing about this child is open.
+ */
+const archiveBlockerValidator = v.union(
+  v.literal("balance"),
+  v.literal("pending_payout"),
+  v.literal("active_extra"),
+  v.literal("awaiting_review"),
+);
+
+async function findArchiveBlockers(ctx: MutationCtx, childId: Id<"children">) {
+  const blockers: Array<
+    "balance" | "pending_payout" | "active_extra" | "awaiting_review"
+  > = [];
+
+  const balance = await calculateRunningBalanceForChild(ctx, childId);
+  if (balance.balanceSek !== 0) blockers.push("balance");
+
+  const pendingPayout = await ctx.db
+    .query("payouts")
+    .withIndex("by_child_status_created_at", (q) =>
+      q.eq("childId", childId).eq("status", "pending"),
+    )
+    .first();
+  if (pendingPayout) blockers.push("pending_payout");
+
+  for (const state of ["claimed", "submitted", "redo_required"] as const) {
+    const claim = await ctx.db
+      .query("choreClaims")
+      .withIndex("by_child_state", (q) =>
+        q.eq("childId", childId).eq("state", state),
+      )
+      .first();
+    if (claim) {
+      blockers.push("active_extra");
+      break;
+    }
+  }
+
+  for (const state of ["submitted", "redo_required"] as const) {
+    const occurrence = await ctx.db
+      .query("choreOccurrences")
+      .withIndex("by_personal_child_state_availability", (q) =>
+        q.eq("personalChildId", childId).eq("state", state),
+      )
+      .first();
+    if (occurrence) {
+      blockers.push("awaiting_review");
+      break;
+    }
+  }
+
+  return blockers;
+}
+
+export const archiveChild = mutation({
+  args: {
+    childId: v.id("children"),
+  },
+  returns: v.union(
+    v.object({ status: v.literal("archived") }),
+    v.object({
+      status: v.literal("blocked"),
+      blockers: v.array(archiveBlockerValidator),
+    }),
+  ),
+  handler: async (ctx, args) => {
+    const { child, authUser } = await requireActiveChildForParent(
+      ctx,
+      args.childId,
+    );
+
+    const blockers = await findArchiveBlockers(ctx, child._id);
+    if (blockers.length > 0) {
+      return { status: "blocked" as const, blockers };
+    }
+
+    const now = Date.now();
+
+    // Their phones stop working and open pairing codes die.
+    const grants = await ctx.db
+      .query("childDeviceAccessGrants")
+      .withIndex("by_child", (q) => q.eq("childId", child._id))
+      .take(100);
+    for (const grant of grants) {
+      if (grant.revokedAt === undefined) {
+        await ctx.db.patch(grant._id, {
+          revokedAt: now,
+          revokedByAuthUserId: authUser._id,
+        });
+      }
+    }
+    const credentials = await ctx.db
+      .query("childPairingCredentials")
+      .withIndex("by_child", (q) => q.eq("childId", child._id))
+      .take(100);
+    for (const credential of credentials) {
+      if (
+        credential.revokedAt === undefined &&
+        credential.redeemedAt === undefined
+      ) {
+        await ctx.db.patch(credential._id, {
+          revokedAt: now,
+          revokedByAuthUserId: authUser._id,
+        });
+      }
+    }
+
+    // Their personal chores stop generating; history keeps its snapshots.
+    const definitions = await ctx.db
+      .query("choreDefinitions")
+      .withIndex("by_household_personal_child", (q) =>
+        q.eq("householdId", child.householdId).eq("personalChildId", child._id),
+      )
+      .take(200);
+    for (const definition of definitions) {
+      if (definition.archivedAt === undefined) {
+        await ctx.db.patch(definition._id, {
+          archivedAt: now,
+          archivedByAuthUserId: authUser._id,
+          updatedAt: now,
+        });
+      }
+    }
+
+    await ctx.db.patch(child._id, { archivedAt: now, updatedAt: now });
+
+    return { status: "archived" as const };
   },
 });

@@ -435,7 +435,9 @@ export async function scheduleOccurrenceNotifications(
           q.eq("householdId", occurrence.householdId),
         )
         .collect()
-    ).map((child) => child._id);
+    )
+      .filter((child) => child.archivedAt === undefined)
+      .map((child) => child._id);
 
   for (const childId of eligibleChildIds) {
     const scheduledFor = Math.max(now, occurrence.availabilityStartsAt);

@@ -47,6 +47,12 @@ export const householdTables = {
     // Child profiles do not require email accounts.
     displayName: v.string(),
 
+    /*
+     * Set when a Parent removes the child. Only allowed once everything is
+     * settled; history, ledger and past payouts keep pointing at this row.
+     */
+    archivedAt: v.optional(v.number()),
+
     createdAt: v.number(),
     updatedAt: v.number(),
   }).index("by_household", ["householdId"]),

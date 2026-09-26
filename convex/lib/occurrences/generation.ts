@@ -147,7 +147,9 @@ export async function generateOccurrencesForWindow(
   const householdChildren = await ctx.db
     .query("children")
     .withIndex("by_household", (q) => q.eq("householdId", householdId))
-    .collect();
+    .collect()
+    // Removed (archived) children are settled and take no new work.
+    .then((rows) => rows.filter((child) => child.archivedAt === undefined));
 
   const allChildIds = householdChildren.map((child) => child._id);
 
