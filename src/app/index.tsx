@@ -128,11 +128,16 @@ export default function HomeScreen() {
       return <LoadingScreen message="Checking child access…" />;
     }
 
-    if (childAccess === null) {
-      return <ChildNoAccessScreen />;
-    }
-
-    return <ChildAccessGate access={childAccess} />;
+    // Everything a Child sees lives in the night-sky quest theme.
+    return (
+      <ThemeScope mode="quest">
+        {childAccess === null ? (
+          <ChildNoAccessScreen />
+        ) : (
+          <ChildAccessGate access={childAccess} />
+        )}
+      </ThemeScope>
+    );
   }
 
   if (households === undefined) {
