@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from "react";
+import type { LayoutChangeEvent } from "react-native";
 import { Pressable, View } from "react-native";
 import Animated, {
   interpolate,
@@ -33,40 +34,63 @@ export type QuestStop = {
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
 const SIDE_PADDING = 28;
-const CONNECTOR_HEIGHT = 30;
+// Vertical room between stops: enough for the road to swing, not sprawl.
+const CONNECTOR_HEIGHT = 44;
+const ROAD_WIDTH = 30;
+// A night-sky ring around each stop so it sits on the road, not in it.
+const HALO = 5;
 
 function nodeSize(status: QuestStopStatus) {
   return status === "current" ? 84 : status === "unlock" ? 66 : 60;
 }
 
-function Connector({
-  width,
-  fromX,
-  toX,
-}: {
-  width: number;
-  fromX: number;
-  toX: number;
-}) {
+type Point = { x: number; y: number };
+
+/**
+ * One continuous road through every stop's centre, drawn beneath the stops so
+ * it flows under each circle instead of butting into it. Each segment leaves
+ * a stop heading down and arrives at the next heading down, so the bends are
+ * smooth S-curves. A dashed centre line drifts slowly along it.
+ */
+function Road({ points, width }: { points: Point[]; width: number }) {
   const { tokens } = useTheme();
-  const progress = useLoop({ duration: 1200, easing: Easings.linear });
+  const progress = useLoop({ duration: 1800, easing: Easings.linear });
   const dashProps = useAnimatedProps(() => ({
     strokeDashoffset: -progress.get() * 40,
   }));
-  const h = CONNECTOR_HEIGHT;
-  const d = `M${fromX} -6 C ${fromX} ${h * 0.9}, ${toX} ${h * 0.1}, ${toX} ${h + 6}`;
+  if (points.length < 2) return null;
+
+  let d = `M${points[0].x} ${points[0].y}`;
+  for (let i = 1; i < points.length; i += 1) {
+    const a = points[i - 1];
+    const b = points[i];
+    const pull = (b.y - a.y) * 0.55;
+    d += ` C ${a.x} ${a.y + pull}, ${b.x} ${b.y - pull}, ${b.x} ${b.y}`;
+  }
+  const height = points[points.length - 1].y + ROAD_WIDTH;
+
   return (
     <Svg
-      width={width}
-      height={h}
-      style={{ overflow: "visible" }}
       pointerEvents="none"
+      width={width}
+      height={height}
+      style={{ position: "absolute", left: 0, top: 0 }}
     >
       <Path
         d={d}
-        stroke={tokens.nightTrack}
-        strokeWidth={18}
+        stroke={tokens.nightRaised}
+        strokeOpacity={0.55}
+        strokeWidth={ROAD_WIDTH + 6}
         strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+      />
+      <Path
+        d={d}
+        stroke={tokens.nightTrack}
+        strokeWidth={ROAD_WIDTH}
+        strokeLinecap="round"
+        strokeLinejoin="round"
         fill="none"
       />
       <AnimatedPath
@@ -74,7 +98,7 @@ function Connector({
         stroke={tokens.nightDash}
         strokeWidth={5}
         strokeLinecap="round"
-        strokeDasharray="4 16"
+        strokeDasharray="6 14"
         fill="none"
         animatedProps={dashProps}
       />
@@ -293,7 +317,15 @@ function StopRow({
             pressTransition,
           ]}
         >
-          <Node stop={stop} showBuddy={showBuddy} />
+          <View
+            style={{
+              padding: HALO,
+              borderRadius: nodeSize(stop.status) / 2 + HALO,
+              backgroundColor: tokens.canvas,
+            }}
+          >
+            <Node stop={stop} showBuddy={showBuddy} />
+          </View>
           <View style={{ flex: 1, alignItems: align }}>
             {stop.eyebrow ? (
               <AppText
@@ -352,32 +384,63 @@ function StopRow({
  */
 export function QuestPath({ stops }: { stops: QuestStop[] }) {
   const [width, setWidth] = useState(0);
+  // Measured per stop: the block's top in the path, and the row inside it.
+  const [blocks, setBlocks] = useState<Record<string, number>>({});
+  const [rows, setRows] = useState<Record<string, { y: number; h: number }>>(
+    {},
+  );
   const firstCurrent = stops.findIndex((stop) => stop.status === "current");
+  const buddyPadding = (index: number) =>
+    stops[index].status === "current" && index === firstCurrent ? 36 : 0;
 
   const centerX = (index: number) => {
     const size = nodeSize(stops[index].status);
     return index % 2 === 0
-      ? SIDE_PADDING + size / 2
-      : width - SIDE_PADDING - size / 2;
+      ? SIDE_PADDING + HALO + size / 2
+      : width - SIDE_PADDING - HALO - size / 2;
+  };
+
+  const points: Point[] = [];
+  for (let index = 0; index < stops.length; index += 1) {
+    const key = stops[index].key;
+    const blockY = blocks[key];
+    const row = rows[key];
+    if (blockY === undefined || row === undefined || width === 0) break;
+    // Rows centre their node vertically below any top padding (the buddy's
+    // headroom), so the node sits in the middle of what's left.
+    const pad = buddyPadding(index);
+    points.push({
+      x: centerX(index),
+      y: blockY + row.y + pad + (row.h - pad) / 2,
+    });
+  }
+  const measured = points.length === stops.length;
+
+  const onBlock = (key: string) => (event: LayoutChangeEvent) => {
+    const y = event.nativeEvent.layout.y;
+    setBlocks((current) =>
+      current[key] === y ? current : { ...current, [key]: y },
+    );
+  };
+  const onRow = (key: string) => (event: LayoutChangeEvent) => {
+    const { y, height } = event.nativeEvent.layout;
+    setRows((current) =>
+      current[key]?.y === y && current[key]?.h === height
+        ? current
+        : { ...current, [key]: { y, h: height } },
+    );
   };
 
   return (
     <View onLayout={(event) => setWidth(event.nativeEvent.layout.width)}>
+      {measured ? <Road points={points} width={width} /> : null}
       {stops.map((stop, index) => (
-        <View key={stop.key}>
-          {index > 0 && width > 0 ? (
-            <Connector
-              width={width}
-              fromX={centerX(index - 1)}
-              toX={centerX(index)}
-            />
-          ) : index > 0 ? (
-            <View style={{ height: CONNECTOR_HEIGHT }} />
-          ) : null}
+        <View key={stop.key} onLayout={onBlock(stop.key)}>
+          {index > 0 ? <View style={{ height: CONNECTOR_HEIGHT }} /> : null}
           <View
+            onLayout={onRow(stop.key)}
             style={{
-              paddingTop:
-                stop.status === "current" && index === firstCurrent ? 36 : 0,
+              paddingTop: buddyPadding(index),
             }}
           >
             <StopRow

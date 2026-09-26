@@ -2872,3 +2872,69 @@ export const inspect = internalQuery({
     };
   },
 });
+
+/**
+ * Stand in for a Parent approving one waiting Personal Chore for a fixture
+ * Child, so approval-driven UI (the child celebration, activity, balance) can
+ * be exercised end to end without a Parent sign-in. Uses the same domain
+ * helper as the Parent review flow. Guarded to the development fixture
+ * Household like every other fixture operation.
+ */
+export const approvePendingPersonalChore = internalMutation({
+  args: {
+    householdId: v.id("households"),
+    expectedParentAuthUserId: v.string(),
+    child: v.union(v.literal("alex"), v.literal("maya")),
+    /** Approve this chore title; otherwise the newest waiting one. */
+    choreTitle: v.optional(v.string()),
+  },
+  returns: v.object({
+    approvedTitle: v.string(),
+    valueSek: v.number(),
+  }),
+  handler: async (ctx, args) => {
+    const fixture = await loadFixtureContext(
+      ctx,
+      args.householdId,
+      args.expectedParentAuthUserId,
+    );
+    const childId = args.child === "alex" ? fixture.alexId : fixture.mayaId;
+
+    const waiting = (
+      await ctx.db
+        .query("choreOccurrences")
+        .withIndex("by_personal_child_state_availability", (q) =>
+          q.eq("personalChildId", childId).eq("state", "submitted"),
+        )
+        .order("desc")
+        .take(20)
+    ).filter(
+      (occurrence) =>
+        occurrence.householdId === fixture.householdId &&
+        (args.choreTitle === undefined || occurrence.title === args.choreTitle),
+    );
+
+    const occurrence = waiting[0];
+    if (!occurrence) {
+      throw new ConvexError("No waiting Personal Chore matches.");
+    }
+
+    const submission = await ctx.db
+      .query("choreSubmissions")
+      .withIndex("by_occurrence", (q) => q.eq("occurrenceId", occurrence._id))
+      .order("desc")
+      .first();
+    if (!submission || submission.childId !== childId) {
+      throw new ConvexError("Expected a submission from this Child.");
+    }
+
+    await approvePersonalSubmission(
+      ctx,
+      submission._id,
+      fixture.parentAuthUserId,
+      Date.now(),
+    );
+
+    return { approvedTitle: occurrence.title, valueSek: occurrence.valueSek };
+  },
+});
