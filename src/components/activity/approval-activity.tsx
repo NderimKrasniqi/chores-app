@@ -1,7 +1,7 @@
+import { ChoreIcon, StarBuddy } from "@/components/art";
 import { Icon } from "@/components/ui/icon";
 import { questTokens as themeColors } from "@/design-system/theme";
 import { ActionButton, AppText, Surface } from "@/design-system";
-import { AppImage as Image } from "@/components/ui/app-image";
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import { View } from "react-native";
@@ -14,46 +14,6 @@ const timelineGeometry = {
   parent: { markerOffsetX: -1.25, railLeft: 7.75 },
   child: { markerOffsetX: -8.25, railLeft: 0.75 },
 } as const;
-
-const artwork = {
-  bedroom: require("../../../assets/images/direction-c/chore-bedroom.png"),
-  dishwasher: require("../../../assets/images/direction-c/chore-dishwasher.png"),
-  dog: require("../../../assets/images/direction-c/chore-dog-walk.png"),
-  laundry: require("../../../assets/images/direction-c/chore-laundry.png"),
-  plants: require("../../../assets/images/direction-c/chore-plants.png"),
-  recycling: require("../../../assets/images/direction-c/chore-recycling.png"),
-  table: require("../../../assets/images/direction-c/chore-table.png"),
-};
-
-const parentActivityArtwork = {
-  dishwasher: require("../../../assets/images/direction-c/parent-activity-dishwasher-no-confetti-v2.png"),
-  laundry: require("../../../assets/images/direction-c/parent-activity-laundry-no-confetti-v2.png"),
-  table: require("../../../assets/images/direction-c/parent-activity-chore-table-no-confetti-v2.png"),
-};
-
-const emptyActivityArtwork = require("../../../assets/images/direction-c/activity-empty.png");
-const parentEmptyActivityArtwork = require("../../../assets/images/direction-c/activity-empty-parent.png");
-const celebrationArtwork = require("../../../assets/images/direction-c/activity-celebration.png");
-const parentCelebrationArtwork = require("../../../assets/images/direction-c/activity-celebration-parent.png");
-
-function artworkForTitle(title: string, parentMode: boolean) {
-  const normalized = title.toLowerCase();
-  if (normalized.includes("dishwasher") || normalized.includes("dishes"))
-    return parentMode ? parentActivityArtwork.dishwasher : artwork.dishwasher;
-  if (normalized.includes("table"))
-    return parentMode ? parentActivityArtwork.table : artwork.table;
-  if (normalized.includes("laundry") || normalized.includes("fold"))
-    return parentMode ? parentActivityArtwork.laundry : artwork.laundry;
-  if (normalized.includes("plant") || normalized.includes("water"))
-    return artwork.plants;
-  if (normalized.includes("dog") || normalized.includes("walk"))
-    return artwork.dog;
-  if (normalized.includes("recycl") || normalized.includes("trash"))
-    return artwork.recycling;
-  if (normalized.includes("room") || normalized.includes("bed"))
-    return artwork.bedroom;
-  return null;
-}
 
 export type ApprovalActivityItem = {
   activityId: Id<"choreReviews">;
@@ -115,7 +75,6 @@ function ActivityCard({
   parentMode: boolean;
 }) {
   const mine = item.childId === viewerChildId;
-  const artworkSource = artworkForTitle(item.choreTitle, parentMode);
   return (
     <View className="mb-2 flex-row items-center">
       <View className="w-5 items-center justify-center">
@@ -137,31 +96,7 @@ function ActivityCard({
         elevated={false}
         className="min-h-[104px] flex-1 flex-row items-center py-1.5 pl-3 pr-1.5"
       >
-        {artworkSource ? (
-          <Image
-            source={artworkSource}
-            className={
-              parentMode
-                ? "h-[94px] w-[94px] rounded-control bg-[#F7EDDF]"
-                : "h-[90px] w-[90px] rounded-control bg-[#F7EDDF]"
-            }
-            style={
-              parentMode && item.choreTitle.toLowerCase().includes("dog")
-                ? { transform: [{ scaleX: -1 }] }
-                : undefined
-            }
-            contentFit="contain"
-            accessible={false}
-          />
-        ) : (
-          <View className="h-[90px] w-[90px] items-center justify-center rounded-control bg-rewardSoft">
-            <Icon
-              name={item.choreKind === "claimable" ? "star" : "chores"}
-              color={themeColors.actionPressed}
-              size={42}
-            />
-          </View>
-        )}
+        <ChoreIcon title={item.choreTitle} size={parentMode ? 80 : 76} />
         <View className="ml-[18px] flex-1">
           <AppText
             className={
@@ -238,14 +173,6 @@ export function ApprovalActivitySurface({
   /** The child shell celebrates approvals itself, full screen. */
   showCelebration?: boolean;
 }) {
-  const celebrationImage =
-    celebrationStyle === "parent"
-      ? parentCelebrationArtwork
-      : celebrationArtwork;
-  const emptyArtwork =
-    celebrationStyle === "parent"
-      ? parentEmptyActivityArtwork
-      : emptyActivityArtwork;
   const [celebration, setCelebration] = useState<ApprovalActivityItem | null>(
     initialCelebrationItem ?? null,
   );
@@ -325,15 +252,9 @@ export function ApprovalActivitySurface({
           <View className="absolute bottom-2 left-3 h-3 w-1.5 rotate-[-38deg] rounded-full bg-reward" />
           <View className="absolute right-5 top-2 h-3 w-1.5 rotate-[-38deg] rounded-full bg-reward" />
           <View className="absolute bottom-2 right-5 h-3 w-1.5 rotate-[38deg] rounded-full bg-action" />
-          <Image
-            source={celebrationImage}
-            className={
-              celebrationStyle === "parent"
-                ? "h-[52px] w-[64px]"
-                : "h-[60px] w-[80px]"
-            }
-            contentFit="fill"
-            accessible={false}
+          <StarBuddy
+            size={celebrationStyle === "parent" ? 52 : 60}
+            mood="dance"
           />
           <View
             className={`flex-1 ${celebrationStyle === "parent" ? "ml-3" : "ml-[25px]"}`}
@@ -428,18 +349,7 @@ export function ApprovalActivitySurface({
               className={`flex-1 items-center px-5 pb-8 ${celebrationStyle === "parent" ? "pt-[42px]" : "pt-[46px]"}`}
               testID="household-approval-activity"
             >
-              <Image
-                source={emptyArtwork}
-                className="h-[245px] w-full"
-                style={{
-                  transform:
-                    celebrationStyle === "parent"
-                      ? [{ scaleX: 1.26 }, { scaleY: 1.3 }, { translateY: -6 }]
-                      : [{ scaleX: 1.14 }, { scaleY: 1.19 }],
-                }}
-                contentFit="contain"
-                accessible={false}
-              />
+              <StarBuddy size={120} mood="sleepy" />
               <AppText
                 variant="sectionTitle"
                 className="mt-6 text-center"

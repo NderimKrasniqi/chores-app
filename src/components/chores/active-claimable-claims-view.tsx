@@ -1,3 +1,4 @@
+import { ChoreIcon } from "@/components/art";
 import { Icon } from "@/components/ui/icon";
 import { childAvatarTone, Avatar } from "@/components/ui/avatar";
 import { questTokens as themeColors } from "@/design-system/theme";
@@ -8,7 +9,6 @@ import {
   Surface,
   TopBar,
 } from "@/design-system";
-import { AppImage as Image } from "@/components/ui/app-image";
 import { useState } from "react";
 import { Modal, Pressable, ScrollView, View } from "react-native";
 import {
@@ -36,47 +36,6 @@ export type ActiveClaimableClaimViewModel = {
   deadlineAt: number;
   redoDeadlineAt?: number;
 };
-
-const artwork = {
-  bedroom: require("../../../assets/images/direction-c/chore-bedroom.png"),
-  dishwasher: require("../../../assets/images/direction-c/chore-dishwasher.png"),
-  dog: require("../../../assets/images/direction-c/chore-dog-bowl.png"),
-  dogWalk: require("../../../assets/images/direction-c/chore-dog-walk.png"),
-  carWash: require("../../../assets/images/direction-c/chore-car-wash.png"),
-  laundry: require("../../../assets/images/direction-c/chore-laundry.png"),
-  plants: require("../../../assets/images/direction-c/chore-plants.png"),
-  recycling: require("../../../assets/images/direction-c/chore-recycling.png"),
-  table: require("../../../assets/images/direction-c/chore-table.png"),
-};
-const alexAvatar = require("../../../assets/images/direction-c/alex-avatar.png");
-const mayaAvatar = require("../../../assets/images/direction-c/maya-avatar.png");
-
-function childAvatar(displayName: string) {
-  const normalized = displayName.trim().toLowerCase();
-  if (normalized === "maya") return mayaAvatar;
-  if (normalized === "alex") return alexAvatar;
-  return null;
-}
-
-function artworkForTitle(title: string) {
-  const normalized = title.toLowerCase();
-  if (normalized.includes("dishwasher") || normalized.includes("dishes"))
-    return artwork.dishwasher;
-  if (normalized.includes("table")) return artwork.table;
-  if (normalized.includes("laundry") || normalized.includes("fold"))
-    return artwork.laundry;
-  if (normalized.includes("plant") || normalized.includes("water"))
-    return artwork.plants;
-  if (normalized.includes("car") || normalized.includes("wash"))
-    return artwork.carWash;
-  if (normalized.includes("walk") && normalized.includes("dog"))
-    return artwork.dogWalk;
-  if (normalized.includes("dog") || normalized.includes("pet"))
-    return artwork.dog;
-  if (normalized.includes("recycl") || normalized.includes("trash"))
-    return artwork.recycling;
-  return artwork.bedroom;
-}
 
 function localDateKey(value: Date, timezone: string) {
   try {
@@ -180,12 +139,7 @@ function ClaimSummary({
   if (homeVariant) {
     return (
       <Surface className="min-h-[98px] flex-row items-center p-2.5">
-        <Image
-          source={artworkForTitle(claim.title)}
-          className="h-[84px] w-[102px] rounded-control bg-[#F7EDDF]"
-          contentFit="contain"
-          accessible={false}
-        />
+        <ChoreIcon title={claim.title} size={72} />
         <View className="ml-3 flex-1">
           <AppText variant="cardTitle" numberOfLines={2}>
             {claim.title}
@@ -206,12 +160,7 @@ function ClaimSummary({
   }
   return (
     <Surface className="min-h-[116px] flex-row items-center p-3">
-      <Image
-        source={artworkForTitle(claim.title)}
-        className="h-24 w-28 rounded-control bg-[#F7EDDF]"
-        contentFit="contain"
-        accessible={false}
-      />
+      <ChoreIcon title={claim.title} size={80} />
       <View className="ml-3 flex-1">
         <StatusChip
           label={status.label}
@@ -252,12 +201,7 @@ function ClaimDetail({
     >
       <Surface className="p-3 pb-9">
         <View className="flex-row">
-          <Image
-            source={artworkForTitle(claim.title)}
-            className="h-[180px] w-[145px] rounded-control bg-[#F7EDDF]"
-            contentFit="contain"
-            accessible={false}
-          />
+          <ChoreIcon title={claim.title} size={120} />
           <View className="ml-4 flex-1">
             <StatusChip
               label={status.label}
@@ -272,7 +216,6 @@ function ClaimDetail({
             </AppText>
             <View className="mt-4 flex-row items-center">
               <Avatar
-                source={childAvatar(claim.claimedByDisplayName)}
                 tone={childAvatarTone(claim.claimedByDisplayName)}
                 className="h-11 w-11"
                 fallbackLabel={claim.claimedByDisplayName}

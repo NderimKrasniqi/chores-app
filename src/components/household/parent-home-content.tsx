@@ -16,6 +16,7 @@ import { useTheme } from "@/design-system/theme";
 
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
+import { ActiveClaimableClaimsCard } from "../chores/active-claimable-claims-card";
 import type { HouseholdSummary } from "./household-card";
 
 function localHour(timezone: string, now: number) {
@@ -373,6 +374,9 @@ export function ParentHomeContent({
           );
         })}
       </View>
+
+      {/* Claimed Extras, with the Parent's no-penalty cancel. */}
+      <ActiveClaimableClaimsCard householdId={householdId} homeVariant />
 
       <View className="mt-6 flex-row items-baseline justify-between">
         <AppText variant="sectionTitle">Latest win</AppText>
