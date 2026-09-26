@@ -6,6 +6,7 @@ import { PairingQrCode } from "@/components/ui/pairing-qr-code";
 
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
+import { formatPairingCodeForDisplay } from "@/lib/child-access/pairing-code";
 
 type ChildPairingCardProps = {
   householdId: Id<"households">;
@@ -187,7 +188,7 @@ export function ChildPairingCard({
                 selectable
                 className="mt-2 text-center text-2xl font-bold tracking-widest text-white"
               >
-                {generatedCredential.manualCode}
+                {formatPairingCodeForDisplay(generatedCredential.manualCode)}
               </Text>
 
               <Text className="mt-4 text-xs leading-5 text-slate-500">

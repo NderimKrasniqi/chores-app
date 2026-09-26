@@ -1,6 +1,7 @@
+import { MINUTE, RateLimiter } from "@convex-dev/rate-limiter";
 import { ConvexError, v } from "convex/values";
 
-import { internal } from "./_generated/api";
+import { components, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { action, internalMutation, mutation } from "./_generated/server";
 import { authComponent } from "./auth";
@@ -23,7 +24,27 @@ const MANUAL_ATTEMPT_WINDOW_MS = 10 * 60 * 1000;
 const MAX_MANUAL_ATTEMPTS_PER_WINDOW = 5;
 const MANUAL_BLOCK_DURATION_MS = 15 * 60 * 1000;
 
+// 32 unambiguous characters (no 0/O, 1/I): 6 characters give ~1.07e9 codes.
+// Each code lives 15 minutes, works once, and never repeats a stored hash.
 const MANUAL_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+const MANUAL_CODE_LENGTH = 6;
+// Short codes can collide with an old stored hash; retry with a fresh one.
+const MAX_GENERATION_ATTEMPTS = 5;
+
+/*
+ * Anonymous identities are free to create, so the per-identity attempt
+ * bucket below is not a global cap. With 6-character codes, failed manual
+ * guesses are also capped deployment-wide. When it trips, only typed codes
+ * pause; QR pairing is unaffected.
+ */
+const pairingRateLimiter = new RateLimiter(components.rateLimiter, {
+  failedManualPairing: {
+    kind: "token bucket",
+    rate: 30,
+    period: MINUTE,
+    capacity: 30,
+  },
+});
 
 type RedemptionSuccess = {
   householdId: Id<"households">;
@@ -61,16 +82,15 @@ function generateQrToken() {
 }
 
 function generateManualCode() {
-  const bytes = new Uint8Array(10);
+  const bytes = new Uint8Array(MANUAL_CODE_LENGTH);
 
   crypto.getRandomValues(bytes);
 
-  const characters = Array.from(
+  // The alphabet has exactly 32 characters, so masking is unbiased.
+  return Array.from(
     bytes,
     (byte) => MANUAL_CODE_ALPHABET[byte & (MANUAL_CODE_ALPHABET.length - 1)],
-  );
-
-  return `${characters.slice(0, 5).join("")}-${characters.slice(5).join("")}`;
+  ).join("");
 }
 
 function normalizeManualCode(code: string) {
@@ -118,31 +138,43 @@ export const create = action({
   }> => {
     const authUser = await requireCurrentParentAuthUser(ctx);
 
-    const qrToken = generateQrToken();
-    const manualCode = generateManualCode();
+    for (let attempt = 0; attempt < MAX_GENERATION_ATTEMPTS; attempt += 1) {
+      const qrToken = generateQrToken();
+      const manualCode = generateManualCode();
 
-    const qrTokenHash = await hashSecret(qrToken);
+      const qrTokenHash = await hashSecret(qrToken);
 
-    const manualCodeHash = await hashSecret(normalizeManualCode(manualCode));
+      const manualCodeHash = await hashSecret(normalizeManualCode(manualCode));
 
-    const stored: {
-      pairingCredentialId: Id<"childPairingCredentials">;
-      expiresAt: number;
-    } = await ctx.runMutation(internal.childPairing.storeGeneratedCredential, {
-      householdId: args.householdId,
-      childId: args.childId,
-      actorAuthUserId: authUser._id,
-      qrTokenHash,
-      manualCodeHash,
-    });
+      const stored:
+        | { status: "collision" }
+        | {
+            status: "stored";
+            pairingCredentialId: Id<"childPairingCredentials">;
+            expiresAt: number;
+          } = await ctx.runMutation(
+        internal.childPairing.storeGeneratedCredential,
+        {
+          householdId: args.householdId,
+          childId: args.childId,
+          actorAuthUserId: authUser._id,
+          qrTokenHash,
+          manualCodeHash,
+        },
+      );
 
-    return {
-      pairingCredentialId: stored.pairingCredentialId,
-      childId: args.childId,
-      qrToken,
-      manualCode,
-      expiresAt: stored.expiresAt,
-    };
+      if (stored.status === "stored") {
+        return {
+          pairingCredentialId: stored.pairingCredentialId,
+          childId: args.childId,
+          qrToken,
+          manualCode,
+          expiresAt: stored.expiresAt,
+        };
+      }
+    }
+
+    throw new ConvexError("Could not create a pairing code. Please try again.");
   },
 });
 
@@ -227,10 +259,12 @@ export const redeemManual = action({
     );
 
     if (result.status === "rate_limited") {
+      const minutes = Math.max(
+        1,
+        Math.ceil((result.retryAt - Date.now()) / 60_000),
+      );
       throw new ConvexError(
-        `Too many manual pairing attempts. Try again after ${new Date(
-          result.retryAt,
-        ).toISOString()}.`,
+        `Too many tries right now. Scan the QR code instead, or try again in ${minutes} ${minutes === 1 ? "minute" : "minutes"}.`,
       );
     }
 
@@ -329,18 +363,26 @@ export const storeGeneratedCredential = internalMutation({
     manualCodeHash: v.string(),
   },
 
-  returns: v.object({
-    pairingCredentialId: v.id("childPairingCredentials"),
-    expiresAt: v.number(),
-  }),
+  returns: v.union(
+    v.object({ status: v.literal("collision") }),
+    v.object({
+      status: v.literal("stored"),
+      pairingCredentialId: v.id("childPairingCredentials"),
+      expiresAt: v.number(),
+    }),
+  ),
 
   handler: async (
     ctx,
     args,
-  ): Promise<{
-    pairingCredentialId: Id<"childPairingCredentials">;
-    expiresAt: number;
-  }> => {
+  ): Promise<
+    | { status: "collision" }
+    | {
+        status: "stored";
+        pairingCredentialId: Id<"childPairingCredentials">;
+        expiresAt: number;
+      }
+  > => {
     await requireParentMembershipForHousehold(
       ctx,
       args.householdId,
@@ -367,9 +409,7 @@ export const storeGeneratedCredential = internalMutation({
       .first();
 
     if (existingQrCredential) {
-      throw new ConvexError(
-        "Generated QR pairing credential collision. Generate a new credential.",
-      );
+      return { status: "collision" };
     }
 
     const existingManualCredential = await ctx.db
@@ -379,10 +419,10 @@ export const storeGeneratedCredential = internalMutation({
       )
       .first();
 
+    // Any stored hash, even an expired one, keeps redemption's unique()
+    // lookup safe; the caller retries with a fresh code.
     if (existingManualCredential) {
-      throw new ConvexError(
-        "Generated manual pairing credential collision. Generate a new credential.",
-      );
+      return { status: "collision" };
     }
 
     const now = Date.now();
@@ -409,6 +449,7 @@ export const storeGeneratedCredential = internalMutation({
     });
 
     return {
+      status: "stored",
       pairingCredentialId,
       expiresAt,
     };
@@ -537,6 +578,19 @@ export const consumeManualCredential = internalMutation({
 
   handler: async (ctx, args): Promise<ManualRedemptionResult> => {
     const now = Date.now();
+
+    // Deployment-wide guess budget, checked before touching any credential.
+    const globalBudget = await pairingRateLimiter.check(
+      ctx,
+      "failedManualPairing",
+    );
+
+    if (!globalBudget.ok) {
+      return {
+        status: "rate_limited",
+        retryAt: now + globalBudget.retryAfter,
+      };
+    }
 
     let attemptBucket = await ctx.db
       .query("childPairingManualAttemptBuckets")
@@ -687,6 +741,9 @@ export const consumeManualCredential = internalMutation({
         lastManualAttemptAt: now,
       });
     }
+
+    // Spend one token of the global budget; committed with this result.
+    await pairingRateLimiter.limit(ctx, "failedManualPairing");
 
     const currentAttemptCount = attemptBucket?.attemptCount ?? 0;
 

@@ -5,6 +5,7 @@
   "dependencies": {
     "@better-auth/expo": "~1.6.15",
     "@convex-dev/better-auth": "^0.12.5",
+    "@convex-dev/rate-limiter": "^0.4.0",
     "@date-fns/tz": "^1.5.0",
     "@expo-google-fonts/fredoka": "^0.4.1",
     "@expo-google-fonts/nunito": "^0.4.2",

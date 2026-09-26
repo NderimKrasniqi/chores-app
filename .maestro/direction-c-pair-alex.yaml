@@ -8,9 +8,9 @@ appId: host.exp.Exponent
     timeout: 30000
 
 - tapOn:
-    text: "A B C D E - 2 3 4 5 6"
+    id: "child-pairing-manual-code"
 
-- inputText: "ALEX2026V7"
+- inputText: "ALEX26"
 
 - hideKeyboard
 

@@ -28,19 +28,14 @@ import { ChildQrScannerScreen } from "./child-qr-scanner-screen";
 
 type JoinMode = "manual" | "qr";
 
-const CODE_LENGTH = 10;
+const CODE_LENGTH = 6;
+const GROUP = 3;
 
 function normalizeCode(value: string) {
   return value
     .toUpperCase()
     .replace(/[^A-Z0-9]/g, "")
     .slice(0, CODE_LENGTH);
-}
-
-function formatCode(normalized: string) {
-  return normalized.length <= 5
-    ? normalized
-    : `${normalized.slice(0, 5)}-${normalized.slice(5)}`;
 }
 
 /** The blinking "type here" edge on the next empty box. */
@@ -68,7 +63,7 @@ function Cursor() {
 }
 
 /**
- * Ten glowing boxes for the Parent's pairing code. A hidden input under
+ * Six glowing boxes for the Parent's pairing code. A hidden input under
  * them does the typing, so paste, autocorrect-off and the system keyboard
  * all still work.
  */
@@ -87,7 +82,7 @@ function CodeBoxes({
     return (
       <View
         key={i}
-        className={`h-[50px] flex-1 items-center justify-center rounded-[12px] ${
+        className={`h-[60px] flex-1 items-center justify-center rounded-[14px] ${
           char
             ? "bg-nightRaised"
             : active
@@ -96,7 +91,7 @@ function CodeBoxes({
         }`}
       >
         {char ? (
-          <AppText className="font-display text-[22px]">{char}</AppText>
+          <AppText className="font-display text-[26px]">{char}</AppText>
         ) : active ? (
           <Cursor />
         ) : null}
@@ -112,12 +107,12 @@ function CodeBoxes({
       onPress={onFocus}
       className="flex-row items-center gap-1.5"
     >
-      <View className="flex-1 flex-row gap-1.5">
-        {[0, 1, 2, 3, 4].map(box)}
+      <View className="flex-1 flex-row gap-2">
+        {Array.from({ length: GROUP }, (_, i) => box(i))}
       </View>
-      <View className="h-[3px] w-2.5 rounded-full bg-inkMuted" />
-      <View className="flex-1 flex-row gap-1.5">
-        {[5, 6, 7, 8, 9].map(box)}
+      <View className="w-3" />
+      <View className="flex-1 flex-row gap-2">
+        {Array.from({ length: CODE_LENGTH - GROUP }, (_, i) => box(GROUP + i))}
       </View>
     </Pressable>
   );
@@ -140,14 +135,14 @@ export function ChildJoinScreen() {
     setErrorMessage(null);
 
     if (code.length < CODE_LENGTH) {
-      setErrorMessage("Type all 10 letters and numbers from your Parent.");
+      setErrorMessage("Type all 6 letters and numbers from your Parent.");
       return;
     }
 
     setRedeeming(true);
 
     try {
-      await redeemManual({ manualCode: formatCode(code) });
+      await redeemManual({ manualCode: code });
       setCode("");
     } catch (error) {
       setErrorMessage(
@@ -272,8 +267,8 @@ export function ChildJoinScreen() {
             <TextInput
               ref={inputRef}
               testID="child-pairing-manual-code"
-              accessibilityLabel="Pairing code, 10 letters and numbers"
-              value={formatCode(code)}
+              accessibilityLabel="Pairing code, 6 letters and numbers"
+              value={code}
               onChangeText={(value) => {
                 setErrorMessage(null);
                 setCode(normalizeCode(value));
@@ -282,7 +277,7 @@ export function ChildJoinScreen() {
               onBlur={() => setFocused(false)}
               autoCapitalize="characters"
               autoCorrect={false}
-              // Generous: pasted codes may carry spaces; normalize caps at 10.
+              // Generous: pasted codes may carry spaces; normalize caps at 6.
               maxLength={32}
               caretHidden
               style={{

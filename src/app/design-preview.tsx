@@ -228,7 +228,7 @@ const claimableForm: ParentChoresVisualForm = {
 const pairingCode = {
   pairingCredentialId,
   qrToken: "visual-preview-pairing-token",
-  manualCode: "K7M4P-9Q2RW",
+  manualCode: "K7M4PQ",
   expiresAt: atReferencePairingTime(9, 56),
 };
 
@@ -587,7 +587,7 @@ function ParentChildAccess({
           ? {
               ...pairingCode,
               qrToken: "visual-preview-regenerated-pairing-token",
-              manualCode: "R8T6H-4L2KQ",
+              manualCode: "R8T6HL",
               expiresAt: atReferencePairingTime(10, 12),
             }
           : pairingCode;

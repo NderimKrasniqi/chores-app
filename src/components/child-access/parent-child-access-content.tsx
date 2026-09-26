@@ -17,6 +17,7 @@ import {
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { formatTimestampDateTime } from "@/lib/dates";
+import { formatPairingCodeForDisplay } from "@/lib/child-access/pairing-code";
 
 const alexAvatar = require("../../../assets/images/direction-c/alex-avatar.png");
 const mayaAvatar = require("../../../assets/images/direction-c/maya-avatar.png");
@@ -477,7 +478,7 @@ export function ParentChildAccessContent({
                 variant="cardTitle"
                 className="flex-1 text-center tracking-[4px]"
               >
-                {generated.manualCode}
+                {formatPairingCodeForDisplay(generated.manualCode)}
               </AppText>
               <View className="h-8 w-px bg-info" />
               <Pressable

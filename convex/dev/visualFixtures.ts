@@ -52,14 +52,14 @@ type FixtureContext = {
 
 const EXPECTED_HOUSEHOLD_NAME = "Krasniqi Family";
 const ADDITIONAL_VISUAL_HOUSEHOLD_NAMES = new Set(["Visual Parity Household"]);
-const ALEX_VISUAL_PAIRING_CODE = "ALEX2-026V7";
+const ALEX_VISUAL_PAIRING_CODE = "ALEX26";
 const ALEX_VISUAL_PAIRING_CODE_HASH =
-  "fe3ca163342be34526fad6f37229e44ea8e056c8e94d3295f2ddff3d86e8818b";
+  "f0d56856d5ec2716457e8c5570fb9814cfe2013c2ef67b075f95cf096f8d9082";
 const ALEX_VISUAL_QR_TOKEN_HASH =
   "3bd8dda1191f37fd15b237423bcad46d0c1d84ecc2daee87dbd92058a5482c80";
-const MAYA_VISUAL_PAIRING_CODE = "MAYA2-026V7";
+const MAYA_VISUAL_PAIRING_CODE = "MAYA26";
 const MAYA_VISUAL_PAIRING_CODE_HASH =
-  "c9a7a69b25220eab510023be6f8e49dbba1a917f559b048b818d18d75cc48121";
+  "601289d0b6702ce38766dcb39393996122c97313ac40c16a88e5d85ce5395193";
 const MAYA_VISUAL_QR_TOKEN_HASH =
   "90b84a337578d97607a8b924e9a59c6191c4acb4ff3d444f68fe651fb9430cd1";
 
@@ -1143,6 +1143,18 @@ export const createMayaPairingCredential = internalMutation({
     const now = Date.now();
     const expiresAt = now + 15 * 60 * 1000;
 
+    // The fixed code is a valid real code now, so clear any other holder of
+    // its hash to keep redemption's unique() lookup safe.
+    await deleteAll(
+      ctx,
+      await ctx.db
+        .query("childPairingCredentials")
+        .withIndex("by_manual_code_hash", (q) =>
+          q.eq("manualCodeHash", MAYA_VISUAL_PAIRING_CODE_HASH),
+        )
+        .take(10),
+    );
+
     await ctx.db.insert("childPairingCredentials", {
       householdId: fixture.householdId,
       childId: fixture.mayaId,
@@ -1194,6 +1206,18 @@ export const createAlexPairingCredential = internalMutation({
 
     const now = Date.now();
     const expiresAt = now + 15 * 60 * 1000;
+
+    // The fixed code is a valid real code now, so clear any other holder of
+    // its hash to keep redemption's unique() lookup safe.
+    await deleteAll(
+      ctx,
+      await ctx.db
+        .query("childPairingCredentials")
+        .withIndex("by_manual_code_hash", (q) =>
+          q.eq("manualCodeHash", ALEX_VISUAL_PAIRING_CODE_HASH),
+        )
+        .take(10),
+    );
 
     await ctx.db.insert("childPairingCredentials", {
       householdId: fixture.householdId,
