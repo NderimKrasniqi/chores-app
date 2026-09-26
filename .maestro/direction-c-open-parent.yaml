@@ -1,8 +1,0 @@
-appId: host.exp.Exponent
----
-- tapOn:
-    text: "Continue as a parent"
-
-- extendedWaitUntil:
-    visible: "Good morning, Sam"
-    timeout: 30000

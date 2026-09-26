@@ -1,50 +1,27 @@
-# Direction C design system
+# Quest Path design system
 
-**Status:** Approved
+## Themes
 
-This folder turns the explicitly approved Direction C screens into a reusable production design foundation. The approved PNGs remain authoritative when a token or component recipe conflicts with a screen. Product and domain documentation remain authoritative for behavior, terminology, privacy, money, and state transitions.
+Two scopes share one palette (`src/design-system/theme/palettes.js`, `ACTIVE_PALETTE` switches it):
 
-## Source of truth
+- **quest** — child app: night canvas, star text, primary/accent/pink/gold highlights.
+- **home** — parent app: light canvas, ink text, the same accents.
 
-- `tokens.json` is the machine-readable visual token source.
-- `components.md` defines recurring component recipes and their supported states.
-- `../references/direction-c/` contains the approved screen compositions from which the system is derived.
-- Production React Native code consumes these values through `src/design-system/`.
+Wrap a subtree in `<ThemeScope mode="quest" | "home">`; read colours with `useTheme().tokens`. Never hard-code colours in components.
 
-Changing a token does not retroactively approve a changed screen. The initial Direction C token foundation was explicitly approved by the human reviewer on 2026-09-13.
+## Type
 
-## Visual principles
+Fredoka (display) + Nunito (body) via `AppText` variants: `display`, `screenTitle`, `sectionTitle`, `cardTitle`, `amount`, `body`, `bodySmall`, `label`, `caption`. Prefer variants over ad-hoc sizes.
 
-- Warm off-white canvas with light, tactile surfaces rather than clinical white panels.
-- Deep aubergine is the primary text and navigation color.
-- Mint and green communicate creation, progress, selection, and safe primary actions.
-- Coral communicates urgency, destructive actions, and exceptional attention—not ordinary decoration.
-- Yellow is a restrained reward accent and never represents fake currency.
-- Dusty lavender communicates supporting information and neutral guidance.
-- Rounded system typography carries the interface; handwritten treatment is limited to decorative encouragement art and is never required to understand or operate the app.
-- Child screens may use more illustration and energy. Parent screens use the same system with calmer density and fewer decorative accents.
+## Motion (`src/components/art/motion.ts`)
 
-## Layout rules
+- `Easings.out` / `inOut` / `sheet` / `linear` / `float` — strong beziers, never ease-in on UI.
+- `PRESS` + `pressTransition` — scale 0.97 over 120 ms on every pressable.
+- `useLoop` (ambient, rests under reduced motion unless `essential`) and `useEntrance` (one-shot).
+- Haptics: one per commit the user caused.
 
-- Base spacing unit: 4 points.
-- Standard horizontal screen inset: 20 points on phones.
-- Minimum interactive target: 44 by 44 points.
-- Primary controls: 52 points minimum height.
-- Bottom navigation: 82 points before the device safe-area inset.
-- Lists that are shown as bounded regions in approved screens scroll independently while their destination header, key status summary, and bottom navigation remain stable.
-- Full-screen forms keep the final action above the bottom safe area.
+## Art library (`src/components/art/`)
 
-## Typography rules
+Starfield, StarBuddy, ChoreIcon, QuestPath (road), TreasureChest, Backpack, UnclaimKeys, LockClunk, CoinDrop, PiggyPlanet, RocketTrack, FamilySky, Fireworks/Sunburst, Confetti, DockingScene, LostSatellite, plus pieces (PopIn, Floating, PulseRings, SpinningCoin).
 
-- Use the platform rounded system face where available.
-- Use screen and section sizes semantically instead of selecting arbitrary values per screen.
-- Amounts, deadlines, and state labels must survive larger text without clipping.
-- Body copy uses sentence case. Buttons and navigation labels are concise and never all caps.
-
-## Accessibility rules
-
-- Color is always paired with text or an icon for status.
-- Decorative illustrations are hidden from assistive technology.
-- Icon-only actions have explicit accessibility labels.
-- Reduced motion removes nonessential celebration and parallax while preserving state feedback.
-- Pressed, disabled, loading, error, and server-confirmed success states are part of the component contract.
+See `components.md` for the interaction components.

@@ -1,8 +1,0 @@
-appId: host.exp.Exponent
----
-- tapOn:
-    text: "Money"
-
-- extendedWaitUntil:
-    visible: "Money"
-    timeout: 30000

@@ -1,34 +1,16 @@
 # Design
 
-**Status:** Active — clean-slate production design
-
-This directory is the repository-based visual source of truth for TASK-23.
+**Status:** Active — Quest Path (redesign, branch `redesign/playful`)
 
 ## Authority
 
-- `src/docs/product.md` and `src/docs/domain.md` remain authoritative for behavior and terminology.
-- Approved visual references under `design/references/` are authoritative for visual implementation.
-- Generated images are visual references, not executable specifications. Exact copy, accessibility, interaction states, and responsive behavior must be captured in deterministic HTML before React Native implementation.
+- `src/docs/product.md`, `domain.md` and `specs.md` are authoritative for behaviour, terminology, privacy and money.
+- `design/system/` describes the visual system; the code in `src/design-system/` and `src/components/art/` is its implementation.
+- `design/ux/` maps screens and navigation.
+- `design/journey-audit.md` checks every product journey (J-01 … J-13) against the screens.
 
-## Statuses
+## Direction
 
-- **Exploration** — an early visual direction with no approval.
-- **Review** — selected for refinement but not approved for implementation.
-- **Approved** — explicitly approved by a human for the stated scope only.
+Quest Path: the child app is a night sky (quest theme) where chores are quests on a winding road, Extras live in a treasure chest and a one-quest backpack, money is a piggy planet and family wins light stars. The parent app is light (home theme): a mission-control Home, a swipeable review deck, a chore builder, a payday board and a family orbit.
 
-Approval never transfers automatically from one screen or flow to another.
-
-## Current direction
-
-Direction C is selected for refinement. It uses warm tactile surfaces, deep aubergine typography, muted mint, terracotta, apricot, and dusty lavender accents, rounded components, and clay-and-paper household illustrations.
-
-See `references/direction-c/README.md` for the approval record and asset scope.
-
-The shared Direction C token foundation and component recipes in `system/` were explicitly approved by the human reviewer on 2026-09-13.
-
-## UX architecture
-
-- `ux/navigation.md` defines the proposed role-specific navigation model.
-- `ux/screen-map.md` defines required production screens and state coverage.
-
-Both documents remain Review until explicitly approved.
+Principles: rethink each screen around one visual idea; self-made SVG art that moves; motion follows the Emil Kowalski skills in `.claude/skills` (spectacle only for rare moments, frequent screens stay calm, reduced motion is gentler not frozen).
