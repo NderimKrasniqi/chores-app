@@ -1,11 +1,10 @@
-import { Scene } from "@/components/art";
+import { DockingScene } from "@/components/art";
+import Svg, { Circle } from "react-native-svg";
 import { Icon } from "@/components/ui/icon";
-import { childAvatarTone, Avatar } from "@/components/ui/avatar";
 import { homeTokens as themeColors } from "@/design-system/theme";
-import { ActionButton, AppText, DesignTokens, Surface } from "@/design-system";
+import { ActionButton, AppText } from "@/design-system";
 import { useServerConfirmedMutation } from "@/hooks/use-server-confirmed-mutation";
 import { useAction, useQuery } from "convex/react";
-import { AppImage as Image } from "@/components/ui/app-image";
 import { PairingQrCode } from "@/components/ui/pairing-qr-code";
 import { useEffect, useState } from "react";
 import { Modal, Pressable, Share, View } from "react-native";
@@ -18,17 +17,6 @@ import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { formatTimestampDateTime } from "@/lib/dates";
 import { formatPairingCodeForDisplay } from "@/lib/child-access/pairing-code";
-
-const alexAvatar = require("../../../assets/images/direction-c/alex-avatar.png");
-const mayaAvatar = require("../../../assets/images/direction-c/maya-avatar.png");
-const accessMutedTextStyle = { color: "#3f5fa8" } as const;
-
-function childAvatar(displayName: string) {
-  const normalized = displayName.trim().toLowerCase();
-  if (normalized === "maya") return mayaAvatar;
-  if (normalized === "alex") return alexAvatar;
-  return null;
-}
 
 export type GeneratedCredential = {
   pairingCredentialId: Id<"childPairingCredentials">;
@@ -141,7 +129,6 @@ export function ParentChildAccessContent({
   timezone: string;
   visualFixture?: ParentChildAccessVisualFixture;
 }) {
-  const artworkAvatar = childAvatar(childDisplayName);
   const queriedDevices = useQuery(
     api.childAccess.listDevicesForChild,
     visualFixture ? "skip" : { childId },
@@ -271,423 +258,186 @@ export function ParentChildAccessContent({
     }
   }
 
-  return (
-    <View>
-      <View className="flex-row items-center">
-        <Avatar
-          source={childAvatar(childDisplayName)}
-          tone={childAvatarTone(childDisplayName)}
-          className="h-24 w-24"
-          fallbackLabel={childDisplayName}
-        />
-        <View className="ml-5 flex-1">
-          <AppText variant="sectionTitle">{childDisplayName}</AppText>
-          <AppText
-            color={generated ? "ink-muted" : "ink-muted"}
-            style={accessMutedTextStyle}
-            className="mt-1"
-          >
-            {generated
-              ? generatedExpired
-                ? "Pairing code expired"
-                : "Pairing code ready"
-              : devices === undefined
-                ? "Checking devices…"
-                : activeDevices.length === 0
-                  ? "No paired devices"
-                  : `${activeDevices.length} paired ${activeDevices.length === 1 ? "device" : "devices"}`}
-          </AppText>
-        </View>
-      </View>
+  const secondsLeft = generated
+    ? Math.max(0, Math.round((generated.expiresAt - now) / 1000))
+    : 0;
+  const lifetime = 15 * 60;
 
+  return (
+    <View className="pb-6">
       {!generated ? (
-        <View key="pairing-empty">
-          <AppText variant="sectionTitle" className="mt-6">
-            Pair a device
+        <View className="items-center">
+          <DockingScene width={320} height={170} />
+          <AppText variant="sectionTitle" className="mt-2 text-center">
+            Link {childDisplayName}’s phone
           </AppText>
-          <Surface
-            tone="lavender"
-            elevated={false}
-            className="mt-2 h-[160px] flex-row overflow-hidden p-0"
-          >
-            <View className="relative h-full w-[50%] items-center justify-center overflow-hidden">
-              <Scene name="phone-qr" size={150} />
-              {artworkAvatar ? (
-                <Image
-                  source={artworkAvatar}
-                  className="absolute h-[36px] w-[36px]"
-                  style={{ left: 111, top: 60 }}
-                  contentFit="cover"
-                  accessible={false}
-                />
-              ) : null}
-            </View>
-            <View className="flex-1 justify-center pl-1 pr-2">
-              <AppText
-                variant="cardTitle"
-                style={{ fontSize: 18, lineHeight: 22 }}
-                numberOfLines={1}
-                adjustsFontSizeToFit
-                minimumFontScale={0.84}
-              >
-                Connect {childDisplayName}’s device
-              </AppText>
-              <AppText
-                variant="bodySmall"
-                color="ink-muted"
-                style={[accessMutedTextStyle, { fontSize: 14 }]}
-                className="mt-2"
-              >
-                Create a secure code, then scan it or enter it on{" "}
-                {childDisplayName}’s device.
-              </AppText>
-            </View>
-          </Surface>
-          <View className="mt-4 gap-3">
-            {[
-              `Open Chores App on ${childDisplayName}’s device`,
-              "Choose Child, then scan or enter the code",
-            ].map((step, index) => (
-              <View key={step} className="flex-row items-center">
-                <View className="h-10 w-10 items-center justify-center rounded-full bg-infoSoft">
-                  <AppText variant="cardTitle">{index + 1}</AppText>
-                </View>
-                <AppText className="ml-3 flex-1" style={accessMutedTextStyle}>
-                  {step}
-                </AppText>
-              </View>
-            ))}
-          </View>
+          <AppText color="ink-muted" className="mt-1 text-center">
+            Make a code, then on their phone choose “I’m a child” and scan it.
+          </AppText>
           <ActionButton
-            tone="soft"
-            className="mt-7"
-            label="Create pairing code"
-            leading={
-              <Icon name="qrCode" color={themeColors.actionPressed} size={22} />
-            }
+            className="mt-5 w-full"
+            label="Make a pairing code"
             loading={generating}
             onPress={() => void generate()}
           />
-          <AppText
-            variant="caption"
-            color="ink-muted"
-            style={accessMutedTextStyle}
-            className="mt-2 text-center"
-          >
-            The code expires after 15 minutes and can be used once.
-          </AppText>
-        </View>
-      ) : generatedExpired ? (
-        <View key="pairing-expired">
-          <AppText variant="sectionTitle" className="mt-6">
-            Pairing code
-          </AppText>
-          <Surface
-            tone="lavender"
-            elevated={false}
-            className="mt-3 items-center px-2 pb-4 pt-2"
-          >
-            <Scene name="broken-link" size={160} />
-            <View className="mt-3 rounded-full bg-urgencySoft px-4 py-2">
-              <View className="flex-row items-center">
-                <Icon name="clock" color={themeColors.urgency} size={17} />
-                <AppText variant="label" color="urgency" className="ml-2">
-                  Expired {formatDateTime(generated.expiresAt, timezone)}
-                </AppText>
-              </View>
-            </View>
-            <AppText variant="cardTitle" className="mt-5">
-              This code can’t be used anymore.
-            </AppText>
-            <AppText
-              color="ink-muted"
-              style={accessMutedTextStyle}
-              className="mt-1 text-center"
-            >
-              Generate a new one to pair {childDisplayName}’s device.
-            </AppText>
-            <ActionButton
-              className="mt-4 w-full bg-[#3f1dc9]"
-              label="Generate new code"
-              leading={
-                <Icon name="refresh" color={themeColors.onAction} size={22} />
-              }
-              loading={generating}
-              onPress={() => void generate()}
-            />
-          </Surface>
         </View>
       ) : (
-        <View key="pairing-ready">
-          {generationCount > 1 ? (
-            <AppText variant="sectionTitle" className="mt-4">
-              Pairing code
-            </AppText>
-          ) : null}
-          <Surface
-            tone="lavender"
-            elevated={false}
-            className={`${generationCount > 1 ? "mt-4" : "mt-0"} items-center p-3 ${generationCount === 1 ? "bg-transparent" : ""}`}
+        <View
+          className="items-center rounded-[28px] p-5"
+          style={{ backgroundColor: themeColors.surface }}
+        >
+          <View style={{ opacity: generatedExpired ? 0.2 : 1 }}>
+            <PairingQrCode
+              value={generated.qrToken}
+              size={200}
+              quietZone={2}
+              color={themeColors.ink}
+              backgroundColor={themeColors.surface}
+            />
+          </View>
+          <AppText
+            selectable
+            className="mt-4 font-display tracking-[6px]"
+            style={{ fontSize: 32, lineHeight: 38, color: themeColors.ink }}
           >
-            {generationCount > 1 ? (
-              <View className="mb-3 w-full flex-row items-center justify-center rounded-full bg-actionSoft px-4 py-2.5">
-                <View className="h-8 w-8 items-center justify-center rounded-full bg-action">
-                  <Icon name="check" color={themeColors.onAction} size={18} />
-                </View>
-                <AppText variant="label" color="action" className="ml-2">
-                  New pairing code ready
-                </AppText>
-              </View>
-            ) : null}
-            <View
-              className="rounded-control bg-white p-0.5"
-              style={DesignTokens.shadowStyle.card}
-            >
-              <PairingQrCode
-                value={generated.qrToken}
-                size={generationCount > 1 ? 116 : 124}
-                quietZone={4}
-                backgroundColor={themeColors.onAction}
-                color="#000000"
-              />
-            </View>
-            <View className="mt-2 rounded-full bg-urgencySoft px-4 py-2">
-              <View className="flex-row items-center">
-                <Icon name="clock" color={themeColors.urgency} size={17} />
-                <AppText variant="caption" color="urgency" className="ml-2">
-                  One use · Expires{" "}
-                  {formatDateTime(generated.expiresAt, timezone)}
-                </AppText>
-              </View>
-            </View>
-            <View className="my-2 flex-row items-center">
-              <View className="h-px flex-1 bg-infoSoftStrong" />
-              <AppText
-                variant="bodySmall"
-                color="ink-muted"
-                style={accessMutedTextStyle}
-                className="px-4"
-              >
-                or enter manually
-              </AppText>
-              <View className="h-px flex-1 bg-infoSoftStrong" />
-            </View>
-            <View className="min-h-control w-full flex-row items-center rounded-control bg-infoSoft px-4">
-              <AppText
-                selectable
-                variant="cardTitle"
-                className="flex-1 text-center tracking-[4px]"
-              >
-                {formatPairingCodeForDisplay(generated.manualCode)}
-              </AppText>
-              <View className="h-8 w-px bg-info" />
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Share pairing code"
-                onPress={() => void shareCode()}
-                className="h-12 w-12 items-center justify-center"
-              >
-                <Icon name="share" color={themeColors.action} size={25} />
-              </Pressable>
-            </View>
+            {formatPairingCodeForDisplay(generated.manualCode)}
+          </AppText>
+          <CountdownRing
+            secondsLeft={secondsLeft}
+            lifetime={lifetime}
+            expired={generatedExpired}
+          />
+          {generatedExpired ? (
             <ActionButton
-              tone="secondary"
-              className={`${generationCount > 1 ? "mt-3" : "mt-8"} w-full`}
-              label="Generate another code"
-              leading={
-                <Icon name="refresh" color={themeColors.ink} size={22} />
-              }
+              className="mt-4 w-full"
+              label="Make a new code"
               loading={generating}
               onPress={() => void generate()}
             />
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => setConfirmCodeRevoke(true)}
-              className="mt-2 min-h-control w-full flex-row items-center rounded-control bg-urgencySoft px-4"
+          ) : (
+            <View className="mt-4 w-full flex-row gap-3">
+              <ActionButton
+                className="flex-1"
+                tone="secondary"
+                label="Share"
+                leading={
+                  <Icon name="share" color={themeColors.ink} size={18} />
+                }
+                onPress={() => void shareCode()}
+              />
+              <ActionButton
+                className="flex-1"
+                tone="destructiveSecondary"
+                label="Cancel code"
+                onPress={() => setConfirmCodeRevoke(true)}
+              />
+            </View>
+          )}
+          {showGeneratedDivider && !generatedExpired ? (
+            <AppText
+              variant="caption"
+              color="ink-muted"
+              className="mt-3 text-center"
             >
-              <View className="h-12 w-12 items-center justify-center rounded-full bg-urgency">
-                <Icon
-                  name="brokenLink"
-                  color={themeColors.onAction}
-                  size={25}
-                />
-              </View>
-              <View className="ml-3 flex-1">
-                <AppText variant="label" color="urgency">
-                  Revoke this code
-                </AppText>
-                <AppText variant="caption" color="urgency" className="mt-0.5">
-                  Stops this code from being used
-                </AppText>
-              </View>
-              <Icon name="chevron" color={themeColors.urgency} size={21} />
-            </Pressable>
-          </Surface>
+              Older codes for {childDisplayName} no longer work.
+            </AppText>
+          ) : null}
         </View>
       )}
 
-      {showGeneratedDivider ? <View className="mt-6 h-px bg-line" /> : null}
-      <AppText
-        variant="sectionTitle"
-        className={
-          showGeneratedDivider ? "mt-5" : generated ? "mt-5" : "mt-[37px]"
-        }
-      >
-        Paired devices
+      {error ? (
+        <View className="mt-4 rounded-[18px] bg-urgencySoft px-4 py-3">
+          <AppText variant="bodySmall" color="urgency">
+            {error}
+          </AppText>
+        </View>
+      ) : null}
+
+      <AppText variant="sectionTitle" className="mt-7">
+        Linked phones
       </AppText>
       {devices === undefined ? (
-        <Surface className="mt-3 p-5">
-          <AppText variant="cardTitle">Checking devices…</AppText>
-          <AppText
-            variant="bodySmall"
-            color="ink-muted"
-            style={accessMutedTextStyle}
-            className="mt-1"
-          >
-            Active Child sessions will appear here.
-          </AppText>
-        </Surface>
+        <AppText color="ink-muted" className="mt-2">
+          Checking…
+        </AppText>
       ) : activeDevices.length === 0 ? (
-        <View
-          className={`flex-row items-center px-2 ${showGeneratedDivider ? "mt-4" : generated ? "mt-7" : "mt-3"}`}
-        >
-          <View
-            className={`items-center justify-center rounded-full ${
-              revokedDevices.length > 0
-                ? "h-14 w-14 bg-transparent"
-                : "h-[60px] w-[60px] bg-infoSoft"
-            }`}
-          >
-            <Icon
-              name={revokedDevices.length > 0 ? "deviceOff" : "phone"}
-              color={themeColors.inkMuted}
-              size={revokedDevices.length > 0 ? 32 : 36}
-            />
-          </View>
-          <View className="ml-4 flex-1">
-            <AppText variant="cardTitle">
-              {revokedDevices.length > 0
-                ? "No active devices"
-                : "No devices yet"}
-            </AppText>
-            <AppText
-              variant="bodySmall"
-              color="ink-muted"
-              style={accessMutedTextStyle}
-              className="mt-1"
-            >
-              {revokedDevices.length > 0
-                ? "All paired devices are revoked."
-                : "Paired devices will appear here."}
-            </AppText>
-          </View>
+        <View className="mt-3 rounded-[20px] bg-surface p-4">
+          <AppText color="ink-muted">
+            No phone is linked for {childDisplayName} yet.
+          </AppText>
         </View>
       ) : (
-        <View className="mt-3 gap-3">
+        <View className="mt-3 gap-2.5">
           {activeDevices.map((device, index) => (
-            <Surface
+            <View
               key={device.accessGrantId}
-              tone="lavender"
-              elevated={false}
-              className="flex-row items-center p-2"
+              className="flex-row items-center gap-3 rounded-[20px] bg-surface px-4 py-3"
             >
-              <View className="h-8 w-8 items-center justify-center rounded-full bg-infoSoftStrong">
-                <Icon name="phone" color={themeColors.ink} size={20} />
+              <View
+                className="h-10 w-10 items-center justify-center rounded-full"
+                style={{ backgroundColor: themeColors.actionSoft }}
+              >
+                <Icon name="phone" color={themeColors.action} size={20} />
               </View>
-              <View className="ml-3 flex-1">
-                <AppText variant="cardTitle">Paired device {index + 1}</AppText>
-                <AppText
-                  variant="bodySmall"
-                  color="ink-muted"
-                  style={accessMutedTextStyle}
-                  className="mt-0.5"
-                >
-                  Paired {formatDateTime(device.createdAt, timezone)}
+              <View className="flex-1">
+                <AppText variant="cardTitle">Phone {index + 1}</AppText>
+                <AppText variant="caption" color="ink-muted">
+                  Linked {formatDateTime(device.createdAt, timezone)}
                 </AppText>
-                <View className="mt-1 self-start rounded-full bg-actionSoft px-2 py-0.5">
-                  <View className="flex-row items-center">
-                    <View className="h-2.5 w-2.5 rounded-full bg-action" />
-                    <AppText
-                      variant="caption"
-                      color="action"
-                      className="ml-1.5"
-                    >
-                      Active
-                    </AppText>
-                  </View>
-                </View>
               </View>
               <Pressable
                 accessibilityRole="button"
+                accessibilityLabel={`Unlink phone ${index + 1}`}
                 onPress={() => setConfirmDeviceId(device.accessGrantId)}
-                className="min-h-target justify-center rounded-full bg-urgencySoft px-3"
+                hitSlop={8}
+                className="min-h-[40px] justify-center px-2"
               >
                 <AppText variant="label" color="urgency">
-                  Revoke device
+                  Unlink
                 </AppText>
               </Pressable>
-            </Surface>
+            </View>
           ))}
         </View>
       )}
 
       {revokedDevices.length > 0 ? (
-        <View className="mt-3">
+        <View className="mt-4">
           <Pressable
             accessibilityRole="button"
-            onPress={() => setShowRevoked((current) => !current)}
-            className="min-h-control flex-row items-center rounded-control bg-infoSoft px-4"
+            onPress={() => setShowRevoked((value) => !value)}
+            className="min-h-[40px] flex-row items-center gap-1"
           >
-            <Icon name="clock" color={themeColors.inkMuted} size={22} />
-            <AppText variant="label" className="ml-3 flex-1">
-              Revoked devices ({revokedDevices.length})
+            <AppText variant="label" color="ink-muted">
+              {showRevoked ? "Hide" : "Show"} {revokedDevices.length} unlinked
             </AppText>
-            <Icon name="chevron" color={themeColors.ink} size={20} />
+            <Icon name="chevronDown" color={themeColors.inkMuted} size={16} />
           </Pressable>
-          {showRevoked ? (
-            <View className="mt-2 gap-2">
-              {revokedDevices.map((device) => (
-                <Surface
+          {showRevoked
+            ? revokedDevices.map((device) => (
+                <AppText
                   key={device.accessGrantId}
-                  tone="muted"
-                  elevated={false}
-                  className="p-3"
+                  variant="caption"
+                  color="ink-muted"
+                  className="mt-1"
                 >
-                  <AppText variant="bodySmall">
-                    Paired {formatDateTime(device.createdAt, timezone)}
-                  </AppText>
-                  {device.revokedAt ? (
-                    <AppText
-                      variant="caption"
-                      color="ink-muted"
-                      style={accessMutedTextStyle}
-                      className="mt-1"
-                    >
-                      Revoked {formatDateTime(device.revokedAt, timezone)}
-                    </AppText>
-                  ) : null}
-                </Surface>
-              ))}
-            </View>
-          ) : null}
+                  Unlinked{" "}
+                  {device.revokedAt
+                    ? formatDateTime(device.revokedAt, timezone)
+                    : ""}
+                </AppText>
+              ))
+            : null}
         </View>
-      ) : null}
-
-      {error ? (
-        <Surface tone="coral" elevated={false} className="mt-4 p-3">
-          <AppText variant="bodySmall" color="urgency">
-            {error}
-          </AppText>
-        </Surface>
       ) : null}
 
       <ConfirmationSheet
         visible={confirmCodeRevoke}
-        title="Revoke this code?"
-        body="This QR code and manual code will stop working immediately."
-        reassurance={`${childDisplayName}’s paired devices won’t be affected.`}
-        actionLabel="Revoke code"
-        cancelLabel="Keep code"
+        title="Cancel this code?"
+        body="It stops working right away. You can make a new one anytime."
+        reassurance="Linked phones stay linked."
+        actionLabel="Cancel code"
+        cancelLabel="Keep it"
         icon="brokenLink"
         loading={revoking}
         onConfirm={() => void confirmRevokeCode()}
@@ -695,16 +445,76 @@ export function ParentChildAccessContent({
       />
       <ConfirmationSheet
         visible={confirmDeviceId !== null}
-        title="Revoke this device?"
-        body={`${childDisplayName} will lose access on this device immediately.`}
-        reassurance="Other paired devices and pairing codes won’t be affected."
-        actionLabel="Revoke device"
-        cancelLabel="Keep device"
+        title={`Unlink this phone?`}
+        body={`${childDisplayName} won’t be able to use the app on it until it’s linked again.`}
+        reassurance="Their chores, balance and history are kept."
+        actionLabel="Unlink phone"
+        cancelLabel="Keep linked"
         icon="deviceOff"
         loading={revoking}
         onConfirm={() => void confirmRevokeDevice()}
         onCancel={() => setConfirmDeviceId(null)}
       />
+    </View>
+  );
+}
+
+/** Time left on the code as a shrinking ring with mm:ss inside. */
+function CountdownRing({
+  secondsLeft,
+  lifetime,
+  expired,
+}: {
+  secondsLeft: number;
+  lifetime: number;
+  expired: boolean;
+}) {
+  const size = 64;
+  const r = 26;
+  const circumference = 2 * Math.PI * r;
+  const fraction = Math.min(1, secondsLeft / lifetime);
+  const minutes = Math.floor(secondsLeft / 60);
+  const seconds = String(secondsLeft % 60).padStart(2, "0");
+  return (
+    <View
+      className="mt-4 flex-row items-center gap-3"
+      accessible
+      accessibilityLabel={
+        expired ? "Code expired" : `Code works for ${minutes} more minutes`
+      }
+    >
+      <View style={{ width: size, height: size }}>
+        <Svg width={size} height={size}>
+          <Circle
+            cx={size / 2}
+            cy={size / 2}
+            r={r}
+            stroke={themeColors.surfaceMuted}
+            strokeWidth={6}
+            fill="none"
+          />
+          <Circle
+            cx={size / 2}
+            cy={size / 2}
+            r={r}
+            stroke={expired ? themeColors.urgency : themeColors.action}
+            strokeWidth={6}
+            fill="none"
+            strokeLinecap="round"
+            strokeDasharray={circumference}
+            strokeDashoffset={circumference * (1 - fraction)}
+            transform={`rotate(-90 ${size / 2} ${size / 2})`}
+          />
+        </Svg>
+        <View className="absolute inset-0 items-center justify-center">
+          <AppText variant="caption">
+            {expired ? "0:00" : `${minutes}:${seconds}`}
+          </AppText>
+        </View>
+      </View>
+      <AppText variant="bodySmall" color={expired ? "urgency" : "ink-muted"}>
+        {expired ? "This code expired" : "Works once, for 15 minutes"}
+      </AppText>
     </View>
   );
 }
