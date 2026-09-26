@@ -1,12 +1,9 @@
+import { Scene } from "@/components/art";
 import { Icon } from "@/components/ui/icon";
-import {
-  childAvatarTone,
-  Avatar,
-} from "@/components/ui/avatar";
+import { childAvatarTone, Avatar } from "@/components/ui/avatar";
 import { homeTokens as themeColors } from "@/design-system/theme";
 import { AppText, Surface } from "@/design-system";
 import { useQuery } from "convex/react";
-import { AppImage as Image } from "@/components/ui/app-image";
 import { useState } from "react";
 import { Modal, Pressable, View } from "react-native";
 
@@ -15,7 +12,6 @@ import type { Id } from "../../../convex/_generated/dataModel";
 import type { HouseholdSummary } from "./household-card";
 import { ParentInviteCard } from "./parent-invite-card";
 
-const familyArtwork = require("../../../assets/images/direction-c/household-family.png");
 const parentAvatar = require("../../../assets/images/direction-c/sam-avatar.png");
 const alexAvatar = require("../../../assets/images/direction-c/alex-avatar.png");
 const mayaAvatar = require("../../../assets/images/direction-c/maya-avatar.png");
@@ -70,9 +66,7 @@ function ChildAccessRow({
             <Icon
               name="phone"
               color={
-                activeCount > 0
-                  ? themeColors.action
-                  : themeColors.disabledInk
+                activeCount > 0 ? themeColors.action : themeColors.disabledInk
               }
               size={19}
             />
@@ -122,12 +116,7 @@ export function ParentFamilyContent({
         elevated={false}
         className="mt-2 h-[124px] overflow-hidden p-3"
       >
-        <Image
-          source={familyArtwork}
-          className="absolute -bottom-10 -left-2 h-[180px] w-[210px]"
-          contentFit="contain"
-          accessible={false}
-        />
+        <Scene name="family" size={180} />
         <View className="ml-[52%] flex-1 -translate-y-2 translate-x-2 justify-center">
           <AppText
             variant="sectionTitle"
@@ -205,11 +194,7 @@ export function ParentFamilyContent({
         className="mt-2 min-h-[62px] flex-row items-center rounded-control bg-actionSoft px-3"
       >
         <View className="h-11 w-11 items-center justify-center rounded-full bg-action">
-          <Icon
-            name="personPlus"
-            color={themeColors.onAction}
-            size={24}
-          />
+          <Icon name="personPlus" color={themeColors.onAction} size={24} />
         </View>
         <View className="ml-3 flex-1">
           <AppText variant="cardTitle" color="action">
@@ -250,11 +235,7 @@ export function ParentFamilyContent({
           <AppText variant="label" color="action">
             Settings
           </AppText>
-          <Icon
-            name="chevron"
-            color={themeColors.action}
-            size={19}
-          />
+          <Icon name="chevron" color={themeColors.action} size={19} />
         </Pressable>
       </View>
 
@@ -269,11 +250,7 @@ export function ParentFamilyContent({
           </AppText>
         </View>
         <View className="flex-1 items-center border-r border-infoSoftStrong px-1">
-          <Icon
-            name="calendar"
-            color={themeColors.ink}
-            size={22}
-          />
+          <Icon name="calendar" color={themeColors.ink} size={22} />
           <AppText variant="caption" color="ink-muted" className="mt-2">
             Payout
           </AppText>
@@ -282,11 +259,7 @@ export function ParentFamilyContent({
           </AppText>
         </View>
         <View className="flex-1 items-center px-1">
-          <Icon
-            name="refresh"
-            color={themeColors.ink}
-            size={22}
-          />
+          <Icon name="refresh" color={themeColors.ink} size={22} />
           <AppText variant="caption" color="ink-muted" className="mt-2">
             Unclaims
           </AppText>

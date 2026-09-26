@@ -15,58 +15,26 @@ import {
   setChildExplicitlyLocked,
 } from "@/lib/child-access/unlock-policy";
 import { Icon } from "@/components/ui/icon";
+import { childAvatarTone, Avatar } from "@/components/ui/avatar";
+import { Scene, StarBuddy, Starfield } from "@/components/art";
 import {
-  childAvatarTone,
-  Avatar,
-} from "@/components/ui/avatar";
-import { homeTokens as themeColors } from "@/design-system/theme";
-import { AppText, DesignTokens, Surface } from "@/design-system";
+  AppText,
+  Surface,
+  ThemeScope,
+  questTokens as tokens,
+} from "@/design-system";
 import { useAuthRuntime } from "@/providers/auth-runtime-provider";
 import { useQuery } from "convex/react";
-import { AppImage as Image } from "@/components/ui/app-image";
-import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useMemo, useState } from "react";
-import {
-  ActivityIndicator,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  View,
-} from "react-native";
+import { Pressable, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { api } from "../../../convex/_generated/api";
 
-const alexAvatar = require("../../../assets/images/direction-c/alex-avatar.png");
-const mayaAvatar = require("../../../assets/images/direction-c/maya-avatar.png");
-const chooserHero = require("../../../assets/images/direction-c/household-home.png");
-
-function childAvatar(displayName: string) {
-  const normalized = displayName.trim().toLowerCase();
-  if (normalized === "maya") return mayaAvatar;
-  if (normalized === "alex") return alexAvatar;
-  return null;
-}
-
 type EntryChoiceScreenProps = {
   onChooseParent: () => void;
 };
-
-const styles = StyleSheet.create({
-  parentChoice: {
-    minHeight: 104,
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 16,
-  },
-  childChoice: {
-    minHeight: 84,
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 14,
-  },
-});
 
 /*
  * Only one automatic single-Child open
@@ -508,208 +476,168 @@ export function EntryChoiceScreen({ onChooseParent }: EntryChoiceScreenProps) {
     }
 
     return (
-      <View className="flex-1 items-center justify-center bg-canvas px-6">
-        <StatusBar style="dark" />
-        <View className="h-16 w-16 items-center justify-center rounded-full bg-actionSoft">
-          <ActivityIndicator color={themeColors.action} />
+      <ThemeScope mode="quest">
+        <View className="flex-1 items-center justify-center bg-canvas px-6">
+          <StatusBar style="light" />
+          <Starfield seed={31} />
+          <StarBuddy size={84} mood="hop" />
+          <AppText variant="sectionTitle" className="mt-6 text-center">
+            Getting things ready
+          </AppText>
+          <AppText
+            color="ink-muted"
+            className="mt-1 text-center font-body-bold"
+          >
+            {message}
+          </AppText>
         </View>
-        <AppText variant="sectionTitle" className="mt-4 text-center">
-          Getting things ready
-        </AppText>
-        <AppText color="ink-muted" className="mt-1 text-center">
-          {message}
-        </AppText>
-      </View>
+      </ThemeScope>
     );
   }
 
   return (
-    <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-canvas">
-      <StatusBar style="dark" />
-      <ScrollView
-        contentContainerClassName="flex-grow px-5 pb-6 pt-2"
-        showsVerticalScrollIndicator={false}
-      >
-        <View className="min-h-[214px]">
-          <View className="flex-row items-start">
-            <View className="min-w-0 flex-1">
+    <ThemeScope mode="quest">
+      <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-canvas">
+        <StatusBar style="light" />
+        <Starfield seed={5} />
+        <ScrollView
+          contentContainerClassName="flex-grow px-5 pb-6 pt-2"
+          showsVerticalScrollIndicator={false}
+        >
+          <View className="items-center pt-4">
+            <View className="items-center justify-center">
+              <Scene name="planet" size={190} />
+              <View className="absolute" style={{ top: 58 }}>
+                <StarBuddy size={70} mood="wave" />
+              </View>
+            </View>
+            <AppText variant="screenTitle" className="mt-4 text-center">
+              Who’s using this phone?
+            </AppText>
+            <AppText
+              color="ink-muted"
+              className="mt-2 text-center font-body-bold"
+            >
+              Pick your profile, sign in as a Parent, or pair another Child.
+            </AppText>
+          </View>
+
+          {localChildContexts.length > 0 ? (
+            <View className="mt-7">
               <AppText
                 variant="label"
-                color="ink-faint"
-                className="uppercase tracking-widest"
+                color="ink-muted"
+                className="uppercase tracking-[1.2px]"
               >
-                Chores App
+                Saved Child profiles
               </AppText>
-              <AppText
-                variant="display"
-                className="mt-2 text-[34px] leading-[40px]"
-              >
-                Who’s using this device?
-              </AppText>
+
+              <View className="mt-3 gap-3">
+                {localChildContexts.map((context) => (
+                  <Pressable
+                    key={context.contextId}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Open ${context.childDisplayName} in ${context.householdName}`}
+                    className="min-h-[84px] flex-row items-center gap-4 rounded-large bg-surface px-4 py-3"
+                    onPress={() => handleChooseSavedChild(context)}
+                  >
+                    <Avatar
+                      tone={childAvatarTone(context.childDisplayName)}
+                      className="h-[58px] w-[58px]"
+                      fallbackLabel={context.childDisplayName}
+                    />
+                    <View className="flex-1">
+                      <AppText className="font-display text-[22px] leading-[26px]">
+                        {context.childDisplayName}
+                      </AppText>
+                      <AppText variant="bodySmall" color="ink-muted">
+                        {context.householdName}
+                      </AppText>
+                    </View>
+                    <View className="h-11 w-11 items-center justify-center rounded-full bg-primary">
+                      <Icon name="chevron" color={tokens.night} size={20} />
+                    </View>
+                  </Pressable>
+                ))}
+              </View>
             </View>
-            <Image
-              source={chooserHero}
-              className="h-36 w-36"
-              contentFit="contain"
-              accessible={false}
-            />
+          ) : null}
+
+          <View className="mt-7 gap-3">
+            <Pressable
+              testID="entry-pair-child"
+              accessibilityRole="button"
+              accessibilityLabel="Pair another child"
+              disabled={startingChildSession}
+              onPress={handleAddChild}
+              className="flex-row items-center gap-3.5 rounded-large border-b-[5px] border-primaryShade bg-primary p-4"
+            >
+              <View className="h-[52px] w-[52px] items-center justify-center rounded-[18px] bg-night">
+                <Icon name="scan" color={tokens.gold} size={26} />
+              </View>
+              <View className="flex-1">
+                <AppText className="font-display text-[20px] text-night">
+                  {startingChildSession
+                    ? "Starting Child setup…"
+                    : localChildContexts.length > 0
+                      ? "Pair another child"
+                      : "I’m a child"}
+                </AppText>
+                <AppText className="font-body-bold text-[14px] text-night">
+                  Scan the code from a Parent
+                </AppText>
+              </View>
+              <Icon name="chevron" color={tokens.night} size={20} />
+            </Pressable>
+
+            <Pressable
+              testID="entry-continue-parent"
+              accessibilityRole="button"
+              accessibilityLabel="Continue as a parent"
+              onPress={handleChooseParent}
+              className="flex-row items-center gap-3.5 rounded-large bg-surface p-4"
+            >
+              <View className="h-[52px] w-[52px] items-center justify-center rounded-[18px] bg-nightRaised">
+                <Icon name="home" color={tokens.ink} size={26} />
+              </View>
+              <View className="flex-1">
+                <AppText className="font-display text-[20px]">
+                  I’m a parent
+                </AppText>
+                <AppText
+                  variant="bodySmall"
+                  color="ink-muted"
+                  className="font-body-bold"
+                >
+                  Sign in or open the Parent account
+                </AppText>
+              </View>
+              <Icon name="chevron" color={tokens.inkMuted} size={20} />
+            </Pressable>
           </View>
-          <AppText className="mt-2 text-[14px] leading-[21px]">
-            Choose a saved Child profile, sign in as a Parent, or pair another
-            Child.
+
+          {errorMessage ? (
+            <Surface tone="coral" className="mt-4 p-3">
+              <AppText
+                variant="bodySmall"
+                color="urgency"
+                className="text-center"
+              >
+                {errorMessage}
+              </AppText>
+            </Surface>
+          ) : null}
+
+          <View className="flex-1" />
+          <AppText
+            variant="caption"
+            color="ink-muted"
+            className="mt-10 text-center"
+          >
+            Saved profiles stay private on this device.
           </AppText>
-        </View>
-
-        {localChildContexts.length > 0 ? (
-          <View className="mt-2">
-            <AppText
-              variant="label"
-              color="ink-faint"
-              className="uppercase tracking-widest"
-            >
-              Saved Child profiles
-            </AppText>
-
-            {localChildContexts.map((context) => (
-              <Pressable
-                key={context.contextId}
-                accessibilityRole="button"
-                accessibilityLabel={`Open ${context.childDisplayName} in ${context.householdName}`}
-                className="-mx-[6px] mt-3 min-h-[116px] flex-row items-center rounded-large bg-surface px-3 py-2"
-                style={DesignTokens.shadowStyle.card}
-                onPress={() => handleChooseSavedChild(context)}
-              >
-                <Avatar
-                  source={childAvatar(context.childDisplayName)}
-                  tone={childAvatarTone(context.childDisplayName)}
-                  className="h-[100px] w-[100px]"
-                  fallbackLabel={context.childDisplayName}
-                />
-                <View className="ml-7 flex-1">
-                  <AppText
-                    variant="sectionTitle"
-                    className="text-[30px] leading-[34px]"
-                  >
-                    {context.childDisplayName}
-                  </AppText>
-                  <AppText
-                    color="ink-muted"
-                    className="text-[16px] leading-[22px]"
-                  >
-                    {context.householdName}
-                  </AppText>
-                </View>
-                <Icon
-                  name="chevron"
-                  color={themeColors.ink}
-                  size={24}
-                />
-              </Pressable>
-            ))}
-          </View>
-        ) : null}
-
-        <Pressable
-          testID="entry-continue-parent"
-          accessibilityRole="button"
-          accessibilityLabel="Continue as a parent"
-          className="-mx-[6px] mt-6 overflow-hidden rounded-large"
-          onPress={handleChooseParent}
-        >
-          <LinearGradient
-            colors={["#D5F4E1", "#D8F5E3"]}
-            start={{ x: 0, y: 0.5 }}
-            end={{ x: 1, y: 0.5 }}
-            style={styles.parentChoice}
-          >
-            <View className="h-[68px] w-[68px] items-center justify-center rounded-full bg-[#E5F8EF]">
-              <Icon
-                name="person"
-                color={themeColors.actionPressed}
-                size={36}
-              />
-            </View>
-            <View className="ml-4 flex-1">
-              <AppText variant="cardTitle">I’m a parent</AppText>
-              <AppText
-                variant="bodySmall"
-                color="ink-muted"
-                className="mt-1 text-[13px] leading-[18px]"
-              >
-                Sign in or open the Parent account.
-              </AppText>
-            </View>
-            <Icon
-              name="chevron"
-              color={themeColors.ink}
-              size={24}
-            />
-          </LinearGradient>
-        </Pressable>
-
-        <Pressable
-          testID="entry-pair-child"
-          accessibilityRole="button"
-          accessibilityLabel="Pair another child"
-          className="-mx-[6px] mt-4 overflow-hidden rounded-large border-2 border-infoSoftStrong"
-          disabled={startingChildSession}
-          onPress={handleAddChild}
-        >
-          <LinearGradient
-            colors={["#F8F4FF", "#FFFDF9"]}
-            start={{ x: 0, y: 0.5 }}
-            end={{ x: 1, y: 0.5 }}
-            style={styles.childChoice}
-          >
-            <View className="h-16 w-16 items-center justify-center rounded-full bg-infoSoft">
-              <Icon
-                name="devices"
-                color={themeColors.ink}
-                size={36}
-              />
-            </View>
-            <View className="ml-6 flex-1">
-              <AppText variant="cardTitle">
-                {startingChildSession
-                  ? "Starting Child setup…"
-                  : "Pair another child"}
-              </AppText>
-              <AppText
-                variant="bodySmall"
-                color="ink-muted"
-                className="mt-1 text-[12px] leading-4"
-              >
-                Add another Child profile to this device
-              </AppText>
-            </View>
-            <Icon
-              name="chevron"
-              color={themeColors.ink}
-              size={24}
-            />
-          </LinearGradient>
-        </Pressable>
-
-        {errorMessage ? (
-          <Surface tone="coral" elevated={false} className="mt-4 p-3">
-            <AppText
-              variant="bodySmall"
-              color="urgency"
-              className="text-center"
-            >
-              {errorMessage}
-            </AppText>
-          </Surface>
-        ) : null}
-
-        <AppText
-          variant="caption"
-          color="ink-muted"
-          className="mt-10 text-center"
-        >
-          Saved profiles stay private on this device.
-        </AppText>
-      </ScrollView>
-    </SafeAreaView>
+        </ScrollView>
+      </SafeAreaView>
+    </ThemeScope>
   );
 }

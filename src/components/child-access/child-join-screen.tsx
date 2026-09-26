@@ -1,9 +1,9 @@
+import { Scene } from "@/components/art";
 import { Icon } from "@/components/ui/icon";
 import { questTokens as themeColors } from "@/design-system/theme";
 import { ActionButton, AppText, Surface } from "@/design-system";
 import { useAuthRuntime } from "@/providers/auth-runtime-provider";
 import { useAction } from "convex/react";
-import { AppImage as Image } from "@/components/ui/app-image";
 import { StatusBar } from "expo-status-bar";
 import { useState } from "react";
 import {
@@ -20,9 +20,6 @@ import { api } from "../../../convex/_generated/api";
 import { ChildQrScannerScreen } from "./child-qr-scanner-screen";
 
 type JoinMode = "manual" | "qr";
-
-const childPairingHero = require("../../../assets/images/direction-c/child-pairing-hero.png");
-const qrScanPhone = require("../../../assets/images/direction-c/qr-scan-phone.png");
 
 function formatManualCodeInput(value: string) {
   const normalized = value
@@ -128,12 +125,7 @@ export function ChildJoinScreen() {
               Scan the QR code shown on the Parent device or enter the manual
               pairing code.
             </AppText>
-            <Image
-              source={childPairingHero}
-              className="absolute -right-3 top-0 h-52 w-44"
-              contentFit="contain"
-              accessible={false}
-            />
+            <Scene name="phone-qr" size={208} buddy="wave" />
           </View>
 
           <Pressable
@@ -144,23 +136,14 @@ export function ChildJoinScreen() {
             }}
             className="mt-2 min-h-[124px] flex-row items-center rounded-large bg-actionSoft p-4"
           >
-            <Image
-              source={qrScanPhone}
-              className="h-24 w-24"
-              contentFit="contain"
-              accessible={false}
-            />
+            <Scene name="phone-qr" size={96} />
             <View className="ml-4 flex-1">
               <AppText variant="sectionTitle">Scan QR code</AppText>
               <AppText color="ink-muted" className="mt-1">
                 Use this phone’s camera
               </AppText>
             </View>
-            <Icon
-              name="chevron"
-              color={themeColors.ink}
-              size={24}
-            />
+            <Icon name="chevron" color={themeColors.ink} size={24} />
           </Pressable>
 
           <View className="my-6 flex-row items-center">

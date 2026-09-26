@@ -82,11 +82,7 @@ export function SubmissionEvidenceViewer({
             resizeMode="cover"
           />
           <View className="mt-2 flex-row items-center">
-            <Icon
-              name="lock"
-              color={themeColors.inkMuted}
-              size={20}
-            />
+            <Icon name="lock" color={themeColors.inkMuted} size={20} />
             <AppText variant="bodySmall" color="ink-muted" className="ml-2">
               Private to your household.
             </AppText>

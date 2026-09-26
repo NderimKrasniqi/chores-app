@@ -1,8 +1,5 @@
 import { Icon } from "@/components/ui/icon";
-import {
-  childAvatarTone,
-  Avatar,
-} from "@/components/ui/avatar";
+import { childAvatarTone, Avatar } from "@/components/ui/avatar";
 import { homeTokens as themeColors } from "@/design-system/theme";
 import {
   ActionButton,
@@ -262,11 +259,7 @@ function PersonChoice({
         />
       ) : (
         <View className="h-9 w-9 items-center justify-center rounded-full bg-infoSoft">
-          <Icon
-            name="person"
-            color={themeColors.ink}
-            size={24}
-          />
+          <Icon name="person" color={themeColors.ink} size={24} />
         </View>
       )}
       <AppText
@@ -286,11 +279,7 @@ function PersonChoice({
         }`}
       >
         {active ? (
-          <Icon
-            name="check"
-            color={themeColors.onAction}
-            size={14}
-          />
+          <Icon name="check" color={themeColors.onAction} size={14} />
         ) : null}
       </View>
     </Pressable>
@@ -343,11 +332,7 @@ function EligibilityChoice({
         }`}
       >
         {active ? (
-          <Icon
-            name="check"
-            color={themeColors.onAction}
-            size={14}
-          />
+          <Icon name="check" color={themeColors.onAction} size={14} />
         ) : null}
       </View>
     </Pressable>
@@ -787,11 +772,7 @@ export function ParentChoresContent({
         className="min-h-[44px] flex-row items-center rounded-control bg-actionSoft px-4"
       >
         <View className="h-12 w-12 items-center justify-center rounded-full bg-action">
-          <Icon
-            name="plus"
-            color={themeColors.onAction}
-            size={25}
-          />
+          <Icon name="plus" color={themeColors.onAction} size={25} />
         </View>
         <AppText variant="cardTitle" color="action" className="ml-3 flex-1">
           Add chore
@@ -825,11 +806,7 @@ export function ParentChoresContent({
           elevated={false}
           className="mt-3 items-center p-7"
         >
-          <Icon
-            name="chores"
-            color={themeColors.inkMuted}
-            size={40}
-          />
+          <Icon name="chores" color={themeColors.inkMuted} size={40} />
           <AppText variant="cardTitle" className="mt-3">
             No {listKind} chores yet
           </AppText>
@@ -896,11 +873,7 @@ export function ParentChoresContent({
                       onPress={() => openEdit(definition)}
                       className="min-h-target flex-row items-center justify-center rounded-full bg-infoSoft px-2.5"
                     >
-                      <Icon
-                        name="edit"
-                        color={themeColors.ink}
-                        size={17}
-                      />
+                      <Icon name="edit" color={themeColors.ink} size={17} />
                       <AppText variant="label" className="ml-1">
                         Edit
                       </AppText>
@@ -911,11 +884,7 @@ export function ParentChoresContent({
                       onPress={() => confirmArchive(definition)}
                       className="ml-1 min-h-target w-10 items-center justify-center rounded-full bg-infoSoft"
                     >
-                      <Icon
-                        name="more"
-                        color={themeColors.ink}
-                        size={19}
-                      />
+                      <Icon name="more" color={themeColors.ink} size={19} />
                     </Pressable>
                   </View>
                   <View className="mt-1 flex-row items-center">
@@ -934,11 +903,7 @@ export function ParentChoresContent({
                     </AppText>
                     {definition.isUnlockChore ? (
                       <View className="ml-auto flex-row items-center rounded-full bg-actionSoft px-2 py-1">
-                        <Icon
-                          name="key"
-                          color={themeColors.action}
-                          size={13}
-                        />
+                        <Icon name="key" color={themeColors.action} size={13} />
                         <AppText variant="caption" color="action">
                           {" "}
                           Unlock chore
@@ -977,11 +942,7 @@ export function ParentChoresContent({
         elevated={false}
         className="mt-2 flex-row items-center p-3"
       >
-        <Icon
-          name="info"
-          color={themeColors.inkMuted}
-          size={22}
-        />
+        <Icon name="info" color={themeColors.inkMuted} size={22} />
         <AppText variant="bodySmall" color="ink-muted" className="ml-3 flex-1">
           Edits apply to future chores.
         </AppText>
@@ -1022,11 +983,7 @@ export function ParentChoresContent({
                   elevated={false}
                   className="flex-row items-center p-2"
                 >
-                  <Icon
-                    name="info"
-                    color={themeColors.inkMuted}
-                    size={20}
-                  />
+                  <Icon name="info" color={themeColors.inkMuted} size={20} />
                   <View className="ml-3 flex-1">
                     <AppText
                       variant="cardTitle"
@@ -1287,11 +1244,7 @@ export function ParentChoresContent({
                     className="mt-3 flex-row items-center p-3"
                   >
                     <View className="h-10 w-10 items-center justify-center rounded-full bg-actionSoftStrong">
-                      <Icon
-                        name="key"
-                        color={themeColors.action}
-                        size={25}
-                      />
+                      <Icon name="key" color={themeColors.action} size={25} />
                     </View>
                     <View className="ml-3 flex-1">
                       <AppText variant="label">Unlock Chore</AppText>
@@ -1320,11 +1273,7 @@ export function ParentChoresContent({
 
               {kind === "personal" && recurrenceKind !== "one_off" ? (
                 <View className="mt-2 flex-row items-center px-1">
-                  <Icon
-                    name="info"
-                    color={themeColors.inkMuted}
-                    size={20}
-                  />
+                  <Icon name="info" color={themeColors.inkMuted} size={20} />
                   <AppText
                     variant="bodySmall"
                     color="ink-muted"

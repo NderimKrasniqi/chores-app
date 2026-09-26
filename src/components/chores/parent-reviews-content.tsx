@@ -1,9 +1,7 @@
+import { Scene } from "@/components/art";
 import { SubmissionEvidenceViewer } from "@/components/evidence/submission-evidence-viewer";
 import { Icon } from "@/components/ui/icon";
-import {
-  childAvatarTone,
-  Avatar,
-} from "@/components/ui/avatar";
+import { childAvatarTone, Avatar } from "@/components/ui/avatar";
 import { homeTokens as themeColors } from "@/design-system/theme";
 import { ActionButton, AppText, Surface, TopBar } from "@/design-system";
 import { useServerConfirmedMutation } from "@/hooks/use-server-confirmed-mutation";
@@ -26,10 +24,7 @@ import {
 
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
-import {
-  formatLocalDate,
-  formatTimestampDateTime,
-} from "@/lib/dates";
+import { formatLocalDate, formatTimestampDateTime } from "@/lib/dates";
 
 type ReviewSource = "personal" | "claimable" | "redo";
 type ReviewItem = {
@@ -59,8 +54,6 @@ const artwork = {
 };
 const alexAvatar = require("../../../assets/images/direction-c/alex-avatar.png");
 const mayaAvatar = require("../../../assets/images/direction-c/maya-avatar.png");
-const reviewClipboard = require("../../../assets/images/direction-c/review-clipboard.png");
-const redoDeadlineArtwork = require("../../../assets/images/direction-c/redo-deadline.png");
 
 function avatarForName(name: string) {
   const normalized = name.trim().toLowerCase();
@@ -329,20 +322,11 @@ export function ParentReviewsContent({
       >
         {items.length > 0 ? (
           <View className="h-[76px] w-[76px] items-center justify-center rounded-full bg-urgency">
-            <Image
-              source={reviewClipboard}
-              className="h-[76px] w-[76px]"
-              contentFit="contain"
-              accessible={false}
-            />
+            <Scene name="clipboard" size={76} />
           </View>
         ) : (
           <View className="h-16 w-16 items-center justify-center rounded-full bg-action">
-            <Icon
-              name="check"
-              color={themeColors.onAction}
-              size={31}
-            />
+            <Icon name="check" color={themeColors.onAction} size={31} />
           </View>
         )}
         <View className="ml-4 flex-1">
@@ -471,11 +455,7 @@ export function ParentReviewsContent({
                     </View>
                   </View>
                 </View>
-                <Icon
-                  name="chevron"
-                  color={themeColors.ink}
-                  size={22}
-                />
+                <Icon name="chevron" color={themeColors.ink} size={22} />
               </Surface>
             </Pressable>
           ))}
@@ -486,11 +466,7 @@ export function ParentReviewsContent({
           elevated={false}
           className="mt-3 items-center p-8"
         >
-          <Icon
-            name="reviews"
-            color={themeColors.action}
-            size={44}
-          />
+          <Icon name="reviews" color={themeColors.action} size={44} />
           <AppText variant="cardTitle" className="mt-3">
             Nothing waiting
           </AppText>
@@ -510,11 +486,7 @@ export function ParentReviewsContent({
           elevated={false}
           className="flex-row items-center p-3"
         >
-          <Icon
-            name="info"
-            color={themeColors.inkMuted}
-            size={23}
-          />
+          <Icon name="info" color={themeColors.inkMuted} size={23} />
           <AppText variant="bodySmall" className="ml-3 flex-1">
             Approval creates the earning. Rejection requires one Redo deadline.
           </AppText>
@@ -665,11 +637,7 @@ export function ParentReviewsContent({
                     className="mt-4 flex-row items-center p-4"
                   >
                     <View className="h-[76px] w-[76px] items-center justify-center">
-                      <Image
-                        source={redoDeadlineArtwork}
-                        className="h-[108px] w-[108px]"
-                        contentFit="contain"
-                      />
+                      <Scene name="calendar" size={108} />
                     </View>
                     <View className="ml-3 flex-1">
                       <AppText variant="cardTitle">
@@ -750,11 +718,7 @@ export function ParentReviewsContent({
                     </View>
                   </Surface>
                   <View className="mt-3 flex-row items-center">
-                    <Icon
-                      name="globe"
-                      color={themeColors.inkMuted}
-                      size={21}
-                    />
+                    <Icon name="globe" color={themeColors.inkMuted} size={21} />
                     <AppText
                       variant="bodySmall"
                       color="ink-muted"
@@ -775,11 +739,7 @@ export function ParentReviewsContent({
                     elevated={false}
                     className="mt-4 flex-row p-4"
                   >
-                    <Icon
-                      name="info"
-                      color={themeColors.ink}
-                      size={23}
-                    />
+                    <Icon name="info" color={themeColors.ink} size={23} />
                     <AppText
                       variant="bodySmall"
                       className="ml-3 flex-1"
@@ -808,11 +768,7 @@ export function ParentReviewsContent({
                     />
                   ) : null}
                   <View className="mt-4 flex-row items-center justify-center">
-                    <Icon
-                      name="check"
-                      color={themeColors.action}
-                      size={23}
-                    />
+                    <Icon name="check" color={themeColors.action} size={23} />
                     <AppText className="ml-2">
                       Approval adds {selected.valueSek} kr
                       {selected.isUnlockChore ? " and unlocks Extras" : ""}.

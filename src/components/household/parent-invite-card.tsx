@@ -1,19 +1,15 @@
+import { Scene } from "@/components/art";
 import { Icon } from "@/components/ui/icon";
 import { homeTokens as themeColors } from "@/design-system/theme";
 import { ActionButton, AppText, Surface, TopBar } from "@/design-system";
 import { useServerConfirmedMutation } from "@/hooks/use-server-confirmed-mutation";
 import { useAction, useQuery } from "convex/react";
-import { AppImage as Image } from "@/components/ui/app-image";
 import { useState } from "react";
 import { Modal, Pressable, ScrollView, Share, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
-
-const invitationArtwork = require("../../../assets/images/direction-c/household-invitation.png");
-const invitationEmptyArtwork = require("../../../assets/images/direction-c/parent-invite-empty.png");
-const invitationLockedArtwork = require("../../../assets/images/direction-c/parent-invite-locked.png");
 
 type ParentInviteCardProps = {
   householdId: Id<"households">;
@@ -244,12 +240,7 @@ export function ParentInviteCard({
         contentContainerClassName="px-5 pb-8"
         showsVerticalScrollIndicator={false}
       >
-        <Image
-          source={invitationArtwork}
-          className="mt-1 h-[140px] w-full rounded-large"
-          contentFit="contain"
-          accessible={false}
-        />
+        <Scene name="mail" size={140} />
 
         <AppText variant="screenTitle" className="mt-2">
           Invite another parent
@@ -270,11 +261,7 @@ export function ParentInviteCard({
             className="mt-2 flex-row items-center p-3"
           >
             <View className="h-11 w-11 items-center justify-center rounded-full bg-action">
-              <Icon
-                name="brokenLink"
-                color={themeColors.onAction}
-                size={23}
-              />
+              <Icon name="brokenLink" color={themeColors.onAction} size={23} />
             </View>
             <AppText variant="cardTitle" color="action" className="ml-3">
               Invite revoked
@@ -293,12 +280,7 @@ export function ParentInviteCard({
           <>
             <Surface className="mt-2 items-center px-5 py-7">
               <View className="h-24 w-24 items-center justify-center rounded-full bg-infoSoft">
-                <Image
-                  source={invitationEmptyArtwork}
-                  className="h-20 w-20"
-                  contentFit="contain"
-                  accessible={false}
-                />
+                <Scene name="mail" size={80} />
               </View>
               <AppText variant="cardTitle" className="mt-3">
                 No active invite
@@ -321,11 +303,7 @@ export function ParentInviteCard({
             />
             {feedback !== "revoked" ? (
               <View className="mt-4 flex-row items-center justify-center px-4">
-                <Icon
-                  name="checkShield"
-                  color={themeColors.action}
-                  size={21}
-                />
+                <Icon name="checkShield" color={themeColors.action} size={21} />
                 <AppText variant="bodySmall" color="ink-muted" className="ml-2">
                   You can revoke it before it is used.
                 </AppText>
@@ -340,11 +318,7 @@ export function ParentInviteCard({
               className="mt-2 flex-row items-center p-3"
             >
               <View className="h-11 w-11 items-center justify-center rounded-full bg-action">
-                <Icon
-                  name="check"
-                  color={themeColors.onAction}
-                  size={23}
-                />
+                <Icon name="check" color={themeColors.onAction} size={23} />
               </View>
               <AppText variant="cardTitle" color="action" className="ml-3">
                 {statusLabel}
@@ -369,11 +343,7 @@ export function ParentInviteCard({
                 className="mt-3"
                 label="Share invite"
                 leading={
-                  <Icon
-                    name="share"
-                    color={themeColors.onAction}
-                    size={22}
-                  />
+                  <Icon name="share" color={themeColors.onAction} size={22} />
                 }
                 onPress={() => void handleShareInvite()}
               />
@@ -405,23 +375,14 @@ export function ParentInviteCard({
             <Surface tone="lavender" elevated={false} className="mt-2 p-4">
               <View className="flex-row items-center self-start rounded-full bg-actionSoft px-3 py-2">
                 <View className="h-9 w-9 items-center justify-center rounded-full bg-action">
-                  <Icon
-                    name="check"
-                    color={themeColors.onAction}
-                    size={20}
-                  />
+                  <Icon name="check" color={themeColors.onAction} size={20} />
                 </View>
                 <AppText variant="cardTitle" color="action" className="ml-2">
                   Active invite
                 </AppText>
               </View>
               <View className="mt-4 flex-row items-center">
-                <Image
-                  source={invitationLockedArtwork}
-                  className="h-28 w-28"
-                  contentFit="contain"
-                  accessible={false}
-                />
+                <Scene name="lock" size={112} />
                 <View className="ml-4 flex-1">
                   <AppText variant="cardTitle">Invite code unavailable</AppText>
                   <AppText
@@ -486,11 +447,7 @@ export function ParentInviteCard({
           >
             <View className="h-1.5 w-16 self-center rounded-full bg-infoSoftStrong" />
             <View className="mt-4 h-16 w-16 items-center justify-center self-center rounded-full bg-urgencySoft">
-              <Icon
-                name="brokenLink"
-                color={themeColors.urgency}
-                size={34}
-              />
+              <Icon name="brokenLink" color={themeColors.urgency} size={34} />
             </View>
             <AppText variant="sectionTitle" className="mt-3 text-center">
               Revoke this invite?

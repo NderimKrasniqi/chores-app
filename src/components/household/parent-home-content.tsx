@@ -1,8 +1,6 @@
+import { Scene } from "@/components/art";
 import { Icon } from "@/components/ui/icon";
-import {
-  childAvatarTone,
-  Avatar,
-} from "@/components/ui/avatar";
+import { childAvatarTone, Avatar } from "@/components/ui/avatar";
 import { ActiveClaimableClaimsCard } from "@/components/chores/active-claimable-claims-card";
 import { homeTokens as themeColors } from "@/design-system/theme";
 import { AppText, Surface } from "@/design-system";
@@ -28,7 +26,6 @@ const artwork = {
 const parentAvatar = require("../../../assets/images/direction-c/sam-avatar.png");
 const alexAvatar = require("../../../assets/images/direction-c/alex-avatar.png");
 const mayaAvatar = require("../../../assets/images/direction-c/maya-avatar.png");
-const reviewClipboard = require("../../../assets/images/direction-c/review-clipboard.png");
 
 function choreArtwork(title: string) {
   const normalized = title.toLowerCase();
@@ -181,12 +178,7 @@ export function ParentHomeContent({
         >
           <View className="flex-row items-center">
             <View className="h-[72px] w-[72px] items-center justify-center rounded-full bg-urgency">
-              <Image
-                source={reviewClipboard}
-                className="h-[72px] w-[72px]"
-                contentFit="contain"
-                accessible={false}
-              />
+              <Scene name="clipboard" size={72} />
             </View>
             <View className="ml-4 flex-1">
               <AppText variant="cardTitle">
@@ -209,11 +201,7 @@ export function ParentHomeContent({
               Review work
             </AppText>
             <View className="absolute right-4">
-              <Icon
-                name="chevron"
-                color={themeColors.onAction}
-                size={23}
-              />
+              <Icon name="chevron" color={themeColors.onAction} size={23} />
             </View>
           </Pressable>
         </Surface>
@@ -224,11 +212,7 @@ export function ParentHomeContent({
           className="mt-3 flex-row items-center p-4"
         >
           <View className="h-12 w-12 items-center justify-center rounded-full bg-action">
-            <Icon
-              name="check"
-              color={themeColors.onAction}
-              size={25}
-            />
+            <Icon name="check" color={themeColors.onAction} size={25} />
           </View>
           <View className="ml-4 flex-1">
             <AppText variant="cardTitle">Nothing needs review</AppText>
@@ -245,21 +229,13 @@ export function ParentHomeContent({
         className="mt-2 min-h-[44px] flex-row items-center rounded-control bg-actionSoft px-4"
       >
         <View className="h-11 w-11 items-center justify-center rounded-full bg-action">
-          <Icon
-            name="plus"
-            color={themeColors.onAction}
-            size={25}
-          />
+          <Icon name="plus" color={themeColors.onAction} size={25} />
         </View>
         <AppText variant="cardTitle" color="action" className="ml-3">
           Add chore
         </AppText>
         <View className="ml-auto">
-          <Icon
-            name="chevron"
-            color={themeColors.ink}
-            size={22}
-          />
+          <Icon name="chevron" color={themeColors.ink} size={22} />
         </View>
       </Pressable>
 
@@ -313,11 +289,7 @@ export function ParentHomeContent({
                     {childPayout.runningBalanceSek} kr
                   </AppText>
                 ) : null}
-                <Icon
-                  name="chevron"
-                  color={themeColors.ink}
-                  size={22}
-                />
+                <Icon name="chevron" color={themeColors.ink} size={22} />
               </Surface>
             </Pressable>
           );
@@ -346,11 +318,7 @@ export function ParentHomeContent({
                 />
               ) : (
                 <View className="h-16 w-20 items-center justify-center rounded-control bg-rewardSoft">
-                  <Icon
-                    name="star"
-                    color={themeColors.reward}
-                    size={32}
-                  />
+                  <Icon name="star" color={themeColors.reward} size={32} />
                 </View>
               )}
               <View className="ml-3 flex-1">
@@ -365,11 +333,7 @@ export function ParentHomeContent({
                     : "Approved chores will appear here."}
                 </AppText>
               </View>
-              <Icon
-                name="chevron"
-                color={themeColors.ink}
-                size={22}
-              />
+              <Icon name="chevron" color={themeColors.ink} size={22} />
             </Surface>
           </Pressable>
         </View>

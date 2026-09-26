@@ -1,3 +1,11 @@
+import {
+  ChoreIcon,
+  QuestPath,
+  Scene,
+  StarBuddy,
+  TreasureChest,
+  type QuestStop,
+} from "@/components/art";
 import { Icon } from "@/components/ui/icon";
 import { questTokens as themeColors } from "@/design-system/theme";
 import {
@@ -10,8 +18,7 @@ import {
 } from "@/design-system";
 import { useServerConfirmedMutation } from "@/hooks/use-server-confirmed-mutation";
 import { useQuery } from "convex/react";
-import { AppImage as Image } from "@/components/ui/app-image";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Alert, Modal, Pressable, ScrollView, View } from "react-native";
 import {
   SafeAreaView,
@@ -54,77 +61,6 @@ export type ChildHomeRedo = {
   deadlineAt: number;
   canSubmitRedo: boolean;
 };
-
-const artwork = {
-  bedroom: require("../../../assets/images/direction-c/chore-bedroom.png"),
-  dishwasher: require("../../../assets/images/direction-c/chore-dishwasher.png"),
-  dog: require("../../../assets/images/direction-c/chore-dog-bowl.png"),
-  dogWalk: require("../../../assets/images/direction-c/chore-dog-walk.png"),
-  carWash: require("../../../assets/images/direction-c/chore-car-wash.png"),
-  laundry: require("../../../assets/images/direction-c/chore-laundry.png"),
-  plants: require("../../../assets/images/direction-c/chore-plants.png"),
-  recycling: require("../../../assets/images/direction-c/chore-recycling.png"),
-  table: require("../../../assets/images/direction-c/chore-table.png"),
-};
-const detailNoteArtwork = require("../../../assets/images/direction-c/chore-detail-note.png");
-const startsCalendarArtwork = require("../../../assets/images/direction-c/chore-starts-calendar.png");
-const extrasArtwork = require("../../../assets/images/direction-c/extras-unlocked.png");
-const parentAvatarArtwork = require("../../../assets/images/direction-c/sam-avatar.png");
-const youveGotThisArtwork = require("../../../assets/images/direction-c/youve-got-this-note.png");
-const scheduledNoteArtwork = require("../../../assets/images/direction-c/child-chore-note-scheduled.png");
-const missedNoteArtwork = require("../../../assets/images/direction-c/child-chore-note-missed.png");
-const redoNoteArtwork = require("../../../assets/images/direction-c/child-chore-note-redo.png");
-const moneyWalletArtwork = require("../../../assets/images/direction-c/money-wallet.png");
-const moneyWalletDisabledArtwork = require("../../../assets/images/direction-c/money-wallet-disabled.png");
-const redoDeadlineArtwork = require("../../../assets/images/direction-c/redo-deadline.png");
-
-function artworkForTitle(title: string) {
-  const normalized = title.toLocaleLowerCase();
-
-  if (normalized.includes("dishwasher") || normalized.includes("dishes")) {
-    return artwork.dishwasher;
-  }
-
-  if (normalized.includes("table")) return artwork.table;
-
-  if (normalized.includes("laundry") || normalized.includes("fold")) {
-    return artwork.laundry;
-  }
-
-  if (normalized.includes("plant") || normalized.includes("water")) {
-    return artwork.plants;
-  }
-
-  if (normalized.includes("car") || normalized.includes("wash")) {
-    return artwork.carWash;
-  }
-
-  if (normalized.includes("walk") && normalized.includes("dog")) {
-    return artwork.dogWalk;
-  }
-
-  if (normalized.includes("room") || normalized.includes("bed")) {
-    return artwork.bedroom;
-  }
-
-  if (
-    normalized.includes("dog") ||
-    normalized.includes("pet") ||
-    normalized.includes("feed")
-  ) {
-    return artwork.dog;
-  }
-
-  if (
-    normalized.includes("recycl") ||
-    normalized.includes("trash") ||
-    normalized.includes("rubbish")
-  ) {
-    return artwork.recycling;
-  }
-
-  return null;
-}
 
 function statePriority(state: OccurrenceState) {
   if (state === "redo_required") return 0;
@@ -224,8 +160,6 @@ function ChoreArtwork({
   large = false,
   compact = false,
   submission = false,
-  featured = false,
-  waiting = false,
 }: {
   title: string;
   large?: boolean;
@@ -234,48 +168,32 @@ function ChoreArtwork({
   featured?: boolean;
   waiting?: boolean;
 }) {
-  const source = artworkForTitle(title);
-  const frameClass = large
-    ? "h-[204px] w-full"
-    : compact
-      ? "h-[64px] w-[64px]"
-      : submission
-        ? "h-[118px] w-[142px]"
-        : featured
-          ? "h-[106px] w-[106px]"
-          : waiting
-            ? "h-[87px] w-[106px]"
-            : "h-[90px] w-[106px]";
-  const imageClass = large
-    ? "h-[199px] w-[326px]"
-    : compact
-      ? "h-[60px] w-[60px]"
-      : submission
-        ? "h-[116px] w-[145px]"
-        : featured
-          ? "h-[102px] w-[102px]"
-          : waiting
-            ? "h-[87px] w-[102px]"
-            : "h-[86px] w-[102px]";
-
+  if (large) {
+    return (
+      <View className="h-[210px] w-full items-center justify-center overflow-hidden rounded-large bg-surface">
+        <View className="absolute -left-6 -top-10 h-40 w-40 rounded-full bg-nightRaised opacity-60" />
+        <View className="absolute -bottom-16 -right-8 h-44 w-44 rounded-full bg-nightTrack" />
+        <ChoreIcon title={title} size={132} animated />
+      </View>
+    );
+  }
   return (
-    <View
-      className={`${frameClass} items-center justify-center overflow-hidden rounded-control bg-[#F7EDDF]`}
-    >
-      {source ? (
-        <Image
-          source={source}
-          className={imageClass}
-          contentFit="contain"
-          accessible={false}
-        />
-      ) : (
-        <Icon
-          name="checklist"
-          color={themeColors.actionPressed}
-          size={large ? 52 : 40}
-        />
-      )}
+    <ChoreIcon
+      title={title}
+      size={compact ? 56 : submission ? 96 : 64}
+      animated={submission}
+    />
+  );
+}
+
+/** The star buddy cheering the Child on from a speech bubble. */
+function BuddyNote({ children }: { children: ReactNode }) {
+  return (
+    <View className="mt-5 flex-row items-end gap-2">
+      <StarBuddy size={58} mood="wave" />
+      <View className="mb-6 flex-1 rounded-[20px] rounded-bl-[6px] bg-surface px-4 py-3">
+        <AppText className="font-body-heavy text-[15px]">{children}</AppText>
+      </View>
     </View>
   );
 }
@@ -286,7 +204,11 @@ export function ChildHomeChoreList({
   visualOccurrences,
   visualRedos,
   initialVisualSubmissionState,
+  header,
+  onOpenExtras,
 }: {
+  header?: ReactNode;
+  onOpenExtras?: () => void;
   initialOccurrenceId?: Id<"choreOccurrences"> | null;
   onInitialOccurrenceHandled?: () => void;
   visualOccurrences?: ChildHomeChoreOccurrence[];
@@ -407,25 +329,6 @@ export function ChildHomeChoreList({
     ? redoByOccurrence.get(selectedOccurrence.occurrenceId)
     : undefined;
 
-  const selectedNoteArtwork = selectedOccurrence
-    ? selectedOccurrence.state === "scheduled" &&
-      relativeDayLabel(
-        selectedOccurrence.availabilityStartsAt,
-        selectedOccurrence.timezone,
-      ) === "tomorrow"
-      ? scheduledNoteArtwork
-      : selectedOccurrence.state === "missed" ||
-          selectedOccurrence.state === "failed"
-        ? missedNoteArtwork
-        : selectedOccurrence.state === "redo_required"
-          ? redoNoteArtwork
-          : selectedOccurrence.state === "available" ||
-              selectedOccurrence.state === "submitted" ||
-              selectedOccurrence.state === "approved"
-            ? youveGotThisArtwork
-            : null
-    : null;
-
   useEffect(() => {
     if (!initialOccurrenceId || !allVisibleOccurrences) return;
 
@@ -479,25 +382,209 @@ export function ChildHomeChoreList({
     }
   }
 
-  if (presentation === undefined) {
-    return (
-      <Surface className="mx-1 p-5">
-        <AppText variant="cardTitle">Loading your chores…</AppText>
-        <AppText variant="bodySmall" color="ink-muted" className="mt-1">
-          Today’s responsibilities will appear here.
-        </AppText>
-      </Surface>
-    );
-  }
+  const stops = useMemo<QuestStop[]>(() => {
+    const history = [...recentHistory].reverse();
+    const current = [...visibleOccurrences].sort((left, right) => {
+      const order = (state: OccurrenceState) =>
+        state === "submitted"
+          ? 0
+          : state === "redo_required"
+            ? 1
+            : state === "available"
+              ? 2
+              : 3;
+      return (
+        order(left.state) - order(right.state) ||
+        left.deadlineAt - right.deadlineAt
+      );
+    });
+    let currentAssigned = false;
 
-  if (visibleOccurrences.length === 0 && recentHistory.length === 0) {
-    return (
-      <Surface className="mx-1 p-5">
-        <AppText variant="cardTitle">Nothing coming up</AppText>
-        <AppText variant="bodySmall" color="ink-muted" className="mt-1">
-          You have no active or upcoming Personal Chores.
+    return [...history, ...current].map((occurrence) => {
+      const redo = redoByOccurrence.get(occurrence.occurrenceId);
+      const open = () => setSelectedId(occurrence.occurrenceId);
+      const base = {
+        key: occurrence.occurrenceId,
+        title: occurrence.title,
+        onPress: open,
+        accessibilityLabel: `Open ${occurrence.title}`,
+      };
+
+      if (occurrence.state === "approved") {
+        return {
+          ...base,
+          status: "done",
+          subtitle: `+${occurrence.valueSek} kr earned`,
+        } as QuestStop;
+      }
+      if (occurrence.state === "missed" || occurrence.state === "failed") {
+        return {
+          ...base,
+          status: "missed",
+          subtitle: "Missed · 0 kr, no penalty",
+        } as QuestStop;
+      }
+      if (occurrence.state === "submitted") {
+        return {
+          ...base,
+          status: "review",
+          subtitle: "A Parent is checking",
+        } as QuestStop;
+      }
+      if (occurrence.state === "redo_required") {
+        return {
+          ...base,
+          status: "redo",
+          eyebrow: "Redo",
+          subtitle: statusLabel(occurrence, redo),
+        } as QuestStop;
+      }
+      if (occurrence.state === "available" && !currentAssigned) {
+        currentAssigned = true;
+        return {
+          ...base,
+          status: "current",
+          eyebrow: "Up next",
+          reward: occurrence.valueSek,
+          subtitle: occurrence.isUnlockChore
+            ? `${statusLabel(occurrence, redo)} · opens Extras`
+            : statusLabel(occurrence, redo),
+        } as QuestStop;
+      }
+      if (occurrence.isUnlockChore) {
+        return {
+          ...base,
+          status: "unlock",
+          reward: occurrence.valueSek,
+          subtitle: `+${occurrence.valueSek} kr · opens Extras`,
+          eyebrow: statusLabel(occurrence, redo),
+        } as QuestStop;
+      }
+      return {
+        ...base,
+        status: "todo",
+        reward: occurrence.valueSek,
+        subtitle: statusLabel(occurrence, redo),
+      } as QuestStop;
+    });
+  }, [recentHistory, redoByOccurrence, visibleOccurrences]);
+
+  const firstRedo = visibleOccurrences.find(
+    (occurrence) => occurrence.state === "redo_required",
+  );
+  const unlockApproved =
+    recentHistory.some(
+      (occurrence) =>
+        occurrence.isUnlockChore && occurrence.state === "approved",
+    ) && !visibleOccurrences.some((occurrence) => occurrence.isUnlockChore);
+
+  let body: ReactNode;
+
+  if (presentation === undefined) {
+    body = (
+      <View className="items-center py-10">
+        <StarBuddy size={64} mood="hop" />
+        <AppText variant="cardTitle" className="mt-4">
+          Loading your quests…
         </AppText>
-      </Surface>
+        <AppText variant="bodySmall" color="ink-muted" className="mt-1">
+          Today’s chores will appear here.
+        </AppText>
+      </View>
+    );
+  } else if (visibleOccurrences.length === 0 && recentHistory.length === 0) {
+    body = (
+      <View className="items-center rounded-large bg-surface px-5 py-8">
+        <Scene name="moon" size={130} buddy="sleepy" />
+        <AppText variant="sectionTitle" className="mt-4 text-center">
+          Nothing coming up
+        </AppText>
+        <AppText
+          variant="bodySmall"
+          color="ink-muted"
+          className="mt-1 text-center"
+        >
+          You have no active or upcoming Personal Chores. Enjoy the quiet sky!
+        </AppText>
+      </View>
+    );
+  } else {
+    body = (
+      <>
+        {firstRedo ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Redo ${firstRedo.title}`}
+            onPress={() => setSelectedId(firstRedo.occurrenceId)}
+            className="mb-5 flex-row items-center gap-2.5 rounded-full bg-pink py-2.5 pl-2.5 pr-4"
+          >
+            <View className="h-8 w-8 items-center justify-center rounded-full bg-night">
+              <Icon name="redo" color={themeColors.pink} size={16} />
+            </View>
+            <AppText
+              className="flex-1 font-body-heavy text-[15px] text-night"
+              numberOfLines={1}
+            >
+              Redo “{firstRedo.title}” ·{" "}
+              {statusLabel(
+                firstRedo,
+                redoByOccurrence.get(firstRedo.occurrenceId),
+              ).replace(/^Redo due /, "by ")}
+            </AppText>
+            <Icon name="chevron" color={themeColors.night} size={18} />
+          </Pressable>
+        ) : null}
+
+        <View className="mb-3 flex-row items-baseline justify-between">
+          <AppText variant="sectionTitle">Today’s quest</AppText>
+          <AppText variant="label" color="ink-muted">
+            {
+              visibleOccurrences.filter(
+                (o) => o.state === "available" || o.state === "redo_required",
+              ).length
+            }{" "}
+            to do
+          </AppText>
+        </View>
+
+        <View className="-mx-5">
+          <QuestPath stops={stops} />
+        </View>
+
+        {onOpenExtras ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Open Extras"
+            onPress={onOpenExtras}
+            className="mt-8 flex-row items-center gap-3 rounded-large bg-surface p-3 pr-4"
+          >
+            <TreasureChest
+              state={unlockApproved ? "open" : "locked"}
+              size={92}
+            />
+            <View className="flex-1">
+              <AppText
+                variant="label"
+                color="gold"
+                className="uppercase tracking-[1.2px]"
+              >
+                Extras chest
+              </AppText>
+              <AppText variant="cardTitle" className="mt-0.5">
+                {unlockApproved
+                  ? "Bonus quests are open!"
+                  : "Bonus quests for extra money"}
+              </AppText>
+              <AppText variant="caption" color="ink-muted" className="mt-1">
+                {unlockApproved
+                  ? "Claim one Extra at a time."
+                  : "They open when a Parent approves your Unlock Chore."}
+              </AppText>
+            </View>
+            <Icon name="chevron" color={themeColors.inkMuted} size={20} />
+          </Pressable>
+        ) : null}
+      </>
     );
   }
 
@@ -505,158 +592,11 @@ export function ChildHomeChoreList({
     <>
       <ScrollView
         className="flex-1"
-        contentContainerClassName="gap-[9px] px-1 pb-2"
-        showsVerticalScrollIndicator
+        contentContainerClassName="px-5 pb-10"
+        showsVerticalScrollIndicator={false}
       >
-        {visibleOccurrences.map((occurrence) => {
-          const redo = redoByOccurrence.get(occurrence.occurrenceId);
-          const waiting = occurrence.state === "submitted";
-          const urgent =
-            occurrence.state === "available" ||
-            occurrence.state === "redo_required";
-
-          return (
-            <Pressable
-              key={occurrence.occurrenceId}
-              accessibilityRole="button"
-              accessibilityLabel={`Open ${occurrence.title}`}
-              onPress={() => setSelectedId(occurrence.occurrenceId)}
-              className={`${occurrence.isUnlockChore ? "min-h-[128px]" : "min-h-[104px]"} flex-row items-center rounded-large bg-surface py-[6px] pl-[11px] pr-[6px]`}
-              style={DesignTokens.shadowStyle.card}
-            >
-              <ChoreArtwork
-                title={occurrence.title}
-                featured={occurrence.isUnlockChore}
-                waiting={waiting}
-              />
-
-              <View className="flex-1 pl-[17px] pr-3">
-                <AppText
-                  variant="cardTitle"
-                  className="text-[19px] leading-[23px]"
-                  numberOfLines={2}
-                >
-                  {occurrence.title}
-                </AppText>
-
-                {occurrence.isUnlockChore ? (
-                  <StatusChip
-                    label="Unlock chore"
-                    tone="urgent"
-                    icon={
-                      <Icon
-                        name="key"
-                        color={themeColors.urgency}
-                        size={14}
-                      />
-                    }
-                  />
-                ) : null}
-
-                <AppText className="mt-1 text-xl font-black">
-                  {occurrence.valueSek} kr
-                </AppText>
-
-                <View className="mt-1 flex-row items-center">
-                  <Icon
-                    name={waiting ? "waiting" : "clock"}
-                    color={
-                      waiting
-                        ? themeColors.disabledInk
-                        : urgent
-                          ? themeColors.urgency
-                          : themeColors.inkMuted
-                    }
-                    size={18}
-                  />
-                  <AppText
-                    variant="label"
-                    color={
-                      waiting ? "ink-faint" : urgent ? "urgency" : "ink-muted"
-                    }
-                    className="ml-1 flex-1"
-                    numberOfLines={1}
-                  >
-                    {statusLabel(occurrence, redo)}
-                  </AppText>
-                </View>
-              </View>
-
-              <Icon
-                name="chevron"
-                color={themeColors.ink}
-                size={20}
-              />
-            </Pressable>
-          );
-        })}
-
-        {recentHistory.length > 0 ? (
-          <View className="mt-1 gap-2">
-            <View className="px-1 pt-1">
-              <AppText variant="label" color="ink-muted">
-                Recent
-              </AppText>
-              <AppText variant="bodySmall" color="ink-muted" className="mt-0.5">
-                Your latest chore outcomes.
-              </AppText>
-            </View>
-
-            {recentHistory.map((occurrence) => {
-              const approved = occurrence.state === "approved";
-              const missed =
-                occurrence.state === "missed" || occurrence.state === "failed";
-              const status = approved
-                ? `${occurrence.valueSek} kr earned`
-                : "0 kr earned";
-
-              return (
-                <Pressable
-                  key={occurrence.occurrenceId}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Open ${occurrence.title}`}
-                  onPress={() => setSelectedId(occurrence.occurrenceId)}
-                  className="min-h-[80px] flex-row items-center rounded-large bg-surface p-2"
-                  style={DesignTokens.shadowStyle.card}
-                >
-                  <ChoreArtwork title={occurrence.title} compact />
-
-                  <View className="flex-1 px-3">
-                    <AppText variant="cardTitle" numberOfLines={1}>
-                      {occurrence.title}
-                    </AppText>
-                    <View className="mt-1 flex-row items-center">
-                      <Icon
-                        name={approved ? "check" : "missed"}
-                        color={
-                          approved
-                            ? themeColors.actionPressed
-                            : missed
-                              ? themeColors.urgency
-                              : themeColors.inkMuted
-                        }
-                        size={16}
-                      />
-                      <AppText
-                        variant="bodySmall"
-                        color={approved ? "action" : "urgency"}
-                        className="ml-1"
-                      >
-                        {status}
-                      </AppText>
-                    </View>
-                  </View>
-
-                  <Icon
-                    name="chevron"
-                    color={themeColors.ink}
-                    size={20}
-                  />
-                </Pressable>
-              );
-            })}
-          </View>
-        ) : null}
+        {header}
+        {body}
       </ScrollView>
 
       <Modal
@@ -688,22 +628,12 @@ export function ChildHomeChoreList({
             >
               <View>
                 <ChoreArtwork title={selectedOccurrence.title} large />
-                <Image
-                  source={detailNoteArtwork}
-                  className="absolute right-0 top-2 h-[142px] w-[132px]"
-                  contentFit="contain"
-                  accessible={false}
-                />
                 {selectedOccurrence.isUnlockChore ? (
                   <View
                     className="absolute bottom-3 left-3 flex-row items-center rounded-full bg-surfaceRaised px-3 py-2"
                     style={DesignTokens.shadowStyle.floating}
                   >
-                    <Icon
-                      name="key"
-                      color={themeColors.urgency}
-                      size={20}
-                    />
+                    <Icon name="key" color={themeColors.urgency} size={20} />
                     <AppText color="urgency" className="ml-1.5 font-black">
                       Unlock chore
                     </AppText>
@@ -720,11 +650,7 @@ export function ChildHomeChoreList({
                   label={`${selectedOccurrence.valueSek} kr`}
                   tone="urgent"
                   icon={
-                    <Icon
-                      name="tag"
-                      color={themeColors.urgency}
-                      size={15}
-                    />
+                    <Icon name="tag" color={themeColors.urgency} size={15} />
                   }
                 />
                 {selectedOccurrence.state === "available" ? (
@@ -758,11 +684,7 @@ export function ChildHomeChoreList({
                     label="Upcoming"
                     tone="info"
                     icon={
-                      <Icon
-                        name="calendar"
-                        color={themeColors.ink}
-                        size={15}
-                      />
+                      <Icon name="calendar" color={themeColors.ink} size={15} />
                     }
                   />
                 ) : null}
@@ -811,11 +733,7 @@ export function ChildHomeChoreList({
                     label="Redo required"
                     tone="urgent"
                     icon={
-                      <Icon
-                        name="redo"
-                        color={themeColors.urgency}
-                        size={15}
-                      />
+                      <Icon name="redo" color={themeColors.urgency} size={15} />
                     }
                   />
                 ) : null}
@@ -843,11 +761,7 @@ export function ChildHomeChoreList({
                     </AppText>
                   </View>
                   <View className="flex-row items-center">
-                    <Icon
-                      name="clock"
-                      color={themeColors.urgency}
-                      size={18}
-                    />
+                    <Icon name="clock" color={themeColors.urgency} size={18} />
                     <AppText color="urgency" className="ml-2 font-bold">
                       Due{" "}
                       {relativeDayLabel(
@@ -932,12 +846,7 @@ export function ChildHomeChoreList({
                   elevated={false}
                   className="mt-4 min-h-[112px] flex-row items-center p-[14px]"
                 >
-                  <Image
-                    source={startsCalendarArtwork}
-                    className="h-[82px] w-[82px]"
-                    contentFit="contain"
-                    accessible={false}
-                  />
+                  <Scene name="calendar" size={82} />
                   <View className="ml-3 flex-1">
                     <AppText variant="cardTitle">
                       Starts{" "}
@@ -999,12 +908,7 @@ export function ChildHomeChoreList({
                   className="mt-3 min-h-[96px] flex-row items-center overflow-hidden p-2"
                 >
                   <View className="relative h-20 w-20">
-                    <Image
-                      source={moneyWalletArtwork}
-                      className="h-20 w-20"
-                      contentFit="contain"
-                      accessible={false}
-                    />
+                    <Scene name="wallet" size={80} />
                     <View className="absolute bottom-1 right-0 h-8 w-8 items-center justify-center rounded-full bg-action">
                       <Icon
                         name="check"
@@ -1035,12 +939,7 @@ export function ChildHomeChoreList({
                   elevated={false}
                   className="mt-4 min-h-[96px] flex-row items-center overflow-hidden p-3"
                 >
-                  <Image
-                    source={moneyWalletDisabledArtwork}
-                    className="h-[72px] w-[72px]"
-                    contentFit="contain"
-                    accessible={false}
-                  />
+                  <Scene name="wallet" size={72} />
                   <View className="ml-3 flex-1">
                     <AppText variant="cardTitle">0 kr earned</AppText>
                     <AppText
@@ -1061,12 +960,7 @@ export function ChildHomeChoreList({
                   elevated={false}
                   className="mt-4 min-h-[96px] flex-row items-center overflow-hidden p-3"
                 >
-                  <Image
-                    source={redoDeadlineArtwork}
-                    className="h-[72px] w-[72px]"
-                    contentFit="contain"
-                    accessible={false}
-                  />
+                  <Scene name="calendar" size={72} />
                   <View className="ml-3 flex-1">
                     <AppText variant="cardTitle">One redo</AppText>
                     <AppText
@@ -1098,15 +992,17 @@ export function ChildHomeChoreList({
                   elevated={false}
                   className={`relative mt-3 ${selectedOccurrence.state === "redo_required" ? "min-h-[128px]" : "min-h-[112px]"} overflow-hidden px-0 py-2`}
                 >
-                  <View className="absolute bottom-2 left-0 top-2 w-[96px] overflow-hidden">
-                    <Image
-                      source={extrasArtwork}
-                      className="absolute -left-9 h-24 w-[204px]"
-                      contentFit="contain"
-                      accessible={false}
+                  <View className="absolute bottom-0 left-1 top-0 justify-center">
+                    <TreasureChest
+                      state={
+                        selectedOccurrence.state === "approved"
+                          ? "open"
+                          : "locked"
+                      }
+                      size={96}
                     />
                   </View>
-                  <View className="flex-1 justify-center pl-[96px] pr-[96px]">
+                  <View className="flex-1 justify-center pl-[104px] pr-4">
                     <AppText
                       variant="cardTitle"
                       numberOfLines={1}
@@ -1218,51 +1114,31 @@ export function ChildHomeChoreList({
                       </>
                     )}
                   </View>
-                  <View className="absolute bottom-2 right-0 top-2 w-[96px] overflow-hidden">
-                    <Image
-                      source={extrasArtwork}
-                      className="absolute -right-1 h-24 w-[204px]"
-                      contentFit="contain"
-                      accessible={false}
-                    />
-                  </View>
                 </Surface>
               ) : null}
 
-              {selectedNoteArtwork ? (
-                <Image
-                  source={selectedNoteArtwork}
-                  className={`${selectedOccurrence.state === "redo_required" ? "-mt-8" : "-mt-4"} h-[80px] w-[280px]`}
-                  contentFit="contain"
-                  accessible={false}
-                />
-              ) : (
-                <View
-                  className="mt-4 -rotate-2 self-start rounded-small bg-rewardSoft px-4 py-2"
-                  style={DesignTokens.shadowStyle.floating}
-                >
-                  <AppText className="font-bold italic">
-                    {selectedOccurrence.state === "scheduled"
-                      ? `See you ${
-                          relativeDayLabel(
+              <BuddyNote>
+                {selectedOccurrence.state === "scheduled"
+                  ? `See you ${
+                      relativeDayLabel(
+                        selectedOccurrence.availabilityStartsAt,
+                        selectedOccurrence.timezone,
+                      ) === "today"
+                        ? "soon"
+                        : relativeDayLabel(
                             selectedOccurrence.availabilityStartsAt,
                             selectedOccurrence.timezone,
-                          ) === "today"
-                            ? "soon"
-                            : relativeDayLabel(
-                                selectedOccurrence.availabilityStartsAt,
-                                selectedOccurrence.timezone,
-                              )
-                        }! ♡`
-                      : selectedOccurrence.state === "missed" ||
-                          selectedOccurrence.state === "failed"
-                        ? "Fresh start next time. ♡"
-                        : selectedOccurrence.state === "redo_required"
-                          ? "You can fix this. ♡"
-                          : "You’ve got this. ♡"}
-                  </AppText>
-                </View>
-              )}
+                          )
+                    }!`
+                  : selectedOccurrence.state === "missed" ||
+                      selectedOccurrence.state === "failed"
+                    ? "Fresh start next time!"
+                    : selectedOccurrence.state === "redo_required"
+                      ? "You can fix this. I believe in you!"
+                      : selectedOccurrence.state === "approved"
+                        ? "Woohoo, nice work!"
+                        : "You’ve got this!"}
+              </BuddyNote>
             </ScrollView>
 
             {selectedOccurrence.canSubmit ? (
@@ -1337,18 +1213,12 @@ export function ChildHomeChoreList({
                 >
                   <Surface
                     elevated={false}
-                    className="min-h-[140px] flex-row items-center overflow-hidden bg-[#F7EDDF] p-3"
+                    className="min-h-[140px] flex-row items-center overflow-hidden p-3"
                   >
                     <View className="relative">
                       <ChoreArtwork
                         title={selectedOccurrence.title}
                         submission
-                      />
-                      <Image
-                        source={detailNoteArtwork}
-                        className="absolute right-0 top-0 h-[78px] w-[72px]"
-                        contentFit="contain"
-                        accessible={false}
                       />
                       {selectedOccurrence.isUnlockChore ? (
                         <View className="absolute bottom-0 left-0">
@@ -1417,11 +1287,6 @@ export function ChildHomeChoreList({
                     }
                     submittingLabel="Submitting…"
                     hideSubmitButton
-                    visualPhotoSource={
-                      initialVisualSubmissionState === "photo"
-                        ? require("../../../assets/images/direction-c/submission-room-sample.png")
-                        : undefined
-                    }
                     onControlStateChange={setSubmissionControlState}
                     footerBeforeSubmit={
                       <Surface
@@ -1429,20 +1294,12 @@ export function ChildHomeChoreList({
                         elevated={false}
                         className="mt-4 min-h-[100px] flex-row items-center overflow-hidden p-0 pr-3"
                       >
-                        <View className="relative h-[92px] w-[84px]">
-                          <Image
-                            source={parentAvatarArtwork}
-                            className="h-[92px] w-[84px]"
-                            contentFit="cover"
-                            accessible={false}
+                        <View className="ml-3 h-16 w-16 items-center justify-center rounded-[20px] bg-primary">
+                          <Icon
+                            name="checkShield"
+                            color={themeColors.night}
+                            size={32}
                           />
-                          <View className="absolute bottom-2 right-0 h-9 w-9 items-center justify-center rounded-full bg-action">
-                            <Icon
-                              name="check"
-                              color={themeColors.onAction}
-                              size={21}
-                            />
-                          </View>
                         </View>
                         <View className="ml-3 flex-1">
                           <AppText

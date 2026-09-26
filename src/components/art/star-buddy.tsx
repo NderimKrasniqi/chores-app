@@ -29,13 +29,15 @@ export function StarBuddy({
 
   const blink = useLoop({ duration: 3600, easing: Easings.linear });
   const motion = useLoop({
-    duration: mood === "dance" ? 1400 : mood === "hop" ? 1200 : 4000,
+    // Hops come in short bursts with a rest between, so an always-visible
+    // buddy on Home reads as alive rather than busy.
+    duration: mood === "dance" ? 1400 : mood === "hop" ? 2600 : 4000,
     reverse: mood === "idle" || mood === "sleepy",
     easing: mood === "idle" || mood === "sleepy" ? undefined : Easings.linear,
   });
 
   const bodyStyle = useAnimatedStyle(() => {
-    const p = motion.value;
+    const p = motion.get();
     switch (mood) {
       case "hop":
         return {
@@ -43,15 +45,15 @@ export function StarBuddy({
             {
               translateY: interpolate(
                 p,
-                [0, 0.1, 0.4, 0.7, 1],
+                [0, 0.06, 0.2, 0.34, 1],
                 [0, 0, -size * 0.22, 0, 0],
               ),
             },
             {
               scaleY: interpolate(
                 p,
-                [0, 0.1, 0.4, 0.7, 1],
-                [1, 0.86, 1.05, 1, 1],
+                [0, 0.06, 0.2, 0.34, 1],
+                [1, 0.88, 1.04, 1, 1],
               ),
             },
           ],
@@ -94,7 +96,7 @@ export function StarBuddy({
           mood === "sleepy"
             ? 0.25
             : interpolate(
-                blink.value,
+                blink.get(),
                 [0, 0.9, 0.93, 0.96, 1],
                 [1, 1, 0.1, 1, 1],
               ),

@@ -337,11 +337,7 @@ export function ChildSubmissionActions({
             <View className="mt-3 flex-row items-center justify-between gap-3">
               <View className="flex-row items-center">
                 <View className="h-9 w-9 items-center justify-center rounded-full bg-action">
-                  <Icon
-                    name="check"
-                    color={themeColors.onAction}
-                    size={20}
-                  />
+                  <Icon name="check" color={themeColors.onAction} size={20} />
                 </View>
                 <AppText color="action" className="ml-2 font-black">
                   Photo ready
@@ -355,11 +351,7 @@ export function ChildSubmissionActions({
                 onPress={() => void removePhoto()}
                 className={`min-h-11 flex-row items-center rounded-control bg-urgencySoft px-3 ${busy ? "opacity-50" : ""}`}
               >
-                <Icon
-                  name="trash"
-                  color={themeColors.urgency}
-                  size={20}
-                />
+                <Icon name="trash" color={themeColors.urgency} size={20} />
                 <AppText color="urgency" className="ml-1.5 font-bold">
                   Remove photo
                 </AppText>
@@ -402,11 +394,7 @@ export function ChildSubmissionActions({
                 onPress={() => void choosePhoto()}
                 className={`min-h-[54px] flex-1 flex-row items-center justify-center rounded-control bg-infoSoft px-3 ${busy ? "opacity-50" : ""}`}
               >
-                <Icon
-                  name="photo"
-                  color={themeColors.ink}
-                  size={22}
-                />
+                <Icon name="photo" color={themeColors.ink} size={22} />
                 <AppText className="ml-2 font-black">Choose photo</AppText>
               </Pressable>
             </View>
@@ -430,11 +418,7 @@ export function ChildSubmissionActions({
           loading={submitting}
           label={submitting ? submittingLabel : submitLabel}
           trailing={
-            <Icon
-              name="chevron"
-              color={themeColors.onAction}
-              size={22}
-            />
+            <Icon name="chevron" color={themeColors.onAction} size={22} />
           }
           onPress={() => void submit()}
           className="mt-3"

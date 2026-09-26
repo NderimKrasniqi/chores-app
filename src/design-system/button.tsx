@@ -1,8 +1,14 @@
 import type { ComponentProps, ReactNode } from "react";
 import { ActivityIndicator, Pressable, View } from "react-native";
+import Animated from "react-native-reanimated";
+
+import { PRESS, pressTransition } from "@/components/art/motion";
 
 import { AppText } from "./text";
 import { useTheme } from "./theme";
+
+const LIP_DEPTH = 5;
+const LIP_RADIUS = 18;
 
 type ButtonTone =
   | "primary"
@@ -96,43 +102,59 @@ export function ActionButton({
       accessibilityLabel={props.accessibilityLabel ?? label}
       accessibilityState={{ disabled: isDisabled, busy: loading }}
       disabled={isDisabled}
+      pressRetentionOffset={16}
       className={`${isDisabled ? "opacity-50" : ""} ${className}`}
       style={style}
     >
       {({ pressed }) => (
-        <View
-          className="min-h-control items-center justify-center rounded-control px-5"
-          style={{
-            backgroundColor: colors.fill,
-            borderWidth: colors.border ? 2 : 0,
-            borderColor: colors.border,
-            borderBottomWidth: colors.lip
-              ? pressed
-                ? 1
-                : 5
-              : colors.border
-                ? 2
-                : 0,
-            borderBottomColor: colors.lip ?? colors.border,
-            transform: [{ translateY: colors.lip && pressed ? 3 : 0 }],
-          }}
+        // Feedback on press-in: the whole button eases to 0.97 while the face
+        // sinks onto its lip. Transform-only, 120ms, strong ease-out.
+        <Animated.View
+          style={[
+            { transform: [{ scale: pressed ? PRESS.scale : 1 }] },
+            pressTransition,
+          ]}
         >
-          {loading ? (
-            <ActivityIndicator color={colors.text} />
-          ) : (
-            <View className="flex-row items-center justify-center gap-2.5">
-              {leading}
-              <AppText
-                variant="cardTitle"
-                className={`text-center font-display ${labelClassName}`}
-                style={[{ color: colors.text }, labelStyle]}
-              >
-                {label}
-              </AppText>
-              {trailing}
-            </View>
-          )}
-        </View>
+          <View
+            style={{
+              borderRadius: LIP_RADIUS,
+              backgroundColor: colors.lip ?? "transparent",
+              paddingBottom: colors.lip ? LIP_DEPTH : 0,
+            }}
+          >
+            <Animated.View
+              className="items-center justify-center rounded-control px-5"
+              style={[
+                {
+                  minHeight: colors.lip ? 54 - LIP_DEPTH : 54,
+                  backgroundColor: colors.fill,
+                  borderWidth: colors.border ? 2 : 0,
+                  borderColor: colors.border,
+                  transform: [
+                    { translateY: colors.lip && pressed ? LIP_DEPTH - 2 : 0 },
+                  ],
+                },
+                pressTransition,
+              ]}
+            >
+              {loading ? (
+                <ActivityIndicator color={colors.text} />
+              ) : (
+                <View className="flex-row items-center justify-center gap-2.5">
+                  {leading}
+                  <AppText
+                    variant="cardTitle"
+                    className={`text-center font-display ${labelClassName}`}
+                    style={[{ color: colors.text }, labelStyle]}
+                  >
+                    {label}
+                  </AppText>
+                  {trailing}
+                </View>
+              )}
+            </Animated.View>
+          </View>
+        </Animated.View>
       )}
     </Pressable>
   );

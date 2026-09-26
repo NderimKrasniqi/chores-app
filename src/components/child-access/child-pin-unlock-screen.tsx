@@ -1,8 +1,5 @@
 import { Icon } from "@/components/ui/icon";
-import {
-  childAvatarTone,
-  Avatar,
-} from "@/components/ui/avatar";
+import { childAvatarTone, Avatar } from "@/components/ui/avatar";
 import { questTokens as themeColors } from "@/design-system/theme";
 import { ActionButton, AppText } from "@/design-system";
 import {
@@ -161,11 +158,7 @@ export function ChildPinUnlockScreen({
             />
 
             <View className="mt-7 flex-row items-center justify-center">
-              <Icon
-                name="checkShield"
-                color={themeColors.action}
-                size={26}
-              />
+              <Icon name="checkShield" color={themeColors.action} size={26} />
               <AppText
                 variant="caption"
                 color="ink-muted"

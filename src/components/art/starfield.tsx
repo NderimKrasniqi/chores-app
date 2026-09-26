@@ -3,6 +3,7 @@ import { StyleSheet, View } from "react-native";
 import Animated, {
   interpolate,
   useAnimatedStyle,
+  useReducedMotion,
 } from "react-native-reanimated";
 
 import { useTheme } from "@/design-system/theme";
@@ -26,13 +27,23 @@ function TwinkleStar({
   duration: number;
   sparkle: boolean;
 }) {
-  const progress = useLoop({ duration, delay, reverse: true, rest: 0.7 });
+  // Twinkling is gentle enough to keep under reduced motion — as a fade only.
+  const reducedMotion = useReducedMotion();
+  const progress = useLoop({
+    duration,
+    delay,
+    reverse: true,
+    rest: 0.7,
+    essential: true,
+  });
   const style = useAnimatedStyle(() => ({
-    opacity: interpolate(progress.value, [0, 1], [0.2, 1]),
-    transform: [
-      { scale: interpolate(progress.value, [0, 1], [0.6, 1.15]) },
-      { rotate: sparkle ? `${progress.value * 45}deg` : "0deg" },
-    ],
+    opacity: interpolate(progress.get(), [0, 1], [0.2, 1]),
+    transform: reducedMotion
+      ? []
+      : [
+          { scale: interpolate(progress.get(), [0, 1], [0.6, 1.15]) },
+          { rotate: sparkle ? `${progress.get() * 45}deg` : "0deg" },
+        ],
   }));
 
   if (sparkle) {
@@ -99,15 +110,15 @@ function ShootingStar({ top, delay }: { top: number; delay: number }) {
   const progress = useLoop({ duration: 7000, delay, easing: Easings.linear });
   const style = useAnimatedStyle(() => ({
     opacity: interpolate(
-      progress.value,
+      progress.get(),
       [0, 0.02, 0.12, 0.13, 1],
       [0, 1, 0, 0, 0],
     ),
     transform: [
       {
-        translateX: interpolate(progress.value, [0, 0.12, 1], [-60, 300, 300]),
+        translateX: interpolate(progress.get(), [0, 0.12, 1], [-60, 300, 300]),
       },
-      { translateY: interpolate(progress.value, [0, 0.12, 1], [0, 110, 110]) },
+      { translateY: interpolate(progress.get(), [0, 0.12, 1], [0, 110, 110]) },
       { rotate: "20deg" },
     ],
   }));

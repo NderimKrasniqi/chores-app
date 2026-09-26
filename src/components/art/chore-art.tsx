@@ -351,7 +351,7 @@ export function ChoreIcon({
   const bob = useAnimatedStyle(() => ({
     transform: [
       {
-        translateY: animated ? interpolate(progress.value, [0, 1], [0, -3]) : 0,
+        translateY: animated ? interpolate(progress.get(), [0, 1], [0, -3]) : 0,
       },
     ],
   }));

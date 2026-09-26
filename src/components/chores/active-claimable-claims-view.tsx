@@ -1,8 +1,5 @@
 import { Icon } from "@/components/ui/icon";
-import {
-  childAvatarTone,
-  Avatar,
-} from "@/components/ui/avatar";
+import { childAvatarTone, Avatar } from "@/components/ui/avatar";
 import { questTokens as themeColors } from "@/design-system/theme";
 import {
   ActionButton,
@@ -197,11 +194,7 @@ function ClaimSummary({
             Claimed by {claim.claimedByDisplayName}
           </AppText>
           <View className="mt-2 flex-row items-center">
-            <Icon
-              name="clock"
-              color={themeColors.urgency}
-              size={20}
-            />
+            <Icon name="clock" color={themeColors.urgency} size={20} />
             <AppText color="urgency" className="ml-1.5 flex-1">
               {formatHomeDeadline(claim.deadlineAt, claim.timezone)}
             </AppText>
@@ -294,11 +287,7 @@ function ClaimDetail({
         <View className="mt-4 h-px bg-line" />
         <View className="mt-4 flex-row">
           <View className="flex-1 flex-row items-center pr-3">
-            <Icon
-              name="calendar"
-              color={themeColors.inkMuted}
-              size={27}
-            />
+            <Icon name="calendar" color={themeColors.inkMuted} size={27} />
             <AppText variant="bodySmall" className="ml-2 flex-1">
               Claimed {formatMoment(claim.claimedAt, claim.timezone)}
             </AppText>
@@ -344,11 +333,7 @@ function ClaimDetail({
           className="mt-7 flex-row items-center p-4"
         >
           <View className="h-14 w-14 items-center justify-center rounded-full bg-urgencySoft">
-            <Icon
-              name="clock"
-              color={themeColors.urgency}
-              size={29}
-            />
+            <Icon name="clock" color={themeColors.urgency} size={29} />
           </View>
           <View className="ml-4 flex-1">
             <AppText variant="cardTitle" color="urgency">
@@ -367,11 +352,7 @@ function ClaimDetail({
           className="mt-7 flex-row items-center p-4"
         >
           <View className="h-14 w-14 items-center justify-center rounded-full bg-infoSoftStrong">
-            <Icon
-              name="link"
-              color={themeColors.ink}
-              size={29}
-            />
+            <Icon name="link" color={themeColors.ink} size={29} />
           </View>
           <View className="ml-5 flex-1">
             <AppText

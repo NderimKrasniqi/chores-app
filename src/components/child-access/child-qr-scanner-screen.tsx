@@ -1,6 +1,6 @@
+import { Scene } from "@/components/art";
 import { ActionButton, AppText, Surface } from "@/design-system";
 import { questTokens as themeColors } from "@/design-system/theme";
-import { AppImage as Image } from "@/components/ui/app-image";
 import { PairingQrCode } from "@/components/ui/pairing-qr-code";
 import { useAction } from "convex/react";
 import {
@@ -15,8 +15,6 @@ import { ActivityIndicator, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { api } from "../../../convex/_generated/api";
-
-const cameraPreviewArtwork = require("../../../assets/images/direction-c/qr-scan-camera-preview.png");
 
 type ChildQrScannerScreenProps = {
   onCancel: () => void;
@@ -138,12 +136,7 @@ export function ChildQrScannerScreen({ onCancel }: ChildQrScannerScreenProps) {
 
       <View className="mt-5 flex-1 overflow-hidden rounded-large bg-ink">
         <View className="flex-1">
-          <Image
-            source={cameraPreviewArtwork}
-            className="absolute inset-0 h-full w-full"
-            contentFit="cover"
-            accessible={false}
-          />
+          <Scene name="phone-qr" size={150} />
           {!Device.isDevice ? (
             <View
               pointerEvents="none"
@@ -185,10 +178,10 @@ export function ChildQrScannerScreen({ onCancel }: ChildQrScannerScreenProps) {
           className="absolute inset-0 items-center justify-center"
         >
           <View className="relative h-56 w-56">
-            <View className="absolute inset-y-5 left-0 w-px bg-white/25" />
-            <View className="absolute inset-y-5 right-0 w-px bg-white/25" />
-            <View className="absolute inset-x-5 top-0 h-px bg-white/25" />
-            <View className="absolute inset-x-5 bottom-0 h-px bg-white/25" />
+            <View className="bg-white/25 absolute inset-y-5 left-0 w-px" />
+            <View className="bg-white/25 absolute inset-y-5 right-0 w-px" />
+            <View className="bg-white/25 absolute inset-x-5 top-0 h-px" />
+            <View className="bg-white/25 absolute inset-x-5 bottom-0 h-px" />
 
             <View className="absolute left-0 top-0 h-5 w-5 rounded-tl-lg border-l-[5px] border-t-[5px] border-white" />
             <View className="absolute right-0 top-0 h-5 w-5 rounded-tr-lg border-r-[5px] border-t-[5px] border-white" />

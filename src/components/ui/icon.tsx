@@ -65,6 +65,11 @@ const iconNames = {
     android: "key",
     web: "key",
   },
+  hourglass: {
+    ios: "hourglass",
+    android: "hourglass_top",
+    web: "hourglass_top",
+  },
   waiting: {
     ios: "pause.circle.fill",
     android: "hourglass_top",

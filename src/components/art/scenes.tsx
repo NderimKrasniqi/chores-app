@@ -39,8 +39,8 @@ function Twinkle({
 }) {
   const progress = useLoop({ duration: 1800, delay, reverse: true, rest: 1 });
   const style = useAnimatedStyle(() => ({
-    opacity: interpolate(progress.value, [0, 1], [0.3, 1]),
-    transform: [{ scale: interpolate(progress.value, [0, 1], [0.6, 1.1]) }],
+    opacity: interpolate(progress.get(), [0, 1], [0.3, 1]),
+    transform: [{ scale: interpolate(progress.get(), [0, 1], [0.6, 1.1]) }],
   }));
   return (
     <Animated.View
@@ -446,10 +446,10 @@ export function Scene({
   const float = useLoop({
     duration: 4200,
     reverse: true,
-    easing: Easings.inOut,
+    easing: Easings.float,
   });
   const style = useAnimatedStyle(() => ({
-    transform: [{ translateY: interpolate(float.value, [0, 1], [0, -8]) }],
+    transform: [{ translateY: interpolate(float.get(), [0, 1], [0, -8]) }],
   }));
   const s = size / 160;
 

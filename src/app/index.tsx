@@ -5,14 +5,14 @@ import { ChildNoAccessScreen } from "@/components/child-access/child-no-access-s
 import { HouseholdListScreen } from "@/components/household/household-list-screen";
 import { HouseholdSetupScreen } from "@/components/household/household-setup-screen";
 import { OnboardingScreen } from "@/components/onboarding/onboarding-screen";
-import { homeTokens as themeColors } from "@/design-system/theme";
-import { AppText } from "@/design-system";
+import { StarBuddy, Starfield } from "@/components/art";
+import { AppText, ThemeScope } from "@/design-system";
 import { authClient } from "@/lib/auth/client";
 import { hasCompletedOnboarding } from "@/lib/onboarding";
 import { useConvexAuth, useQuery } from "convex/react";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, View } from "react-native";
+import { View } from "react-native";
 
 import { api } from "../../convex/_generated/api";
 
@@ -26,19 +26,19 @@ function isAnonymousUser(user: object) {
 
 function LoadingScreen({ message }: { message: string }) {
   return (
-    <View className="flex-1 items-center justify-center bg-canvas px-6">
-      <StatusBar style="dark" />
-      <View className="h-16 w-16 items-center justify-center rounded-full bg-actionSoft">
-        <ActivityIndicator color={themeColors.action} />
+    <ThemeScope mode="quest">
+      <View className="flex-1 items-center justify-center bg-canvas px-6">
+        <StatusBar style="light" />
+        <Starfield seed={21} />
+        <StarBuddy size={84} mood="hop" />
+        <AppText variant="sectionTitle" className="mt-6 text-center">
+          Getting things ready
+        </AppText>
+        <AppText color="ink-muted" className="mt-1 text-center font-body-bold">
+          {message}
+        </AppText>
       </View>
-
-      <AppText variant="sectionTitle" className="mt-4 text-center">
-        Getting things ready
-      </AppText>
-      <AppText color="ink-muted" className="mt-1 text-center">
-        {message}
-      </AppText>
-    </View>
+    </ThemeScope>
   );
 }
 

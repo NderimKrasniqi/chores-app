@@ -35,11 +35,7 @@ export function ParentScreenHeader({
         onPress={onOpenAccount}
         className="h-[76px] w-[76px]"
       >
-        <Avatar
-          source={parentAvatar}
-          tone="parent"
-          className="h-full w-full"
-        />
+        <Avatar source={parentAvatar} tone="parent" className="h-full w-full" />
       </Pressable>
     </View>
   );

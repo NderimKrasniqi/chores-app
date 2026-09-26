@@ -1,3 +1,4 @@
+import { Scene } from "@/components/art";
 import {
   getLocalChildContextByStoragePrefix,
   removeLocalChildContext,
@@ -5,7 +6,6 @@ import {
 import { forgetLocalChildGrant } from "@/lib/child-access/grant-status";
 import { setChildExplicitlyLocked } from "@/lib/child-access/unlock-policy";
 import { useAuthRuntime } from "@/providers/auth-runtime-provider";
-import { AppImage as Image } from "@/components/ui/app-image";
 import { questTokens as themeColors } from "@/design-system/theme";
 import { ActionButton, AppText } from "@/design-system";
 import { StatusBar } from "expo-status-bar";
@@ -13,8 +13,6 @@ import { useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 
 import { ChildJoinScreen } from "./child-join-screen";
-
-const recoveryArtwork = require("../../../assets/images/direction-c/child-access-recovery.png");
 
 type CleanupState = "checking" | "join" | "cleaning" | "error";
 
@@ -124,12 +122,7 @@ export function ChildNoAccessScreen({
     return (
       <View className="flex-1 items-center justify-center bg-canvas px-5">
         <View className="h-64 w-64 items-center justify-center rounded-full bg-[#FFE9E2]">
-          <Image
-            source={recoveryArtwork}
-            className="h-60 w-60"
-            contentFit="contain"
-            accessible={false}
-          />
+          <Scene name="broken-link" size={240} />
         </View>
         <AppText
           variant="label"

@@ -1,8 +1,5 @@
 import { Icon } from "@/components/ui/icon";
-import {
-  childAvatarTone,
-  Avatar,
-} from "@/components/ui/avatar";
+import { childAvatarTone, Avatar } from "@/components/ui/avatar";
 import { questTokens as themeColors } from "@/design-system/theme";
 import { ActionButton, AppText, Surface } from "@/design-system";
 import { PARENT_AUTH_STORAGE_PREFIX } from "@/lib/auth/client";
@@ -218,11 +215,7 @@ export function ChildPinSetupScreen({
               <AppText color="ink-muted">{householdName}</AppText>
             </View>
             <View className="h-12 w-12 items-center justify-center rounded-full bg-actionSoftStrong">
-              <Icon
-                name="check"
-                color={themeColors.action}
-                size={26}
-              />
+              <Icon name="check" color={themeColors.action} size={26} />
             </View>
           </Surface>
 
@@ -276,11 +269,7 @@ export function ChildPinSetupScreen({
           />
 
           <View className="mt-5 flex-row items-center justify-center">
-            <Icon
-              name="checkShield"
-              color={themeColors.action}
-              size={26}
-            />
+            <Icon name="checkShield" color={themeColors.action} size={26} />
             <AppText
               variant="caption"
               color="ink-muted"

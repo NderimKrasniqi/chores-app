@@ -6,7 +6,7 @@ import {
   TopBar,
 } from "@/design-system";
 import { authClient } from "@/lib/auth/client";
-import { AppImage as Image } from "@/components/ui/app-image";
+import { Scene, StarBuddy } from "@/components/art";
 import { StatusBar } from "expo-status-bar";
 import { useState } from "react";
 import {
@@ -17,9 +17,6 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-const parentAccessHero = require("../../../assets/images/direction-c/parent-access-hero.png");
-const childAvatar = require("../../../assets/images/direction-c/alex-avatar.png");
 
 type AuthMode = "sign-in" | "sign-up";
 
@@ -96,19 +93,16 @@ export function ParentAuthScreen({ onBack }: ParentAuthScreenProps) {
                   : "Sign in to open your household."}
               </AppText>
             </View>
-            <Image
-              source={parentAccessHero}
-              className="absolute bottom-0 right-0 z-0 h-[180px] w-[180px]"
-              contentFit="contain"
-              accessible={false}
-            />
+            <View className="absolute bottom-0 right-0 z-0">
+              <Scene name="house" size={150} />
+            </View>
           </View>
 
           <View className="mt-3 gap-[26px]">
             {mode === "sign-up" ? (
-            <FormField
-              testID="parent-auth-name"
-              label="Name"
+              <FormField
+                testID="parent-auth-name"
+                label="Name"
                 placeholder="Your name"
                 value={parentName}
                 onChangeText={setParentName}
@@ -169,7 +163,7 @@ export function ParentAuthScreen({ onBack }: ParentAuthScreenProps) {
               {mode === "sign-up"
                 ? "Already have an account? "
                 : "Need an account? "}
-              <AppText variant="bodySmall" className="font-black">
+              <AppText variant="bodySmall" className="font-body-heavy">
                 {mode === "sign-up" ? "Sign in" : "Create one"}
               </AppText>
             </AppText>
@@ -180,20 +174,13 @@ export function ParentAuthScreen({ onBack }: ParentAuthScreenProps) {
             elevated={false}
             className="mt-3 flex-row items-center p-3"
           >
-            <View className="relative h-20 w-20 shrink-0 items-center justify-center">
-              <View className="h-16 w-16 overflow-hidden rounded-full bg-[#E9DEFF]">
-                <Image
-                  source={childAvatar}
-                  className="h-full w-full"
-                  contentFit="contain"
-                  accessible={false}
-                />
-              </View>
-              <View className="absolute right-1 top-1 h-1 w-3 rotate-[35deg] rounded-full bg-[#F2A900]" />
-              <View className="absolute right-3 top-0 h-1 w-3 rotate-[5deg] rounded-full bg-[#F2A900]" />
-              <View className="absolute right-5 top-1 h-1 w-3 -rotate-[25deg] rounded-full bg-[#F2A900]" />
+            <View className="h-16 w-16 shrink-0 items-center justify-center rounded-[20px] bg-night">
+              <StarBuddy size={46} mood="wave" />
             </View>
-            <AppText variant="bodySmall" className="ml-3 flex-1 text-[14px] leading-[18px]">
+            <AppText
+              variant="bodySmall"
+              className="ml-3 flex-1 text-[14px] leading-[18px]"
+            >
               Children join without email accounts.
             </AppText>
           </Surface>

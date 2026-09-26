@@ -3,6 +3,7 @@ import { StyleSheet, View } from "react-native";
 import Animated, {
   interpolate,
   useAnimatedStyle,
+  useReducedMotion,
 } from "react-native-reanimated";
 
 import { useTheme } from "@/design-system/theme";
@@ -21,7 +22,7 @@ export function SpinningCoin({
   const progress = useLoop({ duration, easing: Easings.linear, rest: 0 });
   const style = useAnimatedStyle(() => ({
     transform: [
-      { scaleX: interpolate(progress.value, [0, 0.5, 1], [1, 0.12, 1]) },
+      { scaleX: interpolate(progress.get(), [0, 0.5, 1], [1, 0.12, 1]) },
     ],
   }));
   return (
@@ -56,15 +57,15 @@ export function PulseRings({
 }) {
   const { tokens } = useTheme();
   const ringColor = color ?? tokens.accent;
-  const a = useLoop({ duration, easing: Easings.outQuad });
-  const b = useLoop({ duration, delay: duration / 2, easing: Easings.outQuad });
+  const a = useLoop({ duration, easing: Easings.out });
+  const b = useLoop({ duration, delay: duration / 2, easing: Easings.out });
   const ringA = useAnimatedStyle(() => ({
-    opacity: interpolate(a.value, [0, 1], [0.7, 0]),
-    transform: [{ scale: interpolate(a.value, [0, 1], [1, 1.9]) }],
+    opacity: interpolate(a.get(), [0, 1], [0.7, 0]),
+    transform: [{ scale: interpolate(a.get(), [0, 1], [1, 1.9]) }],
   }));
   const ringB = useAnimatedStyle(() => ({
-    opacity: interpolate(b.value, [0, 1], [0.7, 0]),
-    transform: [{ scale: interpolate(b.value, [0, 1], [1, 1.9]) }],
+    opacity: interpolate(b.get(), [0, 1], [0.7, 0]),
+    transform: [{ scale: interpolate(b.get(), [0, 1], [1, 1.9]) }],
   }));
   const ring = {
     position: "absolute" as const,
@@ -105,13 +106,16 @@ export function Floating({
   const progress = useLoop({ duration, delay, reverse: true });
   const style = useAnimatedStyle(() => ({
     transform: [
-      { translateY: interpolate(progress.value, [0, 1], [0, -distance]) },
+      { translateY: interpolate(progress.get(), [0, 1], [0, -distance]) },
     ],
   }));
   return <Animated.View style={style}>{children}</Animated.View>;
 }
 
-/** Spring-in wrapper for celebratory numbers and badges. */
+/**
+ * Celebration entrance for rare moments (approval amounts, badges): fades in
+ * from 0.9 scale — never from nothing — and settles with a small spring.
+ */
 export function PopIn({
   children,
   delay = 0,
@@ -119,10 +123,10 @@ export function PopIn({
   children: ReactNode;
   delay?: number;
 }) {
-  const progress = useEntrance(800, delay);
+  const progress = useEntrance({ delay, playful: true });
   const style = useAnimatedStyle(() => ({
-    opacity: interpolate(progress.value, [0, 0.4, 1], [0, 1, 1]),
-    transform: [{ scale: interpolate(progress.value, [0, 1], [0.3, 1]) }],
+    opacity: interpolate(progress.get(), [0, 0.5, 1], [0, 1, 1]),
+    transform: [{ scale: interpolate(progress.get(), [0, 1], [0.9, 1]) }],
   }));
   return <Animated.View style={style}>{children}</Animated.View>;
 }
@@ -154,9 +158,9 @@ function ConfettiPiece({
   });
   const style = useAnimatedStyle(() => ({
     transform: [
-      { translateY: interpolate(progress.value, [0, 1], [-80, fall]) },
-      { translateX: Math.sin(progress.value * Math.PI * 6) * 14 },
-      { rotate: `${progress.value * 720}deg` },
+      { translateY: interpolate(progress.get(), [0, 1], [-80, fall]) },
+      { translateX: Math.sin(progress.get() * Math.PI * 6) * 14 },
+      { rotate: `${progress.get() * 720}deg` },
     ],
   }));
   return (
@@ -190,6 +194,7 @@ export function Confetti({
   seed?: number;
 }) {
   const { tokens } = useTheme();
+  const reducedMotion = useReducedMotion();
   const pieces = useMemo(() => {
     const random = seeded(seed);
     const colors = [tokens.primary, tokens.pink, tokens.accent, tokens.gold];
@@ -205,6 +210,9 @@ export function Confetti({
       fall: height + 80,
     }));
   }, [count, height, seed, tokens, width]);
+
+  // Confetti is pure movement: under reduced motion it simply isn't there.
+  if (reducedMotion) return null;
 
   return (
     <View
@@ -231,14 +239,14 @@ export function BalanceOrb({
   orbit?: boolean;
 }) {
   const { tokens } = useTheme();
-  const spin = useLoop({ duration: 7000, easing: Easings.linear });
-  const bob = useLoop({ duration: 4000, reverse: true });
+  const spin = useLoop({ duration: 16000, easing: Easings.linear });
+  const bob = useLoop({ duration: 5000, reverse: true });
   const orbitSize = size * 1.22;
   const orbitStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${spin.value * 360}deg` }],
+    transform: [{ rotate: `${spin.get() * 360}deg` }],
   }));
   const bobStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: interpolate(bob.value, [0, 1], [0, -4]) }],
+    transform: [{ translateY: interpolate(bob.get(), [0, 1], [0, -2]) }],
   }));
 
   return (
@@ -269,7 +277,7 @@ export function BalanceOrb({
           <View
             style={{ position: "absolute", left: orbitSize / 2 - 10, top: -10 }}
           >
-            <SpinningCoin size={20} duration={900} />
+            <SpinningCoin size={20} duration={2400} />
           </View>
           <View
             style={{

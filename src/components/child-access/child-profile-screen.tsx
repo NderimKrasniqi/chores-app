@@ -1,19 +1,15 @@
+import { Scene } from "@/components/art";
 import { OnboardingScreen } from "@/components/onboarding/onboarding-screen";
 import { Icon } from "@/components/ui/icon";
-import {
-  childAvatarTone,
-  Avatar,
-} from "@/components/ui/avatar";
+import { childAvatarTone, Avatar } from "@/components/ui/avatar";
 import { questTokens as themeColors } from "@/design-system/theme";
 import { ActionButton, AppText, Surface, TopBar } from "@/design-system";
-import { AppImage as Image } from "@/components/ui/app-image";
 import { useState } from "react";
 import { Linking, Modal, Pressable, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const alexAvatar = require("../../../assets/images/direction-c/alex-avatar.png");
 const mayaAvatar = require("../../../assets/images/direction-c/maya-avatar.png");
-const familyArtwork = require("../../../assets/images/direction-c/household-family.png");
 
 function childAvatar(displayName: string) {
   const normalized = displayName.trim().toLowerCase();
@@ -44,9 +40,7 @@ function SettingsRow({
           <Icon
             name={icon}
             color={
-              tone === "mint"
-                ? themeColors.actionPressed
-                : themeColors.ink
+              tone === "mint" ? themeColors.actionPressed : themeColors.ink
             }
             size={28}
           />
@@ -118,11 +112,7 @@ export function ChildProfileScreen({
           elevated={false}
           className="mt-2 h-[108px] flex-row items-center overflow-hidden pr-3"
         >
-          <Image
-            source={familyArtwork}
-            className="h-[108px] w-[152px]"
-            contentFit="contain"
-          />
+          <Scene name="family" size={108} />
           <View className="ml-3 flex-1">
             <AppText variant="cardTitle" numberOfLines={1}>
               {householdName}
@@ -176,13 +166,7 @@ export function ChildProfileScreen({
           label="Lock / switch profile"
           tone="secondary"
           loading={locking}
-          leading={
-            <Icon
-              name="lockSwitch"
-              color={themeColors.ink}
-              size={25}
-            />
-          }
+          leading={<Icon name="lockSwitch" color={themeColors.ink} size={25} />}
           onPress={() => void lockAndSwitch()}
         />
         <AppText

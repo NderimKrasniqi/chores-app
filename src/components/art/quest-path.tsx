@@ -11,7 +11,7 @@ import { Icon } from "@/components/ui/icon";
 import { AppText } from "@/design-system/text";
 import { useTheme } from "@/design-system/theme";
 
-import { Easings, useLoop } from "./motion";
+import { Easings, PRESS, pressTransition, useLoop } from "./motion";
 import { PulseRings } from "./pieces";
 import { StarBuddy } from "./star-buddy";
 
@@ -51,7 +51,7 @@ function Connector({
   const { tokens } = useTheme();
   const progress = useLoop({ duration: 1200, easing: Easings.linear });
   const dashProps = useAnimatedProps(() => ({
-    strokeDashoffset: -progress.value * 40,
+    strokeDashoffset: -progress.get() * 40,
   }));
   const h = CONNECTOR_HEIGHT;
   const d = `M${fromX} -6 C ${fromX} ${h * 0.9}, ${toX} ${h * 0.1}, ${toX} ${h + 6}`;
@@ -87,13 +87,13 @@ function FlippingHourglass({ color }: { color: string }) {
   const style = useAnimatedStyle(() => ({
     transform: [
       {
-        rotate: `${interpolate(progress.value, [0, 0.45, 0.55, 1], [0, 0, 180, 180])}deg`,
+        rotate: `${interpolate(progress.get(), [0, 0.45, 0.55, 1], [0, 0, 180, 180])}deg`,
       },
     ],
   }));
   return (
     <Animated.View style={style}>
-      <Icon name="waiting" color={color} size={26} />
+      <Icon name="hourglass" color={color} size={26} />
     </Animated.View>
   );
 }
@@ -273,66 +273,75 @@ function StopRow({
     <Pressable
       disabled={!stop.onPress}
       onPress={stop.onPress}
+      pressRetentionOffset={16}
       accessibilityRole={stop.onPress ? "button" : undefined}
       accessibilityLabel={
         stop.accessibilityLabel ??
         [stop.title, stop.subtitle].filter(Boolean).join(", ")
       }
-      style={({ pressed }) => ({
-        flexDirection: side === "left" ? "row" : "row-reverse",
-        alignItems: "center",
-        gap: 14,
-        paddingHorizontal: SIDE_PADDING,
-        opacity: pressed ? 0.8 : 1,
-      })}
     >
-      <Node stop={stop} showBuddy={showBuddy} />
-      <View style={{ flex: 1, alignItems: align }}>
-        {stop.eyebrow ? (
-          <AppText
-            className="font-body-heavy text-[12px] uppercase tracking-[1.2px]"
-            style={{
-              color: eyebrowColor,
-              textAlign: side === "left" ? "left" : "right",
-            }}
-          >
-            {stop.eyebrow}
-          </AppText>
-        ) : null}
-        <AppText
-          className={
-            stop.status === "current"
-              ? "font-display-medium text-[22px] leading-[27px]"
-              : "font-body-heavy text-[16px] leading-[21px]"
-          }
-          style={{
-            color:
-              stop.status === "done" || stop.status === "missed"
-                ? tokens.inkMuted
-                : tokens.ink,
-            textDecorationLine:
-              stop.status === "done" ? "line-through" : "none",
-            textAlign: side === "left" ? "left" : "right",
-          }}
-          numberOfLines={2}
+      {({ pressed }) => (
+        <Animated.View
+          style={[
+            {
+              flexDirection: side === "left" ? "row" : "row-reverse",
+              alignItems: "center",
+              gap: 14,
+              paddingHorizontal: SIDE_PADDING,
+              transform: [{ scale: pressed ? PRESS.scale : 1 }],
+            },
+            pressTransition,
+          ]}
         >
-          {stop.title}
-        </AppText>
-        {stop.subtitle ? (
-          <AppText
-            className="font-body-bold text-[13px] leading-[17px]"
-            style={{
-              color: subtitleColor,
-              textAlign: side === "left" ? "left" : "right",
-            }}
-          >
-            {stop.subtitle}
-          </AppText>
-        ) : null}
-        {stop.trailing ? (
-          <View style={{ marginTop: 8 }}>{stop.trailing}</View>
-        ) : null}
-      </View>
+          <Node stop={stop} showBuddy={showBuddy} />
+          <View style={{ flex: 1, alignItems: align }}>
+            {stop.eyebrow ? (
+              <AppText
+                className="font-body-heavy text-[12px] uppercase tracking-[1.2px]"
+                style={{
+                  color: eyebrowColor,
+                  textAlign: side === "left" ? "left" : "right",
+                }}
+              >
+                {stop.eyebrow}
+              </AppText>
+            ) : null}
+            <AppText
+              className={
+                stop.status === "current"
+                  ? "font-display-medium text-[22px] leading-[27px]"
+                  : "font-body-heavy text-[16px] leading-[21px]"
+              }
+              style={{
+                color:
+                  stop.status === "done" || stop.status === "missed"
+                    ? tokens.inkMuted
+                    : tokens.ink,
+                textDecorationLine:
+                  stop.status === "done" ? "line-through" : "none",
+                textAlign: side === "left" ? "left" : "right",
+              }}
+              numberOfLines={2}
+            >
+              {stop.title}
+            </AppText>
+            {stop.subtitle ? (
+              <AppText
+                className="font-body-bold text-[13px] leading-[17px]"
+                style={{
+                  color: subtitleColor,
+                  textAlign: side === "left" ? "left" : "right",
+                }}
+              >
+                {stop.subtitle}
+              </AppText>
+            ) : null}
+            {stop.trailing ? (
+              <View style={{ marginTop: 8 }}>{stop.trailing}</View>
+            ) : null}
+          </View>
+        </Animated.View>
+      )}
     </Pressable>
   );
 }

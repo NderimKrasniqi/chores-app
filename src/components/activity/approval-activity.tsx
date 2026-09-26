@@ -409,11 +409,7 @@ export function ApprovalActivitySurface({
             }}
           >
             <View className="h-[52px] w-[52px] items-center justify-center rounded-full">
-              <Icon
-                name="info"
-                color={themeColors.ink}
-                size={30}
-              />
+              <Icon name="info" color={themeColors.ink} size={30} />
             </View>
             <AppText
               className="ml-4 flex-1"
@@ -434,11 +430,7 @@ export function ApprovalActivitySurface({
                 style={{
                   transform:
                     celebrationStyle === "parent"
-                      ? [
-                          { scaleX: 1.26 },
-                          { scaleY: 1.3 },
-                          { translateY: -6 },
-                        ]
+                      ? [{ scaleX: 1.26 }, { scaleY: 1.3 }, { translateY: -6 }]
                       : [{ scaleX: 1.14 }, { scaleY: 1.19 }],
                 }}
                 contentFit="contain"

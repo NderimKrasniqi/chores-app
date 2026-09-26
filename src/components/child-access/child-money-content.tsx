@@ -1,9 +1,6 @@
+import { Scene } from "@/components/art";
 import { Icon } from "@/components/ui/icon";
-import {
-  childAvatarTone,
-  Avatar,
-} from "@/components/ui/avatar";
-import { AppImage as Image } from "@/components/ui/app-image";
+import { childAvatarTone, Avatar } from "@/components/ui/avatar";
 import { questTokens as themeColors } from "@/design-system/theme";
 import { AppText, StatusChip, Surface } from "@/design-system";
 import { useQuery } from "convex/react";
@@ -18,9 +15,6 @@ import {
 
 const alexAvatar = require("../../../assets/images/direction-c/alex-avatar.png");
 const mayaAvatar = require("../../../assets/images/direction-c/maya-avatar.png");
-const moneyWalletArtwork = require("../../../assets/images/direction-c/money-wallet.png");
-const moneyCalendarArtwork = require("../../../assets/images/direction-c/money-calendar.png");
-const moneyLightbulbArtwork = require("../../../assets/images/direction-c/money-lightbulb.png");
 
 function childAvatar(displayName: string) {
   const normalized = displayName.trim().toLowerCase();
@@ -70,12 +64,7 @@ export function ChildMoneyContent() {
         className="min-h-[136px] flex-row items-center p-3"
       >
         <View className="h-28 w-32 items-center justify-center">
-          <Image
-            source={moneyWalletArtwork}
-            className="h-32 w-32"
-            contentFit="contain"
-            accessible={false}
-          />
+          <Scene name="wallet" size={128} />
         </View>
         <View className="ml-5 flex-1">
           <AppText variant="bodySmall">Running balance</AppText>
@@ -108,12 +97,7 @@ export function ChildMoneyContent() {
         className="min-h-[128px] flex-row items-center p-3"
       >
         <View className="h-24 w-32 items-center justify-center">
-          <Image
-            source={moneyCalendarArtwork}
-            className="h-32 w-32"
-            contentFit="contain"
-            accessible={false}
-          />
+          <Scene name="calendar" size={128} />
         </View>
         <View className="ml-5 flex-1">
           <AppText variant="cardTitle">This payout week</AppText>
@@ -124,11 +108,7 @@ export function ChildMoneyContent() {
             )}
           </AppText>
           <View className="mt-2 flex-row items-center">
-            <Icon
-              name="calendar"
-              color={themeColors.ink}
-              size={18}
-            />
+            <Icon name="calendar" color={themeColors.ink} size={18} />
             <AppText variant="bodySmall" className="ml-1.5">
               Closes {formatWeekday(currentPeriod.payoutWeekday)}
             </AppText>
@@ -266,11 +246,7 @@ export function ChildMoneyContent() {
                     elevated={false}
                     className="mt-1 flex-row items-center p-1"
                   >
-                    <Icon
-                      name="info"
-                      color={themeColors.ink}
-                      size={21}
-                    />
+                    <Icon name="info" color={themeColors.ink} size={21} />
                     <AppText
                       variant="bodySmall"
                       className="ml-2 flex-1"
@@ -300,11 +276,7 @@ export function ChildMoneyContent() {
                     elevated={false}
                     className="mt-1 flex-row items-center p-3"
                   >
-                    <Icon
-                      name="info"
-                      color={themeColors.ink}
-                      size={21}
-                    />
+                    <Icon name="info" color={themeColors.ink} size={21} />
                     <AppText variant="bodySmall" className="ml-2 flex-1">
                       The next {Math.abs(latest.balanceAtCloseSek)} kr you earn
                       brings your balance back to 0 kr.
@@ -338,12 +310,7 @@ export function ChildMoneyContent() {
         <View
           className={`${compactGuide ? "h-16 w-20" : "h-20 w-24"} items-center justify-center rounded-control bg-rewardSoft`}
         >
-          <Image
-            source={moneyLightbulbArtwork}
-            className={compactGuide ? "h-20 w-20" : "h-24 w-24"}
-            contentFit="contain"
-            accessible={false}
-          />
+          <Scene name="clipboard" size={150} />
         </View>
         <View className={`${compactGuide ? "ml-3" : "ml-4"} flex-1`}>
           <AppText variant="cardTitle">How your balance works</AppText>

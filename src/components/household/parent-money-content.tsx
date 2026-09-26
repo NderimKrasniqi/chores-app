@@ -1,9 +1,6 @@
+import { Scene } from "@/components/art";
 import { Icon } from "@/components/ui/icon";
-import {
-  childAvatarTone,
-  Avatar,
-} from "@/components/ui/avatar";
-import { AppImage as Image } from "@/components/ui/app-image";
+import { childAvatarTone, Avatar } from "@/components/ui/avatar";
 import { homeTokens as themeColors } from "@/design-system/theme";
 import { ActionButton, AppText, Surface, TopBar } from "@/design-system";
 import {
@@ -62,7 +59,6 @@ type SelectedPayout = Payout & {
 
 const alexAvatar = require("../../../assets/images/direction-c/alex-avatar.png");
 const mayaAvatar = require("../../../assets/images/direction-c/maya-avatar.png");
-const moneyArtwork = require("../../../assets/images/direction-c/money-wallet-calendar.png");
 
 function formatWeekday(day: string) {
   return day.charAt(0).toUpperCase() + day.slice(1);
@@ -155,11 +151,7 @@ export function RecoveryPayoutDetail({
               Period ended {formatShortDate(selected.periodEndLocalDate)}
             </AppText>
             <View className="mt-2 flex-row items-center self-start rounded-full bg-infoSoft px-3 py-1.5">
-              <Icon
-                name="refresh"
-                color={themeColors.inkMuted}
-                size={16}
-              />
+              <Icon name="refresh" color={themeColors.inkMuted} size={16} />
               <AppText variant="label"> Status unknown</AppText>
             </View>
             <AppText variant="display" color="urgency" className="mt-2">
@@ -247,12 +239,8 @@ export function RecoveryPayoutDetail({
             </View>
           </View>
           {selected.pendingOutcomeCount > 0 ? (
-            <View className="mt-3 flex-row items-center rounded-control bg-infoSoftStrong/40 px-3 py-2">
-              <Icon
-                name="info"
-                color={themeColors.inkMuted}
-                size={21}
-              />
+            <View className="bg-infoSoftStrong/40 mt-3 flex-row items-center rounded-control px-3 py-2">
+              <Icon name="info" color={themeColors.inkMuted} size={21} />
               <AppText variant="caption" className="ml-2 flex-1">
                 {selected.pendingOutcomeCount} unresolved chore outcome moves to
                 a later payout.
@@ -417,12 +405,7 @@ export function ParentMoneyContent({
             className="h-[88px] w-[160px] items-center justify-center"
             style={{ flexShrink: 0 }}
           >
-            <Image
-              source={moneyArtwork}
-              style={{ width: 194, height: 134 }}
-              contentFit="contain"
-              accessible={false}
-            />
+            <Scene name="wallet" size={150} />
           </View>
           <View className="ml-2 flex-1">
             <AppText variant="label" color="action" numberOfLines={1}>
@@ -441,11 +424,7 @@ export function ParentMoneyContent({
               )}
             </AppText>
             <View className="mt-1 flex-row items-center">
-              <Icon
-                name="calendar"
-                color={themeColors.ink}
-                size={22}
-              />
+              <Icon name="calendar" color={themeColors.ink} size={22} />
               <AppText variant="bodySmall" className="ml-2">
                 Closes {formatWeekday(overview.currentPeriod.payoutWeekday)}
               </AppText>
@@ -470,11 +449,7 @@ export function ParentMoneyContent({
           <AppText variant="bodySmall" color="action" className="font-black">
             Payout day: {formatWeekday(overview.configuredPayoutWeekday)}
           </AppText>
-          <Icon
-            name="chevron"
-            color={themeColors.ink}
-            size={20}
-          />
+          <Icon name="chevron" color={themeColors.ink} size={20} />
         </Pressable>
       </Surface>
 
@@ -511,11 +486,7 @@ export function ParentMoneyContent({
                       {formatShortDate(displayPayout.periodEndLocalDate)}
                     </AppText>
                   </View>
-                  <Icon
-                    name="chevron"
-                    color={themeColors.ink}
-                    size={22}
-                  />
+                  <Icon name="chevron" color={themeColors.ink} size={22} />
                 </View>
                 <AppText
                   color={
@@ -534,11 +505,7 @@ export function ParentMoneyContent({
                   className={`mt-1 flex-row items-center self-start rounded-full px-2.5 py-1 ${displayPayout.status === "no_payment" ? "bg-infoSoft" : "bg-actionSoft"}`}
                 >
                   {displayPayout.status !== "no_payment" ? (
-                    <Icon
-                      name="check"
-                      color={themeColors.action}
-                      size={13}
-                    />
+                    <Icon name="check" color={themeColors.action} size={13} />
                   ) : null}
                   <AppText
                     variant="label"
@@ -586,11 +553,7 @@ export function ParentMoneyContent({
             </View>
             {displayPayout.pendingOutcomeCount > 0 ? (
               <View className="mt-2 min-h-target flex-row items-center rounded-full bg-infoSoft px-2.5 py-1">
-                <Icon
-                  name="info"
-                  color={themeColors.inkMuted}
-                  size={14}
-                />
+                <Icon name="info" color={themeColors.inkMuted} size={14} />
                 <AppText
                   className="ml-1 flex-1"
                   style={{ fontSize: 11, lineHeight: 14, fontWeight: "600" }}
@@ -651,11 +614,7 @@ export function ParentMoneyContent({
                   </AppText>
                 ) : child.latestPayout?.status === "paid" ? (
                   <View className="mt-0.5 flex-row items-center">
-                    <Icon
-                      name="check"
-                      color={themeColors.action}
-                      size={14}
-                    />
+                    <Icon name="check" color={themeColors.action} size={14} />
                     <AppText variant="caption" color="action" className="ml-1">
                       Latest payout paid · {child.latestPayout.amountDueSek} kr
                     </AppText>
@@ -695,11 +654,7 @@ export function ParentMoneyContent({
           elevated={false}
           className="mt-2 flex-row items-center px-3 py-2"
         >
-          <Icon
-            name="info"
-            color={themeColors.inkMuted}
-            size={22}
-          />
+          <Icon name="info" color={themeColors.inkMuted} size={22} />
           <AppText variant="caption" className="ml-2 flex-1">
             After you mark {nextPayout.amountDueSek} kr paid,{" "}
             {nextPayout.childDisplayName}’s balance becomes{" "}
@@ -906,7 +861,7 @@ export function ParentMoneyContent({
                         </View>
                       </View>
                       {selected.pendingOutcomeCount > 0 ? (
-                        <View className="mt-3 flex-row items-center rounded-control bg-infoSoftStrong/40 px-3 py-2">
+                        <View className="bg-infoSoftStrong/40 mt-3 flex-row items-center rounded-control px-3 py-2">
                           <Icon
                             name="info"
                             color={themeColors.inkMuted}
@@ -1025,7 +980,7 @@ export function ParentMoneyContent({
                         </View>
                       </View>
                       {selected.pendingOutcomeCount > 0 ? (
-                        <View className="mt-3 flex-row items-center rounded-control bg-infoSoftStrong/40 px-3 py-2">
+                        <View className="bg-infoSoftStrong/40 mt-3 flex-row items-center rounded-control px-3 py-2">
                           <Icon
                             name="info"
                             color={themeColors.inkMuted}
@@ -1086,11 +1041,7 @@ export function ParentMoneyContent({
                   >
                     <View className="h-1.5 w-20 self-center rounded-full bg-line" />
                     <View className="mt-4 h-20 w-20 items-center justify-center self-center rounded-full bg-actionSoft">
-                      <Icon
-                        name="money"
-                        color={themeColors.action}
-                        size={40}
-                      />
+                      <Icon name="money" color={themeColors.action} size={40} />
                       <View className="absolute bottom-2 right-2 h-7 w-7 items-center justify-center rounded-full bg-action">
                         <Icon
                           name="check"

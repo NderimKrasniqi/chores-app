@@ -1,3 +1,4 @@
+import { Scene, TreasureChest } from "@/components/art";
 import { Icon } from "@/components/ui/icon";
 import { questTokens as themeColors } from "@/design-system/theme";
 import {
@@ -125,11 +126,7 @@ const artwork = {
   recycling: require("../../../assets/images/direction-c/chore-recycling.png"),
   table: require("../../../assets/images/direction-c/chore-table.png"),
 };
-const extrasArtwork = require("../../../assets/images/direction-c/extras-unlocked.png");
-const extrasLockArtwork = require("../../../assets/images/direction-c/extras-lock.png");
-const extrasOpenLockArtwork = require("../../../assets/images/direction-c/extras-open-lock.png");
 const carWashHeroArtwork = require("../../../assets/images/direction-c/chore-car-wash-hero.png");
-const oneStepNoteArtwork = require("../../../assets/images/direction-c/one-step-note.png");
 const parentAvatarArtwork = require("../../../assets/images/direction-c/sam-avatar.png");
 const submitStepArtwork = require("../../../assets/images/direction-c/qr-scan-phone.png");
 
@@ -225,24 +222,14 @@ function ChoreHero({ title }: { title: string }) {
         />
       ) : (
         <View className="flex-1 items-center justify-center">
-          <Icon
-            name="chores"
-            color={themeColors.actionPressed}
-            size={70}
-          />
+          <Icon name="chores" color={themeColors.actionPressed} size={70} />
         </View>
       )}
       <View className="absolute bottom-3 left-3">
         <StatusChip
           label="Redo required"
           tone="urgent"
-          icon={
-            <Icon
-              name="redo"
-              color={themeColors.urgency}
-              size={16}
-            />
-          }
+          icon={<Icon name="redo" color={themeColors.urgency} size={16} />}
         />
       </View>
     </View>
@@ -354,9 +341,7 @@ function ClaimableCard({
         <View className="mt-1 flex-row items-center">
           <Icon
             name={claimedBy ? "person" : "clock"}
-            color={
-              claimedBy ? themeColors.inkMuted : themeColors.urgency
-            }
+            color={claimedBy ? themeColors.inkMuted : themeColors.urgency}
             size={17}
           />
           <AppText
@@ -583,12 +568,7 @@ export function ClaimableChoresView({
           className="mt-[3px] h-[112px] flex-row items-center px-4 py-1"
         >
           <View className="h-28 w-28 items-center justify-center">
-            <Image
-              source={extrasLockArtwork}
-              className="h-36 w-36"
-              contentFit="contain"
-              accessible={false}
-            />
+            <TreasureChest state="locked" size={144} />
           </View>
           <View className="ml-[14px] flex-1">
             <AppText
@@ -615,13 +595,7 @@ export function ClaimableChoresView({
               <StatusChip
                 label="Unlock chore"
                 tone="urgent"
-                icon={
-                  <Icon
-                    name="key"
-                    color={themeColors.urgency}
-                    size={14}
-                  />
-                }
+                icon={<Icon name="key" color={themeColors.urgency} size={14} />}
               />
               <AppText
                 className="mt-2"
@@ -635,11 +609,7 @@ export function ClaimableChoresView({
                 </AppText>
               ) : null}
               <View className="mt-1 flex-row items-center">
-                <Icon
-                  name="clock"
-                  color={themeColors.urgency}
-                  size={17}
-                />
+                <Icon name="clock" color={themeColors.urgency} size={17} />
                 <AppText variant="bodySmall" color="urgency" className="ml-1">
                   {unlockChore
                     ? formatDeadline(
@@ -699,11 +669,7 @@ export function ClaimableChoresView({
                   View chore
                 </AppText>
                 <View className="absolute right-4">
-                  <Icon
-                    name="chevron"
-                    color={themeColors.onAction}
-                    size={22}
-                  />
+                  <Icon name="chevron" color={themeColors.onAction} size={22} />
                 </View>
               </LinearGradient>
             </Pressable>
@@ -766,19 +732,9 @@ export function ClaimableChoresView({
             ))}
           </View>
 
-          <Image
-            source={oneStepNoteArtwork}
-            className="absolute -right-[39px] -top-[49px] h-[160px] w-[150px]"
-            contentFit="contain"
-            accessible={false}
-          />
+          <Scene name="clipboard" size={160} />
           <View className="absolute -right-[32px] bottom-0 h-[201px] w-[111px] overflow-hidden">
-            <Image
-              source={extrasArtwork}
-              className="absolute -right-1 h-[201px] w-[220px]"
-              contentFit="contain"
-              accessible={false}
-            />
+            <TreasureChest state="open" size={201} />
           </View>
         </View>
       </View>
@@ -793,12 +749,7 @@ export function ClaimableChoresView({
         className="mt-[5px] h-[90px] flex-row items-center px-[6px] py-1"
       >
         <View className="h-[90px] w-[92px] items-center justify-center">
-          <Image
-            source={extrasOpenLockArtwork}
-            className="h-28 w-28"
-            contentFit="contain"
-            accessible={false}
-          />
+          <TreasureChest state="open" size={112} />
         </View>
         <View className="ml-2 flex-1">
           <AppText style={{ fontSize: 22, lineHeight: 27, fontWeight: "900" }}>
@@ -817,11 +768,7 @@ export function ClaimableChoresView({
         className="mt-2 h-[62px] flex-row items-center px-4 py-1"
       >
         <View className="h-12 w-12 items-center justify-center rounded-full bg-infoSoftStrong">
-          <Icon
-            name="unclaim"
-            color={themeColors.ink}
-            size={25}
-          />
+          <Icon name="unclaim" color={themeColors.ink} size={25} />
         </View>
         <View className="ml-3 flex-1">
           <AppText style={{ fontSize: 16, lineHeight: 20, fontWeight: "800" }}>
@@ -880,11 +827,7 @@ export function ClaimableChoresView({
                   {myClaim.valueSek} kr
                 </AppText>
               </View>
-              <Icon
-                name="chevron"
-                color={themeColors.ink}
-                size={22}
-              />
+              <Icon name="chevron" color={themeColors.ink} size={22} />
             </Surface>
           </Pressable>
         </>
@@ -982,11 +925,7 @@ export function ClaimableChoresView({
                   </AppText>
                   <View className="mt-1 flex-row gap-3">
                     <View className="flex-row items-center rounded-control bg-urgencySoft px-3 py-2">
-                      <Icon
-                        name="tag"
-                        color={themeColors.urgency}
-                        size={22}
-                      />
+                      <Icon name="tag" color={themeColors.urgency} size={22} />
                       <AppText
                         variant="cardTitle"
                         color="urgency"
@@ -1031,11 +970,7 @@ export function ClaimableChoresView({
                     className="mt-3 flex-row items-center p-4"
                   >
                     <View className="h-10 w-10 items-center justify-center rounded-full bg-surfaceRaised">
-                      <Icon
-                        name="redo"
-                        color={themeColors.urgency}
-                        size={30}
-                      />
+                      <Icon name="redo" color={themeColors.urgency} size={30} />
                     </View>
                     <View className="ml-4 flex-1">
                       <AppText variant="cardTitle">One redo</AppText>
@@ -1052,11 +987,7 @@ export function ClaimableChoresView({
                     className="mt-3 flex-row items-center p-4"
                   >
                     <View className="h-10 w-10 items-center justify-center rounded-full bg-infoSoftStrong">
-                      <Icon
-                        name="link"
-                        color={themeColors.ink}
-                        size={30}
-                      />
+                      <Icon name="link" color={themeColors.ink} size={30} />
                     </View>
                     <View className="ml-4 flex-1">
                       <AppText variant="cardTitle">Claim stays active</AppText>
@@ -1193,11 +1124,7 @@ export function ClaimableChoresView({
                     className="mt-5 flex-row items-center p-4"
                   >
                     <View className="h-14 w-14 items-center justify-center rounded-full bg-infoSoftStrong">
-                      <Icon
-                        name="link"
-                        color={themeColors.ink}
-                        size={28}
-                      />
+                      <Icon name="link" color={themeColors.ink} size={28} />
                     </View>
                     <View className="ml-3 flex-1">
                       <AppText variant="cardTitle">Active commitment</AppText>
@@ -1593,11 +1520,7 @@ export function ClaimableChoresView({
                   {lockedCandidate.valueSek} kr
                 </AppText>
                 <View className="mx-4 h-7 w-px bg-line" />
-                <Icon
-                  name="clock"
-                  color={themeColors.urgency}
-                  size={22}
-                />
+                <Icon name="clock" color={themeColors.urgency} size={22} />
                 <AppText color="urgency" className="ml-2">
                   {formatDeadline(
                     lockedCandidate.deadlineAt,
@@ -1611,11 +1534,7 @@ export function ClaimableChoresView({
                 className="mt-4 flex-row items-center p-4"
               >
                 <View className="h-14 w-14 items-center justify-center rounded-full bg-urgencySoft">
-                  <Icon
-                    name="lock"
-                    color={themeColors.urgency}
-                    size={29}
-                  />
+                  <Icon name="lock" color={themeColors.urgency} size={29} />
                 </View>
                 <View className="ml-4 flex-1">
                   <AppText variant="cardTitle" color="urgency">

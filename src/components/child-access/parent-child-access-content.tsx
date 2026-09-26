@@ -1,8 +1,6 @@
+import { Scene } from "@/components/art";
 import { Icon } from "@/components/ui/icon";
-import {
-  childAvatarTone,
-  Avatar,
-} from "@/components/ui/avatar";
+import { childAvatarTone, Avatar } from "@/components/ui/avatar";
 import { homeTokens as themeColors } from "@/design-system/theme";
 import { ActionButton, AppText, DesignTokens, Surface } from "@/design-system";
 import { useServerConfirmedMutation } from "@/hooks/use-server-confirmed-mutation";
@@ -20,8 +18,6 @@ import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { formatTimestampDateTime } from "@/lib/dates";
 
-const devicePairingArtwork = require("../../../assets/images/direction-c/child-device-pairing.png");
-const expiredPairingArtwork = require("../../../assets/images/direction-c/child-pairing-expired.png");
 const alexAvatar = require("../../../assets/images/direction-c/alex-avatar.png");
 const mayaAvatar = require("../../../assets/images/direction-c/maya-avatar.png");
 const accessMutedTextStyle = { color: "#3f5fa8" } as const;
@@ -102,11 +98,7 @@ function ConfirmationSheet({
           <View className="mx-auto h-1.5 w-16 rounded-full bg-infoSoftStrong" />
           <View className="mt-3 items-center">
             <View className="h-16 w-16 items-center justify-center rounded-full bg-urgencySoft">
-              <Icon
-                name={icon}
-                color={themeColors.urgency}
-                size={32}
-              />
+              <Icon name={icon} color={themeColors.urgency} size={32} />
             </View>
             <AppText variant="sectionTitle" className="mt-2 text-center">
               {title}
@@ -318,12 +310,7 @@ export function ParentChildAccessContent({
             className="mt-2 h-[160px] flex-row overflow-hidden p-0"
           >
             <View className="relative h-full w-[50%] items-center justify-center overflow-hidden">
-              <Image
-                source={devicePairingArtwork}
-                className="h-[150px] w-[200px]"
-                contentFit="contain"
-                accessible={false}
-              />
+              <Scene name="phone-qr" size={150} />
               {artworkAvatar ? (
                 <Image
                   source={artworkAvatar}
@@ -375,11 +362,7 @@ export function ParentChildAccessContent({
             className="mt-7"
             label="Create pairing code"
             leading={
-              <Icon
-                name="qrCode"
-                color={themeColors.actionPressed}
-                size={22}
-              />
+              <Icon name="qrCode" color={themeColors.actionPressed} size={22} />
             }
             loading={generating}
             onPress={() => void generate()}
@@ -403,19 +386,10 @@ export function ParentChildAccessContent({
             elevated={false}
             className="mt-3 items-center px-2 pb-4 pt-2"
           >
-            <Image
-              source={expiredPairingArtwork}
-              className="h-[160px] w-[264px]"
-              contentFit="cover"
-              accessible={false}
-            />
+            <Scene name="broken-link" size={160} />
             <View className="mt-3 rounded-full bg-urgencySoft px-4 py-2">
               <View className="flex-row items-center">
-                <Icon
-                  name="clock"
-                  color={themeColors.urgency}
-                  size={17}
-                />
+                <Icon name="clock" color={themeColors.urgency} size={17} />
                 <AppText variant="label" color="urgency" className="ml-2">
                   Expired {formatDateTime(generated.expiresAt, timezone)}
                 </AppText>
@@ -435,11 +409,7 @@ export function ParentChildAccessContent({
               className="mt-4 w-full bg-[#3f1dc9]"
               label="Generate new code"
               leading={
-                <Icon
-                  name="refresh"
-                  color={themeColors.onAction}
-                  size={22}
-                />
+                <Icon name="refresh" color={themeColors.onAction} size={22} />
               }
               loading={generating}
               onPress={() => void generate()}
@@ -461,11 +431,7 @@ export function ParentChildAccessContent({
             {generationCount > 1 ? (
               <View className="mb-3 w-full flex-row items-center justify-center rounded-full bg-actionSoft px-4 py-2.5">
                 <View className="h-8 w-8 items-center justify-center rounded-full bg-action">
-                  <Icon
-                    name="check"
-                    color={themeColors.onAction}
-                    size={18}
-                  />
+                  <Icon name="check" color={themeColors.onAction} size={18} />
                 </View>
                 <AppText variant="label" color="action" className="ml-2">
                   New pairing code ready
@@ -486,11 +452,7 @@ export function ParentChildAccessContent({
             </View>
             <View className="mt-2 rounded-full bg-urgencySoft px-4 py-2">
               <View className="flex-row items-center">
-                <Icon
-                  name="clock"
-                  color={themeColors.urgency}
-                  size={17}
-                />
+                <Icon name="clock" color={themeColors.urgency} size={17} />
                 <AppText variant="caption" color="urgency" className="ml-2">
                   One use · Expires{" "}
                   {formatDateTime(generated.expiresAt, timezone)}
@@ -524,11 +486,7 @@ export function ParentChildAccessContent({
                 onPress={() => void shareCode()}
                 className="h-12 w-12 items-center justify-center"
               >
-                <Icon
-                  name="share"
-                  color={themeColors.action}
-                  size={25}
-                />
+                <Icon name="share" color={themeColors.action} size={25} />
               </Pressable>
             </View>
             <ActionButton
@@ -536,11 +494,7 @@ export function ParentChildAccessContent({
               className={`${generationCount > 1 ? "mt-3" : "mt-8"} w-full`}
               label="Generate another code"
               leading={
-                <Icon
-                  name="refresh"
-                  color={themeColors.ink}
-                  size={22}
-                />
+                <Icon name="refresh" color={themeColors.ink} size={22} />
               }
               loading={generating}
               onPress={() => void generate()}
@@ -565,11 +519,7 @@ export function ParentChildAccessContent({
                   Stops this code from being used
                 </AppText>
               </View>
-              <Icon
-                name="chevron"
-                color={themeColors.urgency}
-                size={21}
-              />
+              <Icon name="chevron" color={themeColors.urgency} size={21} />
             </Pressable>
           </Surface>
         </View>
@@ -641,11 +591,7 @@ export function ParentChildAccessContent({
               className="flex-row items-center p-2"
             >
               <View className="h-8 w-8 items-center justify-center rounded-full bg-infoSoftStrong">
-                <Icon
-                  name="phone"
-                  color={themeColors.ink}
-                  size={20}
-                />
+                <Icon name="phone" color={themeColors.ink} size={20} />
               </View>
               <View className="ml-3 flex-1">
                 <AppText variant="cardTitle">Paired device {index + 1}</AppText>
@@ -691,19 +637,11 @@ export function ParentChildAccessContent({
             onPress={() => setShowRevoked((current) => !current)}
             className="min-h-control flex-row items-center rounded-control bg-infoSoft px-4"
           >
-            <Icon
-              name="clock"
-              color={themeColors.inkMuted}
-              size={22}
-            />
+            <Icon name="clock" color={themeColors.inkMuted} size={22} />
             <AppText variant="label" className="ml-3 flex-1">
               Revoked devices ({revokedDevices.length})
             </AppText>
-            <Icon
-              name="chevron"
-              color={themeColors.ink}
-              size={20}
-            />
+            <Icon name="chevron" color={themeColors.ink} size={20} />
           </Pressable>
           {showRevoked ? (
             <View className="mt-2 gap-2">

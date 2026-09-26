@@ -1,3 +1,4 @@
+import { Scene } from "@/components/art";
 import { Icon } from "@/components/ui/icon";
 import { homeTokens as themeColors } from "@/design-system/theme";
 import {
@@ -27,7 +28,6 @@ import { api } from "../../../convex/_generated/api";
 
 const createArtwork = require("../../../assets/images/direction-c/household-create.png");
 const joinArtwork = require("../../../assets/images/direction-c/household-invitation.png");
-const joinHeroArtwork = require("../../../assets/images/direction-c/household-join.png");
 
 const PAYOUT_WEEKDAYS = [
   "monday",
@@ -205,11 +205,7 @@ function HouseholdStart({
           className="mt-5 flex-row items-center p-4"
         >
           <View className="h-12 w-12 items-center justify-center rounded-full bg-surfaceRaised">
-            <Icon
-              name="person"
-              color={themeColors.action}
-              size={25}
-            />
+            <Icon name="person" color={themeColors.action} size={25} />
           </View>
           <AppText className="ml-4 flex-1">
             Every Parent in a household has the same controls.
@@ -270,12 +266,7 @@ function CreateHousehold(props: CreateScreenProps) {
             elevated={false}
             className="h-[90px] overflow-hidden px-4"
           >
-            <Image
-              source={createArtwork}
-              className="absolute -bottom-5 left-1 h-[108px] w-[160px]"
-              contentFit="contain"
-              accessible={false}
-            />
+            <Scene name="house" size={108} />
             <AppText variant="cardTitle" className="ml-[43%] mt-5">
               Choose the defaults for your family.
             </AppText>
@@ -388,13 +379,7 @@ function CreateHousehold(props: CreateScreenProps) {
               tone="secondary"
               className="mt-3"
               label="Add child"
-              leading={
-                <Icon
-                  name="plus"
-                  color={themeColors.ink}
-                  size={24}
-                />
-              }
+              leading={<Icon name="plus" color={themeColors.ink} size={24} />}
               onPress={props.addChild}
             />
           </Surface>
@@ -459,12 +444,7 @@ function JoinHousehold({
           showsVerticalScrollIndicator={false}
           contentContainerClassName="px-5 pb-8"
         >
-          <Image
-            source={joinHeroArtwork}
-            className="mt-1 h-[190px] w-full"
-            contentFit="contain"
-            accessible={false}
-          />
+          <Scene name="mail" size={190} />
           <AppText variant="display">Join a household</AppText>
           <AppText className="mt-2">
             Paste the Parent invite shared with you.
@@ -476,17 +456,9 @@ function JoinHousehold({
             className="mt-5 flex-row items-center p-3"
           >
             <View className="relative h-12 w-12 items-center justify-center rounded-full bg-action">
-              <Icon
-                name="family"
-                color={themeColors.onAction}
-                size={30}
-              />
+              <Icon name="family" color={themeColors.onAction} size={30} />
               <View className="absolute bottom-[-2px] right-[-2px] h-5 w-5 items-center justify-center rounded-full bg-surfaceRaised">
-                <Icon
-                  name="check"
-                  color={themeColors.action}
-                  size={13}
-                />
+                <Icon name="check" color={themeColors.action} size={13} />
               </View>
             </View>
             <View className="ml-4 flex-1">
@@ -538,11 +510,7 @@ function JoinHousehold({
             </Surface>
           ) : (
             <View className="mt-3 flex-row items-center">
-              <Icon
-                name="checkShield"
-                color={themeColors.action}
-                size={24}
-              />
+              <Icon name="checkShield" color={themeColors.action} size={24} />
               <AppText variant="bodySmall" color="ink-muted" className="ml-3">
                 An invite can be used once.
               </AppText>

@@ -23,8 +23,8 @@ const WOOD_LIGHT = "#E08A36";
 function Glow({ size, color }: { size: number; color: string }) {
   const progress = useLoop({ duration: 2400, reverse: true, rest: 0.6 });
   const style = useAnimatedStyle(() => ({
-    opacity: interpolate(progress.value, [0, 1], [0.45, 1]),
-    transform: [{ scale: interpolate(progress.value, [0, 1], [0.85, 1.15]) }],
+    opacity: interpolate(progress.get(), [0, 1], [0.45, 1]),
+    transform: [{ scale: interpolate(progress.get(), [0, 1], [0.85, 1.15]) }],
   }));
   return (
     <Animated.View
@@ -55,7 +55,7 @@ function Glow({ size, color }: { size: number; color: string }) {
 function Rays({ size, color }: { size: number; color: string }) {
   const progress = useLoop({ duration: 18000, easing: Easings.linear });
   const style = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${progress.value * 360}deg` }],
+    transform: [{ rotate: `${progress.get() * 360}deg` }],
   }));
   const c = size / 2;
   return (
@@ -95,27 +95,27 @@ function PoppingCoin({
   const progress = useLoop({
     duration: 2600,
     delay,
-    easing: Easings.outQuad,
+    easing: Easings.out,
     rest: 0.7,
   });
   const style = useAnimatedStyle(() => ({
-    opacity: interpolate(progress.value, [0, 0.2, 0.7, 1], [0, 1, 1, 0]),
+    opacity: interpolate(progress.get(), [0, 0.2, 0.7, 1], [0, 1, 1, 0]),
     transform: [
       {
         translateX: interpolate(
-          progress.value,
+          progress.get(),
           [0, 0.7, 1],
           [0, dx, dx * 1.15],
         ),
       },
       {
         translateY: interpolate(
-          progress.value,
+          progress.get(),
           [0, 0.7, 1],
           [20, dy, dy * 0.7],
         ),
       },
-      { scale: interpolate(progress.value, [0, 0.3, 1], [0.4, 1, 1]) },
+      { scale: interpolate(progress.get(), [0, 0.3, 1], [0.7, 1, 1]) },
     ],
   }));
   return (
@@ -155,12 +155,12 @@ export function TreasureChest({
   const lockStyle = useAnimatedStyle(() => ({
     transform: [
       {
-        rotate: `${interpolate(jiggle.value, [0, 0.7, 0.75, 0.82, 0.89, 1], [0, 0, -14, 12, -6, 0])}deg`,
+        rotate: `${interpolate(jiggle.get(), [0, 0.7, 0.75, 0.82, 0.89, 1], [0, 0, -14, 12, -6, 0])}deg`,
       },
     ],
   }));
   const lidStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${interpolate(lid.value, [0, 1], [-24, -30])}deg` }],
+    transform: [{ rotate: `${interpolate(lid.get(), [0, 1], [-24, -30])}deg` }],
   }));
 
   const s = size / 170; // artwork drawn on a 170 × 170 grid

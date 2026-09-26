@@ -1,7 +1,4 @@
-import {
-  Icon,
-  type IconName,
-} from "@/components/ui/icon";
+import { Icon, type IconName } from "@/components/ui/icon";
 import { homeTokens as themeColors } from "@/design-system/theme";
 import { AppText } from "@/design-system";
 import { useQuery } from "convex/react";
@@ -70,9 +67,7 @@ export function ParentBottomNavigation({
                             ? "moneyOutline"
                             : "familyOutline"
                 }
-                color={
-                  active ? themeColors.action : themeColors.inkMuted
-                }
+                color={active ? themeColors.action : themeColors.inkMuted}
                 size={26}
               />
               {item.section === "reviews" && reviewCount > 0 ? (

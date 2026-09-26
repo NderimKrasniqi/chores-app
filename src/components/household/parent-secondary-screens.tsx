@@ -1,3 +1,4 @@
+import { Scene } from "@/components/art";
 import { Icon } from "@/components/ui/icon";
 import { Avatar } from "@/components/ui/avatar";
 import { ParentHouseholdActivity } from "@/components/activity/parent-household-activity";
@@ -108,9 +109,7 @@ function SettingRow({
       >
         <Icon
           name={icon}
-          color={
-            tone === "mint" ? themeColors.actionPressed : themeColors.ink
-          }
+          color={tone === "mint" ? themeColors.actionPressed : themeColors.ink}
           size={24}
         />
       </View>
@@ -120,11 +119,7 @@ function SettingRow({
       <AppText variant="label">{value}</AppText>
       {onPress ? (
         <View className="ml-2">
-          <Icon
-            name="chevron"
-            color={themeColors.ink}
-            size={20}
-          />
+          <Icon name="chevron" color={themeColors.ink} size={20} />
         </View>
       ) : null}
     </View>
@@ -225,11 +220,7 @@ export function ParentAccountScreen({
         showsVerticalScrollIndicator={false}
       >
         <Surface className="mt-3 flex-row items-center p-3">
-          <Avatar
-            source={parentAvatar}
-            tone="parent"
-            className="h-28 w-28"
-          />
+          <Avatar source={parentAvatar} tone="parent" className="h-28 w-28" />
           <View className="ml-7 flex-1">
             <AppText
               variant="screenTitle"
@@ -251,11 +242,7 @@ export function ParentAccountScreen({
           elevated={false}
           className="mt-1 h-[104px] overflow-hidden p-3"
         >
-          <Image
-            source={familyArtwork}
-            className="absolute -bottom-10 -left-2 h-[160px] w-[180px]"
-            contentFit="contain"
-          />
+          <Scene name="family" size={160} />
           <View className="ml-[46%] flex-1 justify-center">
             <AppText
               variant="cardTitle"
@@ -272,11 +259,7 @@ export function ParentAccountScreen({
           <Pressable accessibilityRole="button" onPress={onSwitchHousehold}>
             <Surface className="mt-2 h-[76px] flex-row items-center p-3">
               <View className="h-14 w-14 items-center justify-center rounded-full bg-actionSoft">
-                <Icon
-                  name="family"
-                  color={themeColors.action}
-                  size={26}
-                />
+                <Icon name="family" color={themeColors.action} size={26} />
               </View>
               <View className="ml-6 flex-1">
                 <AppText
@@ -296,11 +279,7 @@ export function ParentAccountScreen({
                   Choose another household you belong to
                 </AppText>
               </View>
-              <Icon
-                name="chevron"
-                color={themeColors.ink}
-                size={22}
-              />
+              <Icon name="chevron" color={themeColors.ink} size={22} />
             </Surface>
           </Pressable>
         ) : null}
@@ -314,11 +293,7 @@ export function ParentAccountScreen({
         >
           <Surface className="mt-2 h-[72px] flex-row items-center p-3">
             <View className="h-14 w-14 items-center justify-center rounded-full bg-actionSoft">
-              <Icon
-                name="bell"
-                color={themeColors.action}
-                size={25}
-              />
+              <Icon name="bell" color={themeColors.action} size={25} />
             </View>
             <View className="ml-6 flex-1">
               <AppText
@@ -336,21 +311,13 @@ export function ParentAccountScreen({
                 Manage device notification settings
               </AppText>
             </View>
-            <Icon
-              name="chevron"
-              color={themeColors.ink}
-              size={22}
-            />
+            <Icon name="chevron" color={themeColors.ink} size={22} />
           </Surface>
         </Pressable>
         <Pressable accessibilityRole="button" onPress={onOpenHelp}>
           <Surface className="mt-3 h-[72px] flex-row items-center p-3">
             <View className="h-14 w-14 items-center justify-center rounded-full bg-infoSoft">
-              <Icon
-                name="help"
-                color={themeColors.info}
-                size={26}
-              />
+              <Icon name="help" color={themeColors.info} size={26} />
             </View>
             <View className="ml-6 flex-1">
               <AppText
@@ -368,11 +335,7 @@ export function ParentAccountScreen({
                 Review how the app works
               </AppText>
             </View>
-            <Icon
-              name="chevron"
-              color={themeColors.ink}
-              size={22}
-            />
+            <Icon name="chevron" color={themeColors.ink} size={22} />
           </Surface>
         </Pressable>
 
@@ -502,11 +465,7 @@ export function HouseholdSwitcherScreen({
                   </View>
                   {!current ? (
                     <View className="absolute right-3 top-1/2 -mt-5 h-10 w-10 items-center justify-center">
-                      <Icon
-                        name="chevron"
-                        color={themeColors.ink}
-                        size={23}
-                      />
+                      <Icon name="chevron" color={themeColors.ink} size={23} />
                     </View>
                   ) : null}
                 </Surface>
@@ -523,18 +482,10 @@ export function HouseholdSwitcherScreen({
           <View className="h-16 w-16 items-center justify-center rounded-full bg-infoSoft">
             <View className="relative h-12 w-16">
               <View className="absolute left-0 top-1">
-                <Icon
-                  name="home"
-                  color={themeColors.action}
-                  size={38}
-                />
+                <Icon name="home" color={themeColors.action} size={38} />
               </View>
               <View className="absolute left-5 top-0">
-                <Icon
-                  name="home"
-                  color={themeColors.info}
-                  size={38}
-                />
+                <Icon name="home" color={themeColors.info} size={38} />
               </View>
             </View>
           </View>
@@ -669,11 +620,7 @@ export function HouseholdSettingsScreen({
           showsVerticalScrollIndicator={false}
         >
           <View className="relative mt-0 h-[116px]">
-            <Image
-              source={houseArtwork}
-              className="absolute -left-6 h-[120px] w-[170px]"
-              contentFit="contain"
-            />
+            <Scene name="house" size={120} />
             <View className="absolute bottom-[35px] left-[138px] right-0">
               <AppText
                 variant="sectionTitle"
@@ -725,11 +672,7 @@ export function HouseholdSettingsScreen({
             elevated={false}
             className="mt-5 flex-row p-4"
           >
-            <Icon
-              name="clock"
-              color={themeColors.ink}
-              size={28}
-            />
+            <Icon name="clock" color={themeColors.ink} size={28} />
             <AppText
               variant="bodySmall"
               color="ink-muted"
@@ -763,11 +706,7 @@ export function HouseholdSettingsScreen({
 
           <View className="mt-8 h-px bg-line" />
           <View className="mt-6 flex-row items-center px-2">
-            <Icon
-              name="family"
-              color={themeColors.action}
-              size={30}
-            />
+            <Icon name="family" color={themeColors.action} size={30} />
             <AppText
               variant="bodySmall"
               color="ink-muted"
@@ -819,11 +758,7 @@ export function HouseholdSettingsScreen({
                   elevated={false}
                   className="mt-5 flex-row p-4"
                 >
-                  <Icon
-                    name="clock"
-                    color={themeColors.ink}
-                    size={26}
-                  />
+                  <Icon name="clock" color={themeColors.ink} size={26} />
                   <AppText variant="bodySmall" className="ml-3 flex-1">
                     Existing chores and the open payout period keep their saved
                     times. The new timezone applies to future scheduling.
@@ -859,11 +794,7 @@ export function HouseholdSettingsScreen({
                   elevated={false}
                   className="mt-5 flex-row p-4"
                 >
-                  <Icon
-                    name="calendar"
-                    color={themeColors.ink}
-                    size={26}
-                  />
+                  <Icon name="calendar" color={themeColors.ink} size={26} />
                   <AppText variant="bodySmall" className="ml-3 flex-1">
                     The current payout period keeps its saved closing boundary.{" "}
                     {formatWeekday(payoutWeekday)} starts the next period.
@@ -886,11 +817,7 @@ export function HouseholdSettingsScreen({
                   elevated={false}
                   className="mt-5 flex-row p-4"
                 >
-                  <Icon
-                    name="refresh"
-                    color={themeColors.ink}
-                    size={26}
-                  />
+                  <Icon name="refresh" color={themeColors.ink} size={26} />
                   <AppText variant="bodySmall" className="ml-3 flex-1">
                     The new limit applies equally to every Child. Unclaims
                     already used this payout week are not reset.
