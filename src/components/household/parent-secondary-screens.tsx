@@ -1,36 +1,24 @@
-import { Scene } from "@/components/art";
-import { Icon } from "@/components/ui/icon";
-import { Avatar } from "@/components/ui/avatar";
+import { useState, type ReactNode } from "react";
+import { Linking, Pressable, ScrollView, TextInput, View } from "react-native";
+import Animated from "react-native-reanimated";
+import { SafeAreaView } from "react-native-safe-area-context";
+import Svg, { Path, Rect } from "react-native-svg";
+
 import { ParentHouseholdActivity } from "@/components/activity/parent-household-activity";
 import {
   ParentChildAccessContent,
   type ParentChildAccessVisualFixture,
 } from "@/components/child-access/parent-child-access-content";
-import { homeTokens as themeColors } from "@/design-system/theme";
-import {
-  ActionButton,
-  AppText,
-  FormField,
-  Surface,
-  TopBar,
-} from "@/design-system";
+import { PRESS, pressTransition } from "@/components/art/motion";
+import { Avatar } from "@/components/ui/avatar";
+import { Icon, type IconName } from "@/components/ui/icon";
+import { ActionButton, AppText } from "@/design-system";
+import { useTheme } from "@/design-system/theme";
 import { useServerConfirmedMutation } from "@/hooks/use-server-confirmed-mutation";
-import { AppImage as Image } from "@/components/ui/app-image";
-import { useState } from "react";
-import { Linking, Modal, Pressable, ScrollView, View } from "react-native";
-import {
-  SafeAreaView,
-  useSafeAreaInsets,
-} from "react-native-safe-area-context";
 
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import type { HouseholdSummary, PayoutWeekday } from "./household-card";
-
-const parentAvatar = require("../../../assets/images/direction-c/sam-avatar.png");
-const familyArtwork = require("../../../assets/images/direction-c/household-family.png");
-const houseArtwork = require("../../../assets/images/direction-c/household-home.png");
-const grandmaHouseArtwork = require("../../../assets/images/direction-c/household-grandma.png");
 
 function formatWeekday(day: string) {
   return day.charAt(0).toUpperCase() + day.slice(1);
@@ -46,6 +34,114 @@ const payoutWeekdays: PayoutWeekday[] = [
   "sunday",
 ];
 
+/** Shared frame for pushed parent screens: round back button + title. */
+function ScreenFrame({
+  title,
+  onBack,
+  children,
+}: {
+  title: string;
+  onBack: () => void;
+  children: ReactNode;
+}) {
+  const { tokens } = useTheme();
+  return (
+    <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-canvas">
+      <View className="flex-row items-center gap-3 px-5 pb-2 pt-2">
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Back"
+          onPress={onBack}
+          hitSlop={8}
+          className="h-11 w-11 items-center justify-center rounded-full"
+          style={{ backgroundColor: tokens.surface }}
+        >
+          <Icon name="back" color={tokens.ink} size={20} />
+        </Pressable>
+        <AppText variant="sectionTitle" numberOfLines={1} className="flex-1">
+          {title}
+        </AppText>
+      </View>
+      <ScrollView
+        contentContainerClassName="px-5 pb-10"
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        {children}
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+function ActionRow({
+  icon,
+  title,
+  subtitle,
+  onPress,
+  trailing,
+}: {
+  icon: IconName;
+  title: string;
+  subtitle?: string;
+  onPress?: () => void;
+  trailing?: ReactNode;
+}) {
+  const { tokens } = useTheme();
+  return (
+    <Pressable
+      accessibilityRole={onPress ? "button" : undefined}
+      accessibilityLabel={[title, subtitle].filter(Boolean).join(". ")}
+      disabled={!onPress}
+      onPress={onPress}
+    >
+      {({ pressed }) => (
+        <Animated.View
+          className="min-h-[64px] flex-row items-center gap-3 rounded-[20px] px-4 py-3"
+          style={[
+            {
+              backgroundColor: tokens.surface,
+              transform: [{ scale: pressed ? PRESS.scale : 1 }],
+            },
+            pressTransition,
+          ]}
+        >
+          <View
+            className="h-10 w-10 items-center justify-center rounded-full"
+            style={{ backgroundColor: tokens.actionSoft }}
+          >
+            <Icon name={icon} color={tokens.action} size={20} />
+          </View>
+          <View className="flex-1">
+            <AppText variant="cardTitle">{title}</AppText>
+            {subtitle ? (
+              <AppText variant="caption" color="ink-muted">
+                {subtitle}
+              </AppText>
+            ) : null}
+          </View>
+          {trailing ??
+            (onPress ? (
+              <Icon name="chevron" color={tokens.inkMuted} size={18} />
+            ) : null)}
+        </Animated.View>
+      )}
+    </Pressable>
+  );
+}
+
+/** A little house, tinted per household so they're easy to tell apart. */
+function HouseMark({ color, size = 52 }: { color: string; size?: number }) {
+  const { tokens } = useTheme();
+  return (
+    <Svg width={size} height={size} viewBox="0 0 52 52">
+      <Rect width={52} height={52} rx={16} fill={`${color}26`} />
+      <Path d="M12 26 L26 13 L40 26 Z" fill={color} />
+      <Rect x={16} y={25} width={20} height={15} rx={3} fill={tokens.surface} />
+      <Rect x={23} y={31} width={6} height={9} rx={1.5} fill={color} />
+    </Svg>
+  );
+}
+
 export function ParentChildAccessScreen({
   householdId,
   timezone,
@@ -59,78 +155,16 @@ export function ParentChildAccessScreen({
   onBack: () => void;
   visualFixture?: ParentChildAccessVisualFixture;
 }) {
-  const insets = useSafeAreaInsets();
-
   return (
-    <SafeAreaView edges={[]} className="flex-1 bg-canvas">
-      <View
-        className="px-3"
-        style={{ paddingTop: Math.max(0, insets.top - 8) }}
-      >
-        <TopBar
-          title="Child access"
-          onBack={onBack}
-          titleStyle={{ fontSize: 20, lineHeight: 24 }}
-        />
-      </View>
-      <ScrollView
-        contentContainerClassName="px-3 pb-8"
-        showsVerticalScrollIndicator={false}
-      >
-        <ParentChildAccessContent
-          householdId={householdId}
-          childId={child.childId}
-          childDisplayName={child.displayName}
-          timezone={timezone}
-          visualFixture={visualFixture}
-        />
-      </ScrollView>
-    </SafeAreaView>
-  );
-}
-
-function SettingRow({
-  icon,
-  label,
-  value,
-  tone = "lavender",
-  onPress,
-}: {
-  icon: "globe" | "calendar" | "refresh";
-  label: string;
-  value: string;
-  tone?: "mint" | "lavender";
-  onPress?: () => void;
-}) {
-  const content = (
-    <View className="min-h-[72px] flex-row items-center px-3">
-      <View
-        className={`h-14 w-14 items-center justify-center rounded-full ${tone === "mint" ? "bg-actionSoftStrong" : "bg-infoSoft"}`}
-      >
-        <Icon
-          name={icon}
-          color={tone === "mint" ? themeColors.actionPressed : themeColors.ink}
-          size={24}
-        />
-      </View>
-      <AppText color="ink-muted" className="ml-4 flex-1">
-        {label}
-      </AppText>
-      <AppText variant="label">{value}</AppText>
-      {onPress ? (
-        <View className="ml-2">
-          <Icon name="chevron" color={themeColors.ink} size={20} />
-        </View>
-      ) : null}
-    </View>
-  );
-
-  return onPress ? (
-    <Pressable accessibilityRole="button" onPress={onPress}>
-      {content}
-    </Pressable>
-  ) : (
-    content
+    <ScreenFrame title={`${child.displayName}’s phones`} onBack={onBack}>
+      <ParentChildAccessContent
+        householdId={householdId}
+        childId={child.childId}
+        childDisplayName={child.displayName}
+        timezone={timezone}
+        visualFixture={visualFixture}
+      />
+    </ScreenFrame>
   );
 }
 
@@ -144,39 +178,13 @@ export function ParentActivityScreen({
   onAddChore: () => void;
 }) {
   return (
-    <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-canvas">
-      <View className="px-3">
-        <TopBar
-          title="Activity"
-          onBack={onBack}
-          titleStyle={{ fontSize: 22, lineHeight: 28 }}
-        />
-      </View>
-      <ScrollView
-        contentContainerClassName="px-3 pb-8"
-        showsVerticalScrollIndicator={false}
-      >
-        <ParentHouseholdActivity
-          householdId={household.householdId}
-          showHistory
-          onAddChore={onAddChore}
-          historyHeader={
-            <View>
-              <AppText
-                variant="screenTitle"
-                className="mt-1"
-                style={{ fontSize: 32, lineHeight: 36 }}
-              >
-                Household activity
-              </AppText>
-              <AppText variant="bodySmall" className="mt-1">
-                Approved chore wins from {household.name}.
-              </AppText>
-            </View>
-          }
-        />
-      </ScrollView>
-    </SafeAreaView>
+    <ScreenFrame title="Family wins" onBack={onBack}>
+      <ParentHouseholdActivity
+        householdId={household.householdId}
+        showHistory
+        onAddChore={onAddChore}
+      />
+    </ScreenFrame>
   );
 }
 
@@ -201,153 +209,86 @@ export function ParentAccountScreen({
   onSignOut: () => void;
   signingOut: boolean;
 }) {
-  const insets = useSafeAreaInsets();
-
+  const { tokens } = useTheme();
   return (
-    <SafeAreaView edges={[]} className="flex-1 bg-canvas">
+    <ScreenFrame title="You" onBack={onBack}>
       <View
-        className="px-5"
-        style={{ paddingTop: Math.max(0, insets.top - 8) }}
+        className="mt-2 overflow-hidden rounded-[26px]"
+        style={{ backgroundColor: tokens.ink }}
       >
-        <TopBar
-          title="Account"
-          onBack={onBack}
-          titleStyle={{ fontSize: 20, lineHeight: 24 }}
-        />
-      </View>
-      <ScrollView
-        contentContainerClassName="px-5 pb-6"
-        showsVerticalScrollIndicator={false}
-      >
-        <Surface className="mt-3 flex-row items-center p-3">
-          <Avatar source={parentAvatar} tone="parent" className="h-28 w-28" />
-          <View className="ml-7 flex-1">
+        <View className="flex-row items-center gap-4 p-5">
+          <Avatar
+            tone="parent"
+            className="rounded-full"
+            fallbackLabel={parentName}
+            size={64}
+          />
+          <View className="flex-1">
+            <AppText variant="label" style={{ color: tokens.reward }}>
+              Parent
+            </AppText>
             <AppText
-              variant="screenTitle"
-              style={{ fontSize: 32, lineHeight: 36 }}
+              variant="sectionTitle"
+              numberOfLines={1}
+              style={{ color: tokens.surface }}
             >
               {parentName}
             </AppText>
-            <AppText className="mt-1" style={{ fontSize: 17, lineHeight: 22 }}>
+            <AppText
+              variant="caption"
+              numberOfLines={1}
+              style={{ color: tokens.inkFaint }}
+            >
               {parentEmail}
             </AppText>
           </View>
-        </Surface>
-
-        <AppText variant="sectionTitle" className="mt-6">
-          Household
-        </AppText>
-        <Surface
-          tone="lavender"
-          elevated={false}
-          className="mt-1 h-[104px] overflow-hidden p-3"
+        </View>
+        <View
+          className="flex-row items-center gap-3 px-5 py-3"
+          style={{ backgroundColor: `${tokens.surface}14` }}
         >
-          <Scene name="family" size={160} />
-          <View className="ml-[46%] flex-1 justify-center">
-            <AppText
-              variant="cardTitle"
-              style={{ fontSize: 19, lineHeight: 23 }}
-            >
-              {household.name}
-            </AppText>
-            <AppText className="mt-1" style={{ fontSize: 16, lineHeight: 20 }}>
-              Current household
-            </AppText>
-          </View>
-        </Surface>
+          <Icon name="home" color={tokens.reward} size={16} />
+          <AppText
+            variant="label"
+            className="flex-1"
+            style={{ color: tokens.surface }}
+          >
+            {household.name}
+          </AppText>
+        </View>
+      </View>
+
+      <View className="mt-6 gap-2.5">
         {canSwitchHousehold ? (
-          <Pressable accessibilityRole="button" onPress={onSwitchHousehold}>
-            <Surface className="mt-2 h-[76px] flex-row items-center p-3">
-              <View className="h-14 w-14 items-center justify-center rounded-full bg-actionSoft">
-                <Icon name="family" color={themeColors.action} size={26} />
-              </View>
-              <View className="ml-6 flex-1">
-                <AppText
-                  variant="cardTitle"
-                  style={{ fontSize: 19, lineHeight: 23 }}
-                >
-                  Switch household
-                </AppText>
-                <AppText
-                  variant="bodySmall"
-                  className="mt-0"
-                  style={{ fontSize: 14, lineHeight: 18 }}
-                  numberOfLines={1}
-                  adjustsFontSizeToFit
-                  minimumFontScale={0.85}
-                >
-                  Choose another household you belong to
-                </AppText>
-              </View>
-              <Icon name="chevron" color={themeColors.ink} size={22} />
-            </Surface>
-          </Pressable>
+          <ActionRow
+            icon="housePair"
+            title="Switch household"
+            subtitle="You’re in more than one family"
+            onPress={onSwitchHousehold}
+          />
         ) : null}
-
-        <AppText variant="sectionTitle" className="mt-4">
-          Preferences
-        </AppText>
-        <Pressable
-          accessibilityRole="button"
+        <ActionRow
+          icon="bell"
+          title="Notifications"
+          subtitle="Phone settings for this app"
           onPress={() => void Linking.openSettings()}
-        >
-          <Surface className="mt-2 h-[72px] flex-row items-center p-3">
-            <View className="h-14 w-14 items-center justify-center rounded-full bg-actionSoft">
-              <Icon name="bell" color={themeColors.action} size={25} />
-            </View>
-            <View className="ml-6 flex-1">
-              <AppText
-                variant="cardTitle"
-                style={{ fontSize: 19, lineHeight: 23 }}
-              >
-                Notifications
-              </AppText>
-              <AppText
-                variant="bodySmall"
-                className="mt-0"
-                style={{ fontSize: 14, lineHeight: 18 }}
-                numberOfLines={1}
-              >
-                Manage device notification settings
-              </AppText>
-            </View>
-            <Icon name="chevron" color={themeColors.ink} size={22} />
-          </Surface>
-        </Pressable>
-        <Pressable accessibilityRole="button" onPress={onOpenHelp}>
-          <Surface className="mt-3 h-[72px] flex-row items-center p-3">
-            <View className="h-14 w-14 items-center justify-center rounded-full bg-infoSoft">
-              <Icon name="help" color={themeColors.info} size={26} />
-            </View>
-            <View className="ml-6 flex-1">
-              <AppText
-                variant="cardTitle"
-                style={{ fontSize: 19, lineHeight: 23 }}
-              >
-                Help & onboarding
-              </AppText>
-              <AppText
-                variant="bodySmall"
-                className="mt-0"
-                style={{ fontSize: 14, lineHeight: 18 }}
-                numberOfLines={1}
-              >
-                Review how the app works
-              </AppText>
-            </View>
-            <Icon name="chevron" color={themeColors.ink} size={22} />
-          </Surface>
-        </Pressable>
-
-        <ActionButton
-          tone="secondary"
-          className="mt-7"
-          label="Sign out"
-          loading={signingOut}
-          onPress={onSignOut}
         />
-      </ScrollView>
-    </SafeAreaView>
+        <ActionRow
+          icon="help"
+          title="How it works"
+          subtitle="Replay the guide"
+          onPress={onOpenHelp}
+        />
+      </View>
+
+      <ActionButton
+        className="mt-8"
+        tone="destructiveSecondary"
+        label="Sign out"
+        loading={signingOut}
+        onPress={onSignOut}
+      />
+    </ScreenFrame>
   );
 }
 
@@ -362,149 +303,68 @@ export function HouseholdSwitcherScreen({
   onBack: () => void;
   onSelect: (householdId: HouseholdSummary["householdId"]) => void;
 }) {
-  const insets = useSafeAreaInsets();
-
+  const { tokens } = useTheme();
+  const colors = [tokens.action, tokens.urgency, tokens.info, tokens.reward];
   return (
-    <SafeAreaView edges={[]} className="flex-1 bg-canvas">
-      <View
-        className="px-3"
-        style={{ paddingTop: Math.max(0, insets.top - 8) }}
-      >
-        <TopBar
-          title="Switch household"
-          onBack={onBack}
-          titleStyle={{ fontSize: 20, lineHeight: 24 }}
-        />
-      </View>
-      <ScrollView
-        contentContainerClassName="px-3 pb-6"
-        showsVerticalScrollIndicator={false}
-      >
-        <AppText
-          variant="display"
-          className="ml-5 mt-7"
-          style={{ fontSize: 34, lineHeight: 38 }}
-          numberOfLines={1}
-        >
-          Choose a household
-        </AppText>
-        <AppText
-          className="ml-5 mt-3 max-w-[280px]"
-          style={{ fontSize: 17, lineHeight: 22 }}
-        >
-          This changes the Household shown in your Parent app.
-        </AppText>
-
-        <View className="mt-8 gap-5">
-          {households.map((household) => {
-            const current = household.householdId === currentHouseholdId;
-            const isGrandmasHouse = household.name
-              .toLowerCase()
-              .includes("grandma");
-            return (
-              <Pressable
-                key={household.householdId}
-                accessibilityRole="button"
-                accessibilityState={{ selected: current }}
-                onPress={() => onSelect(household.householdId)}
-              >
-                <Surface
-                  tone={current ? "mint" : "raised"}
-                  className={`min-h-[144px] overflow-hidden p-3 ${current ? "border-2 border-action" : "border border-infoSoftStrong"}`}
+    <ScreenFrame title="Your households" onBack={onBack}>
+      <View className="mt-2 gap-2.5">
+        {households.map((household, index) => {
+          const current = household.householdId === currentHouseholdId;
+          return (
+            <Pressable
+              key={household.householdId}
+              accessibilityRole="button"
+              accessibilityState={{ selected: current }}
+              accessibilityLabel={`${household.name}, ${household.children.length} kids${current ? ", current" : ""}`}
+              onPress={() => onSelect(household.householdId)}
+            >
+              {({ pressed }) => (
+                <Animated.View
+                  className="flex-row items-center gap-4 rounded-[22px] p-4"
+                  style={[
+                    {
+                      backgroundColor: tokens.surface,
+                      borderWidth: 2,
+                      borderColor: current ? tokens.action : "transparent",
+                      transform: [{ scale: pressed ? PRESS.scale : 1 }],
+                    },
+                    pressTransition,
+                  ]}
                 >
-                  <Image
-                    source={
-                      current
-                        ? familyArtwork
-                        : isGrandmasHouse
-                          ? grandmaHouseArtwork
-                          : houseArtwork
-                    }
-                    className="absolute -bottom-9 -left-2 h-[170px] w-[200px]"
-                    contentFit="contain"
-                  />
-                  <View
-                    className={`${current ? "ml-[50%]" : "ml-[45%]"} flex-1 justify-center pr-3`}
-                  >
-                    <AppText
-                      variant="cardTitle"
-                      style={{ fontSize: 19, lineHeight: 23 }}
-                      numberOfLines={1}
-                    >
-                      {household.name}
+                  <HouseMark color={colors[index % colors.length]} />
+                  <View className="flex-1">
+                    <AppText variant="cardTitle">{household.name}</AppText>
+                    <AppText variant="caption" color="ink-muted">
+                      {household.children
+                        .map((child) => child.displayName)
+                        .join(", ") || "No kids yet"}
                     </AppText>
-                    <AppText
-                      variant="bodySmall"
-                      className="mt-1"
-                      style={{ fontSize: 14, lineHeight: 18 }}
-                      numberOfLines={1}
-                    >
-                      {household.children.length}{" "}
-                      {household.children.length === 1 ? "child" : "children"} ·
-                      Payout {formatWeekday(household.payoutWeekday)}
-                    </AppText>
-                    {current ? (
-                      <View className="mt-2 flex-row items-center">
-                        <View className="h-8 w-8 items-center justify-center rounded-full bg-action">
-                          <Icon
-                            name="check"
-                            color={themeColors.onAction}
-                            size={18}
-                          />
-                        </View>
-                        <AppText
-                          variant="label"
-                          color="action"
-                          className="ml-2"
-                          style={{ fontSize: 16, lineHeight: 20 }}
-                        >
-                          Current
-                        </AppText>
-                      </View>
-                    ) : null}
                   </View>
-                  {!current ? (
-                    <View className="absolute right-3 top-1/2 -mt-5 h-10 w-10 items-center justify-center">
-                      <Icon name="chevron" color={themeColors.ink} size={23} />
-                    </View>
+                  {current ? (
+                    <Icon name="check" color={tokens.action} size={20} />
                   ) : null}
-                </Surface>
-              </Pressable>
-            );
-          })}
-        </View>
-
-        <Surface
-          tone="lavender"
-          elevated={false}
-          className="mt-6 min-h-[96px] flex-row items-center p-3"
-        >
-          <View className="h-16 w-16 items-center justify-center rounded-full bg-infoSoft">
-            <View className="relative h-12 w-16">
-              <View className="absolute left-0 top-1">
-                <Icon name="home" color={themeColors.action} size={38} />
-              </View>
-              <View className="absolute left-5 top-0">
-                <Icon name="home" color={themeColors.info} size={38} />
-              </View>
-            </View>
-          </View>
-          <AppText className="ml-12 flex-1">
-            Your Parent account can belong{"\n"}to more than one Household.
-          </AppText>
-        </Surface>
-        <AppText
-          variant="bodySmall"
-          color="ink-muted"
-          className="mt-5 text-center"
-        >
-          Child profiles stay separate and do not switch Households.
-        </AppText>
-      </ScrollView>
-    </SafeAreaView>
+                </Animated.View>
+              )}
+            </Pressable>
+          );
+        })}
+      </View>
+    </ScreenFrame>
   );
 }
 
+const TIMEZONE_SUGGESTIONS = [
+  "Europe/Stockholm",
+  "Europe/Oslo",
+  "Europe/Helsinki",
+  "Europe/London",
+];
+
+/**
+ * House rules edited in place: payday as day chips, weekly unclaims as a
+ * stepper, time zone as suggestions plus a free field. Each change saves on
+ * its own.
+ */
 export function HouseholdSettingsScreen({
   household,
   onBack,
@@ -512,7 +372,7 @@ export function HouseholdSettingsScreen({
   household: HouseholdSummary;
   onBack: () => void;
 }) {
-  const insets = useSafeAreaInsets();
+  const { tokens } = useTheme();
   const setTimezoneSetting = useServerConfirmedMutation(
     api.households.setTimezone,
   );
@@ -522,75 +382,20 @@ export function HouseholdSettingsScreen({
   const setWeeklyUnclaimAllowance = useServerConfirmedMutation(
     api.households.setWeeklyUnclaimAllowance,
   );
-  const [editor, setEditor] = useState<
+  const [timezone, setTimezone] = useState(household.timezone);
+  const [saving, setSaving] = useState<
     "timezone" | "payout" | "unclaims" | null
   >(null);
-  const [timezone, setTimezone] = useState(household.timezone);
-  const [payoutWeekday, setPayoutWeekday] = useState<PayoutWeekday>(
-    household.payoutWeekday,
-  );
-  const [weeklyUnclaims, setWeeklyUnclaims] = useState(
-    String(household.weeklyUnclaimAllowance),
-  );
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  function openEditor(nextEditor: "timezone" | "payout" | "unclaims") {
-    setTimezone(household.timezone);
-    setPayoutWeekday(household.payoutWeekday);
-    setWeeklyUnclaims(String(household.weeklyUnclaimAllowance));
+  async function run(
+    key: "timezone" | "payout" | "unclaims",
+    action: () => Promise<unknown>,
+  ) {
+    setSaving(key);
     setError(null);
-    setEditor(nextEditor);
-  }
-
-  function closeEditor() {
-    if (saving) return;
-    setEditor(null);
-    setError(null);
-  }
-
-  async function saveSetting() {
-    const normalizedTimezone = timezone.trim();
-    const normalizedAllowance = weeklyUnclaims.trim();
-
-    if (editor === "timezone" && !normalizedTimezone) {
-      setError("Timezone is required.");
-      return;
-    }
-
-    if (editor === "unclaims" && !/^\d+$/.test(normalizedAllowance)) {
-      setError("Weekly unclaims must be a non-negative whole number.");
-      return;
-    }
-
-    const allowance = Number(normalizedAllowance);
-
-    if (editor === "unclaims" && !Number.isSafeInteger(allowance)) {
-      setError("Weekly unclaims is too large.");
-      return;
-    }
-
-    setSaving(true);
-    setError(null);
-
     try {
-      if (editor === "timezone") {
-        await setTimezoneSetting({
-          householdId: household.householdId,
-          timezone: normalizedTimezone,
-        });
-      } else if (editor === "payout") {
-        await setPayoutWeekdaySetting({
-          householdId: household.householdId,
-          payoutWeekday,
-        });
-      } else {
-        await setWeeklyUnclaimAllowance({
-          householdId: household.householdId,
-          weeklyUnclaimAllowance: allowance,
-        });
-      }
-      setEditor(null);
+      await action();
     } catch (updateError) {
       setError(
         updateError instanceof Error
@@ -598,243 +403,218 @@ export function HouseholdSettingsScreen({
           : "Could not update household settings.",
       );
     } finally {
-      setSaving(false);
+      setSaving(null);
     }
   }
 
+  function saveTimezone(value: string) {
+    const normalized = value.trim();
+    if (!normalized) {
+      setError("Timezone is required.");
+      return;
+    }
+    setTimezone(normalized);
+    void run("timezone", () =>
+      setTimezoneSetting({
+        householdId: household.householdId,
+        timezone: normalized,
+      }),
+    );
+  }
+
+  function saveUnclaims(next: number) {
+    if (!Number.isSafeInteger(next) || next < 0) return;
+    void run("unclaims", () =>
+      setWeeklyUnclaimAllowance({
+        householdId: household.householdId,
+        weeklyUnclaimAllowance: next,
+      }),
+    );
+  }
+
+  const allowance = household.weeklyUnclaimAllowance;
+
   return (
-    <>
-      <SafeAreaView edges={[]} className="flex-1 bg-canvas">
+    <ScreenFrame title="House rules" onBack={onBack}>
+      {error ? (
         <View
-          className="px-3"
-          style={{ paddingTop: Math.max(0, insets.top - 18) }}
+          className="mb-3 rounded-[18px] px-4 py-3"
+          style={{ backgroundColor: tokens.urgencySoft }}
         >
-          <TopBar
-            title="Household settings"
-            onBack={onBack}
-            titleStyle={{ fontSize: 20, lineHeight: 24 }}
+          <AppText variant="bodySmall" color="urgency">
+            {error}
+          </AppText>
+        </View>
+      ) : null}
+
+      <RuleCard
+        icon="calendar"
+        title="Payday"
+        body="The week closes on this day and payouts are ready."
+        saving={saving === "payout"}
+      >
+        <View className="flex-row flex-wrap gap-2">
+          {payoutWeekdays.map((day) => {
+            const active = day === household.payoutWeekday;
+            return (
+              <Pressable
+                key={day}
+                accessibilityRole="button"
+                accessibilityLabel={formatWeekday(day)}
+                accessibilityState={{ selected: active }}
+                disabled={saving !== null}
+                onPress={() =>
+                  void run("payout", () =>
+                    setPayoutWeekdaySetting({
+                      householdId: household.householdId,
+                      payoutWeekday: day,
+                    }),
+                  )
+                }
+                className="h-11 w-11 items-center justify-center rounded-full"
+                style={{
+                  backgroundColor: active ? tokens.ink : tokens.surfaceMuted,
+                }}
+              >
+                <AppText
+                  variant="label"
+                  style={{ color: active ? tokens.surface : tokens.ink }}
+                >
+                  {formatWeekday(day).slice(0, 2)}
+                </AppText>
+              </Pressable>
+            );
+          })}
+        </View>
+      </RuleCard>
+
+      <RuleCard
+        icon="key"
+        title="Unclaim keys"
+        body="How many Extras each kid may drop per week. Changes apply right away."
+        saving={saving === "unclaims"}
+      >
+        <View className="flex-row items-center gap-4">
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="One fewer"
+            disabled={saving !== null || allowance === 0}
+            onPress={() => saveUnclaims(allowance - 1)}
+            className="h-11 w-11 items-center justify-center rounded-full"
+            style={{
+              backgroundColor: tokens.surfaceMuted,
+              opacity: allowance === 0 ? 0.4 : 1,
+            }}
+          >
+            <Icon name="minus" color={tokens.ink} size={18} />
+          </Pressable>
+          <View className="flex-1 flex-row items-center justify-center gap-1.5">
+            {Array.from({ length: Math.min(allowance, 6) }, (_, i) => (
+              <Icon key={i} name="key" color={tokens.reward} size={20} />
+            ))}
+            <AppText variant="cardTitle" className="ml-1">
+              {allowance}
+            </AppText>
+          </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="One more"
+            disabled={saving !== null}
+            onPress={() => saveUnclaims(allowance + 1)}
+            className="h-11 w-11 items-center justify-center rounded-full"
+            style={{ backgroundColor: tokens.surfaceMuted }}
+          >
+            <Icon name="plus" color={tokens.ink} size={18} />
+          </Pressable>
+        </View>
+      </RuleCard>
+
+      <RuleCard
+        icon="globe"
+        title="Time zone"
+        body="Deadlines and paydays follow this clock."
+        saving={saving === "timezone"}
+      >
+        <View className="flex-row flex-wrap gap-2">
+          {TIMEZONE_SUGGESTIONS.map((zone) => {
+            const active = zone === household.timezone;
+            return (
+              <Pressable
+                key={zone}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
+                disabled={saving !== null}
+                onPress={() => saveTimezone(zone)}
+                className="min-h-[40px] items-center justify-center rounded-full px-3"
+                style={{
+                  backgroundColor: active ? tokens.ink : tokens.surfaceMuted,
+                }}
+              >
+                <AppText
+                  variant="caption"
+                  style={{ color: active ? tokens.surface : tokens.ink }}
+                >
+                  {zone.split("/")[1].replace("_", " ")}
+                </AppText>
+              </Pressable>
+            );
+          })}
+        </View>
+        <View className="mt-3 flex-row gap-2">
+          <TextInput
+            accessibilityLabel="Time zone"
+            value={timezone}
+            onChangeText={setTimezone}
+            autoCapitalize="none"
+            autoCorrect={false}
+            className="min-h-[44px] flex-1 rounded-[14px] px-3 font-body-heavy text-ink"
+            style={{ backgroundColor: tokens.surfaceMuted }}
+          />
+          <ActionButton
+            label="Save"
+            disabled={saving !== null || timezone.trim() === household.timezone}
+            onPress={() => saveTimezone(timezone)}
           />
         </View>
-        <ScrollView
-          contentContainerClassName="px-3 pb-6"
-          showsVerticalScrollIndicator={false}
+      </RuleCard>
+    </ScreenFrame>
+  );
+}
+
+function RuleCard({
+  icon,
+  title,
+  body,
+  saving,
+  children,
+}: {
+  icon: IconName;
+  title: string;
+  body: string;
+  saving: boolean;
+  children: ReactNode;
+}) {
+  const { tokens } = useTheme();
+  return (
+    <View
+      className="mb-3 rounded-[24px] p-4"
+      style={{ backgroundColor: tokens.surface }}
+    >
+      <View className="flex-row items-center gap-3">
+        <View
+          className="h-10 w-10 items-center justify-center rounded-full"
+          style={{ backgroundColor: tokens.actionSoft }}
         >
-          <View className="relative mt-0 h-[116px]">
-            <Scene name="house" size={120} />
-            <View className="absolute bottom-[35px] left-[138px] right-0">
-              <AppText
-                variant="sectionTitle"
-                style={{ fontSize: 22, lineHeight: 26 }}
-                numberOfLines={1}
-              >
-                {household.name}
-              </AppText>
-              <AppText
-                variant="bodySmall"
-                className="mt-1"
-                style={{ fontSize: 13, lineHeight: 17, letterSpacing: -0.2 }}
-                numberOfLines={1}
-                adjustsFontSizeToFit
-                minimumFontScale={0.8}
-              >
-                Settings shared by {household.children.length}{" "}
-                {household.children.length === 1 ? "child" : "children"} and{" "}
-                {household.parents.length}{" "}
-                {household.parents.length === 1 ? "parent" : "parents"}
-              </AppText>
-            </View>
-          </View>
-
-          <AppText
-            variant="sectionTitle"
-            className="mt-5"
-            style={{ fontSize: 20, lineHeight: 24 }}
-          >
-            Schedule & payouts
+          <Icon name={icon} color={tokens.action} size={20} />
+        </View>
+        <View className="flex-1">
+          <AppText variant="cardTitle">{title}</AppText>
+          <AppText variant="caption" color="ink-muted">
+            {saving ? "Saving…" : body}
           </AppText>
-          <Surface className="mt-5 overflow-hidden">
-            <SettingRow
-              icon="globe"
-              label="Timezone"
-              value={household.timezone}
-              onPress={() => openEditor("timezone")}
-            />
-            <View className="mx-3 h-px bg-line" />
-            <SettingRow
-              icon="calendar"
-              label="Payout day"
-              value={formatWeekday(household.payoutWeekday)}
-              onPress={() => openEditor("payout")}
-            />
-          </Surface>
-          <Surface
-            tone="lavender"
-            elevated={false}
-            className="mt-5 flex-row p-4"
-          >
-            <Icon name="clock" color={themeColors.ink} size={28} />
-            <AppText
-              variant="bodySmall"
-              color="ink-muted"
-              className="ml-3 flex-1"
-            >
-              Time changes affect future chores and payout periods. A payout-day
-              change starts with the next period.
-            </AppText>
-          </Surface>
-
-          <AppText
-            variant="sectionTitle"
-            className="mt-8"
-            style={{ fontSize: 20, lineHeight: 24 }}
-          >
-            Chore flexibility
-          </AppText>
-          <Surface className="mt-3">
-            <SettingRow
-              icon="refresh"
-              label="Weekly unclaims"
-              value={`${household.weeklyUnclaimAllowance} per child`}
-              tone="mint"
-              onPress={() => openEditor("unclaims")}
-            />
-          </Surface>
-          <AppText variant="bodySmall" color="ink-muted" className="mt-4">
-            The same allowance applies to every child and resets each payout
-            week.
-          </AppText>
-
-          <View className="mt-8 h-px bg-line" />
-          <View className="mt-6 flex-row items-center px-2">
-            <Icon name="family" color={themeColors.action} size={30} />
-            <AppText
-              variant="bodySmall"
-              color="ink-muted"
-              className="ml-4 flex-1"
-            >
-              Every parent has equal authority to change household settings.
-            </AppText>
-          </View>
-        </ScrollView>
-      </SafeAreaView>
-
-      <Modal
-        visible={editor !== null}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={closeEditor}
-      >
-        <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-canvas">
-          <View className="px-5">
-            <TopBar
-              title={
-                editor === "timezone"
-                  ? "Change timezone"
-                  : editor === "payout"
-                    ? "Payout day"
-                    : "Weekly unclaims"
-              }
-              onBack={closeEditor}
-            />
-          </View>
-          <ScrollView
-            keyboardShouldPersistTaps="handled"
-            contentContainerClassName="px-5 pb-8 pt-5"
-          >
-            {editor === "timezone" ? (
-              <>
-                <FormField
-                  label="Household timezone"
-                  value={timezone}
-                  onChangeText={setTimezone}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  placeholder="Europe/Stockholm"
-                  error={error}
-                  helper="Use an IANA timezone such as Europe/Stockholm."
-                />
-                <Surface
-                  tone="lavender"
-                  elevated={false}
-                  className="mt-5 flex-row p-4"
-                >
-                  <Icon name="clock" color={themeColors.ink} size={26} />
-                  <AppText variant="bodySmall" className="ml-3 flex-1">
-                    Existing chores and the open payout period keep their saved
-                    times. The new timezone applies to future scheduling.
-                  </AppText>
-                </Surface>
-              </>
-            ) : editor === "payout" ? (
-              <>
-                <AppText variant="label">Payout weekday</AppText>
-                <View className="mt-3 flex-row flex-wrap gap-2">
-                  {payoutWeekdays.map((day) => {
-                    const selected = payoutWeekday === day;
-                    return (
-                      <Pressable
-                        key={day}
-                        accessibilityRole="button"
-                        accessibilityState={{ selected }}
-                        onPress={() => setPayoutWeekday(day)}
-                        className={`min-h-target min-w-[92px] flex-1 items-center justify-center rounded-control px-3 ${selected ? "bg-action" : "border-2 border-infoSoftStrong bg-surfaceRaised"}`}
-                      >
-                        <AppText
-                          variant="label"
-                          color={selected ? "white" : "ink"}
-                        >
-                          {formatWeekday(day)}
-                        </AppText>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-                <Surface
-                  tone="lavender"
-                  elevated={false}
-                  className="mt-5 flex-row p-4"
-                >
-                  <Icon name="calendar" color={themeColors.ink} size={26} />
-                  <AppText variant="bodySmall" className="ml-3 flex-1">
-                    The current payout period keeps its saved closing boundary.{" "}
-                    {formatWeekday(payoutWeekday)} starts the next period.
-                  </AppText>
-                </Surface>
-              </>
-            ) : (
-              <>
-                <FormField
-                  label="Weekly unclaims per child"
-                  value={weeklyUnclaims}
-                  onChangeText={setWeeklyUnclaims}
-                  keyboardType="number-pad"
-                  placeholder="2"
-                  error={error}
-                  helper="Enter a whole number, including 0."
-                />
-                <Surface
-                  tone="lavender"
-                  elevated={false}
-                  className="mt-5 flex-row p-4"
-                >
-                  <Icon name="refresh" color={themeColors.ink} size={26} />
-                  <AppText variant="bodySmall" className="ml-3 flex-1">
-                    The new limit applies equally to every Child. Unclaims
-                    already used this payout week are not reset.
-                  </AppText>
-                </Surface>
-              </>
-            )}
-
-            <ActionButton
-              className="mt-6"
-              label="Save setting"
-              loading={saving}
-              onPress={() => void saveSetting()}
-            />
-          </ScrollView>
-        </SafeAreaView>
-      </Modal>
-    </>
+        </View>
+      </View>
+      <View className="mt-4">{children}</View>
+    </View>
   );
 }

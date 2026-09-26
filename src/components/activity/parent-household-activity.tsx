@@ -4,7 +4,10 @@ import type { ReactNode } from "react";
 
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
+import { View } from "react-native";
+
 import { ApprovalActivitySurface } from "./approval-activity";
+import { ChildActivityFeed } from "./child-activity-feed";
 
 export function ParentHouseholdActivity({
   householdId,
@@ -38,6 +41,24 @@ export function ParentHouseholdActivity({
             Approved chore wins will appear here.
           </AppText>
         </Surface>
+      </>
+    );
+  }
+
+  if (showHistory) {
+    return (
+      <>
+        {historyHeader}
+        <View className="mt-4">
+          <ChildActivityFeed
+            items={feed.items}
+            timezone={feed.timezone}
+            onOpenChores={onAddChore}
+            emptyTitle="No family wins yet"
+            emptyBody="Every approved chore lights a star here."
+            emptyActionLabel="Add a chore"
+          />
+        </View>
       </>
     );
   }

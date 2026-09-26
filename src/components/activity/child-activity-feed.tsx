@@ -30,11 +30,18 @@ export function ChildActivityFeed({
   timezone,
   viewerChildId,
   onOpenChores,
+  emptyTitle = "The sky is dark tonight",
+  emptyBody = "Your first approved quest lights the first star.",
+  emptyActionLabel = "See your quests",
 }: {
   items: ApprovalActivityItem[];
   timezone: string;
-  viewerChildId: Id<"children">;
+  /** The signed-in child, shown as "You"; omit for the Parent view. */
+  viewerChildId?: Id<"children">;
   onOpenChores?: () => void;
+  emptyTitle?: string;
+  emptyBody?: string;
+  emptyActionLabel?: string;
 }) {
   const { tokens } = useTheme();
   const owners = useMemo<Owner[]>(() => {
@@ -147,18 +154,18 @@ export function ChildActivityFeed({
         >
           <StarBuddy size={72} mood="sleepy" />
           <AppText variant="sectionTitle" className="mt-3 text-center">
-            The sky is dark tonight
+            {emptyTitle}
           </AppText>
           <AppText
             color="ink-muted"
             className="mt-1.5 px-4 text-center font-body-bold"
           >
-            Your first approved quest lights the first star.
+            {emptyBody}
           </AppText>
           {onOpenChores ? (
             <ActionButton
               className="mt-5 w-full"
-              label="See your quests"
+              label={emptyActionLabel}
               onPress={onOpenChores}
             />
           ) : null}
@@ -195,7 +202,7 @@ function LogSection({
   title: string;
   items: ApprovalActivityItem[];
   timezone: string;
-  viewerChildId: Id<"children">;
+  viewerChildId?: Id<"children">;
   colorFor: (childId: string) => string;
 }) {
   if (items.length === 0) return null;
