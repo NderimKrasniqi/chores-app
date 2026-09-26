@@ -460,11 +460,11 @@ function CommitmentStrip({
         Unclaim window
       </AppText>
       <AppText className="mt-1 font-body-heavy text-[16px] leading-[22px]">
-        You can drop it until {formatTime(lockAt, tz)}
+        You can drop it until {stripTime(lockAt, tz).replace(/^T/, "t")}
       </AppText>
 
       <View
-        className="mt-4 h-8 justify-center"
+        className="mt-9 h-8 justify-center"
         onLayout={(event) => setWidth(event.nativeEvent.layout.width)}
       >
         <View className="h-2.5 flex-row overflow-hidden rounded-full">
@@ -478,6 +478,32 @@ function CommitmentStrip({
           />
         </View>
         {width > 0 ? (
+          <>
+            <View
+              pointerEvents="none"
+              className="absolute flex-row items-center gap-1 rounded-full bg-nightRaised px-2 py-0.5"
+              style={{
+                // Pill stays inside the card; the tick below marks the spot.
+                left: Math.min(
+                  Math.max(lockFraction * width - 34, 0),
+                  width - 68,
+                ),
+                top: -26,
+              }}
+            >
+              <Icon name="lock" color={tokens.gold} size={10} />
+              <AppText className="font-body-heavy text-[11px]">
+                {formatTime(lockAt, tz)}
+              </AppText>
+            </View>
+            <View
+              pointerEvents="none"
+              className="absolute h-3 w-0.5 rounded-full bg-gold"
+              style={{ left: lockFraction * width - 1, top: -4 }}
+            />
+          </>
+        ) : null}
+        {width > 0 ? (
           <Animated.View
             pointerEvents="none"
             style={[{ position: "absolute", left: -12, top: 0 }, markerStyle]}
@@ -488,20 +514,24 @@ function CommitmentStrip({
       </View>
 
       <View className="mt-2 flex-row justify-between">
-        <StripLabel title="Claimed" time={formatTime(claimedAt, tz)} />
-        <StripLabel
-          title="Locks"
-          time={formatTime(lockAt, tz)}
-          align="center"
-        />
+        <StripLabel title="Claimed" time={stripTime(claimedAt, tz)} />
         <StripLabel
           title="Due"
-          time={formatTime(deadlineAt, tz)}
+          time={stripTime(deadlineAt, tz)}
           align="right"
         />
       </View>
     </View>
   );
+}
+
+/** "16:00" today, otherwise "Tomorrow 16:00" / "Fri 3 Oct 16:00". */
+function stripTime(timestamp: number, tz: string) {
+  const day = relativeDayLabel(timestamp, tz);
+  const time = formatTime(timestamp, tz);
+  return day === "today"
+    ? time
+    : `${day[0].toUpperCase()}${day.slice(1)} ${time}`;
 }
 
 function StripLabel({
