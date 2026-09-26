@@ -1,107 +1,205 @@
-import { Scene } from "@/components/art";
-import { Icon } from "@/components/ui/icon";
-import { childAvatarTone, Avatar } from "@/components/ui/avatar";
-import { ActiveClaimableClaimsCard } from "@/components/chores/active-claimable-claims-card";
-import { homeTokens as themeColors } from "@/design-system/theme";
-import { AppText, Surface } from "@/design-system";
 import { useQuery } from "convex/react";
-import { AppImage as Image } from "@/components/ui/app-image";
+import { useState, type ReactNode } from "react";
 import { Pressable, View } from "react-native";
+import Animated, {
+  interpolate,
+  useAnimatedStyle,
+} from "react-native-reanimated";
+import Svg, { Circle, Path } from "react-native-svg";
+
+import { ChoreIcon, useEntrance, useLoop } from "@/components/art";
+import { PRESS, pressTransition } from "@/components/art/motion";
+import { childAvatarTone, Avatar } from "@/components/ui/avatar";
+import { Icon } from "@/components/ui/icon";
+import { AppText } from "@/design-system";
+import { useTheme } from "@/design-system/theme";
 
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import type { HouseholdSummary } from "./household-card";
 
-const artwork = {
-  bedroom: require("../../../assets/images/direction-c/chore-bedroom.png"),
-  dishwasher: require("../../../assets/images/direction-c/chore-dishwasher.png"),
-  dog: require("../../../assets/images/direction-c/chore-dog-bowl.png"),
-  dogWalk: require("../../../assets/images/direction-c/chore-dog-walk.png"),
-  carWash: require("../../../assets/images/direction-c/chore-car-wash.png"),
-  laundry: require("../../../assets/images/direction-c/chore-laundry.png"),
-  plants: require("../../../assets/images/direction-c/chore-plants.png"),
-  recycling: require("../../../assets/images/direction-c/chore-recycling.png"),
-  table: require("../../../assets/images/direction-c/chore-table.png"),
-};
-const parentAvatar = require("../../../assets/images/direction-c/sam-avatar.png");
-const alexAvatar = require("../../../assets/images/direction-c/alex-avatar.png");
-const mayaAvatar = require("../../../assets/images/direction-c/maya-avatar.png");
-
-function choreArtwork(title: string) {
-  const normalized = title.toLowerCase();
-  if (normalized.includes("dishwasher") || normalized.includes("dishes"))
-    return artwork.dishwasher;
-  if (normalized.includes("table")) return artwork.table;
-  if (normalized.includes("laundry") || normalized.includes("fold"))
-    return artwork.laundry;
-  if (normalized.includes("plant") || normalized.includes("water"))
-    return artwork.plants;
-  if (normalized.includes("car") || normalized.includes("wash"))
-    return artwork.carWash;
-  if (normalized.includes("walk") && normalized.includes("dog"))
-    return artwork.dogWalk;
-  if (normalized.includes("dog") || normalized.includes("pet"))
-    return artwork.dog;
-  if (normalized.includes("recycl") || normalized.includes("trash"))
-    return artwork.recycling;
-  return artwork.bedroom;
+function localHour(timezone: string, now: number) {
+  try {
+    const parts = new Intl.DateTimeFormat("en-GB", {
+      timeZone: timezone,
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    })
+      .format(new Date(now))
+      .split(":")
+      .map(Number);
+    return parts[0] + parts[1] / 60;
+  } catch {
+    const date = new Date(now);
+    return date.getHours() + date.getMinutes() / 60;
+  }
 }
 
-function greeting(timezone?: string) {
-  let hour = new Date().getHours();
-
-  try {
-    hour = Number(
-      new Intl.DateTimeFormat("en-GB", {
-        ...(timezone ? { timeZone: timezone } : {}),
-        hour: "2-digit",
-        hourCycle: "h23",
-      }).format(new Date()),
-    );
-  } catch {
-    // Keep the device-local fallback for an invalid or unavailable timezone.
-  }
-
+function greeting(hour: number) {
+  if (hour < 5) return "Good night";
   if (hour < 12) return "Good morning";
   if (hour < 18) return "Good afternoon";
   return "Good evening";
 }
 
-function InitialAvatar({
-  name,
-  small = false,
-}: {
-  name: string;
-  small?: boolean;
-}) {
-  const source =
-    name.trim().toLowerCase() === "alex"
-      ? alexAvatar
-      : name.trim().toLowerCase() === "maya"
-        ? mayaAvatar
-        : null;
-
-  if (source) {
-    return (
-      <Avatar
-        source={source}
-        tone={childAvatarTone(name)}
-        className={small ? "h-11 w-11" : "h-14 w-14"}
-      />
-    );
-  }
+/**
+ * The day as an arc: the sun (or moon, after dark) sits where the time of
+ * day is, 06:00 on the left to 22:00 on the right.
+ */
+function DayArc({ hour }: { hour: number }) {
+  const { tokens } = useTheme();
+  const width = 150;
+  const height = 70;
+  const night = hour < 6 || hour >= 22;
+  const t = Math.min(1, Math.max(0, (hour - 6) / 16));
+  const angle = Math.PI * (1 - t);
+  const cx = width / 2 + Math.cos(angle) * (width / 2 - 12);
+  const cy = height - Math.sin(angle) * (height - 14);
+  const arrive = useEntrance({ duration: 700 });
+  const glow = useLoop({ duration: 3000, reverse: true, rest: 0.5 });
+  const bodyStyle = useAnimatedStyle(() => ({
+    opacity: arrive.get(),
+    transform: [
+      { translateY: interpolate(arrive.get(), [0, 1], [10, 0]) },
+      { scale: interpolate(glow.get(), [0, 1], [0.95, 1.05]) },
+    ],
+  }));
 
   return (
     <View
-      className={`${small ? "h-11 w-11" : "h-14 w-14"} items-center justify-center rounded-full bg-rewardSoft`}
+      accessible={false}
+      style={{ width, height: height + 6 }}
+      pointerEvents="none"
     >
-      <AppText variant={small ? "label" : "cardTitle"}>
-        {name.trim().charAt(0).toUpperCase()}
-      </AppText>
+      <Svg width={width} height={height + 6}>
+        <Path
+          d={`M12 ${height} A ${width / 2 - 12} ${height - 14} 0 0 1 ${width - 12} ${height}`}
+          fill="none"
+          stroke={tokens.line}
+          strokeWidth={3}
+          strokeDasharray="4 7"
+          strokeLinecap="round"
+        />
+        <Path
+          d={`M4 ${height + 3} H ${width - 4}`}
+          stroke={tokens.line}
+          strokeWidth={2}
+          strokeLinecap="round"
+        />
+      </Svg>
+      <Animated.View
+        style={[
+          { position: "absolute", left: cx - 15, top: cy - 15 },
+          bodyStyle,
+        ]}
+      >
+        <Svg width={30} height={30}>
+          {night ? (
+            <>
+              <Circle cx={15} cy={15} r={11} fill={tokens.info} />
+              <Circle cx={20} cy={11} r={9} fill={tokens.canvas} />
+            </>
+          ) : (
+            <>
+              <Circle
+                cx={15}
+                cy={15}
+                r={14}
+                fill={tokens.reward}
+                opacity={0.25}
+              />
+              <Circle cx={15} cy={15} r={9} fill={tokens.reward} />
+            </>
+          )}
+        </Svg>
+      </Animated.View>
     </View>
   );
 }
 
+function Tile({
+  onPress,
+  accessibilityLabel,
+  children,
+  tone = "surface",
+}: {
+  onPress?: () => void;
+  accessibilityLabel: string;
+  children: ReactNode;
+  tone?: "surface" | "ink";
+}) {
+  const { tokens } = useTheme();
+  return (
+    <Pressable
+      accessibilityRole={onPress ? "button" : undefined}
+      accessibilityLabel={accessibilityLabel}
+      disabled={!onPress}
+      onPress={onPress}
+    >
+      {({ pressed }) => (
+        <Animated.View
+          className="rounded-[26px] p-4"
+          style={[
+            {
+              backgroundColor: tone === "ink" ? tokens.ink : tokens.surface,
+              transform: [{ scale: pressed ? PRESS.scale : 1 }],
+            },
+            pressTransition,
+          ]}
+        >
+          {children}
+        </Animated.View>
+      )}
+    </Pressable>
+  );
+}
+
+/** A mini fan of cards, one per waiting submission (up to three). */
+function MiniDeck({ count }: { count: number }) {
+  const { tokens } = useTheme();
+  const shown = Math.min(3, Math.max(1, count));
+  return (
+    <View style={{ width: 86, height: 70 }} accessible={false}>
+      {Array.from({ length: shown }, (_, i) => {
+        const depth = shown - 1 - i;
+        return (
+          <View
+            key={i}
+            className="absolute rounded-[12px]"
+            style={{
+              width: 54,
+              height: 68,
+              left: 16 + depth * 8,
+              top: depth * 1,
+              backgroundColor:
+                depth === 0 ? tokens.surface : tokens.surfaceMuted,
+              opacity: count === 0 ? 0.35 : 1,
+              transform: [{ rotate: `${(depth - 1) * 8}deg` }],
+              borderWidth: 1,
+              borderColor: tokens.line,
+            }}
+          >
+            {depth === 0 ? (
+              <View className="flex-1 items-center justify-center">
+                <Icon
+                  name={count === 0 ? "check" : "reviews"}
+                  color={tokens.action}
+                  size={24}
+                />
+              </View>
+            ) : null}
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+
+/**
+ * The parent's mission control: what the day looks like, what's waiting to
+ * be checked, how each child is doing, and the latest win.
+ */
 export function ParentHomeContent({
   household,
   parentName,
@@ -119,6 +217,7 @@ export function ParentHomeContent({
   onOpenActivity: () => void;
   onOpenMoney: () => void;
 }) {
+  const { tokens } = useTheme();
   const householdId: Id<"households"> = household.householdId;
   const personal = useQuery(api.personalChoreReviews.listPending, {
     householdId,
@@ -134,210 +233,211 @@ export function ParentHomeContent({
   const activeClaims = useQuery(api.claimableChores.listActiveForParent, {
     householdId,
   });
+  const [now] = useState(() => Date.now());
+  const hour = localHour(household.timezone, now);
 
   const pending = [...(personal ?? []), ...(claimable ?? []), ...(redos ?? [])];
+  const pendingLoaded =
+    personal !== undefined && claimable !== undefined && redos !== undefined;
   const waitingNames = [
     ...new Set(pending.map((item) => item.childDisplayName)),
   ];
-  const latestActivity = activity?.items[0];
+  const latestWin = activity?.items[0];
+  const firstName = parentName.split(" ")[0];
 
   return (
-    <View className="pb-6">
-      <View className="flex-row items-center">
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Open Parent account"
-          onPress={onOpenSwitcher}
-          className="h-[76px] w-[76px]"
-        >
-          <Avatar
-            source={parentAvatar}
-            tone="parent"
-            className="h-full w-full"
-          />
-        </Pressable>
-        <View className="ml-4 flex-1">
-          <AppText
-            variant="display"
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            minimumFontScale={0.8}
-          >
-            {greeting(household.timezone)},{" "}
-            {parentName.split(" ")[0] || "Parent"}
+    <View className="pb-8">
+      <View className="flex-row items-end justify-between pt-3">
+        <View className="flex-1 pr-2">
+          <AppText variant="label" color="ink-muted">
+            {greeting(hour)}, {firstName}
           </AppText>
-          <AppText className="mt-1">{household.name}</AppText>
-        </View>
-      </View>
-
-      {pending.length > 0 ? (
-        <Surface
-          tone="coral"
-          elevated={false}
-          className="mt-3 overflow-hidden p-2"
-        >
-          <View className="flex-row items-center">
-            <View className="h-[72px] w-[72px] items-center justify-center rounded-full bg-urgency">
-              <Scene name="clipboard" size={72} />
-            </View>
-            <View className="ml-4 flex-1">
-              <AppText variant="cardTitle">
-                {pending.length}{" "}
-                {pending.length === 1 ? "chore needs" : "chores need"} review
-              </AppText>
-              <AppText variant="bodySmall" className="mt-1">
-                {waitingNames.length > 0
-                  ? `${waitingNames.join(" and ")} ${waitingNames.length === 1 ? "is" : "are"} waiting for you.`
-                  : "Completed work is waiting for you."}
-              </AppText>
-            </View>
-          </View>
           <Pressable
             accessibilityRole="button"
-            onPress={onOpenReviews}
-            className="mt-2 min-h-[40px] flex-row items-center justify-center rounded-control bg-urgency px-5"
+            accessibilityLabel={`${household.name}. Open account and households`}
+            onPress={onOpenSwitcher}
+            className="mt-0.5 flex-row items-center gap-1"
           >
-            <AppText variant="cardTitle" color="white">
-              Review work
+            <AppText variant="screenTitle" numberOfLines={1} className="shrink">
+              {household.name}
             </AppText>
-            <View className="absolute right-4">
-              <Icon name="chevron" color={themeColors.onAction} size={23} />
-            </View>
+            <Icon name="chevronDown" color={tokens.inkMuted} size={18} />
           </Pressable>
-        </Surface>
-      ) : (
-        <Surface
-          tone="mint"
-          elevated={false}
-          className="mt-3 flex-row items-center p-4"
+        </View>
+        <DayArc hour={hour} />
+      </View>
+
+      <View className="mt-5">
+        <Tile
+          tone={pending.length > 0 ? "ink" : "surface"}
+          onPress={onOpenReviews}
+          accessibilityLabel={
+            pending.length > 0
+              ? `${pending.length} chores to check from ${waitingNames.join(", ")}`
+              : "Nothing to check. Open reviews"
+          }
         >
-          <View className="h-12 w-12 items-center justify-center rounded-full bg-action">
-            <Icon name="check" color={themeColors.onAction} size={25} />
+          <View className="flex-row items-center gap-3">
+            <MiniDeck count={pending.length} />
+            <View className="flex-1">
+              <AppText
+                variant="display"
+                style={{
+                  color: pending.length > 0 ? tokens.surface : tokens.ink,
+                }}
+              >
+                {pendingLoaded ? pending.length : "…"}
+              </AppText>
+              <AppText
+                className="font-body-bold"
+                style={{
+                  color: pending.length > 0 ? tokens.surface : tokens.inkMuted,
+                }}
+              >
+                {pending.length === 0
+                  ? "All caught up"
+                  : `to check · ${waitingNames.join(", ")}`}
+              </AppText>
+            </View>
+            <Icon
+              name="chevron"
+              color={pending.length > 0 ? tokens.surface : tokens.inkMuted}
+              size={20}
+            />
           </View>
-          <View className="ml-4 flex-1">
-            <AppText variant="cardTitle">Nothing needs review</AppText>
-            <AppText variant="bodySmall" className="mt-1">
-              You’re all caught up.
-            </AppText>
-          </View>
-        </Surface>
-      )}
+        </Tile>
+      </View>
 
-      <Pressable
-        accessibilityRole="button"
-        onPress={onAddChore}
-        className="mt-2 min-h-[44px] flex-row items-center rounded-control bg-actionSoft px-4"
-      >
-        <View className="h-11 w-11 items-center justify-center rounded-full bg-action">
-          <Icon name="plus" color={themeColors.onAction} size={25} />
-        </View>
-        <AppText variant="cardTitle" color="action" className="ml-3">
-          Add chore
-        </AppText>
-        <View className="ml-auto">
-          <Icon name="chevron" color={themeColors.ink} size={22} />
-        </View>
-      </Pressable>
-
-      <AppText variant="sectionTitle" className="mt-3">
-        Your children
-      </AppText>
-      <View className="mt-2 gap-2.5">
+      <View className="mt-6 flex-row items-baseline justify-between">
+        <AppText variant="sectionTitle">The crew</AppText>
+        <Pressable accessibilityRole="button" onPress={onOpenMoney} hitSlop={8}>
+          <AppText variant="label" color="action">
+            Money
+          </AppText>
+        </Pressable>
+      </View>
+      <View className="mt-3 gap-2.5">
         {household.children.map((child) => {
-          const childPayout = payouts?.children.find(
+          const money = payouts?.children.find(
             (item) => item.childId === child.childId,
           );
-          const childPendingCount = pending.filter(
+          const owed = (money?.pendingPayouts ?? []).reduce(
+            (sum, payout) => sum + payout.amountDueSek,
+            0,
+          );
+          const claims = (activeClaims ?? []).filter(
+            (claim) => claim.childId === child.childId,
+          );
+          const waiting = pending.filter(
             (item) => item.childDisplayName === child.displayName,
           ).length;
-          const childActiveCount =
-            activeClaims?.filter((item) => item.childId === child.childId)
-              .length ?? 0;
-          const childTodayCount = childPendingCount + childActiveCount;
           return (
-            <Pressable
+            <Tile
               key={child.childId}
-              accessibilityRole="button"
-              accessibilityLabel={`Open Money to view ${child.displayName}'s balance`}
               onPress={onOpenMoney}
+              accessibilityLabel={`${child.displayName}: balance ${money?.runningBalanceSek ?? 0} kronor${owed > 0 ? `, ${owed} kronor to pay` : ""}`}
             >
-              <Surface className="min-h-[70px] flex-row items-center px-4 py-2">
-                <InitialAvatar name={child.displayName} />
-                <View className="ml-3 flex-1">
+              <View className="flex-row items-center gap-3">
+                <Avatar
+                  tone={childAvatarTone(child.displayName)}
+                  className="rounded-full"
+                  fallbackLabel={child.displayName}
+                  size={52}
+                />
+                <View className="flex-1">
                   <AppText variant="cardTitle">{child.displayName}</AppText>
                   <AppText
-                    variant="bodySmall"
+                    variant="caption"
+                    color="ink-muted"
                     className="mt-0.5"
-                    numberOfLines={1}
                   >
-                    {childPendingCount > 0
-                      ? childActiveCount > 0
-                        ? `${childTodayCount} chores today`
-                        : `${childPendingCount} ${childPendingCount === 1 ? "chore" : "chores"} waiting for review`
-                      : childActiveCount > 0
-                        ? `${childActiveCount} ${childActiveCount === 1 ? "chore" : "chores"} today`
-                        : "No work waiting for review"}
+                    {[
+                      waiting > 0 ? `${waiting} to check` : null,
+                      claims.length > 0 ? `Extra: ${claims[0].title}` : null,
+                      owed > 0 ? `${owed} kr to pay` : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ") || "All quiet"}
                   </AppText>
                 </View>
-                {childPayout ? (
-                  <AppText
-                    variant="amount"
-                    className="ml-2"
-                    style={{ fontSize: 24, lineHeight: 28, fontWeight: "900" }}
-                    numberOfLines={1}
-                  >
-                    {childPayout.runningBalanceSek} kr
+                <View className="items-end">
+                  <AppText variant="amount">
+                    {money ? money.runningBalanceSek : "…"}
                   </AppText>
-                ) : null}
-                <Icon name="chevron" color={themeColors.ink} size={22} />
-              </Surface>
-            </Pressable>
+                  <AppText variant="caption" color="ink-muted">
+                    kr
+                  </AppText>
+                </View>
+              </View>
+            </Tile>
           );
         })}
       </View>
 
-      <ActiveClaimableClaimsCard householdId={householdId} homeVariant />
-
-      {activity !== undefined ? (
-        <View>
-          <AppText variant="sectionTitle" className="mt-3">
-            Recent activity
+      <View className="mt-6 flex-row items-baseline justify-between">
+        <AppText variant="sectionTitle">Latest win</AppText>
+        <Pressable
+          accessibilityRole="button"
+          onPress={onOpenActivity}
+          hitSlop={8}
+        >
+          <AppText variant="label" color="action">
+            All activity
           </AppText>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Open household activity"
-            onPress={onOpenActivity}
-          >
-            <Surface className="mt-2 flex-row items-center p-3">
-              {latestActivity ? (
-                <Image
-                  source={choreArtwork(latestActivity.choreTitle)}
-                  className="h-16 w-20 rounded-control bg-infoSoft"
-                  contentFit="cover"
-                  accessible={false}
-                />
-              ) : (
-                <View className="h-16 w-20 items-center justify-center rounded-control bg-rewardSoft">
-                  <Icon name="star" color={themeColors.reward} size={32} />
-                </View>
-              )}
-              <View className="ml-3 flex-1">
-                <AppText variant="label">
-                  {latestActivity
-                    ? `${latestActivity.childDisplayName} completed ${latestActivity.choreTitle}`
-                    : "No family wins yet"}
+        </Pressable>
+      </View>
+      <View className="mt-3">
+        <Tile
+          onPress={onOpenActivity}
+          accessibilityLabel={
+            latestWin
+              ? `${latestWin.childDisplayName} completed ${latestWin.choreTitle}, ${latestWin.valueSek} kronor`
+              : "No approved chores yet"
+          }
+        >
+          {latestWin ? (
+            <View className="flex-row items-center gap-3">
+              <ChoreIcon title={latestWin.choreTitle} size={52} />
+              <View className="flex-1">
+                <AppText variant="cardTitle" numberOfLines={1}>
+                  {latestWin.choreTitle}
                 </AppText>
-                <AppText variant="bodySmall" className="mt-1">
-                  {latestActivity
-                    ? `${latestActivity.valueSek} kr approved`
-                    : "Approved chores will appear here."}
+                <AppText variant="caption" color="ink-muted">
+                  {latestWin.childDisplayName} · approved
                 </AppText>
               </View>
-              <Icon name="chevron" color={themeColors.ink} size={22} />
-            </Surface>
-          </Pressable>
+              <View className="h-11 w-11 items-center justify-center rounded-full border-b-[3px] border-goldShade bg-gold">
+                <AppText variant="label" className="text-night">
+                  +{latestWin.valueSek}
+                </AppText>
+              </View>
+            </View>
+          ) : (
+            <AppText color="ink-muted">
+              Approved chores show up here as wins.
+            </AppText>
+          )}
+        </Tile>
+      </View>
+
+      <View className="mt-6 flex-row gap-3">
+        <View className="flex-1">
+          <Tile onPress={onAddChore} accessibilityLabel="Add a chore">
+            <Icon name="plus" color={tokens.action} size={24} />
+            <AppText variant="cardTitle" className="mt-2">
+              Add a chore
+            </AppText>
+          </Tile>
         </View>
-      ) : null}
+        <View className="flex-1">
+          <Tile onPress={onOpenMoney} accessibilityLabel="Pay out">
+            <Icon name="money" color={tokens.action} size={24} />
+            <AppText variant="cardTitle" className="mt-2">
+              Pay out
+            </AppText>
+          </Tile>
+        </View>
+      </View>
     </View>
   );
 }

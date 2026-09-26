@@ -256,7 +256,7 @@ export function HouseholdListScreen({
             setRoute("main");
           }}
         />
-        <View className="bg-surfaceRaised" style={{ height: insets.bottom }} />
+        <View className="bg-canvas" style={{ height: insets.bottom }} />
       </View>
     </SafeAreaView>
   );
