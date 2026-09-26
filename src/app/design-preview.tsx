@@ -5,6 +5,10 @@ import {
   type ChildHomeChoreOccurrence,
   type ChildHomeRedo,
 } from "@/components/child-access/child-home-chore-list";
+import {
+  ChildMoneyView,
+  type ChildMoneyOverview,
+} from "@/components/child-access/child-money-content";
 import { ChildNoAccessScreen } from "@/components/child-access/child-no-access-screen";
 import { ChildJoinScreen } from "@/components/child-access/child-join-screen";
 import { ChildPinSetupScreen } from "@/components/child-access/child-pin-setup-screen";
@@ -305,6 +309,102 @@ function ParentClaim({
         initialVisualState={initialVisualState}
       />
     </View>
+  );
+}
+
+function ChildMoneyFixture({
+  state,
+}: {
+  state: "week" | "pending" | "paid" | "negative" | "first-week";
+}) {
+  const now = new Date().getTime();
+  const day = 86_400_000;
+  const localDate = (offset: number) =>
+    new Date(now + offset * day).toISOString().slice(0, 10);
+  const balance = state === "negative" ? -35 : state === "pending" ? 145 : 85;
+  const payoutId = "visual-payout" as Id<"payouts">;
+  const payoutPeriodId = "visual-payout-period" as Id<"payoutPeriods">;
+  const latestPayout: ChildMoneyOverview["child"]["latestPayout"] =
+    state === "first-week"
+      ? null
+      : {
+          payoutId,
+          payoutPeriodId,
+          periodEndLocalDate: localDate(-3),
+          balanceAtCloseSek: state === "negative" ? -60 : 120,
+          amountDueSek: state === "negative" ? 0 : 120,
+          pendingOutcomeCount: state === "pending" ? 1 : 0,
+          status:
+            state === "pending"
+              ? "pending"
+              : state === "negative"
+                ? "no_payment"
+                : "paid",
+          paidAt: state === "paid" || state === "week" ? now - 2 * day : null,
+        };
+  const weekdays = [
+    "sunday",
+    "monday",
+    "tuesday",
+    "wednesday",
+    "thursday",
+    "friday",
+    "saturday",
+  ] as const;
+  const payoutWeekday = weekdays[new Date(now + 3 * day).getUTCDay()];
+  const overview: ChildMoneyOverview = {
+    configuredPayoutWeekday: payoutWeekday,
+    currentPeriod: {
+      startLocalDate: localDate(-3),
+      startAt: now - 3 * day,
+      endLocalDate: localDate(3),
+      endAt: now + 3 * day,
+      timezone: household.timezone,
+      payoutWeekday,
+    },
+    child: {
+      displayName: "Alex",
+      runningBalanceSek: balance,
+      latestPayout,
+      thisPeriodEntries:
+        state === "first-week"
+          ? []
+          : [
+              {
+                kind: "earning",
+                amountSek: 30,
+                createdAt: now - 3 * 3_600_000,
+                choreTitle: "Clean your room",
+              },
+              ...(state === "negative"
+                ? [
+                    {
+                      kind: "penalty" as const,
+                      amountSek: -50,
+                      createdAt: now - day,
+                      choreTitle: "Wash the car",
+                    },
+                  ]
+                : []),
+              {
+                kind: "earning",
+                amountSek: 25,
+                createdAt: now - 2 * day,
+                choreTitle: "Walk the dog",
+              },
+            ],
+    },
+  };
+
+  return (
+    <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-canvas">
+      <ScrollView className="flex-1 px-5" showsVerticalScrollIndicator={false}>
+        <AppText variant="screenTitle" className="mt-4">
+          Money
+        </AppText>
+        <ChildMoneyView overview={overview} now={now} />
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
@@ -702,6 +802,16 @@ function VerificationState({ state }: { state: string }) {
       return <ChildClaimFixture state="active" />;
     case "child-unclaim-confirmation":
       return <ChildClaimFixture state="unclaim" />;
+    case "child-money":
+      return <ChildMoneyFixture state="week" />;
+    case "child-money-pending":
+      return <ChildMoneyFixture state="pending" />;
+    case "child-money-paid":
+      return <ChildMoneyFixture state="paid" />;
+    case "child-money-negative":
+      return <ChildMoneyFixture state="negative" />;
+    case "child-money-first-week":
+      return <ChildMoneyFixture state="first-week" />;
     case "child-active-claim-submitted":
       return <ChildClaimFixture state="submitted" />;
     case "child-active-claim-locked":

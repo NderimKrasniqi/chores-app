@@ -16,3 +16,5 @@ export { TreasureChest } from "./treasure-chest";
 export { LockClunk } from "./lock-clunk";
 export { Backpack } from "./backpack";
 export { UnclaimKeys } from "./unclaim-keys";
+export { PiggyPlanet } from "./piggy-planet";
+export { RocketTrack } from "./rocket-track";

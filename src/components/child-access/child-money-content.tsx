@@ -1,38 +1,70 @@
-import { Scene } from "@/components/art";
-import { Icon } from "@/components/ui/icon";
-import { childAvatarTone, Avatar } from "@/components/ui/avatar";
-import { questTokens as themeColors } from "@/design-system/theme";
-import { AppText, StatusChip, Surface } from "@/design-system";
 import { useQuery } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
 import { useState } from "react";
 import { View } from "react-native";
 
+import { PiggyPlanet, RocketTrack, StarBuddy } from "@/components/art";
+import { Icon } from "@/components/ui/icon";
+import { AppText } from "@/design-system";
+import { questTokens as tokens } from "@/design-system/theme";
+import { formatLocalDate } from "@/lib/dates";
+
 import { api } from "../../../convex/_generated/api";
-import {
-  formatLocalDate as formatShortLocalDate,
-  formatLocalDateRange,
-} from "@/lib/dates";
 
-const alexAvatar = require("../../../assets/images/direction-c/alex-avatar.png");
-const mayaAvatar = require("../../../assets/images/direction-c/maya-avatar.png");
+export type ChildMoneyOverview = FunctionReturnType<typeof api.payouts.getMine>;
+type Entry = ChildMoneyOverview["child"]["thisPeriodEntries"][number];
+type Payout = NonNullable<ChildMoneyOverview["child"]["latestPayout"]>;
 
-function childAvatar(displayName: string) {
-  const normalized = displayName.trim().toLowerCase();
-  if (normalized === "maya") return mayaAvatar;
-  if (normalized === "alex") return alexAvatar;
-  return null;
+const TIMELINE_LIMIT = 6;
+const DAY_MS = 86_400_000;
+
+function localDateKey(timestamp: number, timezone: string) {
+  try {
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone: timezone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(new Date(timestamp));
+  } catch {
+    return new Date(timestamp).toISOString().slice(0, 10);
+  }
 }
 
-function formatWeekday(day: string) {
-  return day.charAt(0).toUpperCase() + day.slice(1);
+function dayNumber(localDate: string) {
+  const [year, month, day] = localDate.split("-").map(Number);
+  return Date.UTC(year, month - 1, day) / DAY_MS;
 }
 
-function formatLocalDate(localDate: string) {
-  return formatShortLocalDate(localDate);
+/** One short label per local date from start to end (inclusive). */
+function weekDayLabels(startLocalDate: string, endLocalDate: string) {
+  const first = dayNumber(startLocalDate);
+  const count = Math.max(1, dayNumber(endLocalDate) - first + 1);
+  return Array.from({ length: count }, (_, i) =>
+    new Date((first + i) * DAY_MS).toLocaleDateString("en-SE", {
+      weekday: "narrow",
+      timeZone: "UTC",
+    }),
+  );
 }
 
-function formatPeriod(startLocalDate: string, endLocalDate: string) {
-  return formatLocalDateRange(startLocalDate, endLocalDate);
+function shortWeekday(timestamp: number, timezone: string) {
+  try {
+    return new Intl.DateTimeFormat("en-SE", {
+      timeZone: timezone,
+      weekday: "short",
+    }).format(new Date(timestamp));
+  } catch {
+    return "";
+  }
+}
+
+function capitalize(value: string) {
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function signed(value: number) {
+  return `${value > 0 ? "+" : value < 0 ? "−" : ""}${Math.abs(value)} kr`;
 }
 
 export function ChildMoneyContent() {
@@ -41,327 +73,384 @@ export function ChildMoneyContent() {
 
   if (overview === undefined) {
     return (
-      <Surface className="mt-4 p-5">
-        <AppText variant="cardTitle">Loading your money…</AppText>
-        <AppText variant="bodySmall" color="ink-muted" className="mt-1">
-          Your balance and payout week will appear here.
+      <View className="items-center pb-6 pt-8">
+        <PiggyPlanet size={150} />
+        <AppText color="ink-muted" className="mt-3 font-body-bold">
+          Counting your coins…
         </AppText>
-      </Surface>
+      </View>
     );
   }
 
+  return <ChildMoneyView overview={overview} now={queryNow} />;
+}
+
+/**
+ * Money as a piggy planet: the balance is the planet, the payout week is a
+ * rocket flying to payday, and this week's coins land on a timeline.
+ */
+export function ChildMoneyView({
+  overview,
+  now,
+}: {
+  overview: ChildMoneyOverview;
+  now: number;
+}) {
   const { child, currentPeriod } = overview;
   const balance = child.runningBalanceSek;
-  const latest = child.latestPayout;
   const negative = balance < 0;
-  const compactGuide = latest?.status === "pending" || negative;
 
   return (
     <View className="pb-6">
-      <Surface
-        tone="mint"
-        elevated={false}
-        className="min-h-[136px] flex-row items-center p-3"
-      >
-        <View className="h-28 w-32 items-center justify-center">
-          <Scene name="wallet" size={128} />
-        </View>
-        <View className="ml-5 flex-1">
-          <AppText variant="bodySmall">Running balance</AppText>
-          <AppText
-            variant="display"
-            color={negative ? "urgency" : "ink"}
-            className="mt-0.5"
-            testID="task14-running-balance-value"
-          >
-            {balance} kr
-          </AppText>
-          <AppText
-            variant="bodySmall"
-            color="ink-muted"
-            className="mt-1"
-            numberOfLines={2}
-            adjustsFontSizeToFit
-            minimumFontScale={0.85}
-          >
-            {negative
-              ? "Future approved chores reduce this amount first."
-              : "Approved chores add to this. Missed locked Extras can subtract."}
-          </AppText>
-        </View>
-      </Surface>
-
-      <Surface
-        tone="lavender"
-        elevated={false}
-        className="min-h-[128px] flex-row items-center p-3"
-      >
-        <View className="h-24 w-32 items-center justify-center">
-          <Scene name="calendar" size={128} />
-        </View>
-        <View className="ml-5 flex-1">
-          <AppText variant="cardTitle">This payout week</AppText>
-          <AppText variant="sectionTitle" className="mt-0.5">
-            {formatPeriod(
-              currentPeriod.startLocalDate,
-              currentPeriod.endLocalDate,
-            )}
-          </AppText>
-          <View className="mt-2 flex-row items-center">
-            <Icon name="calendar" color={themeColors.ink} size={18} />
-            <AppText variant="bodySmall" className="ml-1.5">
-              Closes {formatWeekday(currentPeriod.payoutWeekday)}
-            </AppText>
-          </View>
-          <AppText
-            variant="caption"
-            color="ink-muted"
-            className="mt-1"
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            minimumFontScale={0.8}
-          >
-            A new payout period starts after it closes.
-          </AppText>
-        </View>
-      </Surface>
-
-      <AppText variant="sectionTitle" className="mt-3">
-        Last week’s payout
-      </AppText>
-      <Surface className="mt-2 px-3 py-1">
-        {latest ? (
-          <>
-            <View className="flex-row items-center">
-              <Avatar
-                source={childAvatar(child.displayName)}
-                tone={childAvatarTone(child.displayName)}
-                className="h-20 w-20"
-                fallbackLabel={child.displayName}
-              />
-              <View className="ml-4 flex-1">
-                <AppText variant="cardTitle">{child.displayName}</AppText>
-                <AppText variant="bodySmall" color="ink-muted" className="mt-1">
-                  Period ended {formatLocalDate(latest.periodEndLocalDate)}
-                </AppText>
-                <AppText
-                  variant="amount"
-                  color={latest.balanceAtCloseSek < 0 ? "urgency" : "ink"}
-                  className="mt-1"
-                >
-                  {latest.balanceAtCloseSek} kr
-                </AppText>
-                <View className="mt-1">
-                  <StatusChip
-                    label={
-                      latest.status === "pending"
-                        ? "Waiting for Parent"
-                        : latest.status === "paid"
-                          ? "Paid"
-                          : latest.balanceAtCloseSek < 0
-                            ? "Carries forward"
-                            : "Nothing to pay"
-                    }
-                    tone={
-                      latest.status === "paid" || latest.status === "pending"
-                        ? "success"
-                        : latest.balanceAtCloseSek < 0
-                          ? "urgent"
-                          : "info"
-                    }
-                    icon={
-                      latest.status === "no_payment" ? (
-                        <View
-                          className={`h-6 w-6 items-center justify-center rounded-full ${latest.balanceAtCloseSek < 0 ? "bg-urgency" : "bg-info"}`}
-                        >
-                          <Icon
-                            name="minus"
-                            color={themeColors.onAction}
-                            size={14}
-                          />
-                        </View>
-                      ) : (
-                        <Icon
-                          name={latest.status === "pending" ? "clock" : "check"}
-                          color={themeColors.actionPressed}
-                          size={15}
-                        />
-                      )
-                    }
-                  />
-                </View>
-              </View>
-            </View>
-
-            {latest.status === "pending" ? (
-              <>
-                <AppText
-                  variant="bodySmall"
-                  color="ink-muted"
-                  className="mt-2 text-center"
-                  numberOfLines={1}
-                  adjustsFontSizeToFit
-                  minimumFontScale={0.75}
-                >
-                  This {latest.amountDueSek} kr is already included in your{" "}
-                  {balance} kr balance.
-                </AppText>
-                <Surface
-                  tone="mint"
-                  elevated={false}
-                  className="mt-2 flex-row items-center justify-center px-3 py-1"
-                >
-                  <AppText variant="cardTitle" numberOfLines={1}>
-                    {balance} kr
-                  </AppText>
-                  <AppText variant="cardTitle" className="mx-3">
-                    −
-                  </AppText>
-                  <AppText variant="cardTitle" numberOfLines={1}>
-                    {latest.amountDueSek} kr
-                  </AppText>
-                  <AppText variant="cardTitle" className="mx-3">
-                    =
-                  </AppText>
-                  <View className="items-center">
-                    <AppText
-                      variant="cardTitle"
-                      color="action"
-                      numberOfLines={1}
-                    >
-                      {balance - latest.amountDueSek} kr
-                    </AppText>
-                    <AppText
-                      variant="caption"
-                      color="action"
-                      className="mt-0.5 text-center"
-                    >
-                      after Parent marks paid
-                    </AppText>
-                  </View>
-                </Surface>
-                {latest.pendingOutcomeCount > 0 ? (
-                  <Surface
-                    tone="lavender"
-                    elevated={false}
-                    className="mt-1 flex-row items-center p-1"
-                  >
-                    <Icon name="info" color={themeColors.ink} size={21} />
-                    <AppText
-                      variant="bodySmall"
-                      className="ml-2 flex-1"
-                      numberOfLines={1}
-                      adjustsFontSizeToFit
-                      minimumFontScale={0.75}
-                    >
-                      {latest.pendingOutcomeCount} unresolved chore{" "}
-                      {latest.pendingOutcomeCount === 1
-                        ? "result moves"
-                        : "results move"}{" "}
-                      to a later payout.
-                    </AppText>
-                  </Surface>
-                ) : null}
-              </>
-            ) : latest.status === "no_payment" ? (
-              <View className="mt-2 pb-3">
-                <AppText variant="bodySmall" color="ink-muted">
-                  {latest.balanceAtCloseSek < 0
-                    ? "Your balance was below zero when the week closed. No payout was created."
-                    : "Your balance was 0 kr when the week closed.\nNo payout was created."}
-                </AppText>
-                {latest.balanceAtCloseSek < 0 ? (
-                  <Surface
-                    tone="lavender"
-                    elevated={false}
-                    className="mt-1 flex-row items-center p-3"
-                  >
-                    <Icon name="info" color={themeColors.ink} size={21} />
-                    <AppText variant="bodySmall" className="ml-2 flex-1">
-                      The next {Math.abs(latest.balanceAtCloseSek)} kr you earn
-                      brings your balance back to 0 kr.
-                    </AppText>
-                  </Surface>
-                ) : null}
-              </View>
-            ) : (
-              <AppText variant="bodySmall" color="action" className="mt-4">
-                Your Parent recorded this payout as paid.
-              </AppText>
-            )}
-          </>
-        ) : (
-          <View className="items-center py-4">
-            <AppText variant="cardTitle">No previous payout yet</AppText>
-            <AppText
-              variant="bodySmall"
-              color="ink-muted"
-              className="mt-1 text-center"
-            >
-              Your first closed payout week will appear here.
-            </AppText>
-          </View>
-        )}
-      </Surface>
-
-      <Surface
-        className={`${compactGuide ? "mt-2 p-1" : "mt-6 p-4"} flex-row items-center`}
-      >
-        <View
-          className={`${compactGuide ? "h-16 w-20" : "h-20 w-24"} items-center justify-center rounded-control bg-rewardSoft`}
+      <View className="items-center">
+        <PiggyPlanet size={190} negative={negative} />
+        <AppText
+          variant="label"
+          color="ink-muted"
+          className="-mt-2 uppercase tracking-[1.4px]"
         >
-          <Scene name="clipboard" size={150} />
-        </View>
-        <View className={`${compactGuide ? "ml-3" : "ml-4"} flex-1`}>
-          <AppText variant="cardTitle">How your balance works</AppText>
-          <View
-            className={`${negative ? "mt-0" : compactGuide ? "mt-1" : "mt-2"} flex-row items-center`}
+          Your planet
+        </AppText>
+        <AppText
+          className="mt-0.5 w-full text-center font-display text-[52px] leading-[60px]"
+          color={negative ? "pink" : "gold"}
+          numberOfLines={1}
+          accessibilityLabel={`Balance ${balance} kr`}
+          testID="task14-running-balance-value"
+        >
+          {balance} kr
+        </AppText>
+        <AppText
+          variant="bodySmall"
+          color="ink-muted"
+          className="mt-0.5 px-6 text-center font-body-bold"
+        >
+          {negative
+            ? `In the shadow. The next ${Math.abs(balance)} kr you earn brings it back to 0.`
+            : "Approved quests add coins to your planet."}
+        </AppText>
+      </View>
+
+      <WeekFlight period={currentPeriod} now={now} />
+      <CoinTimeline
+        entries={child.thisPeriodEntries}
+        timezone={currentPeriod.timezone}
+      />
+      <PayoutPostcard payout={child.latestPayout} balance={balance} />
+      <HowItWorks />
+    </View>
+  );
+}
+
+function WeekFlight({
+  period,
+  now,
+}: {
+  period: ChildMoneyOverview["currentPeriod"];
+  now: number;
+}) {
+  const labels = weekDayLabels(period.startLocalDate, period.endLocalDate);
+  const today = localDateKey(now, period.timezone);
+  const todayIndex = Math.min(
+    labels.length - 1,
+    Math.max(0, dayNumber(today) - dayNumber(period.startLocalDate)),
+  );
+  const daysLeft = Math.max(
+    0,
+    dayNumber(period.endLocalDate) - dayNumber(today),
+  );
+  const span = Math.max(1, period.endAt - period.startAt);
+  const progress = (now - period.startAt) / span;
+  const payday = capitalize(period.payoutWeekday);
+  const countdown =
+    daysLeft === 0
+      ? "Payday is today!"
+      : `${daysLeft} ${daysLeft === 1 ? "day" : "days"} to go`;
+
+  return (
+    <View
+      className="mt-6 rounded-large bg-surface px-4 pb-3 pt-4"
+      accessible
+      accessibilityLabel={`Payday ${payday}. ${countdown}.`}
+    >
+      <View className="flex-row items-baseline justify-between">
+        <AppText className="font-display text-[19px]">Payday {payday}</AppText>
+        <AppText variant="caption" color="accent">
+          {countdown}
+        </AppText>
+      </View>
+      <AppText variant="caption" color="ink-muted" className="mt-0.5">
+        {formatLocalDate(period.startLocalDate)} –{" "}
+        {formatLocalDate(period.endLocalDate)}
+      </AppText>
+      <View className="mt-4">
+        <RocketTrack
+          progress={progress}
+          dayLabels={labels}
+          todayIndex={todayIndex}
+        />
+      </View>
+    </View>
+  );
+}
+
+function CoinTimeline({
+  entries,
+  timezone,
+}: {
+  entries: Entry[];
+  timezone: string;
+}) {
+  const total = entries.reduce((sum, entry) => sum + entry.amountSek, 0);
+  const shown = entries.slice(0, TIMELINE_LIMIT);
+  const hidden = entries.length - shown.length;
+
+  return (
+    <View className="mt-6">
+      <View className="flex-row items-baseline justify-between">
+        <AppText variant="sectionTitle">This week’s coins</AppText>
+        {entries.length > 0 ? (
+          <AppText
+            className="font-display text-[18px]"
+            color={total < 0 ? "pink" : "gold"}
           >
-            <View
-              className={`${negative ? "h-5 w-5" : compactGuide ? "h-6 w-6" : "h-7 w-7"} items-center justify-center rounded-full bg-action`}
-            >
-              <Icon
-                name="plus"
-                color={themeColors.onAction}
-                size={negative ? 13 : compactGuide ? 15 : 17}
-              />
-            </View>
-            <AppText
-              variant="bodySmall"
-              color="action"
-              className="ml-2 flex-1"
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.75}
-            >
-              Approved chores add their reward
+            {signed(total)}
+          </AppText>
+        ) : null}
+      </View>
+
+      {entries.length === 0 ? (
+        <View className="mt-3 flex-row items-end gap-2">
+          <StarBuddy size={52} mood="wave" />
+          <View className="mb-5 flex-1 rounded-[20px] rounded-bl-[6px] bg-surface px-4 py-3">
+            <AppText className="font-body-heavy text-[15px]">
+              No coins yet this week. Quests fill your planet!
             </AppText>
           </View>
-          <View
-            className={`${negative ? "mt-0" : "mt-1"} flex-row items-center`}
-          >
-            <View
-              className={`${negative ? "h-5 w-5" : compactGuide ? "h-6 w-6" : "h-7 w-7"} items-center justify-center rounded-full bg-urgency`}
+        </View>
+      ) : (
+        <View className="mt-3 rounded-large bg-surface px-4 py-1">
+          {shown.map((entry, i) => (
+            <CoinRow
+              key={`${entry.createdAt}-${i}`}
+              entry={entry}
+              timezone={timezone}
+              last={i === shown.length - 1 && hidden === 0}
+            />
+          ))}
+          {hidden > 0 ? (
+            <AppText
+              variant="caption"
+              color="ink-muted"
+              className="py-3 text-center"
             >
-              <Icon
-                name="minus"
-                color={themeColors.onAction}
-                size={negative ? 13 : compactGuide ? 15 : 17}
+              +{hidden} more this week
+            </AppText>
+          ) : null}
+        </View>
+      )}
+    </View>
+  );
+}
+
+function CoinRow({
+  entry,
+  timezone,
+  last,
+}: {
+  entry: Entry;
+  timezone: string;
+  last: boolean;
+}) {
+  const penalty = entry.kind === "penalty";
+  const title = entry.choreTitle ?? "A chore";
+  return (
+    <View
+      className={`min-h-[56px] flex-row items-center gap-3 py-2.5 ${last ? "" : "border-b border-nightRaised"}`}
+      accessible
+      accessibilityLabel={`${title}, ${penalty ? "missed" : "approved"}, ${signed(entry.amountSek)}`}
+    >
+      <View
+        className={`h-9 w-9 items-center justify-center rounded-full border-b-[3px] ${penalty ? "border-nightRaised bg-pink" : "border-goldShade bg-gold"}`}
+      >
+        <Icon
+          name={penalty ? "minus" : "plus"}
+          color={tokens.night}
+          size={16}
+        />
+      </View>
+      <View className="flex-1">
+        <AppText
+          className="font-body-heavy text-[15px] leading-[20px]"
+          numberOfLines={1}
+        >
+          {title}
+        </AppText>
+        <AppText variant="caption" color="ink-muted">
+          {penalty ? "Missed locked Extra" : "Approved"} ·{" "}
+          {shortWeekday(entry.createdAt, timezone)}
+        </AppText>
+      </View>
+      <AppText
+        className="font-display text-[17px]"
+        color={penalty ? "pink" : "gold"}
+      >
+        {signed(entry.amountSek)}
+      </AppText>
+    </View>
+  );
+}
+
+/** The last closed week, told as a postcard from payday. */
+function PayoutPostcard({
+  payout,
+  balance,
+}: {
+  payout: Payout | null;
+  balance: number;
+}) {
+  return (
+    <View className="mt-6">
+      <AppText variant="sectionTitle">Last payday</AppText>
+      <View className="mt-3 overflow-hidden rounded-large bg-surface p-4">
+        {!payout ? (
+          <PostcardBody
+            badge={{ icon: "star", label: "Coming up", tone: "accent" }}
+            title="Your first payday is coming"
+            body="When this week closes, a Parent pays out what your planet holds."
+          />
+        ) : payout.status === "pending" ? (
+          <>
+            <PostcardBody
+              badge={{ icon: "clock", label: "On its way", tone: "accent" }}
+              title={`A Parent will send you ${payout.amountDueSek} kr`}
+              body={`For the week ending ${formatLocalDate(payout.periodEndLocalDate)}. It’s already counted in your balance.`}
+            />
+            <View className="mt-4 flex-row items-center justify-center gap-3 rounded-control bg-canvas px-3 py-3">
+              <AmountStop label="Now" value={balance} />
+              <Icon name="chevron" color={tokens.inkMuted} size={18} />
+              <AmountStop
+                label="After it’s paid"
+                value={balance - payout.amountDueSek}
               />
             </View>
-            <AppText
-              variant="bodySmall"
-              color="urgency"
-              className="ml-2 flex-1"
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.75}
-            >
-              Missed locked Extras subtract their full value
-            </AppText>
-          </View>
+          </>
+        ) : payout.status === "paid" ? (
+          <PostcardBody
+            badge={{ icon: "check", label: "Paid", tone: "primary" }}
+            title={`${payout.amountDueSek} kr landed`}
+            body={`A Parent paid the week ending ${formatLocalDate(payout.periodEndLocalDate)}.`}
+          />
+        ) : payout.balanceAtCloseSek < 0 ? (
+          <PostcardBody
+            badge={{ icon: "redo", label: "Carried over", tone: "pink" }}
+            title="Nothing to pay this time"
+            body={`The week ended at ${payout.balanceAtCloseSek} kr, so it carried into this week.`}
+          />
+        ) : (
+          <PostcardBody
+            badge={{ icon: "minus", label: "Empty", tone: "muted" }}
+            title="Nothing to pay this time"
+            body="Your planet was at 0 kr when the week closed."
+          />
+        )}
+        {payout && payout.pendingOutcomeCount > 0 ? (
+          <AppText variant="caption" color="ink-muted" className="mt-3">
+            {payout.pendingOutcomeCount} chore{" "}
+            {payout.pendingOutcomeCount === 1 ? "result" : "results"} still
+            being checked will count next week.
+          </AppText>
+        ) : null}
+      </View>
+    </View>
+  );
+}
+
+function PostcardBody({
+  badge,
+  title,
+  body,
+}: {
+  badge: {
+    icon: "star" | "clock" | "check" | "redo" | "minus";
+    label: string;
+    tone: "accent" | "primary" | "pink" | "muted";
+  };
+  title: string;
+  body: string;
+}) {
+  const bg = {
+    accent: "bg-accent",
+    primary: "bg-primary",
+    pink: "bg-pink",
+    muted: "bg-nightRaised",
+  }[badge.tone];
+  return (
+    <View>
+      <View
+        className={`flex-row items-center gap-1.5 self-start rounded-full px-3 py-1 ${bg}`}
+      >
+        <Icon name={badge.icon} color={tokens.night} size={13} />
+        <AppText className="font-body-heavy text-[12px] uppercase tracking-[1.1px] text-night">
+          {badge.label}
+        </AppText>
+      </View>
+      <AppText className="mt-2.5 font-display text-[20px] leading-[25px]">
+        {title}
+      </AppText>
+      <AppText
+        variant="bodySmall"
+        color="ink-muted"
+        className="mt-1 font-body-bold"
+      >
+        {body}
+      </AppText>
+    </View>
+  );
+}
+
+function AmountStop({ label, value }: { label: string; value: number }) {
+  return (
+    <View className="items-center">
+      <AppText variant="caption" color="ink-muted">
+        {label}
+      </AppText>
+      <AppText
+        className="font-display text-[20px]"
+        color={value < 0 ? "pink" : "gold"}
+      >
+        {value} kr
+      </AppText>
+    </View>
+  );
+}
+
+function HowItWorks() {
+  return (
+    <View className="mt-6 gap-2 rounded-large border-2 border-dashed border-nightRaised p-4">
+      <AppText
+        variant="label"
+        color="ink-muted"
+        className="uppercase tracking-[1.2px]"
+      >
+        How your planet grows
+      </AppText>
+      <View className="flex-row items-center gap-2.5">
+        <View className="h-6 w-6 items-center justify-center rounded-full bg-gold">
+          <Icon name="plus" color={tokens.night} size={13} />
         </View>
-      </Surface>
+        <AppText variant="bodySmall" className="flex-1 font-body-bold">
+          Approved quests add their coins
+        </AppText>
+      </View>
+      <View className="flex-row items-center gap-2.5">
+        <View className="h-6 w-6 items-center justify-center rounded-full bg-pink">
+          <Icon name="minus" color={tokens.night} size={13} />
+        </View>
+        <AppText variant="bodySmall" className="flex-1 font-body-bold">
+          Missed locked Extras take their full value
+        </AppText>
+      </View>
     </View>
   );
 }

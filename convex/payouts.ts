@@ -46,6 +46,24 @@ const payoutProjectionValidator = v.object({
   paidAt: v.union(v.number(), v.null()),
 });
 
+/*
+ * The Child's own Ledger Entries inside the open
+ * payout period, newest first. Bounded: a week
+ * never holds more than a handful, and the cap
+ * keeps a runaway period from growing the read.
+ */
+const THIS_PERIOD_ENTRY_LIMIT = 100;
+
+const periodEntryValidator = v.object({
+  kind: v.union(v.literal("earning"), v.literal("penalty")),
+
+  amountSek: v.number(),
+
+  createdAt: v.number(),
+
+  choreTitle: v.union(v.string(), v.null()),
+});
+
 export const getMine = query({
   args: {
     now: v.number(),
@@ -56,6 +74,8 @@ export const getMine = query({
 
     currentPeriod: v.object({
       startLocalDate: v.string(),
+
+      startAt: v.number(),
 
       endLocalDate: v.string(),
 
@@ -72,6 +92,8 @@ export const getMine = query({
       runningBalanceSek: v.number(),
 
       latestPayout: v.union(payoutProjectionValidator, v.null()),
+
+      thisPeriodEntries: v.array(periodEntryValidator),
     }),
   }),
 
@@ -94,11 +116,40 @@ export const getMine = query({
       throw new ConvexError("Running Balance Household mismatch.");
     }
 
+    const entries = await ctx.db
+      .query("ledgerEntries")
+      .withIndex("by_child_created_at", (q) =>
+        q
+          .eq("childId", child._id)
+          .gte("createdAt", currentPeriod.startAt)
+          .lt("createdAt", currentPeriod.endAt),
+      )
+      .order("desc")
+      .take(THIS_PERIOD_ENTRY_LIMIT);
+
+    const thisPeriodEntries = await Promise.all(
+      entries.map(async (entry) => {
+        const occurrence = await ctx.db.get(entry.occurrenceId);
+
+        return {
+          kind: entry.kind,
+
+          amountSek: entry.amountSek,
+
+          createdAt: entry.createdAt,
+
+          choreTitle: occurrence?.title ?? null,
+        };
+      }),
+    );
+
     return {
       configuredPayoutWeekday: household.payoutWeekday,
 
       currentPeriod: {
         startLocalDate: currentPeriod.startLocalDate,
+
+        startAt: currentPeriod.startAt,
 
         endLocalDate: currentPeriod.endLocalDate,
 
@@ -117,6 +168,8 @@ export const getMine = query({
         latestPayout: latestPayout
           ? await projectPayout(ctx, household._id, latestPayout)
           : null,
+
+        thisPeriodEntries,
       },
     };
   },
