@@ -1,26 +1,25 @@
-import { Scene } from "@/components/art";
 import { Icon } from "@/components/ui/icon";
 import { childAvatarTone, Avatar } from "@/components/ui/avatar";
 import { homeTokens as themeColors } from "@/design-system/theme";
-import { ActionButton, AppText, Surface, TopBar } from "@/design-system";
+import { AppText, Surface, TopBar } from "@/design-system";
 import {
   ServerConfirmationRequiredError,
   useServerConfirmedMutation,
   useServerConnectionStatus,
 } from "@/hooks/use-server-confirmed-mutation";
 import { useQuery } from "convex/react";
+import * as Haptics from "expo-haptics";
 import { useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  Modal,
-  Pressable,
-  ScrollView,
-  View,
-} from "react-native";
-import {
-  SafeAreaView,
-  useSafeAreaInsets,
-} from "react-native-safe-area-context";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from "react-native-reanimated";
+import { scheduleOnRN } from "react-native-worklets";
+import { useEntrance } from "@/components/art";
+import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
@@ -57,9 +56,6 @@ type SelectedPayout = Payout & {
   runningBalanceSek: number;
 };
 
-const alexAvatar = require("../../../assets/images/direction-c/alex-avatar.png");
-const mayaAvatar = require("../../../assets/images/direction-c/maya-avatar.png");
-
 function formatWeekday(day: string) {
   return day.charAt(0).toUpperCase() + day.slice(1);
 }
@@ -92,29 +88,12 @@ function ChildAvatar({
   name: string;
   className?: string;
 }) {
-  const normalized = name.trim().toLowerCase();
-  const source =
-    normalized === "alex"
-      ? alexAvatar
-      : normalized === "maya"
-        ? mayaAvatar
-        : null;
-
-  if (source)
-    return (
-      <Avatar
-        source={source}
-        tone={childAvatarTone(name)}
-        className={className}
-      />
-    );
-
   return (
-    <View
-      className={`${className} items-center justify-center rounded-full bg-rewardSoft`}
-    >
-      <AppText variant="cardTitle">{name.charAt(0).toUpperCase()}</AppText>
-    </View>
+    <Avatar
+      tone={childAvatarTone(name)}
+      className={className}
+      fallbackLabel={name}
+    />
   );
 }
 
@@ -286,16 +265,15 @@ export function ParentMoneyContent({
 }: {
   householdId: Id<"households">;
 }) {
-  const insets = useSafeAreaInsets();
   const overview = useQuery(api.payouts.getOverview, { householdId });
   const ensureCurrent = useServerConfirmedMutation(api.payouts.ensureCurrent);
   const setPayoutWeekday = useServerConfirmedMutation(
     api.households.setPayoutWeekday,
   );
   const markPaid = useServerConfirmedMutation(api.payouts.markPaid);
-  const [selected, setSelected] = useState<SelectedPayout | null>(null);
-  const [showConfirmation, setShowConfirmation] = useState(false);
-  const [showWeekdayPicker, setShowWeekdayPicker] = useState(false);
+  const [payingId, setPayingId] = useState<Id<"payouts"> | null>(null);
+  const [justPaid, setJustPaid] = useState<Id<"payouts">[]>([]);
+  const [changingDay, setChangingDay] = useState(false);
   const [working, setWorking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const connection = useServerConnectionStatus();
@@ -315,7 +293,7 @@ export function ParentMoneyContent({
     setError(null);
     try {
       await setPayoutWeekday({ householdId, payoutWeekday: day });
-      setShowWeekdayPicker(false);
+      setChangingDay(false);
     } catch (changeError) {
       setError(
         changeError instanceof Error
@@ -327,19 +305,14 @@ export function ParentMoneyContent({
     }
   }
 
-  async function confirmPaid() {
-    if (!selected) return;
-    setWorking(true);
+  /** Resolves true once the server confirms the payout is marked paid. */
+  async function confirmPaid(payoutId: Id<"payouts">) {
+    setPayingId(payoutId);
     setError(null);
     try {
-      const result = await markPaid({ payoutId: selected.payoutId });
-      setShowConfirmation(false);
-      setSelected({
-        ...selected,
-        status: "paid",
-        paidAt: result.paidAt,
-        runningBalanceSek: selected.runningBalanceSek - selected.amountDueSek,
-      });
+      await markPaid({ payoutId });
+      setJustPaid((current) => [...current, payoutId]);
+      return true;
     } catch (paymentError) {
       setError(
         paymentError instanceof ServerConfirmationRequiredError
@@ -348,20 +321,20 @@ export function ParentMoneyContent({
             ? paymentError.message
             : "Could not confirm whether the payout was marked paid. Check the current status before trying again.",
       );
-      setShowConfirmation(false);
+      return false;
     } finally {
-      setWorking(false);
+      setPayingId(null);
     }
   }
 
   if (!overview) {
     return (
-      <Surface className="p-5">
-        <AppText variant="cardTitle">Loading payout information…</AppText>
-        <AppText variant="bodySmall" color="ink-muted" className="mt-1">
-          Your household balances will appear here.
+      <View className="items-center py-10">
+        <ActivityIndicator />
+        <AppText color="ink-muted" className="mt-3">
+          Loading balances…
         </AppText>
-      </Surface>
+      </View>
     );
   }
 
@@ -370,778 +343,420 @@ export function ParentMoneyContent({
       ...payout,
       childId: child.childId,
       childDisplayName: child.displayName,
-      runningBalanceSek: child.runningBalanceSek,
     })),
   );
-  const nextPayout = pending[0];
-  const latestPayouts = overview.children
+  const recent = overview.children
     .flatMap((child) =>
-      child.latestPayout
-        ? [
-            {
-              ...child.latestPayout,
-              childId: child.childId,
-              childDisplayName: child.displayName,
-              runningBalanceSek: child.runningBalanceSek,
-            },
-          ]
+      child.latestPayout && child.latestPayout.status === "paid"
+        ? [{ ...child.latestPayout, childDisplayName: child.displayName }]
         : [],
     )
     .sort((left, right) => (right.paidAt ?? 0) - (left.paidAt ?? 0));
-  const displayPayout = nextPayout ?? latestPayouts[0];
-  const recoveringPayment = Boolean(
-    selected && working && connection.status === "recovering",
+  const maxBalance = Math.max(
+    1,
+    ...overview.children.map((child) => Math.abs(child.runningBalanceSek)),
   );
+  const timezone = overview.currentPeriod.timezone;
 
   return (
-    <View>
-      <Surface
-        tone="mint"
-        elevated={false}
-        className="overflow-hidden px-3 pb-2 pt-2"
-      >
-        <View className="flex-row items-center">
-          <View
-            className="h-[88px] w-[160px] items-center justify-center"
-            style={{ flexShrink: 0 }}
-          >
-            <Scene name="wallet" size={150} />
-          </View>
-          <View className="ml-2 flex-1">
-            <AppText variant="label" color="action" numberOfLines={1}>
-              Current payout week
-            </AppText>
-            <AppText
-              className="mt-0.5 text-[34px] font-black leading-[38px]"
-              style={{ fontWeight: "900" }}
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.9}
-            >
-              {formatDateRange(
-                overview.currentPeriod.startLocalDate,
-                overview.currentPeriod.endLocalDate,
-              )}
-            </AppText>
-            <View className="mt-1 flex-row items-center">
-              <Icon name="calendar" color={themeColors.ink} size={22} />
-              <AppText variant="bodySmall" className="ml-2">
-                Closes {formatWeekday(overview.currentPeriod.payoutWeekday)}
-              </AppText>
-            </View>
-            <AppText
-              variant="bodySmall"
-              color="ink-muted"
-              className="mt-0.5"
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.85}
-            >
-              This week settles after it closes.
-            </AppText>
-          </View>
-        </View>
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => setShowWeekdayPicker(true)}
-          className="mt-1 min-h-target flex-row items-center justify-end border-t border-actionSoftStrong pt-1"
-        >
-          <AppText variant="bodySmall" color="action" className="font-black">
-            Payout day: {formatWeekday(overview.configuredPayoutWeekday)}
-          </AppText>
-          <Icon name="chevron" color={themeColors.ink} size={20} />
-        </Pressable>
-      </Surface>
-
-      <AppText
-        variant="sectionTitle"
-        className="mt-2"
-        style={{ fontSize: 22, lineHeight: 26 }}
-      >
-        {nextPayout ? "Last week’s payout" : "Latest payout"}
-      </AppText>
-      {displayPayout ? (
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => setSelected(displayPayout)}
-        >
-          <Surface className="mt-2 px-3 pb-2 pt-3">
-            <View className="flex-row items-start">
-              <ChildAvatar
-                name={displayPayout.childDisplayName}
-                className="h-16 w-16"
-              />
-              <View className="ml-3 flex-1">
-                <View className="flex-row items-start">
-                  <View className="flex-1">
-                    <AppText className="text-[18px] font-extrabold leading-[21px]">
-                      {displayPayout.childDisplayName}
-                    </AppText>
-                    <AppText
-                      variant="caption"
-                      color="ink-muted"
-                      className="mt-0.5"
-                    >
-                      Period ended{" "}
-                      {formatShortDate(displayPayout.periodEndLocalDate)}
-                    </AppText>
-                  </View>
-                  <Icon name="chevron" color={themeColors.ink} size={22} />
-                </View>
+    <View className="pb-8">
+      <WeekStrip
+        start={overview.currentPeriod.startLocalDate}
+        end={overview.currentPeriod.endLocalDate}
+        payday={overview.configuredPayoutWeekday}
+        onChange={() => setChangingDay((value) => !value)}
+      />
+      {changingDay ? (
+        <View className="mt-3 flex-row flex-wrap gap-2">
+          {weekdays.map((day) => {
+            const active = day === overview.configuredPayoutWeekday;
+            return (
+              <Pressable
+                key={day}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
+                disabled={working}
+                onPress={() => void changeWeekday(day)}
+                className="min-h-[44px] items-center justify-center rounded-full px-4"
+                style={{
+                  backgroundColor: active
+                    ? themeColors.ink
+                    : themeColors.surface,
+                }}
+              >
                 <AppText
-                  color={
-                    displayPayout.status === "paid"
-                      ? "action"
-                      : displayPayout.status === "no_payment"
-                        ? "ink-muted"
-                        : "urgency"
-                  }
-                  className="mt-1 text-[28px] font-black leading-[32px]"
-                  style={{ fontWeight: "900" }}
+                  variant="label"
+                  style={{
+                    color: active ? themeColors.surface : themeColors.ink,
+                  }}
                 >
-                  {displayPayout.amountDueSek} kr
+                  {formatWeekday(day).slice(0, 3)}
                 </AppText>
-                <View
-                  className={`mt-1 flex-row items-center self-start rounded-full px-2.5 py-1 ${displayPayout.status === "no_payment" ? "bg-infoSoft" : "bg-actionSoft"}`}
-                >
-                  {displayPayout.status !== "no_payment" ? (
-                    <Icon name="check" color={themeColors.action} size={13} />
-                  ) : null}
-                  <AppText
-                    variant="label"
-                    color={
-                      displayPayout.status === "no_payment"
-                        ? "ink-muted"
-                        : "action"
-                    }
-                  >
-                    {displayPayout.status !== "no_payment" ? " " : ""}
-                    {displayPayout.status === "paid"
-                      ? "Paid"
-                      : displayPayout.status === "no_payment"
-                        ? "No payment"
-                        : "Ready to pay"}
+              </Pressable>
+            );
+          })}
+        </View>
+      ) : null}
+
+      {error ? (
+        <View className="mt-4 rounded-[18px] bg-urgencySoft px-4 py-3">
+          <AppText variant="bodySmall" color="urgency">
+            {error}
+          </AppText>
+        </View>
+      ) : null}
+      {payingId && connection.status === "recovering" ? (
+        <AppText variant="bodySmall" color="ink-muted" className="mt-3">
+          Reconnecting — checking whether the payment was recorded…
+        </AppText>
+      ) : null}
+
+      <AppText variant="sectionTitle" className="mt-6">
+        To pay
+      </AppText>
+      {pending.length === 0 ? (
+        <View className="mt-3 rounded-[22px] bg-surface p-4">
+          <AppText variant="cardTitle">Nothing to pay right now</AppText>
+          <AppText variant="caption" color="ink-muted" className="mt-1">
+            Payouts appear here when a week closes on{" "}
+            {formatWeekday(overview.configuredPayoutWeekday)}.
+          </AppText>
+        </View>
+      ) : (
+        <View className="mt-3 gap-3">
+          {pending.map((payout) => (
+            <View
+              key={payout.payoutId}
+              className="rounded-[24px] bg-surface p-4"
+            >
+              <View className="flex-row items-center gap-3">
+                <ChildAvatar
+                  name={payout.childDisplayName}
+                  className="h-12 w-12"
+                />
+                <View className="flex-1">
+                  <AppText variant="cardTitle">
+                    {payout.childDisplayName}
+                  </AppText>
+                  <AppText variant="caption" color="ink-muted">
+                    Week ending {formatShortDate(payout.periodEndLocalDate)}
                   </AppText>
                 </View>
-                {displayPayout.status === "pending" ? (
-                  <>
-                    <AppText
-                      variant="caption"
-                      color="ink-muted"
-                      className="mt-1"
-                    >
-                      {displayPayout.amountDueSek} kr of{" "}
-                      {displayPayout.childDisplayName}’s{" "}
-                      {displayPayout.runningBalanceSek} kr total unpaid balance.
-                    </AppText>
-                    <AppText
-                      variant="caption"
-                      color="ink-muted"
-                      className="mt-0.5"
-                    >
-                      Pay manually with Swish, then mark paid.
-                    </AppText>
-                  </>
+                <AppText variant="amount">{payout.amountDueSek} kr</AppText>
+              </View>
+              {payout.pendingOutcomeCount > 0 ? (
+                <AppText variant="caption" color="ink-muted" className="mt-2">
+                  {payout.pendingOutcomeCount} undecided chore
+                  {payout.pendingOutcomeCount === 1 ? "" : "s"} will count in a
+                  later week.
+                </AppText>
+              ) : null}
+              <View className="mt-4">
+                {justPaid.includes(payout.payoutId) ? (
+                  <PaidStamp />
                 ) : (
-                  <AppText variant="caption" color="ink-muted" className="mt-1">
-                    {displayPayout.status === "paid"
-                      ? "Payment recorded and complete."
-                      : "Nothing was due for this payout period."}
-                  </AppText>
+                  <SlideToPay
+                    amount={payout.amountDueSek}
+                    name={payout.childDisplayName}
+                    busy={payingId === payout.payoutId}
+                    disabled={payingId !== null && payingId !== payout.payoutId}
+                    onConfirm={() => confirmPaid(payout.payoutId)}
+                  />
                 )}
               </View>
             </View>
-            {displayPayout.pendingOutcomeCount > 0 ? (
-              <View className="mt-2 min-h-target flex-row items-center rounded-full bg-infoSoft px-2.5 py-1">
-                <Icon name="info" color={themeColors.inkMuted} size={14} />
-                <AppText
-                  className="ml-1 flex-1"
-                  style={{ fontSize: 11, lineHeight: 14, fontWeight: "600" }}
-                  numberOfLines={1}
-                  adjustsFontSizeToFit
-                  minimumFontScale={0.85}
-                >
-                  {displayPayout.pendingOutcomeCount} unresolved{" "}
-                  {displayPayout.pendingOutcomeCount === 1
-                    ? "chore moves"
-                    : "chores move"}{" "}
-                  to a later payout.
-                </AppText>
-              </View>
-            ) : null}
-          </Surface>
-        </Pressable>
-      ) : (
-        <Surface tone="lavender" elevated={false} className="mt-2 p-5">
-          <AppText variant="cardTitle">No payout ready</AppText>
-          <AppText variant="bodySmall" color="ink-muted" className="mt-1">
-            A positive closed balance will appear here.
-          </AppText>
-        </Surface>
+          ))}
+        </View>
       )}
 
-      <AppText
-        variant="sectionTitle"
-        className="mt-3"
-        style={{ fontSize: 22, lineHeight: 26 }}
-      >
-        Running balances
+      <AppText variant="sectionTitle" className="mt-6">
+        Balances
       </AppText>
-      <View className="mt-2 gap-2">
+      <View className="mt-3 gap-2.5">
         {overview.children.map((child) => {
-          const readyAmount = child.pendingPayouts.reduce(
-            (sum, payout) => sum + payout.amountDueSek,
-            0,
-          );
-          const remaining = child.runningBalanceSek - readyAmount;
+          const negative = child.runningBalanceSek < 0;
+          const fraction = Math.abs(child.runningBalanceSek) / maxBalance;
           return (
-            <Surface
+            <View
               key={child.childId}
-              className="min-h-[64px] flex-row items-center px-3 py-1"
+              accessible
+              accessibilityLabel={`${child.displayName}: ${child.runningBalanceSek} kronor`}
+              className="rounded-[22px] bg-surface p-4"
             >
-              <ChildAvatar name={child.displayName} className="h-12 w-12" />
-              <View className="ml-3 flex-1">
-                <AppText className="text-[18px] font-extrabold leading-[21px]">
+              <View className="flex-row items-center gap-3">
+                <ChildAvatar name={child.displayName} className="h-10 w-10" />
+                <AppText variant="cardTitle" className="flex-1">
                   {child.displayName}
                 </AppText>
-                {readyAmount > 0 ? (
-                  <AppText
-                    variant="caption"
-                    color="ink-muted"
-                    className="mt-0.5"
-                  >
-                    {readyAmount} kr ready to pay · {remaining} kr remains
-                  </AppText>
-                ) : child.latestPayout?.status === "paid" ? (
-                  <View className="mt-0.5 flex-row items-center">
-                    <Icon name="check" color={themeColors.action} size={14} />
-                    <AppText variant="caption" color="action" className="ml-1">
-                      Latest payout paid · {child.latestPayout.amountDueSek} kr
-                    </AppText>
-                  </View>
-                ) : child.runningBalanceSek < 0 ? (
-                  <AppText
-                    variant="caption"
-                    color="ink-muted"
-                    className="mt-0.5"
-                  >
-                    Negative balance carries forward
-                  </AppText>
-                ) : (
-                  <AppText
-                    variant="caption"
-                    color="ink-muted"
-                    className="mt-0.5"
-                  >
-                    Nothing ready to pay yet
-                  </AppText>
-                )}
+                <AppText
+                  variant="cardTitle"
+                  color={negative ? "urgency" : "ink"}
+                >
+                  {child.runningBalanceSek} kr
+                </AppText>
               </View>
-              <AppText
-                className="text-[22px] font-black leading-[26px]"
-                style={{ fontWeight: "900" }}
-              >
-                {child.runningBalanceSek} kr
-              </AppText>
-            </Surface>
+              <View className="mt-3 h-2.5 overflow-hidden rounded-full bg-surfaceMuted">
+                <View
+                  className="h-full rounded-full"
+                  style={{
+                    width: `${Math.max(4, fraction * 100)}%`,
+                    backgroundColor: negative
+                      ? themeColors.urgency
+                      : themeColors.reward,
+                  }}
+                />
+              </View>
+            </View>
           );
         })}
       </View>
 
-      {nextPayout ? (
-        <Surface
-          tone="lavender"
-          elevated={false}
-          className="mt-2 flex-row items-center px-3 py-2"
-        >
-          <Icon name="info" color={themeColors.inkMuted} size={22} />
-          <AppText variant="caption" className="ml-2 flex-1">
-            After you mark {nextPayout.amountDueSek} kr paid,{" "}
-            {nextPayout.childDisplayName}’s balance becomes{" "}
-            {nextPayout.runningBalanceSek - nextPayout.amountDueSek} kr.
+      {recent.length > 0 ? (
+        <>
+          <AppText variant="sectionTitle" className="mt-6">
+            Recently paid
           </AppText>
-        </Surface>
-      ) : null}
-
-      {error ? (
-        <Surface tone="coral" elevated={false} className="mt-4 p-3">
-          <AppText variant="bodySmall" color="urgency">
-            {error}
-          </AppText>
-        </Surface>
-      ) : null}
-
-      <Modal
-        visible={selected !== null}
-        animationType="slide"
-        presentationStyle="fullScreen"
-        onRequestClose={() => setSelected(null)}
-      >
-        {selected ? (
-          recoveringPayment ? (
-            <RecoveryPayoutDetail
-              selected={selected}
-              insetTop={Math.max(0, insets.top - 12)}
-              onBack={() => setSelected(null)}
-            />
-          ) : (
-            <SafeAreaView
-              edges={["bottom"]}
-              className="flex-1 bg-canvas"
-              style={{ paddingTop: Math.max(0, insets.top - 12) }}
-            >
-              <View className="px-5">
-                <TopBar
-                  title="Payout detail"
-                  onBack={() => setSelected(null)}
-                  titleStyle={{ fontSize: 22, lineHeight: 27 }}
-                />
-              </View>
-              <ScrollView
-                className="flex-1"
-                contentContainerClassName="px-5 pb-8"
+          <View className="mt-3 gap-2">
+            {recent.map((payout) => (
+              <View
+                key={payout.payoutId}
+                className="flex-row items-center gap-3 rounded-[18px] bg-surface px-4 py-3"
               >
-                <Surface className="mt-2 flex-row items-center p-4">
-                  <ChildAvatar
-                    name={selected.childDisplayName}
-                    className="h-28 w-28"
-                  />
-                  <View className="ml-4 flex-1">
-                    <AppText variant="sectionTitle">
-                      {selected.childDisplayName}
-                    </AppText>
-                    <AppText
-                      variant="bodySmall"
-                      color="ink-muted"
-                      className="mt-1"
-                    >
-                      Period ended{" "}
-                      {formatShortDate(selected.periodEndLocalDate)}
-                    </AppText>
-                    <View
-                      className={`mt-2 flex-row items-center self-start rounded-full px-3 py-1.5 ${selected.status === "paid" ? "bg-actionSoft" : selected.status === "no_payment" ? "bg-infoSoft" : "bg-actionSoft"}`}
-                    >
-                      {selected.status !== "no_payment" ? (
-                        <Icon
-                          name="check"
-                          color={themeColors.action}
-                          size={16}
-                        />
-                      ) : null}
-                      <AppText
-                        variant="label"
-                        color={
-                          selected.status === "paid"
-                            ? "action"
-                            : selected.status === "pending"
-                              ? "action"
-                              : "ink-muted"
-                        }
-                      >
-                        {selected.status !== "no_payment" ? " " : ""}
-                        {selected.status === "paid"
-                          ? "Paid"
-                          : selected.status === "no_payment"
-                            ? "No payment"
-                            : "Ready to pay"}
-                      </AppText>
-                    </View>
-                    <AppText
-                      variant="display"
-                      color={
-                        selected.status === "paid"
-                          ? "action"
-                          : selected.status === "no_payment"
-                            ? "ink-muted"
-                            : "urgency"
-                      }
-                      className="mt-2"
-                    >
-                      {selected.amountDueSek} kr
-                    </AppText>
-                  </View>
-                </Surface>
-
-                {selected.status === "paid" ? (
-                  <>
-                    <Surface
-                      tone="mint"
-                      elevated={false}
-                      className="mt-5 flex-row items-center p-4"
-                    >
-                      <View className="h-16 w-16 items-center justify-center">
-                        <Icon
-                          name="money"
-                          color={themeColors.action}
-                          size={42}
-                        />
-                        <View className="absolute bottom-1 right-0 h-7 w-7 items-center justify-center rounded-full bg-action">
-                          <Icon
-                            name="check"
-                            color={themeColors.onAction}
-                            size={17}
-                          />
-                        </View>
-                      </View>
-                      <View className="ml-4 flex-1">
-                        <AppText variant="cardTitle">Payment recorded</AppText>
-                        <AppText color="ink-muted" className="mt-1">
-                          {selected.paidAt
-                            ? formatPaidMoment(
-                                selected.paidAt,
-                                overview.currentPeriod.timezone,
-                              )
-                            : "Paid"}
-                        </AppText>
-                        <AppText
-                          variant="bodySmall"
-                          color="ink-muted"
-                          className="mt-2"
-                        >
-                          This payout is complete and can’t be reopened.
-                        </AppText>
-                      </View>
-                    </Surface>
-                    <Surface
-                      tone="lavender"
-                      elevated={false}
-                      className="mt-4 p-4"
-                    >
-                      <AppText variant="cardTitle">Balance updated</AppText>
-                      <View className="mt-3 flex-row items-center rounded-control bg-surfaceRaised px-3 py-4">
-                        <View className="flex-[1.05]">
-                          <AppText
-                            variant="caption"
-                            color="ink-muted"
-                            numberOfLines={1}
-                            className="text-[12px]"
-                          >
-                            Before payment
-                          </AppText>
-                          <AppText variant="cardTitle" className="mt-1">
-                            {selected.runningBalanceSek + selected.amountDueSek}{" "}
-                            kr
-                          </AppText>
-                        </View>
-                        <AppText variant="sectionTitle" className="mx-1">
-                          −
-                        </AppText>
-                        <View className="flex-[0.8] items-center">
-                          <AppText
-                            variant="caption"
-                            color="ink-muted"
-                            numberOfLines={1}
-                            className="text-[12px]"
-                          >
-                            Paid
-                          </AppText>
-                          <AppText
-                            variant="cardTitle"
-                            color="action"
-                            className="mt-1"
-                          >
-                            {selected.amountDueSek} kr
-                          </AppText>
-                        </View>
-                        <AppText variant="sectionTitle" className="mx-1">
-                          =
-                        </AppText>
-                        <View className="flex-[1.1] items-end">
-                          <AppText
-                            variant="caption"
-                            color="ink-muted"
-                            numberOfLines={1}
-                            className="text-[12px]"
-                          >
-                            Current balance
-                          </AppText>
-                          <AppText variant="cardTitle" className="mt-1">
-                            {selected.runningBalanceSek} kr
-                          </AppText>
-                        </View>
-                      </View>
-                      {selected.pendingOutcomeCount > 0 ? (
-                        <View className="bg-infoSoftStrong/40 mt-3 flex-row items-center rounded-control px-3 py-2">
-                          <Icon
-                            name="info"
-                            color={themeColors.inkMuted}
-                            size={21}
-                          />
-                          <AppText variant="caption" className="ml-2 flex-1">
-                            {selected.pendingOutcomeCount} unresolved chore
-                            outcome moves to a later payout.
-                          </AppText>
-                        </View>
-                      ) : null}
-                    </Surface>
-                  </>
-                ) : selected.status === "pending" ? (
-                  <>
-                    <AppText variant="sectionTitle" className="mt-5">
-                      Pay manually
-                    </AppText>
-                    <View className="mt-4 flex-row">
-                      <View className="w-12 items-center">
-                        <View className="h-11 w-11 items-center justify-center rounded-full bg-infoSoft">
-                          <AppText variant="cardTitle">1</AppText>
-                        </View>
-                        <View className="mt-2 h-8 border-l-2 border-dashed border-infoSoftStrong" />
-                      </View>
-                      <View className="ml-3 flex-1">
-                        <AppText variant="cardTitle">
-                          Pay {selected.amountDueSek} kr manually with Swish.
-                        </AppText>
-                        <AppText
-                          variant="bodySmall"
-                          color="ink-muted"
-                          className="mt-1"
-                        >
-                          Payment happens outside this app.
-                        </AppText>
-                      </View>
-                    </View>
-                    <View className="mt-1 flex-row">
-                      <View className="w-12 items-center">
-                        <View className="h-11 w-11 items-center justify-center rounded-full bg-infoSoft">
-                          <AppText variant="cardTitle">2</AppText>
-                        </View>
-                      </View>
-                      <View className="ml-3 flex-1">
-                        <AppText variant="cardTitle">
-                          Return here and mark it paid.
-                        </AppText>
-                        <AppText
-                          variant="bodySmall"
-                          color="ink-muted"
-                          className="mt-1"
-                        >
-                          Only confirm after the payment is complete.
-                        </AppText>
-                      </View>
-                    </View>
-                    <Surface
-                      tone="lavender"
-                      elevated={false}
-                      className="mt-5 p-4"
-                    >
-                      <AppText variant="cardTitle">
-                        Included in running balance
-                      </AppText>
-                      <View className="mt-3 flex-row items-center rounded-control bg-surfaceRaised px-3 py-4">
-                        <View className="flex-[1.05]">
-                          <AppText
-                            variant="caption"
-                            color="ink-muted"
-                            numberOfLines={1}
-                            className="text-[12px]"
-                          >
-                            Current balance
-                          </AppText>
-                          <AppText variant="cardTitle" className="mt-1">
-                            {selected.runningBalanceSek} kr
-                          </AppText>
-                        </View>
-                        <AppText variant="sectionTitle" className="mx-1">
-                          −
-                        </AppText>
-                        <View className="flex-[0.8] items-center">
-                          <AppText
-                            variant="caption"
-                            color="ink-muted"
-                            numberOfLines={1}
-                            className="text-[12px]"
-                          >
-                            This payout
-                          </AppText>
-                          <AppText
-                            variant="cardTitle"
-                            color="urgency"
-                            className="mt-1"
-                          >
-                            {selected.amountDueSek} kr
-                          </AppText>
-                        </View>
-                        <AppText variant="sectionTitle" className="mx-1">
-                          =
-                        </AppText>
-                        <View className="flex-[1.1] items-end">
-                          <AppText
-                            variant="caption"
-                            color="ink-muted"
-                            numberOfLines={1}
-                            className="text-[12px]"
-                          >
-                            After marking paid
-                          </AppText>
-                          <AppText variant="cardTitle" className="mt-1">
-                            {selected.runningBalanceSek - selected.amountDueSek}{" "}
-                            kr
-                          </AppText>
-                        </View>
-                      </View>
-                      {selected.pendingOutcomeCount > 0 ? (
-                        <View className="bg-infoSoftStrong/40 mt-3 flex-row items-center rounded-control px-3 py-2">
-                          <Icon
-                            name="info"
-                            color={themeColors.inkMuted}
-                            size={21}
-                          />
-                          <AppText variant="caption" className="ml-2 flex-1">
-                            {selected.pendingOutcomeCount} unresolved chore
-                            outcome moves to a later payout.
-                          </AppText>
-                        </View>
-                      ) : null}
-                    </Surface>
-                  </>
-                ) : (
-                  <Surface
-                    tone="lavender"
-                    elevated={false}
-                    className="mt-6 p-5"
-                  >
-                    <AppText variant="sectionTitle">Nothing was due</AppText>
-                    <AppText className="mt-2">
-                      This payout period closed without a positive amount to
-                      pay.
-                    </AppText>
-                  </Surface>
-                )}
-                {selected.pendingOutcomeCount > 0 &&
-                selected.status === "no_payment" ? (
-                  <Surface
-                    tone="lavender"
-                    elevated={false}
-                    className="mt-3 p-4"
-                  >
-                    <AppText variant="bodySmall">
-                      {selected.pendingOutcomeCount} unresolved chore outcome
-                      will be handled in a later payout.
-                    </AppText>
-                  </Surface>
-                ) : null}
-              </ScrollView>
-              {selected.status === "pending" ? (
-                <View
-                  className="border-t border-line bg-surfaceRaised px-5 pt-3"
-                  style={{ paddingBottom: insets.bottom + 16 }}
-                >
-                  <ActionButton
-                    label={`Mark ${selected.amountDueSek} kr paid`}
-                    onPress={() => setShowConfirmation(true)}
-                  />
-                </View>
-              ) : null}
-              {showConfirmation ? (
-                <View className="absolute inset-0 justify-end bg-scrim">
-                  <SafeAreaView
-                    edges={["bottom"]}
-                    className="rounded-t-sheet bg-canvas px-5 pb-3 pt-3"
-                    style={{ paddingBottom: insets.bottom + 16 }}
-                  >
-                    <View className="h-1.5 w-20 self-center rounded-full bg-line" />
-                    <View className="mt-4 h-20 w-20 items-center justify-center self-center rounded-full bg-actionSoft">
-                      <Icon name="money" color={themeColors.action} size={40} />
-                      <View className="absolute bottom-2 right-2 h-7 w-7 items-center justify-center rounded-full bg-action">
-                        <Icon
-                          name="check"
-                          color={themeColors.onAction}
-                          size={17}
-                        />
-                      </View>
-                    </View>
-                    <AppText
-                      variant="sectionTitle"
-                      className="mt-4 text-center"
-                    >
-                      Mark {selected.amountDueSek} kr paid?
-                    </AppText>
-                    <AppText color="ink-muted" className="mt-3 text-center">
-                      Confirm only after the payment is complete outside this
-                      app.
-                    </AppText>
-                    <AppText
-                      variant="cardTitle"
-                      color="action"
-                      className="mt-4 text-center"
-                    >
-                      {selected.childDisplayName}’s running balance will become{" "}
-                      {selected.runningBalanceSek - selected.amountDueSek} kr.
-                    </AppText>
-                    <View className="mt-4 flex-row items-center justify-center">
-                      <Icon
-                        name="info"
-                        color={themeColors.inkMuted}
-                        size={22}
-                      />
-                      <AppText
-                        variant="bodySmall"
-                        color="ink-muted"
-                        className="ml-2"
-                      >
-                        Paid payouts can’t be reopened.
-                      </AppText>
-                    </View>
-                    <ActionButton
-                      className="mt-5"
-                      label="Mark paid"
-                      loading={working}
-                      onPress={() => void confirmPaid()}
-                    />
-                    <ActionButton
-                      className="mt-3"
-                      tone="secondary"
-                      label="Not yet"
-                      onPress={() => setShowConfirmation(false)}
-                    />
-                  </SafeAreaView>
-                </View>
-              ) : null}
-            </SafeAreaView>
-          )
-        ) : null}
-      </Modal>
-
-      <Modal
-        visible={showWeekdayPicker}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowWeekdayPicker(false)}
-      >
-        <View className="flex-1 justify-end bg-scrim">
-          <SafeAreaView
-            edges={["bottom"]}
-            className="rounded-t-sheet bg-canvas px-5 pb-3 pt-5"
-          >
-            <AppText variant="sectionTitle">Choose payout day</AppText>
-            <AppText variant="bodySmall" color="ink-muted" className="mt-2">
-              The new day applies from the next payout period.
-            </AppText>
-            <View className="mt-4 flex-row flex-wrap">
-              {weekdays.map((day) => {
-                const active = overview.configuredPayoutWeekday === day;
-                return (
-                  <Pressable
-                    key={day}
-                    disabled={working}
-                    onPress={() => void changeWeekday(day)}
-                    className={`mb-2 mr-2 min-h-target min-w-[30%] items-center justify-center rounded-control ${active ? "bg-action" : "bg-infoSoft"}`}
-                  >
-                    <AppText variant="label" color={active ? "white" : "ink"}>
-                      {formatWeekday(day)}
-                    </AppText>
-                  </Pressable>
-                );
-              })}
-            </View>
-            <ActionButton
-              tone="quiet"
-              label="Cancel"
-              onPress={() => setShowWeekdayPicker(false)}
-            />
-          </SafeAreaView>
-        </View>
-      </Modal>
+                <Icon name="check" color={themeColors.action} size={18} />
+                <AppText className="flex-1">
+                  {payout.childDisplayName} · {payout.amountDueSek} kr
+                </AppText>
+                <AppText variant="caption" color="ink-muted">
+                  {payout.paidAt
+                    ? formatPaidMoment(payout.paidAt, timezone)
+                    : "Paid"}
+                </AppText>
+              </View>
+            ))}
+          </View>
+        </>
+      ) : null}
     </View>
+  );
+}
+
+/** The payout week as a row of days with payday circled. */
+function WeekStrip({
+  start,
+  end,
+  payday,
+  onChange,
+}: {
+  start: string;
+  end: string;
+  payday: string;
+  onChange: () => void;
+}) {
+  const [y, m, d] = start.split("-").map(Number);
+  const [ey, em, ed] = end.split("-").map(Number);
+  const first = Date.UTC(y, m - 1, d);
+  const count = Math.max(
+    1,
+    Math.round((Date.UTC(ey, em - 1, ed) - first) / 86_400_000) + 1,
+  );
+  const days = Array.from({ length: Math.min(count, 8) }, (_, i) => {
+    const date = new Date(first + i * 86_400_000);
+    return {
+      key: i,
+      weekday: date
+        .toLocaleDateString("en-GB", { weekday: "long", timeZone: "UTC" })
+        .toLowerCase(),
+      label: date.toLocaleDateString("en-GB", {
+        weekday: "narrow",
+        timeZone: "UTC",
+      }),
+      day: date.getUTCDate(),
+    };
+  });
+  return (
+    <View className="rounded-[26px] bg-surface p-4">
+      <View className="flex-row items-center justify-between">
+        <View>
+          <AppText variant="label" color="ink-muted">
+            This payout week
+          </AppText>
+          <AppText variant="cardTitle">{formatDateRange(start, end)}</AppText>
+        </View>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Payday ${formatWeekday(payday)}. Change`}
+          onPress={onChange}
+          hitSlop={8}
+          className="rounded-full bg-surfaceMuted px-3 py-1.5"
+        >
+          <AppText variant="label">
+            Payday {formatWeekday(payday).slice(0, 3)}
+          </AppText>
+        </Pressable>
+      </View>
+      <View className="mt-4 flex-row justify-between">
+        {days.map((day) => {
+          const isPayday = day.weekday === payday;
+          return (
+            <View key={day.key} className="items-center">
+              <AppText variant="caption" color="ink-muted">
+                {day.label}
+              </AppText>
+              <View
+                className="mt-1 h-9 w-9 items-center justify-center rounded-full"
+                style={{
+                  backgroundColor: isPayday
+                    ? themeColors.reward
+                    : "transparent",
+                }}
+              >
+                <AppText variant="label">{day.day}</AppText>
+              </View>
+            </View>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+const KNOB = 52;
+
+/**
+ * Paying out is deliberate: drag the coin all the way across to record that
+ * the money went out with Swish. Short drags spring back. Screen readers get
+ * a plain activate action.
+ */
+function SlideToPay({
+  amount,
+  name,
+  busy,
+  disabled,
+  onConfirm,
+}: {
+  amount: number;
+  name: string;
+  busy: boolean;
+  disabled: boolean;
+  onConfirm: () => Promise<boolean>;
+}) {
+  const [width, setWidth] = useState(0);
+  const x = useSharedValue(0);
+  const travel = Math.max(0, width - KNOB - 8);
+
+  async function commit() {
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    const ok = await onConfirm();
+    if (!ok) x.set(withSpring(0, { duration: 400, dampingRatio: 0.8 }));
+  }
+
+  const pan = Gesture.Pan()
+    .enabled(!busy && !disabled && travel > 0)
+    .onUpdate((event) => {
+      x.set(Math.min(travel, Math.max(0, event.translationX)));
+    })
+    .onEnd((event) => {
+      if (x.get() > travel * 0.85 || event.velocityX > 900) {
+        x.set(withSpring(travel, { duration: 250, dampingRatio: 1 }));
+        scheduleOnRN(commit);
+      } else {
+        x.set(
+          withSpring(0, {
+            duration: 400,
+            dampingRatio: 0.8,
+            velocity: event.velocityX,
+          }),
+        );
+      }
+    });
+
+  const knobStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: x.get() }],
+  }));
+  const fillStyle = useAnimatedStyle(() => ({
+    transform: [
+      { scaleX: travel > 0 ? (x.get() + KNOB) / (travel + KNOB) : 0 },
+    ],
+  }));
+  const hintStyle = useAnimatedStyle(() => ({
+    opacity: travel > 0 ? 1 - x.get() / travel : 1,
+  }));
+
+  return (
+    <View
+      accessible
+      accessibilityRole="button"
+      accessibilityLabel={`Slide to mark ${amount} kronor paid to ${name} with Swish`}
+      accessibilityState={{ busy, disabled }}
+      accessibilityActions={[{ name: "activate" }]}
+      onAccessibilityAction={() => {
+        if (!busy && !disabled) void commit();
+      }}
+      onLayout={(event) => setWidth(event.nativeEvent.layout.width)}
+      className="h-[60px] justify-center overflow-hidden rounded-full"
+      style={{
+        backgroundColor: themeColors.surfaceMuted,
+        opacity: disabled ? 0.5 : 1,
+      }}
+    >
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          {
+            position: "absolute",
+            left: 0,
+            top: 0,
+            bottom: 0,
+            width: width || 1,
+            backgroundColor: themeColors.actionSoft,
+            transformOrigin: "left center",
+          },
+          fillStyle,
+        ]}
+      />
+      <Animated.View
+        pointerEvents="none"
+        style={[{ position: "absolute", left: 0, right: 0 }, hintStyle]}
+        className="items-center"
+      >
+        <AppText variant="label" color="ink-muted">
+          {busy ? "Recording…" : "Slide to pay with Swish  ›››"}
+        </AppText>
+      </Animated.View>
+      <GestureDetector gesture={pan}>
+        <Animated.View
+          style={[{ marginLeft: 4 }, knobStyle]}
+          className="h-[52px] w-[52px] items-center justify-center rounded-full border-b-4 border-goldShade bg-gold"
+        >
+          {busy ? (
+            <ActivityIndicator color={themeColors.ink} />
+          ) : (
+            <AppText variant="label" className="text-night">
+              {amount}
+            </AppText>
+          )}
+        </Animated.View>
+      </GestureDetector>
+    </View>
+  );
+}
+
+function PaidStamp() {
+  const progress = useEntrance({ playful: true });
+  const style = useAnimatedStyle(() => ({
+    opacity: progress.get(),
+    transform: [{ scale: 1.3 - progress.get() * 0.3 }, { rotate: "-4deg" }],
+  }));
+  return (
+    <Animated.View
+      accessibilityLiveRegion="polite"
+      accessibilityLabel="Paid"
+      style={style}
+      className="h-[60px] items-center justify-center rounded-full border-[3px] border-action"
+    >
+      <AppText variant="cardTitle" color="action">
+        ✓ Paid with Swish
+      </AppText>
+    </Animated.View>
   );
 }
