@@ -1,27 +1,23 @@
-import { Scene } from "@/components/art";
-import { Icon } from "@/components/ui/icon";
-import { childAvatarTone, Avatar } from "@/components/ui/avatar";
-import { homeTokens as themeColors } from "@/design-system/theme";
-import { AppText, Surface } from "@/design-system";
 import { useQuery } from "convex/react";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Modal, Pressable, View } from "react-native";
+import Animated, {
+  interpolate,
+  useAnimatedStyle,
+} from "react-native-reanimated";
+import Svg, { Circle, Path, Rect } from "react-native-svg";
+
+import { useLoop } from "@/components/art";
+import { Easings, PRESS, pressTransition } from "@/components/art/motion";
+import { childAvatarTone, Avatar } from "@/components/ui/avatar";
+import { Icon, type IconName } from "@/components/ui/icon";
+import { AppText } from "@/design-system";
+import { useTheme } from "@/design-system/theme";
 
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import type { HouseholdSummary } from "./household-card";
 import { ParentInviteCard } from "./parent-invite-card";
-
-const parentAvatar = require("../../../assets/images/direction-c/sam-avatar.png");
-const alexAvatar = require("../../../assets/images/direction-c/alex-avatar.png");
-const mayaAvatar = require("../../../assets/images/direction-c/maya-avatar.png");
-
-function childAvatar(displayName: string) {
-  const normalized = displayName.trim().toLowerCase();
-  if (normalized === "maya") return mayaAvatar;
-  if (normalized === "alex") return alexAvatar;
-  return null;
-}
 
 function shortTimezone(timezone: string) {
   return timezone.split("/").at(-1)?.replaceAll("_", " ") ?? timezone;
@@ -31,7 +27,173 @@ function formatWeekday(day: string) {
   return day.charAt(0).toUpperCase() + day.slice(1);
 }
 
-function ChildAccessRow({
+const ORBIT = 260;
+
+function Orbiter({
+  name,
+  tone,
+  angle,
+  radius,
+  size,
+  delay,
+}: {
+  name: string;
+  tone: Parameters<typeof Avatar>[0]["tone"];
+  angle: number;
+  radius: number;
+  size: number;
+  delay: number;
+}) {
+  const bob = useLoop({ duration: 3600, reverse: true, delay, rest: 0.5 });
+  const style = useAnimatedStyle(() => ({
+    transform: [{ translateY: interpolate(bob.get(), [0, 1], [-3, 3]) }],
+  }));
+  const x = ORBIT / 2 + Math.cos(angle) * radius - size / 2;
+  const y = ORBIT / 2 + Math.sin(angle) * radius - size / 2;
+  return (
+    <Animated.View style={[{ position: "absolute", left: x, top: y }, style]}>
+      <Avatar
+        tone={tone}
+        className="rounded-full"
+        fallbackLabel={name}
+        size={size}
+      />
+    </Animated.View>
+  );
+}
+
+/** Home in the middle, parents on the inner ring, kids on the outer one. */
+function FamilyOrbit({ household }: { household: HouseholdSummary }) {
+  const { tokens } = useTheme();
+  const spin = useLoop({ duration: 60000, easing: Easings.linear });
+  const ringStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${spin.get() * 360}deg` }],
+  }));
+  const c = ORBIT / 2;
+  const kids = household.children;
+  const parents = household.parents;
+  return (
+    <View
+      accessible
+      accessibilityLabel={`${household.name}: ${parents.map((p) => p.displayName).join(", ")} and ${kids.map((k) => k.displayName).join(", ")}`}
+      className="items-center"
+    >
+      <View style={{ width: ORBIT, height: ORBIT }}>
+        <Animated.View style={[{ position: "absolute", inset: 0 }, ringStyle]}>
+          <Svg width={ORBIT} height={ORBIT}>
+            <Circle
+              cx={c}
+              cy={c}
+              r={c - 30}
+              fill="none"
+              stroke={tokens.line}
+              strokeWidth={2}
+              strokeDasharray="6 8"
+            />
+            <Circle
+              cx={c}
+              cy={c}
+              r={62}
+              fill="none"
+              stroke={tokens.line}
+              strokeWidth={2}
+              strokeDasharray="4 6"
+            />
+          </Svg>
+        </Animated.View>
+        <Svg width={ORBIT} height={ORBIT} style={{ position: "absolute" }}>
+          <Circle cx={c} cy={c} r={34} fill={tokens.actionSoft} />
+          <Path
+            d={`M${c - 18} ${c - 2} L${c} ${c - 18} L${c + 18} ${c - 2} Z`}
+            fill={tokens.urgency}
+          />
+          <Rect
+            x={c - 13}
+            y={c - 3}
+            width={26}
+            height={20}
+            rx={4}
+            fill={tokens.surface}
+          />
+          <Rect
+            x={c - 4}
+            y={c + 5}
+            width={8}
+            height={12}
+            rx={2}
+            fill={tokens.reward}
+          />
+        </Svg>
+        {parents.map((parent, i) => (
+          <Orbiter
+            key={parent.membershipId}
+            name={parent.displayName}
+            tone="parent"
+            angle={
+              -Math.PI / 2 +
+              (i * 2 * Math.PI) / Math.max(1, parents.length) +
+              0.6
+            }
+            radius={62}
+            size={34}
+            delay={i * 500}
+          />
+        ))}
+        {kids.map((kid, i) => (
+          <Orbiter
+            key={kid.childId}
+            name={kid.displayName}
+            tone={childAvatarTone(kid.displayName)}
+            angle={-Math.PI / 2 + (i * 2 * Math.PI) / Math.max(1, kids.length)}
+            radius={c - 30}
+            size={48}
+            delay={300 + i * 700}
+          />
+        ))}
+      </View>
+      <AppText variant="sectionTitle" className="mt-1 text-center">
+        {household.name}
+      </AppText>
+      <AppText variant="caption" color="ink-muted" className="text-center">
+        {kids.length} {kids.length === 1 ? "kid" : "kids"} · {parents.length}{" "}
+        {parents.length === 1 ? "parent" : "parents"}
+      </AppText>
+    </View>
+  );
+}
+
+function Row({
+  onPress,
+  accessibilityLabel,
+  children,
+}: {
+  onPress?: () => void;
+  accessibilityLabel: string;
+  children: ReactNode;
+}) {
+  return (
+    <Pressable
+      accessibilityRole={onPress ? "button" : undefined}
+      accessibilityLabel={accessibilityLabel}
+      disabled={!onPress}
+      onPress={onPress}
+    >
+      {({ pressed }) => (
+        <Animated.View
+          className="min-h-[68px] flex-row items-center gap-3 rounded-[22px] bg-surface px-4 py-3"
+          style={[
+            { transform: [{ scale: pressed ? PRESS.scale : 1 }] },
+            pressTransition,
+          ]}
+        >
+          {children}
+        </Animated.View>
+      )}
+    </Pressable>
+  );
+}
+
+function KidRow({
   child,
   onOpen,
   visualDeviceCount,
@@ -40,6 +202,7 @@ function ChildAccessRow({
   onOpen: () => void;
   visualDeviceCount?: number;
 }) {
+  const { tokens } = useTheme();
   const devices = useQuery(
     api.childAccess.listDevicesForChild,
     visualDeviceCount === undefined ? { childId: child.childId } : "skip",
@@ -48,51 +211,75 @@ function ChildAccessRow({
     visualDeviceCount ??
     devices?.filter((device) => device.isActive).length ??
     0;
-  const deviceStatusLoaded =
-    visualDeviceCount !== undefined || devices !== undefined;
-
+  const loaded = visualDeviceCount !== undefined || devices !== undefined;
+  const status = !loaded
+    ? "Checking phones…"
+    : activeCount > 0
+      ? `${activeCount} linked ${activeCount === 1 ? "phone" : "phones"}`
+      : "No phone linked yet";
   return (
-    <Pressable accessibilityRole="button" onPress={onOpen}>
-      <Surface className="h-[64px] min-h-[64px] flex-row items-center px-3 py-0">
-        <Avatar
-          source={childAvatar(child.displayName)}
-          tone={childAvatarTone(child.displayName)}
-          className="h-16 w-16"
-          fallbackLabel={child.displayName}
-        />
-        <View className="ml-4 flex-1">
-          <AppText variant="cardTitle">{child.displayName}</AppText>
-          <View className="mt-1 flex-row items-center">
-            <Icon
-              name="phone"
-              color={
-                activeCount > 0 ? themeColors.action : themeColors.disabledInk
-              }
-              size={19}
-            />
-            <AppText
-              variant="bodySmall"
-              color={activeCount > 0 ? "action" : "ink-muted"}
-              className="ml-2"
-            >
-              {!deviceStatusLoaded
-                ? "Checking devices…"
-                : activeCount > 0
-                  ? `${activeCount} active paired ${activeCount === 1 ? "device" : "devices"}`
-                  : "No paired devices"}
-            </AppText>
-          </View>
+    <Row
+      onPress={onOpen}
+      accessibilityLabel={`${child.displayName}. ${status}. Manage phones`}
+    >
+      <Avatar
+        tone={childAvatarTone(child.displayName)}
+        className="rounded-full"
+        fallbackLabel={child.displayName}
+        size={44}
+      />
+      <View className="flex-1">
+        <AppText variant="cardTitle">{child.displayName}</AppText>
+        <View className="mt-0.5 flex-row items-center gap-1.5">
+          <Icon
+            name="phone"
+            color={activeCount > 0 ? tokens.action : tokens.inkMuted}
+            size={14}
+          />
+          <AppText
+            variant="caption"
+            color={activeCount > 0 ? "action" : "ink-muted"}
+          >
+            {status}
+          </AppText>
         </View>
-        {deviceStatusLoaded && activeCount === 0 ? (
-          <View className="mr-2 rounded-full bg-actionSoft px-3 py-2">
-            <AppText variant="label" color="action">
-              Pair device
-            </AppText>
-          </View>
-        ) : null}
-        <Icon name="chevron" color={themeColors.ink} size={22} />
-      </Surface>
-    </Pressable>
+      </View>
+      {loaded && activeCount === 0 ? (
+        <View
+          className="rounded-full px-3 py-1.5"
+          style={{ backgroundColor: tokens.action }}
+        >
+          <AppText variant="label" style={{ color: tokens.onAction }}>
+            Link phone
+          </AppText>
+        </View>
+      ) : (
+        <Icon name="chevron" color={tokens.inkMuted} size={20} />
+      )}
+    </Row>
+  );
+}
+
+function RuleToken({
+  icon,
+  label,
+  value,
+}: {
+  icon: IconName;
+  label: string;
+  value: string;
+}) {
+  const { tokens } = useTheme();
+  return (
+    <View className="flex-1 items-center rounded-[20px] bg-surface px-2 py-3">
+      <Icon name={icon} color={tokens.action} size={20} />
+      <AppText variant="caption" color="ink-muted" className="mt-1.5">
+        {label}
+      </AppText>
+      <AppText variant="label" className="mt-0.5 text-center" numberOfLines={1}>
+        {value}
+      </AppText>
+    </View>
   );
 }
 
@@ -107,43 +294,19 @@ export function ParentFamilyContent({
   onOpenChildAccess: (childId: Id<"children">) => void;
   visualDeviceCounts?: Partial<Record<string, number>>;
 }) {
+  const { tokens } = useTheme();
   const [showInvite, setShowInvite] = useState(false);
 
   return (
-    <View className="pb-6">
-      <Surface
-        tone="lavender"
-        elevated={false}
-        className="mt-2 h-[124px] overflow-hidden p-3"
-      >
-        <Scene name="family" size={180} />
-        <View className="ml-[52%] flex-1 -translate-y-2 translate-x-2 justify-center">
-          <AppText
-            variant="sectionTitle"
-            style={{ fontSize: 21, lineHeight: 25 }}
-            numberOfLines={1}
-          >
-            {household.name}
-          </AppText>
-          <AppText className="mt-1" style={{ fontSize: 17, lineHeight: 22 }}>
-            {household.children.length}{" "}
-            {household.children.length === 1 ? "child" : "children"} ·{" "}
-            {household.parents.length}{" "}
-            {household.parents.length === 1 ? "parent" : "parents"}
-          </AppText>
-        </View>
-      </Surface>
+    <View className="pb-8">
+      <FamilyOrbit household={household} />
 
-      <AppText
-        variant="sectionTitle"
-        className="ml-1 mt-2"
-        style={{ fontSize: 19, lineHeight: 24 }}
-      >
-        Children
+      <AppText variant="sectionTitle" className="mt-6">
+        Kids
       </AppText>
-      <View className="mt-3 gap-2">
+      <View className="mt-3 gap-2.5">
         {household.children.map((child) => (
-          <ChildAccessRow
+          <KidRow
             key={child.childId}
             child={child}
             onOpen={() => onOpenChildAccess(child.childId)}
@@ -152,60 +315,78 @@ export function ParentFamilyContent({
         ))}
       </View>
 
-      <AppText
-        variant="sectionTitle"
-        className="ml-1 mt-2"
-        style={{ fontSize: 19, lineHeight: 24 }}
-      >
+      <AppText variant="sectionTitle" className="mt-6">
         Parents
       </AppText>
-      <View className="mt-2 gap-2">
+      <View className="mt-3 gap-2.5">
         {household.parents.map((parent) => (
-          <Surface
+          <Row
             key={parent.membershipId}
-            className="h-[64px] min-h-[64px] flex-row items-center px-3 py-0"
+            accessibilityLabel={`${parent.displayName}${parent.isCurrent ? ", you" : ""}. Same controls as every parent.`}
           >
-            {parent.isCurrent ? (
-              <Avatar
-                source={parentAvatar}
-                tone="parent"
-                className="h-16 w-16"
-              />
-            ) : (
-              <View className="h-16 w-16 items-center justify-center rounded-full bg-infoSoftStrong">
-                <AppText variant="cardTitle">
-                  {parent.displayName.trim().charAt(0).toUpperCase()}
-                </AppText>
-              </View>
-            )}
-            <View className="ml-4 flex-1">
-              <AppText variant="cardTitle">{parent.displayName}</AppText>
-              <AppText variant="bodySmall" className="mt-1">
-                {parent.isCurrent ? "You · Equal authority" : "Equal authority"}
+            <Avatar
+              tone="parent"
+              className="rounded-full"
+              fallbackLabel={parent.displayName}
+              size={44}
+            />
+            <View className="flex-1">
+              <AppText variant="cardTitle">
+                {parent.displayName}
+                {parent.isCurrent ? " (you)" : ""}
+              </AppText>
+              <AppText variant="caption" color="ink-muted">
+                Same controls as every parent
               </AppText>
             </View>
-          </Surface>
+          </Row>
         ))}
-      </View>
-
-      <Pressable
-        accessibilityRole="button"
-        onPress={() => setShowInvite((current) => !current)}
-        className="mt-2 min-h-[62px] flex-row items-center rounded-control bg-actionSoft px-3"
-      >
-        <View className="h-11 w-11 items-center justify-center rounded-full bg-action">
-          <Icon name="personPlus" color={themeColors.onAction} size={24} />
-        </View>
-        <View className="ml-3 flex-1">
-          <AppText variant="cardTitle" color="action">
+        <Row
+          onPress={() => setShowInvite(true)}
+          accessibilityLabel="Invite another parent"
+        >
+          <View
+            className="h-11 w-11 items-center justify-center rounded-full"
+            style={{ backgroundColor: tokens.actionSoft }}
+          >
+            <Icon name="personPlus" color={tokens.action} size={20} />
+          </View>
+          <AppText variant="cardTitle" color="action" className="flex-1">
             Invite another parent
           </AppText>
-          <AppText variant="bodySmall" color="ink-muted" className="mt-1">
-            Parents share the same controls.
+          <Icon name="chevron" color={tokens.inkMuted} size={20} />
+        </Row>
+      </View>
+
+      <View className="mt-6 flex-row items-baseline justify-between">
+        <AppText variant="sectionTitle">House rules</AppText>
+        <Pressable
+          accessibilityRole="button"
+          onPress={onOpenSettings}
+          hitSlop={8}
+        >
+          <AppText variant="label" color="action">
+            Change
           </AppText>
-        </View>
-        <Icon name="chevron" color={themeColors.ink} size={22} />
-      </Pressable>
+        </Pressable>
+      </View>
+      <View className="mt-3 flex-row gap-2.5">
+        <RuleToken
+          icon="calendar"
+          label="Payday"
+          value={formatWeekday(household.payoutWeekday)}
+        />
+        <RuleToken
+          icon="key"
+          label="Unclaims"
+          value={`${household.weeklyUnclaimAllowance} a week`}
+        />
+        <RuleToken
+          icon="globe"
+          label="Time zone"
+          value={shortTimezone(household.timezone)}
+        />
+      </View>
 
       <Modal
         animationType="slide"
@@ -218,56 +399,6 @@ export function ParentFamilyContent({
           onClose={() => setShowInvite(false)}
         />
       </Modal>
-
-      <View className="mt-3 flex-row items-center justify-between">
-        <AppText
-          variant="sectionTitle"
-          className="ml-1"
-          style={{ fontSize: 19, lineHeight: 24 }}
-        >
-          Household
-        </AppText>
-        <Pressable
-          accessibilityRole="button"
-          onPress={onOpenSettings}
-          className="min-h-target flex-row items-center px-1"
-        >
-          <AppText variant="label" color="action">
-            Settings
-          </AppText>
-          <Icon name="chevron" color={themeColors.action} size={19} />
-        </Pressable>
-      </View>
-
-      <View className="mt-1 flex-row px-2 py-2">
-        <View className="flex-1 items-center border-r border-infoSoftStrong px-1">
-          <Icon name="globe" color={themeColors.ink} size={22} />
-          <AppText variant="caption" color="ink-muted" className="mt-2">
-            Timezone
-          </AppText>
-          <AppText variant="label" className="mt-1 text-center">
-            {shortTimezone(household.timezone)}
-          </AppText>
-        </View>
-        <View className="flex-1 items-center border-r border-infoSoftStrong px-1">
-          <Icon name="calendar" color={themeColors.ink} size={22} />
-          <AppText variant="caption" color="ink-muted" className="mt-2">
-            Payout
-          </AppText>
-          <AppText variant="label" className="mt-1">
-            {formatWeekday(household.payoutWeekday)}
-          </AppText>
-        </View>
-        <View className="flex-1 items-center px-1">
-          <Icon name="refresh" color={themeColors.ink} size={22} />
-          <AppText variant="caption" color="ink-muted" className="mt-2">
-            Unclaims
-          </AppText>
-          <AppText variant="label" className="mt-1">
-            {household.weeklyUnclaimAllowance} each
-          </AppText>
-        </View>
-      </View>
     </View>
   );
 }
