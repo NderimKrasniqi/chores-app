@@ -1,17 +1,4 @@
-import { Icon } from "@/components/ui/icon";
-import { childAvatarTone, Avatar } from "@/components/ui/avatar";
-import { homeTokens as themeColors } from "@/design-system/theme";
-import {
-  ActionButton,
-  AppText,
-  FormField,
-  Surface,
-  TopBar,
-} from "@/design-system";
-import { useServerConfirmedMutation } from "@/hooks/use-server-confirmed-mutation";
-import { useQuery } from "convex/react";
-import { AppImage as Image } from "@/components/ui/app-image";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import {
   Alert,
   KeyboardAvoidingView,
@@ -19,12 +6,20 @@ import {
   Platform,
   Pressable,
   ScrollView,
+  TextInput,
   View,
 } from "react-native";
-import {
-  SafeAreaView,
-  useSafeAreaInsets,
-} from "react-native-safe-area-context";
+import Animated from "react-native-reanimated";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useQuery } from "convex/react";
+
+import { ChoreIcon } from "@/components/art";
+import { PRESS, pressTransition } from "@/components/art/motion";
+import { childAvatarTone, Avatar } from "@/components/ui/avatar";
+import { Icon } from "@/components/ui/icon";
+import { ActionButton, AppText } from "@/design-system";
+import { useTheme } from "@/design-system/theme";
+import { useServerConfirmedMutation } from "@/hooks/use-server-confirmed-mutation";
 
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
@@ -101,49 +96,6 @@ const weekdays: Weekday[] = [
   "saturday",
   "sunday",
 ];
-const artwork = {
-  bedroom: require("../../../assets/images/direction-c/chore-bedroom.png"),
-  dishwasher: require("../../../assets/images/direction-c/chore-dishwasher.png"),
-  dog: require("../../../assets/images/direction-c/chore-dog-bowl.png"),
-  dogWalk: require("../../../assets/images/direction-c/chore-dog-walk.png"),
-  carWash: require("../../../assets/images/direction-c/chore-car-wash.png"),
-  laundry: require("../../../assets/images/direction-c/chore-laundry.png"),
-  plants: require("../../../assets/images/direction-c/chore-plants.png"),
-  recycling: require("../../../assets/images/direction-c/chore-recycling.png"),
-  table: require("../../../assets/images/direction-c/chore-table.png"),
-};
-const alexAvatar = require("../../../assets/images/direction-c/alex-avatar.png");
-const mayaAvatar = require("../../../assets/images/direction-c/maya-avatar.png");
-
-function avatarForName(name: string | undefined) {
-  const normalized = name?.trim().toLowerCase();
-  if (normalized === "alex") return alexAvatar;
-  if (normalized === "maya") return mayaAvatar;
-  return null;
-}
-
-function getArtwork(title: string) {
-  const normalized = title.toLowerCase();
-  if (normalized.includes("dishwasher") || normalized.includes("dishes"))
-    return artwork.dishwasher;
-  if (normalized.includes("table")) return artwork.table;
-  if (normalized.includes("laundry") || normalized.includes("fold"))
-    return artwork.laundry;
-  if (normalized.includes("feed") && normalized.includes("dog"))
-    return artwork.dog;
-  if (normalized.includes("plant") || normalized.includes("water"))
-    return artwork.plants;
-  if (normalized.includes("car") || normalized.includes("wash"))
-    return artwork.carWash;
-  if (normalized.includes("walk") && normalized.includes("dog"))
-    return artwork.dogWalk;
-  if (normalized.includes("dog") || normalized.includes("pet"))
-    return artwork.dog;
-  if (normalized.includes("recycl") || normalized.includes("trash"))
-    return artwork.recycling;
-  return artwork.bedroom;
-}
-
 function formatScheduleDate(value: string) {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
   if (!match) return value;
@@ -158,32 +110,6 @@ function formatScheduleDate(value: string) {
     day: "numeric",
     month: "short",
   }).format(date);
-}
-
-function formatRepeatValue(recurrenceKind: RecurrenceKind, interval: string) {
-  const count = Number(interval);
-  if (!Number.isSafeInteger(count) || count <= 0) return "Choose interval";
-
-  if (recurrenceKind === "daily") {
-    return count === 1 ? "Every day" : `Every ${count} days`;
-  }
-
-  if (recurrenceKind === "weekly") {
-    return count === 1 ? "Every week" : `Every ${count} weeks`;
-  }
-
-  return count === 1 ? "Every month" : `Every ${count} months`;
-}
-
-function formatDeadlineValue(deadlineTime: string, deadlineOffset: string) {
-  const time = deadlineTime.trim() || "18:00";
-  const offset = Number(deadlineOffset);
-  const dayLabel =
-    Number.isSafeInteger(offset) && offset > 0
-      ? `${offset === 1 ? "next day" : `in ${offset} days`}`
-      : "same day";
-
-  return `${time} · ${dayLabel}`;
 }
 
 function recurrenceLabel(recurrence: Recurrence) {
@@ -204,228 +130,6 @@ function recurrenceLabel(recurrence: Recurrence) {
   }
 }
 
-function Choice({
-  label,
-  active,
-  onPress,
-}: {
-  label: string;
-  active: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ selected: active }}
-      onPress={onPress}
-      className={`mr-2 mt-2 min-h-target justify-center rounded-control px-4 ${
-        active ? "bg-action" : "border border-infoSoftStrong bg-surfaceRaised"
-      }`}
-    >
-      <AppText variant="label" color={active ? "white" : "ink"}>
-        {label}
-      </AppText>
-    </Pressable>
-  );
-}
-
-function PersonChoice({
-  child,
-  active,
-  onPress,
-}: {
-  child: ChildSummary;
-  active: boolean;
-  onPress: () => void;
-}) {
-  const avatar = avatarForName(child.displayName);
-
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ selected: active }}
-      onPress={onPress}
-      className={`min-h-[40px] flex-1 flex-row items-center rounded-control border px-1.5 ${
-        active
-          ? "border-action bg-actionSoft"
-          : "border-infoSoftStrong bg-surfaceRaised"
-      }`}
-    >
-      {avatar ? (
-        <Avatar
-          source={avatar}
-          tone={childAvatarTone(child.displayName)}
-          className="h-7 w-7"
-        />
-      ) : (
-        <View className="h-9 w-9 items-center justify-center rounded-full bg-infoSoft">
-          <Icon name="person" color={themeColors.ink} size={24} />
-        </View>
-      )}
-      <AppText
-        variant="cardTitle"
-        color={active ? "action" : "ink"}
-        className="ml-1 flex-1 text-[14px] leading-[18px]"
-        style={{ fontSize: 14, lineHeight: 18 }}
-        numberOfLines={1}
-      >
-        {child.displayName}
-      </AppText>
-      <View
-        className={`h-5 w-5 items-center justify-center rounded-full border-2 ${
-          active
-            ? "border-action bg-action"
-            : "border-infoSoftStrong bg-transparent"
-        }`}
-      >
-        {active ? (
-          <Icon name="check" color={themeColors.onAction} size={14} />
-        ) : null}
-      </View>
-    </Pressable>
-  );
-}
-
-function EligibilityChoice({
-  label,
-  active,
-  onPress,
-  selectedChildren,
-}: {
-  label: string;
-  active: boolean;
-  onPress: () => void;
-  selectedChildren?: boolean;
-}) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ selected: active }}
-      onPress={onPress}
-      className={`min-h-[40px] flex-1 flex-row items-center rounded-control border px-1.5 ${
-        active
-          ? "border-action bg-actionSoft"
-          : "border-infoSoftStrong bg-surfaceRaised"
-      }`}
-    >
-      <View className="h-7 w-7 items-center justify-center rounded-full bg-infoSoft">
-        <Icon
-          name={selectedChildren ? "person" : "family"}
-          color={active ? themeColors.action : themeColors.ink}
-          size={20}
-        />
-      </View>
-      <AppText
-        variant="cardTitle"
-        color={active ? "action" : "ink"}
-        className="ml-1 flex-1 text-[12px] leading-[16px]"
-        style={{ fontSize: 12, lineHeight: 16 }}
-        numberOfLines={1}
-      >
-        {label}
-      </AppText>
-      <View
-        className={`h-5 w-5 items-center justify-center rounded-full border-2 ${
-          active
-            ? "border-action bg-action"
-            : "border-infoSoftStrong bg-transparent"
-        }`}
-      >
-        {active ? (
-          <Icon name="check" color={themeColors.onAction} size={14} />
-        ) : null}
-      </View>
-    </Pressable>
-  );
-}
-
-function ScheduleFieldRow({
-  icon,
-  label,
-  displayValue,
-  onPress,
-}: {
-  icon: "calendar" | "clock" | "repeat";
-  label: string;
-  displayValue: string;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`${label}: ${displayValue}`}
-      onPress={onPress}
-      className="min-h-[36px] flex-row items-center border-b border-line px-1"
-    >
-      <View className="h-7 w-7 items-center justify-center rounded-full bg-infoSoft">
-        <Icon name={icon} color={themeColors.ink} size={18} />
-      </View>
-      <AppText
-        className="ml-2 flex-1 text-[14px] leading-[18px]"
-        style={{ fontSize: 14, lineHeight: 18 }}
-        numberOfLines={1}
-      >
-        {label}
-      </AppText>
-      <AppText
-        color={displayValue.startsWith("Choose") ? "ink-muted" : "ink"}
-        className="max-w-[190px] text-right text-[14px] leading-[18px]"
-        style={{ fontSize: 14, lineHeight: 18 }}
-        numberOfLines={1}
-      >
-        {displayValue}
-      </AppText>
-      <Icon name="chevron" color={themeColors.ink} size={20} />
-    </Pressable>
-  );
-}
-
-type ScheduleEditorKey =
-  | "scheduledDate"
-  | "startDate"
-  | "interval"
-  | "dayOfMonth"
-  | "availabilityTime"
-  | "deadline";
-
-function SegmentedControl({
-  value,
-  onChange,
-  compact = false,
-}: {
-  value: ChoreKind;
-  onChange: (value: ChoreKind) => void;
-  compact?: boolean;
-}) {
-  return (
-    <View className="flex-row rounded-control bg-infoSoft p-1">
-      {(["personal", "claimable"] as const).map((kind) => {
-        const active = value === kind;
-        return (
-          <Pressable
-            key={kind}
-            accessibilityRole="button"
-            accessibilityState={{ selected: active }}
-            onPress={() => onChange(kind)}
-            className={`${compact ? "min-h-[32px]" : "min-h-[36px]"} flex-1 items-center justify-center rounded-control ${
-              active ? "bg-actionSoftStrong" : "bg-transparent"
-            }`}
-          >
-            <AppText
-              variant="cardTitle"
-              color={active ? "action" : "ink"}
-              className={compact ? "text-[14px] leading-[18px]" : ""}
-              style={compact ? { fontSize: 14, lineHeight: 18 } : undefined}
-            >
-              {kind === "personal" ? "Personal" : "Claimable"}
-            </AppText>
-          </Pressable>
-        );
-      })}
-    </View>
-  );
-}
-
 export function ParentChoresContent({
   householdId,
   children,
@@ -435,13 +139,13 @@ export function ParentChoresContent({
   children: ChildSummary[];
   visualFixture?: ParentChoresVisualFixture;
 }) {
-  const safeAreaInsets = useSafeAreaInsets();
   const queriedDefinitions = useQuery(
     api.choreDefinitions.listActiveForHousehold,
     visualFixture ? "skip" : { householdId },
   );
   const definitions = visualFixture?.definitions ?? queriedDefinitions;
   const visualForm = visualFixture?.form;
+  const { tokens: themeColors } = useTheme();
   const createDefinition = useServerConfirmedMutation(
     api.choreDefinitions.create,
   );
@@ -498,8 +202,6 @@ export function ParentChoresContent({
   );
   const [working, setWorking] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [scheduleEditor, setScheduleEditor] =
-    useState<ScheduleEditorKey | null>(null);
 
   function resetForm(nextKind: ChoreKind = listKind) {
     setEditingId(null);
@@ -569,99 +271,6 @@ export function ParentChoresContent({
     setIsUnlockChore(definition.isUnlockChore);
     setError(null);
     setShowForm(true);
-  }
-
-  function scheduleEditorValue(key: ScheduleEditorKey) {
-    switch (key) {
-      case "scheduledDate":
-        return scheduledDate;
-      case "startDate":
-        return startDate;
-      case "interval":
-        return interval;
-      case "dayOfMonth":
-        return dayOfMonth;
-      case "availabilityTime":
-        return availabilityTime;
-      case "deadline":
-        return deadlineTime;
-    }
-  }
-
-  function updateScheduleEditorValue(key: ScheduleEditorKey, value: string) {
-    switch (key) {
-      case "scheduledDate":
-        setScheduledDate(value);
-        return;
-      case "startDate":
-        setStartDate(value);
-        return;
-      case "interval":
-        setInterval(value);
-        return;
-      case "dayOfMonth":
-        setDayOfMonth(value);
-        return;
-      case "availabilityTime":
-        setAvailabilityTime(value);
-        return;
-      case "deadline":
-        setDeadlineTime(value);
-        return;
-    }
-  }
-
-  function scheduleEditorConfig(key: ScheduleEditorKey) {
-    switch (key) {
-      case "scheduledDate":
-        return {
-          title: "Choose date",
-          label: "Date",
-          placeholder: "YYYY-MM-DD",
-          helper: "Use the household-local date, for example 2026-09-14.",
-          keyboardType: "default" as const,
-        };
-      case "startDate":
-        return {
-          title: "Choose start date",
-          label: "Starts",
-          placeholder: "YYYY-MM-DD",
-          helper: "Recurring chores use the household-local start date.",
-          keyboardType: "default" as const,
-        };
-      case "interval":
-        return {
-          title: "Choose repeat interval",
-          label: "Repeats",
-          placeholder: "1",
-          helper: "Enter a positive whole number.",
-          keyboardType: "number-pad" as const,
-        };
-      case "dayOfMonth":
-        return {
-          title: "Choose day of month",
-          label: "Day of month",
-          placeholder: "1",
-          helper: "Choose a day from 1 to 31.",
-          keyboardType: "number-pad" as const,
-        };
-      case "availabilityTime":
-        return {
-          title: "Choose availability",
-          label: "Available from",
-          placeholder: "Start of day",
-          helper: "Leave empty to start at the beginning of the scheduled day.",
-          keyboardType: "default" as const,
-        };
-      case "deadline":
-        return {
-          title: "Choose deadline",
-          label: "Deadline time",
-          placeholder: "18:00",
-          helper: "Use 24-hour HH:mm. The day offset is edited below.",
-          keyboardType: "default" as const,
-        };
-    }
   }
 
   function buildRecurrence(): Recurrence {
@@ -757,622 +366,745 @@ export function ParentChoresContent({
 
   const visibleDefinitions =
     definitions?.filter((definition) => definition.kind === listKind) ?? [];
-  const scheduleConfig = scheduleEditor
-    ? scheduleEditorConfig(scheduleEditor)
-    : null;
-  const scheduleValue = scheduleEditor
-    ? scheduleEditorValue(scheduleEditor)
-    : "";
+
+  function applyTemplate(template: ChoreTemplate) {
+    setTitle(template.title);
+    if (!valueSek) setValueSek(String(template.valueSek));
+  }
 
   return (
-    <View>
+    <View className="pb-6">
+      <KindTabs value={listKind} onChange={setListKind} />
+
       <Pressable
         accessibilityRole="button"
+        accessibilityLabel={
+          listKind === "personal" ? "New chore for a kid" : "New Extra"
+        }
         onPress={openNew}
-        className="min-h-[44px] flex-row items-center rounded-control bg-actionSoft px-4"
+        className="mt-4"
       >
-        <View className="h-12 w-12 items-center justify-center rounded-full bg-action">
-          <Icon name="plus" color={themeColors.onAction} size={25} />
-        </View>
-        <AppText variant="cardTitle" color="action" className="ml-3 flex-1">
-          Add chore
-        </AppText>
-        <Icon name="chevron" color={themeColors.ink} size={22} />
+        {({ pressed }) => (
+          <Animated.View
+            className="min-h-[64px] flex-row items-center gap-3 rounded-[22px] border-2 border-dashed border-line px-4"
+            style={[
+              { transform: [{ scale: pressed ? PRESS.scale : 1 }] },
+              pressTransition,
+            ]}
+          >
+            <Icon name="plus" color={themeColors.action} size={22} />
+            <AppText variant="cardTitle" color="action">
+              {listKind === "personal" ? "New chore" : "New Extra"}
+            </AppText>
+          </Animated.View>
+        )}
       </Pressable>
 
-      <View className="mt-4">
-        <SegmentedControl value={listKind} onChange={setListKind} />
+      <View className="mt-4 gap-2.5">
+        {definitions === undefined ? (
+          <AppText color="ink-muted" className="mt-2">
+            Loading chores…
+          </AppText>
+        ) : visibleDefinitions.length === 0 ? (
+          <View className="items-center py-8">
+            <ChoreIcon
+              title={
+                listKind === "personal" ? "Clean your room" : "Wash the car"
+              }
+              size={72}
+            />
+            <AppText variant="cardTitle" className="mt-3 text-center">
+              {listKind === "personal"
+                ? "No chores for the kids yet"
+                : "No Extras on offer yet"}
+            </AppText>
+            <AppText color="ink-muted" className="mt-1 text-center">
+              {listKind === "personal"
+                ? "Give each kid their own jobs — one can unlock Extras."
+                : "Extras are up for grabs: first to claim does it."}
+            </AppText>
+          </View>
+        ) : (
+          visibleDefinitions.map((definition) => (
+            <ChoreRow
+              key={definition.choreDefinitionId}
+              definition={definition}
+              childName={
+                children.find(
+                  (child) => child.childId === definition.personalChildId,
+                )?.displayName
+              }
+              onPress={() => openEdit(definition)}
+            />
+          ))
+        )}
       </View>
-
-      <View className="mt-5 flex-row items-center justify-between">
-        <AppText style={{ fontSize: 26, lineHeight: 31, fontWeight: "900" }}>
-          Active chores
-        </AppText>
-        <View className="min-w-12 items-center rounded-full bg-infoSoft px-3 py-1.5">
-          <AppText variant="label">{visibleDefinitions.length}</AppText>
-        </View>
-      </View>
-
-      {definitions === undefined ? (
-        <Surface className="mt-3 p-5">
-          <AppText variant="cardTitle">Loading chores…</AppText>
-          <AppText variant="bodySmall" color="ink-muted" className="mt-1">
-            Your active chore plans will appear here.
-          </AppText>
-        </Surface>
-      ) : visibleDefinitions.length === 0 ? (
-        <Surface
-          tone="lavender"
-          elevated={false}
-          className="mt-3 items-center p-7"
-        >
-          <Icon name="chores" color={themeColors.inkMuted} size={40} />
-          <AppText variant="cardTitle" className="mt-3">
-            No {listKind} chores yet
-          </AppText>
-          <AppText
-            variant="bodySmall"
-            color="ink-muted"
-            className="mt-1 text-center"
-          >
-            Add one when your family is ready.
-          </AppText>
-        </Surface>
-      ) : (
-        <View className="mt-3 gap-2">
-          {visibleDefinitions.map((definition) => {
-            const childName =
-              definition.kind === "personal"
-                ? children.find(
-                    (child) => child.childId === definition.personalChildId,
-                  )?.displayName
-                : definition.eligibleChildIds === undefined
-                  ? "All children"
-                  : definition.eligibleChildIds
-                      .map(
-                        (id) =>
-                          children.find((child) => child.childId === id)
-                            ?.displayName,
-                      )
-                      .filter(Boolean)
-                      .join(", ");
-            const childAvatar = avatarForName(childName);
-            return (
-              <Surface
-                key={definition.choreDefinitionId}
-                className="min-h-[116px] flex-row overflow-hidden p-2.5"
-              >
-                <Image
-                  source={getArtwork(definition.title)}
-                  className="h-24 w-24 rounded-control bg-[#F7EDDF]"
-                  contentFit="contain"
-                  accessible={false}
-                />
-                <View className="ml-3 flex-1">
-                  <View className="flex-row items-start">
-                    <View className="flex-1 pr-1">
-                      <AppText
-                        variant="cardTitle"
-                        className="text-[17px] leading-[20px]"
-                        numberOfLines={1}
-                        adjustsFontSizeToFit
-                        minimumFontScale={0.82}
-                      >
-                        {definition.title}
-                      </AppText>
-                      <AppText
-                        variant="cardTitle"
-                        className="mt-0.5 text-[17px] leading-[20px]"
-                      >
-                        {definition.valueSek} kr
-                      </AppText>
-                    </View>
-                    <Pressable
-                      accessibilityRole="button"
-                      accessibilityLabel={`Edit ${definition.title}`}
-                      onPress={() => openEdit(definition)}
-                      className="min-h-target flex-row items-center justify-center rounded-full bg-infoSoft px-2.5"
-                    >
-                      <Icon name="edit" color={themeColors.ink} size={17} />
-                      <AppText variant="label" className="ml-1">
-                        Edit
-                      </AppText>
-                    </Pressable>
-                    <Pressable
-                      accessibilityRole="button"
-                      accessibilityLabel={`More options for ${definition.title}`}
-                      onPress={() => confirmArchive(definition)}
-                      className="ml-1 min-h-target w-10 items-center justify-center rounded-full bg-infoSoft"
-                    >
-                      <Icon name="more" color={themeColors.ink} size={19} />
-                    </Pressable>
-                  </View>
-                  <View className="mt-1 flex-row items-center">
-                    {childAvatar ? (
-                      <Avatar
-                        source={childAvatar}
-                        tone={childAvatarTone(childName ?? "")}
-                        className="h-9 w-9"
-                      />
-                    ) : null}
-                    <AppText
-                      variant="bodySmall"
-                      className={childAvatar ? "ml-1.5" : ""}
-                    >
-                      {childName || "No child selected"}
-                    </AppText>
-                    {definition.isUnlockChore ? (
-                      <View className="ml-auto flex-row items-center rounded-full bg-actionSoft px-2 py-1">
-                        <Icon name="key" color={themeColors.action} size={13} />
-                        <AppText variant="caption" color="action">
-                          {" "}
-                          Unlock chore
-                        </AppText>
-                      </View>
-                    ) : null}
-                  </View>
-                  <View className="mt-1 flex-row items-center">
-                    <Icon
-                      name="repeat"
-                      color={themeColors.inkMuted}
-                      size={16}
-                    />
-                    <AppText variant="bodySmall" className="ml-1.5 flex-1">
-                      {recurrenceLabel(definition.recurrence)}
-                    </AppText>
-                  </View>
-                  <AppText
-                    variant="caption"
-                    color="ink-muted"
-                    className="mt-1"
-                    numberOfLines={1}
-                  >
-                    Available {definition.availabilityLocalTime ?? "00:00"} ·
-                    Deadline {definition.deadlineLocalTime}
-                  </AppText>
-                </View>
-              </Surface>
-            );
-          })}
-        </View>
-      )}
-
-      <Surface
-        tone="muted"
-        elevated={false}
-        className="mt-2 flex-row items-center p-3"
-      >
-        <Icon name="info" color={themeColors.inkMuted} size={22} />
-        <AppText variant="bodySmall" color="ink-muted" className="ml-3 flex-1">
-          Edits apply to future chores.
-        </AppText>
-      </Surface>
 
       <Modal
         visible={showForm}
         animationType="slide"
-        presentationStyle="fullScreen"
+        presentationStyle="pageSheet"
         onRequestClose={() => setShowForm(false)}
       >
-        <SafeAreaView
-          edges={[]}
-          className="flex-1 bg-canvas"
-          style={{ paddingTop: Math.max(0, safeAreaInsets.top - 12) }}
-        >
+        <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-canvas">
           <KeyboardAvoidingView
             className="flex-1"
             behavior={Platform.OS === "ios" ? "padding" : undefined}
           >
-            <View className={`px-3 ${editingId ? "-mb-3" : ""}`}>
-              <TopBar
-                title={editingId ? "Edit chore" : "New chore"}
-                onBack={() => setShowForm(false)}
-                titleStyle={{ fontSize: 24, lineHeight: 28 }}
-              />
+            <View className="flex-row items-center justify-between px-5 pb-2 pt-3">
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => setShowForm(false)}
+                hitSlop={8}
+              >
+                <AppText variant="label" color="ink-muted">
+                  Cancel
+                </AppText>
+              </Pressable>
+              <AppText variant="cardTitle">
+                {editingId ? "Edit chore" : "New chore"}
+              </AppText>
+              <View className="w-12" />
             </View>
             <ScrollView
-              className="flex-1"
+              contentContainerClassName="px-5 pb-10"
               keyboardShouldPersistTaps="handled"
-              keyboardDismissMode="on-drag"
               showsVerticalScrollIndicator={false}
-              contentContainerClassName={`${editingId ? "" : "-mt-2"} px-3 pb-5`}
             >
-              {editingId ? (
-                <Surface
-                  tone="lavender"
-                  elevated={false}
-                  className="flex-row items-center p-2"
-                >
-                  <Icon name="info" color={themeColors.inkMuted} size={20} />
-                  <View className="ml-3 flex-1">
-                    <AppText
-                      variant="cardTitle"
-                      className="text-[14px] leading-[18px]"
-                      style={{ fontSize: 14, lineHeight: 18 }}
-                      numberOfLines={1}
-                    >
-                      Changes apply to future chores only.
-                    </AppText>
-                    <AppText
-                      variant="bodySmall"
-                      className="mt-0.5 text-[12px] leading-[16px]"
-                      style={{ fontSize: 12, lineHeight: 16 }}
-                      numberOfLines={1}
-                    >
-                      Existing chores keep their current value and deadlines.
-                    </AppText>
-                  </View>
-                </Surface>
+              <View className="items-center pt-2">
+                <ChoreIcon title={title || "Chore"} size={96} />
+              </View>
+
+              {!editingId ? (
+                <TemplateGrid onPick={applyTemplate} selectedTitle={title} />
               ) : null}
 
-              <View>
-                <SegmentedControl
-                  value={kind}
-                  onChange={(next) => {
-                    setKind(next);
-                    if (next === "claimable") setIsUnlockChore(false);
-                  }}
-                  compact
-                />
-              </View>
-
-              <Surface className="mt-3 p-1.5">
-                <FormField
-                  label="Chore name"
-                  placeholder="Clean your room"
+              <Field label="Name">
+                <TextInput
                   value={title}
                   onChangeText={setTitle}
-                  compact
+                  placeholder="What needs doing?"
+                  placeholderTextColor={themeColors.inkFaint}
+                  className="min-h-[52px] rounded-[16px] bg-surface px-4 font-body-heavy text-ink"
                 />
-              </Surface>
-              <Surface className="mt-2 p-1.5">
-                <FormField
-                  label="Instructions (optional)"
-                  placeholder="Add clear instructions"
-                  value={description}
-                  onChangeText={setDescription}
-                  multiline
-                  compact
-                />
-              </Surface>
-              <Surface className="mt-2 p-1.5">
-                <FormField
-                  label="Reward"
-                  placeholder="30 kr"
-                  value={valueSek}
-                  onChangeText={setValueSek}
-                  keyboardType="number-pad"
-                  compact
-                />
-              </Surface>
+              </Field>
 
-              <AppText
-                variant="sectionTitle"
-                className="mt-3 text-[20px] leading-[24px]"
-                style={{ fontSize: 20, lineHeight: 24 }}
-              >
-                {kind === "personal" ? "Assigned to" : "Eligibility"}
-              </AppText>
-              <Surface className="mt-2 p-2">
-                {kind === "personal" ? (
-                  <View className="flex-row gap-2">
-                    {children.map((child) => (
-                      <PersonChoice
-                        key={child.childId}
-                        child={child}
-                        active={personalChildId === child.childId}
-                        onPress={() => setPersonalChildId(child.childId)}
-                      />
-                    ))}
-                  </View>
-                ) : (
-                  <View>
-                    <View className="flex-row gap-2">
-                      <EligibilityChoice
-                        label="All children"
-                        active={!restrictEligibility}
-                        onPress={() => setRestrictEligibility(false)}
-                      />
-                      <EligibilityChoice
-                        label="Selected children"
-                        active={restrictEligibility}
-                        selectedChildren
-                        onPress={() => setRestrictEligibility(true)}
+              <Field label="Reward">
+                <CoinStepper value={valueSek} onChange={setValueSek} />
+              </Field>
+
+              {!editingId ? (
+                <Field label="Type">
+                  <ChipRow
+                    options={[
+                      { key: "personal", label: "For one kid" },
+                      { key: "claimable", label: "Up for grabs (Extra)" },
+                    ]}
+                    selected={[kind]}
+                    onSelect={(key) => setKind(key as ChoreKind)}
+                  />
+                </Field>
+              ) : null}
+
+              {kind === "personal" ? (
+                <Field label="Who">
+                  <KidPicker
+                    children={children}
+                    selected={personalChildId ? [personalChildId] : []}
+                    onToggle={(childId) => setPersonalChildId(childId)}
+                  />
+                </Field>
+              ) : (
+                <Field label="Who can claim it">
+                  <ChipRow
+                    options={[
+                      { key: "all", label: "Everyone" },
+                      { key: "some", label: "Only some kids" },
+                    ]}
+                    selected={[restrictEligibility ? "some" : "all"]}
+                    onSelect={(key) => setRestrictEligibility(key === "some")}
+                  />
+                  {restrictEligibility ? (
+                    <View className="mt-3">
+                      <KidPicker
+                        children={children}
+                        selected={eligibleChildIds}
+                        onToggle={(childId) =>
+                          setEligibleChildIds((current) =>
+                            current.includes(childId)
+                              ? current.filter((id) => id !== childId)
+                              : [...current, childId],
+                          )
+                        }
                       />
                     </View>
-                    {restrictEligibility ? (
-                      <View className="mt-2 flex-row gap-2">
-                        {children.map((child) => (
-                          <PersonChoice
-                            key={child.childId}
-                            child={child}
-                            active={eligibleChildIds.includes(child.childId)}
-                            onPress={() =>
-                              setEligibleChildIds((current) =>
-                                current.includes(child.childId)
-                                  ? current.filter((id) => id !== child.childId)
-                                  : [...current, child.childId],
-                              )
-                            }
-                          />
-                        ))}
-                      </View>
+                  ) : null}
+                </Field>
+              )}
+
+              <Field label="How often">
+                <ChipRow
+                  options={[
+                    { key: "one_off", label: "Once" },
+                    { key: "daily", label: "Daily" },
+                    { key: "weekly", label: "Weekly" },
+                    { key: "monthly", label: "Monthly" },
+                  ]}
+                  selected={[recurrenceKind]}
+                  onSelect={(key) => setRecurrenceKind(key as RecurrenceKind)}
+                />
+                {recurrenceKind === "weekly" ? (
+                  <View className="mt-3">
+                    <ChipRow
+                      options={weekdays.map((day) => ({
+                        key: day,
+                        label: day
+                          .slice(0, 2)
+                          .replace(/^./, (c) => c.toUpperCase()),
+                      }))}
+                      selected={selectedWeekdays}
+                      onSelect={(key) =>
+                        setSelectedWeekdays((current) =>
+                          current.includes(key as Weekday)
+                            ? current.filter((day) => day !== key)
+                            : weekdays.filter(
+                                (day) => day === key || current.includes(day),
+                              ),
+                        )
+                      }
+                    />
+                  </View>
+                ) : null}
+                {recurrenceKind !== "one_off" ? (
+                  <View className="mt-3 flex-row gap-3">
+                    <SmallInput
+                      label={
+                        recurrenceKind === "daily"
+                          ? "Every … days"
+                          : recurrenceKind === "weekly"
+                            ? "Every … weeks"
+                            : "Every … months"
+                      }
+                      value={interval}
+                      onChange={setInterval}
+                      numeric
+                    />
+                    {recurrenceKind === "monthly" ? (
+                      <SmallInput
+                        label="Day of month"
+                        value={dayOfMonth}
+                        onChange={setDayOfMonth}
+                        numeric
+                      />
                     ) : null}
                   </View>
-                )}
-              </Surface>
+                ) : null}
+              </Field>
 
-              <AppText
-                variant="sectionTitle"
-                className="mt-3 text-[20px] leading-[24px]"
-                style={{ fontSize: 20, lineHeight: 24 }}
-              >
-                Schedule
-              </AppText>
-              <View className="mt-2">
-                <View className="flex-row rounded-control bg-infoSoft p-1">
-                  {(["one_off", "daily", "weekly", "monthly"] as const).map(
-                    (value) => (
-                      <Pressable
-                        key={value}
-                        accessibilityRole="button"
-                        accessibilityState={{
-                          selected: recurrenceKind === value,
-                        }}
-                        className={`min-h-[32px] flex-1 items-center justify-center rounded-control px-1 ${
-                          recurrenceKind === value
-                            ? "bg-actionSoftStrong"
-                            : "bg-transparent"
-                        }`}
-                        onPress={() => {
-                          setRecurrenceKind(value);
-                          if (value === "one_off") setIsUnlockChore(false);
-                        }}
-                      >
-                        <AppText
-                          variant="label"
-                          color={recurrenceKind === value ? "action" : "ink"}
-                          className="text-[14px] leading-[18px]"
-                        >
-                          {
-                            {
-                              one_off: "One-off",
-                              daily: "Daily",
-                              weekly: "Weekly",
-                              monthly: "Monthly",
-                            }[value]
-                          }
-                        </AppText>
-                      </Pressable>
-                    ),
-                  )}
+              <Field label={recurrenceKind === "one_off" ? "On" : "Starting"}>
+                <DatePicker
+                  value={
+                    recurrenceKind === "one_off" ? scheduledDate : startDate
+                  }
+                  onChange={
+                    recurrenceKind === "one_off"
+                      ? setScheduledDate
+                      : setStartDate
+                  }
+                />
+              </Field>
+
+              <Field label="Due by">
+                <ChipRow
+                  options={["12:00", "16:00", "18:00", "20:00"].map((time) => ({
+                    key: time,
+                    label: time,
+                  }))}
+                  selected={[deadlineTime]}
+                  onSelect={setDeadlineTime}
+                />
+                <View className="mt-3 flex-row gap-3">
+                  <SmallInput
+                    label="Or a time (HH:mm)"
+                    value={deadlineTime}
+                    onChange={setDeadlineTime}
+                  />
+                  <SmallInput
+                    label="Opens at (optional)"
+                    value={availabilityTime}
+                    onChange={setAvailabilityTime}
+                  />
                 </View>
-
-                <Surface className="mt-2 overflow-hidden p-1.5">
-                  {recurrenceKind === "one_off" ? (
-                    <ScheduleFieldRow
-                      icon="calendar"
-                      label="Date"
-                      displayValue={
-                        scheduledDate
-                          ? formatScheduleDate(scheduledDate)
-                          : "Choose a date"
-                      }
-                      onPress={() => setScheduleEditor("scheduledDate")}
-                    />
-                  ) : (
-                    <>
-                      <ScheduleFieldRow
-                        icon="calendar"
-                        label="Starts"
-                        displayValue={
-                          startDate
-                            ? formatScheduleDate(startDate)
-                            : "Choose a start date"
-                        }
-                        onPress={() => setScheduleEditor("startDate")}
-                      />
-                      <ScheduleFieldRow
-                        icon="repeat"
-                        label="Repeats"
-                        displayValue={formatRepeatValue(
-                          recurrenceKind,
-                          interval,
-                        )}
-                        onPress={() => setScheduleEditor("interval")}
-                      />
-                    </>
-                  )}
-                  {recurrenceKind === "weekly" ? (
-                    <View>
-                      <AppText variant="label">Weekdays</AppText>
-                      <View className="flex-row flex-wrap">
-                        {weekdays.map((day) => (
-                          <Choice
-                            key={day}
-                            label={day.slice(0, 3)}
-                            active={selectedWeekdays.includes(day)}
-                            onPress={() =>
-                              setSelectedWeekdays((current) =>
-                                current.includes(day)
-                                  ? current.filter((item) => item !== day)
-                                  : [...current, day],
-                              )
-                            }
-                          />
-                        ))}
-                      </View>
-                    </View>
-                  ) : null}
-                  {recurrenceKind === "monthly" ? (
-                    <ScheduleFieldRow
-                      icon="calendar"
-                      label="Day of month"
-                      displayValue={
-                        dayOfMonth ? `Day ${dayOfMonth}` : "Choose a day"
-                      }
-                      onPress={() => setScheduleEditor("dayOfMonth")}
-                    />
-                  ) : null}
-                  <ScheduleFieldRow
-                    icon="clock"
-                    label="Available"
-                    displayValue={availabilityTime || "Start of day"}
-                    onPress={() => setScheduleEditor("availabilityTime")}
+                <View className="mt-3">
+                  <ChipRow
+                    options={[
+                      { key: "0", label: "Same day" },
+                      { key: "1", label: "Next day" },
+                    ]}
+                    selected={[deadlineOffset === "0" ? "0" : "1"]}
+                    onSelect={setDeadlineOffset}
                   />
-                  <ScheduleFieldRow
-                    icon="clock"
-                    label="Deadline"
-                    displayValue={formatDeadlineValue(
-                      deadlineTime,
-                      deadlineOffset,
-                    )}
-                    onPress={() => setScheduleEditor("deadline")}
-                  />
-                </Surface>
-              </View>
+                </View>
+              </Field>
 
               {kind === "personal" && recurrenceKind !== "one_off" ? (
                 <Pressable
                   accessibilityRole="switch"
                   accessibilityState={{ checked: isUnlockChore }}
-                  onPress={() => setIsUnlockChore((current) => !current)}
+                  onPress={() => setIsUnlockChore((value) => !value)}
+                  className="mt-6 flex-row items-center gap-3 rounded-[20px] bg-surface p-4"
                 >
-                  <Surface
-                    tone="mint"
-                    elevated={false}
-                    className="mt-3 flex-row items-center p-3"
+                  <View
+                    className="h-11 w-11 items-center justify-center rounded-full"
+                    style={{
+                      backgroundColor: isUnlockChore
+                        ? themeColors.reward
+                        : themeColors.surfaceMuted,
+                    }}
                   >
-                    <View className="h-10 w-10 items-center justify-center rounded-full bg-actionSoftStrong">
-                      <Icon name="key" color={themeColors.action} size={25} />
-                    </View>
-                    <View className="ml-3 flex-1">
-                      <AppText variant="label">Unlock Chore</AppText>
-                      <AppText
-                        variant="bodySmall"
-                        color="ink-muted"
-                        className="mt-1"
-                        numberOfLines={1}
-                      >
-                        Approval unlocks Extras for{" "}
-                        {children.find(
-                          (child) => child.childId === personalChildId,
-                        )?.displayName ?? "your child"}
-                      </AppText>
-                    </View>
-                    <View
-                      className={`h-7 w-12 rounded-full p-1 ${isUnlockChore ? "bg-action" : "bg-disabledSurface"}`}
-                    >
-                      <View
-                        className={`h-5 w-5 rounded-full bg-white ${isUnlockChore ? "ml-5" : ""}`}
-                      />
-                    </View>
-                  </Surface>
+                    <Icon
+                      name="lock"
+                      color={
+                        isUnlockChore ? themeColors.ink : themeColors.inkMuted
+                      }
+                      size={20}
+                    />
+                  </View>
+                  <View className="flex-1">
+                    <AppText variant="cardTitle">Unlock chore</AppText>
+                    <AppText variant="caption" color="ink-muted">
+                      Approving it opens Extras for this kid.
+                    </AppText>
+                  </View>
+                  <Icon
+                    name={isUnlockChore ? "check" : "plus"}
+                    color={
+                      isUnlockChore ? themeColors.action : themeColors.inkMuted
+                    }
+                    size={20}
+                  />
                 </Pressable>
               ) : null}
 
-              {kind === "personal" && recurrenceKind !== "one_off" ? (
-                <View className="mt-2 flex-row items-center px-1">
-                  <Icon name="info" color={themeColors.inkMuted} size={20} />
-                  <AppText
-                    variant="bodySmall"
-                    color="ink-muted"
-                    className="ml-2 flex-1"
-                    style={{ fontSize: 12, lineHeight: 16 }}
-                    numberOfLines={1}
-                  >
-                    A child can have one active recurring Unlock Chore.
-                  </AppText>
-                </View>
-              ) : null}
+              <Field label="Notes (optional)">
+                <TextInput
+                  value={description}
+                  onChangeText={setDescription}
+                  placeholder="What does done look like?"
+                  placeholderTextColor={themeColors.inkFaint}
+                  multiline
+                  className="min-h-[80px] rounded-[16px] bg-surface px-4 py-3 font-body text-ink"
+                />
+              </Field>
 
               {error ? (
-                <Surface tone="coral" elevated={false} className="mt-4 p-3">
-                  <AppText variant="bodySmall" color="urgency">
-                    {error}
-                  </AppText>
-                </Surface>
+                <AppText color="urgency" className="mt-4">
+                  {error}
+                </AppText>
               ) : null}
-            </ScrollView>
 
-            <View
-              className="border-t border-line bg-surfaceRaised px-3 pt-1"
-              style={{ paddingBottom: safeAreaInsets.bottom + 16 }}
-            >
               <ActionButton
-                label={editingId ? "Save changes" : "Create chore"}
+                className="mt-6"
+                label={editingId ? "Save changes" : "Add chore"}
                 loading={working}
-                style={{ minHeight: 40 }}
-                labelStyle={{ fontSize: 16, lineHeight: 20 }}
                 onPress={() => void save()}
               />
-            </View>
+              {editingId ? (
+                <ActionButton
+                  className="mt-2"
+                  tone="destructiveSecondary"
+                  label="Archive chore"
+                  disabled={working}
+                  onPress={() => {
+                    const definition = definitions?.find(
+                      (item) => item.choreDefinitionId === editingId,
+                    );
+                    if (definition) {
+                      setShowForm(false);
+                      confirmArchive(definition);
+                    }
+                  }}
+                />
+              ) : null}
+            </ScrollView>
           </KeyboardAvoidingView>
         </SafeAreaView>
       </Modal>
+    </View>
+  );
+}
 
-      <Modal
-        visible={scheduleEditor !== null}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setScheduleEditor(null)}
-      >
-        <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-canvas">
-          <View className="px-5">
-            <TopBar
-              title={scheduleConfig?.title ?? "Schedule"}
-              onBack={() => setScheduleEditor(null)}
-            />
-          </View>
-          {scheduleEditor && scheduleConfig ? (
-            <ScrollView
-              keyboardShouldPersistTaps="handled"
-              contentContainerClassName="px-5 pb-8 pt-5"
+type ChoreTemplate = { title: string; valueSek: number };
+
+const TEMPLATES: ChoreTemplate[] = [
+  { title: "Clean your room", valueSek: 30 },
+  { title: "Load dishwasher", valueSek: 20 },
+  { title: "Set the table", valueSek: 15 },
+  { title: "Walk the dog", valueSek: 25 },
+  { title: "Feed the dog", valueSek: 10 },
+  { title: "Water the plants", valueSek: 15 },
+  { title: "Fold laundry", valueSek: 20 },
+  { title: "Take out recycling", valueSek: 15 },
+  { title: "Wash the car", valueSek: 50 },
+];
+
+function TemplateGrid({
+  onPick,
+  selectedTitle,
+}: {
+  onPick: (template: ChoreTemplate) => void;
+  selectedTitle: string;
+}) {
+  const { tokens } = useTheme();
+  return (
+    <View className="mt-5">
+      <AppText variant="label" color="ink-muted">
+        Start from
+      </AppText>
+      <View className="mt-2 flex-row flex-wrap gap-2">
+        {TEMPLATES.map((template) => {
+          const active = template.title === selectedTitle;
+          return (
+            <Pressable
+              key={template.title}
+              accessibilityRole="button"
+              accessibilityLabel={`${template.title}, ${template.valueSek} kronor`}
+              accessibilityState={{ selected: active }}
+              onPress={() => onPick(template)}
+              className="items-center rounded-[18px] p-2"
+              style={{
+                width: "31.5%",
+                backgroundColor: active ? tokens.actionSoft : tokens.surface,
+                borderWidth: 2,
+                borderColor: active ? tokens.action : "transparent",
+              }}
             >
-              <FormField
-                label={scheduleConfig.label}
-                value={scheduleValue}
-                onChangeText={(value) =>
-                  updateScheduleEditorValue(scheduleEditor, value)
-                }
-                placeholder={scheduleConfig.placeholder}
-                keyboardType={scheduleConfig.keyboardType}
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-              <Surface
-                tone="lavender"
-                elevated={false}
-                className="mt-5 flex-row p-4"
+              <ChoreIcon title={template.title} size={44} animated={false} />
+              <AppText
+                variant="caption"
+                className="mt-1 text-center"
+                numberOfLines={2}
               >
-                <Icon
-                  name={scheduleEditor === "deadline" ? "clock" : "info"}
-                  color={themeColors.ink}
-                  size={26}
-                />
-                <AppText variant="bodySmall" className="ml-3 flex-1">
-                  {scheduleConfig.helper}
+                {template.title}
+              </AppText>
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+function KindTabs({
+  value,
+  onChange,
+}: {
+  value: ChoreKind;
+  onChange: (kind: ChoreKind) => void;
+}) {
+  const { tokens } = useTheme();
+  const tabs: { key: ChoreKind; label: string }[] = [
+    { key: "personal", label: "Kids' chores" },
+    { key: "claimable", label: "Extras" },
+  ];
+  return (
+    <View
+      className="flex-row rounded-full p-1"
+      style={{ backgroundColor: tokens.surfaceMuted }}
+    >
+      {tabs.map((tab) => {
+        const active = tab.key === value;
+        return (
+          <Pressable
+            key={tab.key}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: active }}
+            onPress={() => onChange(tab.key)}
+            className="min-h-[44px] flex-1 items-center justify-center rounded-full"
+            style={{ backgroundColor: active ? tokens.surface : "transparent" }}
+          >
+            <AppText variant="label" color={active ? "ink" : "ink-muted"}>
+              {tab.label}
+            </AppText>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+function ChoreRow({
+  definition,
+  childName,
+  onPress,
+}: {
+  definition: Definition;
+  childName?: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${definition.title}, ${definition.valueSek} kronor. ${recurrenceLabel(definition.recurrence)}. Edit`}
+      onPress={onPress}
+    >
+      {({ pressed }) => (
+        <Animated.View
+          className="flex-row items-center gap-3 rounded-[22px] bg-surface p-3"
+          style={[
+            { transform: [{ scale: pressed ? PRESS.scale : 1 }] },
+            pressTransition,
+          ]}
+        >
+          <ChoreIcon title={definition.title} size={52} animated={false} />
+          <View className="flex-1">
+            <AppText variant="cardTitle" numberOfLines={1}>
+              {definition.title}
+            </AppText>
+            <AppText variant="caption" color="ink-muted" numberOfLines={1}>
+              {[
+                childName,
+                recurrenceLabel(definition.recurrence),
+                `due ${definition.deadlineLocalTime}`,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            </AppText>
+            {definition.isUnlockChore ? (
+              <View className="mt-1 flex-row items-center gap-1">
+                <Icon name="lock" color="#B8860B" size={11} />
+                <AppText variant="caption" color="ink-muted">
+                  Unlocks Extras
                 </AppText>
-              </Surface>
-              {scheduleEditor === "deadline" ? (
-                <FormField
-                  label="Deadline day offset"
-                  value={deadlineOffset === "0" ? "" : deadlineOffset}
-                  onChangeText={(value) => setDeadlineOffset(value || "0")}
-                  placeholder="0"
-                  keyboardType="number-pad"
-                  helper="0 means the same day."
-                />
-              ) : null}
-              <ActionButton
-                className="mt-6"
-                label="Done"
-                onPress={() => setScheduleEditor(null)}
+              </View>
+            ) : null}
+          </View>
+          <View className="h-11 w-11 items-center justify-center rounded-full border-b-[3px] border-goldShade bg-gold">
+            <AppText variant="label" className="text-night">
+              {definition.valueSek}
+            </AppText>
+          </View>
+        </Animated.View>
+      )}
+    </Pressable>
+  );
+}
+
+function Field({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <View className="mt-6">
+      <AppText variant="label" color="ink-muted" className="mb-2">
+        {label}
+      </AppText>
+      {children}
+    </View>
+  );
+}
+
+function ChipRow({
+  options,
+  selected,
+  onSelect,
+}: {
+  options: { key: string; label: string }[];
+  selected: string[];
+  onSelect: (key: string) => void;
+}) {
+  const { tokens } = useTheme();
+  return (
+    <View className="flex-row flex-wrap gap-2">
+      {options.map((option) => {
+        const active = selected.includes(option.key);
+        return (
+          <Pressable
+            key={option.key}
+            accessibilityRole="button"
+            accessibilityState={{ selected: active }}
+            onPress={() => onSelect(option.key)}
+            className="min-h-[44px] items-center justify-center rounded-full px-4"
+            style={{
+              backgroundColor: active ? tokens.ink : tokens.surface,
+            }}
+          >
+            <AppText
+              variant="label"
+              style={{ color: active ? tokens.surface : tokens.ink }}
+            >
+              {option.label}
+            </AppText>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+function KidPicker({
+  children,
+  selected,
+  onToggle,
+}: {
+  children: ChildSummary[];
+  selected: Id<"children">[];
+  onToggle: (childId: Id<"children">) => void;
+}) {
+  const { tokens } = useTheme();
+  return (
+    <View className="flex-row flex-wrap gap-3">
+      {children.map((child) => {
+        const active = selected.includes(child.childId);
+        return (
+          <Pressable
+            key={child.childId}
+            accessibilityRole="button"
+            accessibilityLabel={child.displayName}
+            accessibilityState={{ selected: active }}
+            onPress={() => onToggle(child.childId)}
+            className="items-center"
+          >
+            <View
+              className="rounded-full p-1"
+              style={{
+                borderWidth: 3,
+                borderColor: active ? tokens.action : "transparent",
+              }}
+            >
+              <Avatar
+                tone={childAvatarTone(child.displayName)}
+                className="rounded-full"
+                fallbackLabel={child.displayName}
+                size={52}
               />
-            </ScrollView>
-          ) : null}
-        </SafeAreaView>
-      </Modal>
+            </View>
+            <AppText
+              variant="caption"
+              color={active ? "ink" : "ink-muted"}
+              className="mt-1"
+            >
+              {child.displayName}
+            </AppText>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+/** The reward as a coin you tap up or down in 5 kr steps. */
+function CoinStepper({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const { tokens } = useTheme();
+  const amount = Number(value) || 0;
+  const step = (delta: number) =>
+    onChange(String(Math.max(0, Math.min(1000, amount + delta))));
+  return (
+    <View className="flex-row items-center justify-center gap-5">
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="5 kronor less"
+        onPress={() => step(-5)}
+        className="h-12 w-12 items-center justify-center rounded-full"
+        style={{ backgroundColor: tokens.surface }}
+      >
+        <Icon name="minus" color={tokens.ink} size={20} />
+      </Pressable>
+      <View className="h-24 w-24 items-center justify-center rounded-full border-b-[6px] border-goldShade bg-gold">
+        <TextInput
+          accessibilityLabel="Reward in kronor"
+          value={value}
+          onChangeText={(text) => onChange(text.replace(/\D/g, "").slice(0, 4))}
+          keyboardType="number-pad"
+          placeholder="0"
+          className="min-w-[60px] text-center font-display text-night"
+          style={{ fontSize: 30 }}
+        />
+        <AppText variant="caption" className="-mt-1 text-night">
+          kr
+        </AppText>
+      </View>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="5 kronor more"
+        onPress={() => step(5)}
+        className="h-12 w-12 items-center justify-center rounded-full"
+        style={{ backgroundColor: tokens.surface }}
+      >
+        <Icon name="plus" color={tokens.ink} size={20} />
+      </Pressable>
+    </View>
+  );
+}
+
+function SmallInput({
+  label,
+  value,
+  onChange,
+  numeric = false,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  numeric?: boolean;
+}) {
+  const { tokens } = useTheme();
+  return (
+    <View className="flex-1">
+      <AppText variant="caption" color="ink-muted" className="mb-1">
+        {label}
+      </AppText>
+      <TextInput
+        value={value}
+        onChangeText={onChange}
+        keyboardType={numeric ? "number-pad" : "default"}
+        placeholderTextColor={tokens.inkFaint}
+        className="min-h-[48px] rounded-[14px] bg-surface px-3 font-body-heavy text-ink"
+      />
+    </View>
+  );
+}
+
+function isoDateInDays(days: number) {
+  const date = new Date();
+  date.setDate(date.getDate() + days);
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, "0"),
+    String(date.getDate()).padStart(2, "0"),
+  ].join("-");
+}
+
+/** Quick date chips (today / tomorrow / +2) plus a free YYYY-MM-DD field. */
+function DatePicker({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const quick = [0, 1, 2].map((days) => ({
+    key: isoDateInDays(days),
+    label:
+      days === 0
+        ? "Today"
+        : days === 1
+          ? "Tomorrow"
+          : formatScheduleDate(isoDateInDays(days)),
+  }));
+  return (
+    <View>
+      <ChipRow options={quick} selected={[value]} onSelect={onChange} />
+      <View className="mt-3 flex-row">
+        <SmallInput
+          label="Or a date (YYYY-MM-DD)"
+          value={value}
+          onChange={onChange}
+        />
+      </View>
     </View>
   );
 }
