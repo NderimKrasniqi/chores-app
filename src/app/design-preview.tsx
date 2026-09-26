@@ -36,7 +36,7 @@ import {
 import { HouseholdSetupScreen } from "@/components/household/household-setup-screen";
 import { OnboardingScreen } from "@/components/onboarding/onboarding-screen";
 import type { HouseholdSummary } from "@/components/household/household-card";
-import { AppText } from "@/design-system";
+import { ThemeScope, AppText } from "@/design-system";
 import { Redirect, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { ScrollView, View } from "react-native";
@@ -922,5 +922,10 @@ export default function DesignPreviewRoute() {
 
   if (!__DEV__) return <Redirect href="/" />;
 
-  return <VerificationState key={state} state={state ?? ""} />;
+  // Child states render inside the child app's night-sky theme.
+  return (
+    <ThemeScope mode={state?.startsWith("child-") ? "quest" : "home"}>
+      <VerificationState key={state} state={state ?? ""} />
+    </ThemeScope>
+  );
 }

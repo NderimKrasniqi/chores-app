@@ -12,6 +12,7 @@ const LIP_RADIUS = 18;
 
 type ButtonTone =
   | "primary"
+  | "commit"
   | "soft"
   | "destructive"
   | "destructiveSecondary"
@@ -74,6 +75,12 @@ export function ActionButton({
             lip: tokens.primaryShade,
             text: tokens.ink,
           },
+    // A deliberate, consequential choice (claim-and-lock): warm accent.
+    commit: {
+      fill: tokens.accent,
+      lip: tokens.accentShade,
+      text: tokens.night,
+    },
     destructive: {
       fill: tokens.urgency,
       lip: tokens.urgencyPressed,

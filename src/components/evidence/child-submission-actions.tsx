@@ -1,8 +1,8 @@
 import { useServerConfirmedMutation } from "@/hooks/use-server-confirmed-mutation";
-import { AppImage } from "@/components/ui/app-image";
+import { Floating, PopIn } from "@/components/art";
 import { Icon } from "@/components/ui/icon";
 import { questTokens as themeColors } from "@/design-system/theme";
-import { ActionButton, AppText, Surface } from "@/design-system";
+import { ActionButton, AppText } from "@/design-system";
 
 import * as ImageManipulator from "expo-image-manipulator";
 import * as ImagePicker from "expo-image-picker";
@@ -19,8 +19,6 @@ import {
 
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
-
-const submissionPhotoArtwork = require("../../../assets/images/direction-c/submission-photo.png");
 
 type Props = {
   occurrenceId: Id<"choreOccurrences">;
@@ -315,98 +313,98 @@ export function ChildSubmissionActions({
 
   return (
     <View>
-      <Surface className="p-[18px]">
-        <AppText variant="sectionTitle">
-          {hasPhoto ? "Your photo" : "Add a photo"}
-          {!hasPhoto ? (
-            <AppText variant="sectionTitle" className="font-semibold">
-              {" "}
-              (optional)
-            </AppText>
-          ) : null}
-        </AppText>
-
+      <View className="items-center">
         {hasPhoto ? (
-          <View className="mt-3">
-            <Image
-              source={visualPhotoSource ?? { uri: evidence?.previewUri ?? "" }}
-              className="h-40 w-full rounded-large bg-surfaceMuted"
-              resizeMode="cover"
-            />
-
-            <View className="mt-3 flex-row items-center justify-between gap-3">
-              <View className="flex-row items-center">
-                <View className="h-9 w-9 items-center justify-center rounded-full bg-action">
-                  <Icon name="check" color={themeColors.onAction} size={20} />
-                </View>
-                <AppText color="action" className="ml-2 font-black">
-                  Photo ready
+          <PopIn>
+            {/* The proof photo as a tilted polaroid. */}
+            <View
+              className="w-[250px] rounded-[10px] bg-white p-3 pb-2"
+              style={{ transform: [{ rotate: "-3deg" }] }}
+            >
+              <Image
+                source={
+                  visualPhotoSource ?? { uri: evidence?.previewUri ?? "" }
+                }
+                className="h-[180px] w-full rounded-[4px] bg-surfaceMuted"
+                resizeMode="cover"
+                accessibilityLabel="Your proof photo"
+              />
+              <View className="mt-2 flex-row items-center justify-between">
+                <AppText className="font-display text-[18px] text-night">
+                  Proof!
                 </AppText>
+                <View className="h-7 w-7 items-center justify-center rounded-full bg-primary">
+                  <Icon name="check" color={themeColors.night} size={15} />
+                </View>
               </View>
-
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Remove chore evidence photo"
                 disabled={busy || visualPhotoSource !== undefined}
                 onPress={() => void removePhoto()}
-                className={`min-h-11 flex-row items-center rounded-control bg-urgencySoft px-3 ${busy ? "opacity-50" : ""}`}
+                hitSlop={10}
+                className={`absolute -right-3 -top-3 h-9 w-9 items-center justify-center rounded-full bg-pink ${busy ? "opacity-50" : ""}`}
               >
-                <Icon name="trash" color={themeColors.urgency} size={20} />
-                <AppText color="urgency" className="ml-1.5 font-bold">
-                  Remove photo
-                </AppText>
+                <Icon name="close" color={themeColors.night} size={16} />
               </Pressable>
             </View>
-          </View>
+          </PopIn>
         ) : (
-          <>
-            <View className="mt-4 h-32 items-center justify-center rounded-large bg-infoSoft">
-              <AppImage
-                source={submissionPhotoArtwork}
-                className="h-36 w-[240px]"
-                contentFit="contain"
-                accessible={false}
-              />
-            </View>
+          <View className="w-full items-center rounded-large border-2 border-dashed border-nightRaised px-4 pb-4 pt-5">
+            <Floating distance={5} duration={3200}>
+              <View
+                className="h-[86px] w-[74px] items-center justify-center rounded-[8px] bg-nightRaised"
+                style={{ transform: [{ rotate: "-6deg" }] }}
+              >
+                <Icon name="camera" color={themeColors.star} size={30} />
+              </View>
+            </Floating>
+            <AppText className="mt-3 font-display text-[19px]">
+              Snap proof
+            </AppText>
+            <AppText
+              variant="bodySmall"
+              color="ink-muted"
+              className="font-body-bold"
+            >
+              Optional — a photo helps your Parent say yes.
+            </AppText>
 
-            <View className="mt-4 flex-row gap-3">
+            <View className="mt-4 w-full flex-row gap-3">
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Take chore evidence photo"
                 disabled={busy}
                 onPress={() => void takePhoto()}
-                className={`min-h-[54px] flex-1 flex-row items-center justify-center rounded-control bg-actionSoft px-3 ${busy ? "opacity-50" : ""}`}
+                className={`min-h-[50px] flex-1 flex-row items-center justify-center gap-2 rounded-full bg-nightRaised ${busy ? "opacity-50" : ""}`}
               >
-                <Icon
-                  name="camera"
-                  color={themeColors.actionPressed}
-                  size={22}
-                />
-                <AppText color="action" className="ml-2 font-black">
-                  Take photo
+                <Icon name="camera" color={themeColors.ink} size={20} />
+                <AppText className="font-body-heavy text-[15px]">
+                  Camera
                 </AppText>
               </Pressable>
-
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Choose chore evidence photo"
                 disabled={busy}
                 onPress={() => void choosePhoto()}
-                className={`min-h-[54px] flex-1 flex-row items-center justify-center rounded-control bg-infoSoft px-3 ${busy ? "opacity-50" : ""}`}
+                className={`min-h-[50px] flex-1 flex-row items-center justify-center gap-2 rounded-full bg-nightRaised ${busy ? "opacity-50" : ""}`}
               >
-                <Icon name="photo" color={themeColors.ink} size={22} />
-                <AppText className="ml-2 font-black">Choose photo</AppText>
+                <Icon name="photo" color={themeColors.ink} size={20} />
+                <AppText className="font-body-heavy text-[15px]">
+                  Photos
+                </AppText>
               </Pressable>
             </View>
-          </>
+          </View>
         )}
 
         {uploading ? (
-          <AppText variant="caption" color="ink-muted" className="mt-2">
-            Preparing photo…
+          <AppText variant="caption" color="ink-muted" className="mt-3">
+            Developing your photo…
           </AppText>
         ) : null}
-      </Surface>
+      </View>
 
       {footerBeforeSubmit}
 

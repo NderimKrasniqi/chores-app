@@ -14,3 +14,4 @@ export {
   activePaletteName,
 } from "./theme";
 export type { ThemeMode, ThemeTokens } from "./theme";
+export { HoldButton } from "./hold-button";

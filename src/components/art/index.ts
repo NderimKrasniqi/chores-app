@@ -13,3 +13,4 @@ export { Scene, type SceneName } from "./scenes";
 export { StarBuddy, type BuddyMood } from "./star-buddy";
 export { Starfield } from "./starfield";
 export { TreasureChest } from "./treasure-chest";
+export { LockClunk } from "./lock-clunk";

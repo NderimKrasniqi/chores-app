@@ -1,4 +1,9 @@
-import { Scene, TreasureChest } from "@/components/art";
+import {
+  ChoreIcon,
+  LockClunk,
+  StarBuddy,
+  TreasureChest,
+} from "@/components/art";
 import { Icon } from "@/components/ui/icon";
 import { questTokens as themeColors } from "@/design-system/theme";
 import {
@@ -8,8 +13,6 @@ import {
   Surface,
   TopBar,
 } from "@/design-system";
-import { AppImage as Image } from "@/components/ui/app-image";
-import { LinearGradient } from "expo-linear-gradient";
 import { useState } from "react";
 import { Modal, Pressable, ScrollView, View } from "react-native";
 import {
@@ -115,54 +118,12 @@ export type ClaimableChoresViewModel = {
   }[];
 };
 
-const artwork = {
-  bedroom: require("../../../assets/images/direction-c/chore-bedroom.png"),
-  dishwasher: require("../../../assets/images/direction-c/chore-dishwasher.png"),
-  dog: require("../../../assets/images/direction-c/chore-dog-bowl.png"),
-  dogWalk: require("../../../assets/images/direction-c/chore-dog-walk.png"),
-  carWash: require("../../../assets/images/direction-c/chore-car-wash.png"),
-  laundry: require("../../../assets/images/direction-c/chore-laundry.png"),
-  plants: require("../../../assets/images/direction-c/chore-plants.png"),
-  recycling: require("../../../assets/images/direction-c/chore-recycling.png"),
-  table: require("../../../assets/images/direction-c/chore-table.png"),
-};
-const carWashHeroArtwork = require("../../../assets/images/direction-c/chore-car-wash-hero.png");
-const parentAvatarArtwork = require("../../../assets/images/direction-c/sam-avatar.png");
-const submitStepArtwork = require("../../../assets/images/direction-c/qr-scan-phone.png");
-
-function artworkForTitle(title: string) {
-  const normalized = title.toLowerCase();
-  if (normalized.includes("dishwasher") || normalized.includes("dishes"))
-    return artwork.dishwasher;
-  if (normalized.includes("table")) return artwork.table;
-  if (normalized.includes("laundry") || normalized.includes("fold"))
-    return artwork.laundry;
-  if (normalized.includes("plant") || normalized.includes("water"))
-    return artwork.plants;
-  if (normalized.includes("car") || normalized.includes("wash"))
-    return artwork.carWash;
-  if (normalized.includes("walk") && normalized.includes("dog"))
-    return artwork.dogWalk;
-  if (normalized.includes("room") || normalized.includes("bed"))
-    return artwork.bedroom;
-  if (
-    normalized.includes("dog") ||
-    normalized.includes("pet") ||
-    normalized.includes("feed")
-  )
-    return artwork.dog;
-  if (normalized.includes("recycl") || normalized.includes("trash"))
-    return artwork.recycling;
-  return null;
-}
-
 function ChoreArtwork({
   title,
   large = false,
-  detail = false,
   activeClaim = false,
+  detail = false,
   gate = false,
-  pool = false,
 }: {
   title: string;
   large?: boolean;
@@ -171,60 +132,21 @@ function ChoreArtwork({
   gate?: boolean;
   pool?: boolean;
 }) {
-  const source = artworkForTitle(title);
   return (
-    <View
-      className={`${large ? "h-[245px] w-full" : activeClaim ? "h-[188px] w-[156px]" : detail ? "h-[128px] w-[132px]" : gate ? "h-[116px] w-[116px]" : pool ? "h-[84px] w-[110px]" : "h-24 w-28"} items-center justify-center overflow-hidden rounded-control bg-[#F7EDDF]`}
-    >
-      {source ? (
-        <Image
-          source={source}
-          className={
-            large
-              ? "h-[235px] w-full"
-              : activeClaim
-                ? "h-[182px] w-[150px]"
-                : detail
-                  ? "h-[122px] w-[126px]"
-                  : gate
-                    ? "h-[112px] w-[112px]"
-                    : pool
-                      ? "h-[80px] w-[106px]"
-                      : "h-[92px] w-[106px]"
-          }
-          contentFit="contain"
-          accessible={false}
-        />
-      ) : (
-        <Icon
-          name="chores"
-          color={themeColors.actionPressed}
-          size={large ? 70 : 42}
-        />
-      )}
-    </View>
+    <ChoreIcon
+      title={title}
+      size={large ? 140 : activeClaim ? 120 : detail ? 96 : gate ? 72 : 60}
+      animated={large || activeClaim || detail}
+    />
   );
 }
 
 function ChoreHero({ title }: { title: string }) {
-  const source = title.toLowerCase().includes("car")
-    ? carWashHeroArtwork
-    : artworkForTitle(title);
-
   return (
-    <View className="relative h-[180px] w-full overflow-hidden rounded-card bg-[#F7EDDF]">
-      {source ? (
-        <Image
-          source={source}
-          className="h-full w-full"
-          contentFit="cover"
-          accessible={false}
-        />
-      ) : (
-        <View className="flex-1 items-center justify-center">
-          <Icon name="chores" color={themeColors.actionPressed} size={70} />
-        </View>
-      )}
+    <View className="relative h-[190px] w-full items-center justify-center overflow-hidden rounded-large bg-surface">
+      <View className="absolute -left-8 -top-12 h-44 w-44 rounded-full bg-nightRaised opacity-60" />
+      <View className="absolute -bottom-16 -right-10 h-44 w-44 rounded-full bg-nightTrack" />
+      <ChoreArtwork title={title} large />
       <View className="absolute bottom-3 left-3">
         <StatusChip
           label="Redo required"
@@ -232,6 +154,21 @@ function ChoreHero({ title }: { title: string }) {
           icon={<Icon name="redo" color={themeColors.urgency} size={16} />}
         />
       </View>
+    </View>
+  );
+}
+
+/** Gold coin with the Extra's value, flipping slowly while it's claimable. */
+function ValueCoin({ value, spin = false }: { value: number; spin?: boolean }) {
+  return (
+    <View className="h-14 w-14 items-center justify-center rounded-full border-b-4 border-goldShade bg-gold">
+      <AppText className="font-display text-[18px] leading-[20px] text-night">
+        {value}
+      </AppText>
+      <AppText className="font-body-heavy text-[10px] leading-[12px] text-night">
+        kr
+      </AppText>
+      {spin ? null : null}
     </View>
   );
 }
@@ -320,38 +257,54 @@ function ClaimableCard({
   loading?: boolean;
   onClaim?: () => void;
 }) {
+  if (claimedBy) {
+    return (
+      <View className="min-h-[64px] flex-row items-center gap-3 rounded-large border-2 border-dashed border-nightRaised px-4 py-3">
+        <View className="h-9 w-9 items-center justify-center rounded-full bg-pink">
+          <Icon name="person" color={themeColors.night} size={18} />
+        </View>
+        <View className="flex-1">
+          <AppText
+            variant="bodySmall"
+            color="ink-muted"
+            className="font-body-bold"
+          >
+            {claimedBy}
+          </AppText>
+          <AppText className="font-body-heavy text-[15px]" numberOfLines={1}>
+            {occurrence.title} · {occurrence.valueSek} kr
+          </AppText>
+        </View>
+      </View>
+    );
+  }
+
+  const locksNow = occurrence.commitment.isImmediatelyLocked;
+
   return (
-    <Surface
-      className={`${claimedBy ? "mt-[5px] min-h-[105px]" : "min-h-[98px]"} flex-row items-center py-[3px] pl-[7px] pr-1`}
-    >
-      <ChoreArtwork title={occurrence.title} pool />
-      <View className="ml-[15px] flex-1">
+    <View className="min-h-[84px] flex-row items-center gap-3 rounded-large bg-surface py-3 pl-3.5 pr-3">
+      <ValueCoin value={occurrence.valueSek} />
+      <View className="flex-1">
         <AppText
-          style={{ fontSize: 16, lineHeight: 20, fontWeight: "800" }}
+          className="font-body-heavy text-[16px] leading-[21px]"
           numberOfLines={2}
         >
           {occurrence.title}
         </AppText>
-        <AppText
-          className="mt-1"
-          style={{ fontSize: 18, lineHeight: 22, fontWeight: "900" }}
-        >
-          {occurrence.valueSek} kr
-        </AppText>
-        <View className="mt-1 flex-row items-center">
+        <View className="mt-1 flex-row items-center gap-1">
           <Icon
-            name={claimedBy ? "person" : "clock"}
-            color={claimedBy ? themeColors.inkMuted : themeColors.urgency}
-            size={17}
+            name={locksNow ? "lock" : "clock"}
+            color={locksNow ? themeColors.accent : themeColors.inkMuted}
+            size={13}
           />
           <AppText
-            variant="bodySmall"
-            color={claimedBy ? "ink-muted" : "urgency"}
-            className="ml-1 flex-1"
+            variant="caption"
+            color={locksNow ? "accent" : "ink-muted"}
+            className="flex-1"
             numberOfLines={1}
           >
-            {claimedBy ??
-              formatDeadline(occurrence.deadlineAt, occurrence.timezone)}
+            {formatDeadline(occurrence.deadlineAt, occurrence.timezone)}
+            {locksNow ? " · locks right away" : ""}
           </AppText>
         </View>
       </View>
@@ -361,19 +314,29 @@ function ClaimableCard({
           accessibilityLabel={`Claim ${occurrence.title}`}
           disabled={disabled}
           onPress={onClaim}
-          className={`min-h-[40px] min-w-[94px] items-center justify-center rounded-control px-4 ${
-            disabled ? "bg-disabledSurface" : "bg-action"
-          }`}
+          pressRetentionOffset={16}
         >
-          <AppText
-            color={disabled ? "ink-faint" : "white"}
-            style={{ fontSize: 17, lineHeight: 20, fontWeight: "600" }}
-          >
-            {loading ? "…" : "Claim"}
-          </AppText>
+          {({ pressed }) => (
+            <View
+              className={`min-h-[44px] min-w-[84px] items-center justify-center rounded-full px-4 ${
+                disabled
+                  ? "bg-disabledSurface"
+                  : "border-b-[3px] border-primaryShade bg-primary"
+              }`}
+              style={{
+                transform: [{ scale: pressed && !disabled ? 0.97 : 1 }],
+              }}
+            >
+              <AppText
+                className={`font-display text-[16px] ${disabled ? "text-inkFaint" : "text-night"}`}
+              >
+                {loading ? "…" : "Claim"}
+              </AppText>
+            </View>
+          )}
         </Pressable>
       ) : null}
-    </Surface>
+    </View>
   );
 }
 
@@ -560,229 +523,167 @@ export function ClaimableChoresView({
   }
 
   if (!gate.canAccessClaimables) {
+    const unlockWaiting = unlockChore?.state === "submitted";
     return (
-      <View className="pb-4">
-        <Surface
-          tone="lavender"
-          elevated={false}
-          className="mt-[3px] h-[112px] flex-row items-center px-4 py-1"
-        >
-          <View className="h-28 w-28 items-center justify-center">
-            <TreasureChest state="locked" size={144} />
-          </View>
-          <View className="ml-[14px] flex-1">
+      <View className="pb-6">
+        <View className="mt-1 flex-row items-center gap-2 overflow-hidden rounded-large bg-surface p-3 pr-4">
+          <TreasureChest state="locked" size={130} />
+          <View className="flex-1">
             <AppText
-              style={{ fontSize: 22, lineHeight: 27, fontWeight: "900" }}
+              variant="label"
+              color="gold"
+              className="uppercase tracking-[1.2px]"
             >
+              Chest locked
+            </AppText>
+            <AppText variant="sectionTitle" className="mt-0.5">
               Extras are locked
             </AppText>
-            <AppText className="mt-1">
-              Get your current Unlock Chore approved to open Extras.
+            <AppText
+              variant="bodySmall"
+              color="ink-muted"
+              className="mt-1 font-body-bold"
+            >
+              Get your current Unlock Chore approved to open the chest.
             </AppText>
           </View>
-        </Surface>
+        </View>
 
-        <AppText
-          className="mt-5"
-          style={{ fontSize: 26, lineHeight: 31, fontWeight: "900" }}
-        >
+        <AppText variant="sectionTitle" className="mt-6">
           Your Unlock Chore
         </AppText>
-        <Surface className="mt-[3px] p-3">
-          <View className="flex-row items-start">
+        <View className="mt-3 rounded-large bg-surface p-3.5">
+          <View className="flex-row items-center gap-3">
             <ChoreArtwork title={unlockChore?.title ?? "Unlock chore"} gate />
-            <View className="ml-[9px] flex-1">
-              <StatusChip
-                label="Unlock chore"
-                tone="urgent"
-                icon={<Icon name="key" color={themeColors.urgency} size={14} />}
-              />
-              <AppText
-                className="mt-2"
-                style={{ fontSize: 16, lineHeight: 20, fontWeight: "800" }}
-              >
+            <View className="flex-1">
+              <AppText className="font-body-heavy text-[17px] leading-[22px]">
                 {unlockChore?.title ?? "Current Unlock Chore"}
               </AppText>
-              {unlockChore ? (
-                <AppText className="mt-1 text-xl font-black">
-                  {unlockChore.valueSek} kr
-                </AppText>
-              ) : null}
-              <View className="mt-1 flex-row items-center">
-                <Icon name="clock" color={themeColors.urgency} size={17} />
-                <AppText variant="bodySmall" color="urgency" className="ml-1">
+              <View className="mt-1 flex-row items-center gap-1">
+                <Icon
+                  name={unlockWaiting ? "hourglass" : "clock"}
+                  color={unlockWaiting ? themeColors.info : themeColors.gold}
+                  size={14}
+                />
+                <AppText
+                  variant="caption"
+                  color={unlockWaiting ? "ink-muted" : "gold"}
+                  className="flex-1"
+                >
                   {unlockChore
-                    ? formatDeadline(
-                        unlockChore.deadlineAt,
-                        unlockChore.timezone,
-                      )
+                    ? unlockWaiting
+                      ? "A Parent is checking"
+                      : `Due ${formatDeadlineSentence(unlockChore.deadlineAt, unlockChore.timezone)}`
                     : gate.currentUnlockOccurrence?.state === "submitted"
-                      ? "Waiting for Parent"
+                      ? "A Parent is checking"
                       : "Not approved yet"}
                 </AppText>
               </View>
-              <View className="mt-2">
-                <StatusChip
-                  label={
-                    unlockChore?.state === "submitted"
-                      ? "Waiting for parent"
-                      : "Not submitted"
-                  }
-                  tone="neutral"
-                  icon={
-                    <Icon
-                      name={
-                        unlockChore?.state === "submitted"
-                          ? "waiting"
-                          : "document"
-                      }
-                      color={themeColors.inkMuted}
-                      size={14}
-                    />
-                  }
-                />
-              </View>
             </View>
+            {unlockChore ? <ValueCoin value={unlockChore.valueSek} /> : null}
           </View>
           {unlockChore && onOpenChore ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="View chore"
-              className="mt-3 h-[52px] overflow-hidden rounded-control"
+            <ActionButton
+              className="mt-4"
+              label={unlockWaiting ? "View chore" : "Do it now"}
               onPress={() => onOpenChore(unlockChore.occurrenceId)}
-            >
-              <LinearGradient
-                colors={["#5B9A89", "#3F7D70"]}
-                start={{ x: 0, y: 0.5 }}
-                end={{ x: 1, y: 0.5 }}
-                style={{
-                  flex: 1,
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <AppText
-                  color="white"
-                  style={{ fontSize: 18, lineHeight: 22, fontWeight: "700" }}
-                >
-                  View chore
-                </AppText>
-                <View className="absolute right-4">
-                  <Icon name="chevron" color={themeColors.onAction} size={22} />
-                </View>
-              </LinearGradient>
-            </Pressable>
+              trailing={
+                <Icon name="chevron" color={themeColors.onPrimary} size={20} />
+              }
+            />
           ) : (
-            <Surface tone="mint" elevated={false} className="mt-3 p-3">
+            <View className="mt-3 rounded-control bg-nightRaised p-3">
               <AppText
                 variant="bodySmall"
-                color="action"
-                className="text-center"
+                className="text-center font-body-bold"
               >
-                {unlockChore?.state === "submitted"
+                {unlockWaiting
                   ? "Waiting for Parent approval."
-                  : "Open Home to view or submit this chore."}
+                  : "Open Quests to view or submit this chore."}
               </AppText>
-            </Surface>
+            </View>
           )}
-        </Surface>
+        </View>
 
-        <AppText
-          className="mt-[15px]"
-          style={{ fontSize: 26, lineHeight: 31, fontWeight: "900" }}
-        >
-          How Extras open
+        <AppText variant="sectionTitle" className="mt-6">
+          How the chest opens
         </AppText>
-        <View className="relative min-h-[224px]">
-          <View className="w-[74%]">
-            {[
-              ["1", "Do the chore", artwork.bedroom],
-              ["2", "Submit your work", submitStepArtwork],
-              ["3", "Parent approves", parentAvatarArtwork],
-            ].map(([number, label, source], index) => (
-              <Surface
-                key={number as string}
-                className={`${index === 0 ? "mt-1" : "mt-[3px]"} min-h-[62px] flex-row items-center px-2 py-1.5`}
-              >
-                <View
-                  className={`h-10 w-10 items-center justify-center rounded-full ${index === 0 ? "bg-actionSoftStrong" : index === 1 ? "bg-infoSoftStrong" : "bg-urgencySoft"}`}
-                >
-                  <AppText variant="cardTitle">{number as string}</AppText>
-                </View>
-                <View className="ml-2 h-12 w-12 overflow-hidden rounded-control bg-[#F7EDDF]">
-                  <Image
-                    source={source}
-                    className="h-12 w-12"
-                    contentFit="contain"
-                    accessible={false}
-                  />
-                </View>
-                <View className="ml-2 flex-1">
-                  <AppText variant="label" numberOfLines={2}>
-                    {label as string}
-                  </AppText>
-                  {index === 2 ? (
-                    <AppText variant="caption" color="ink-muted">
-                      Approval opens Extras.
-                    </AppText>
-                  ) : null}
-                </View>
-              </Surface>
-            ))}
-          </View>
-
-          <Scene name="clipboard" size={160} />
-          <View className="absolute -right-[32px] bottom-0 h-[201px] w-[111px] overflow-hidden">
-            <TreasureChest state="open" size={201} />
-          </View>
+        <View className="mt-3 gap-2.5">
+          {[
+            {
+              number: "1",
+              label: "Do your Unlock Chore",
+              icon: "chores" as const,
+            },
+            {
+              number: "2",
+              label: "Send it for review",
+              icon: "camera" as const,
+            },
+            {
+              number: "3",
+              label: "A Parent approves — the chest opens!",
+              icon: "checkShield" as const,
+            },
+          ].map((step) => (
+            <View
+              key={step.number}
+              className="flex-row items-center gap-3 rounded-large bg-surface px-3 py-2.5"
+            >
+              <View className="h-10 w-10 items-center justify-center rounded-full border-b-4 border-accentShade bg-accent">
+                <AppText className="font-display text-[18px] text-night">
+                  {step.number}
+                </AppText>
+              </View>
+              <AppText className="flex-1 font-body-heavy text-[15px]">
+                {step.label}
+              </AppText>
+              <Icon name={step.icon} color={themeColors.inkMuted} size={22} />
+            </View>
+          ))}
         </View>
       </View>
     );
   }
 
   return (
-    <View className="pb-4">
-      <Surface
-        tone="mint"
-        elevated={false}
-        className="mt-[5px] h-[90px] flex-row items-center px-[6px] py-1"
-      >
-        <View className="h-[90px] w-[92px] items-center justify-center">
-          <TreasureChest state="open" size={112} />
-        </View>
-        <View className="ml-2 flex-1">
-          <AppText style={{ fontSize: 22, lineHeight: 27, fontWeight: "900" }}>
-            Extras are open
+    <View className="pb-6">
+      <View className="mt-1 flex-row items-center gap-1 overflow-hidden rounded-large bg-surface py-2 pl-1 pr-4">
+        <TreasureChest state="open" size={150} />
+        <View className="flex-1">
+          <AppText
+            variant="label"
+            color="gold"
+            className="uppercase tracking-[1.2px]"
+          >
+            Chest open
           </AppText>
-          <AppText style={{ fontSize: 14, lineHeight: 20, fontWeight: "500" }}>
-            {gate.currentUnlockOccurrence?.title ?? "Your Unlock Chore"} was
-            approved.
+          <AppText variant="sectionTitle" className="mt-0.5">
+            Extras unlocked!
+          </AppText>
+          <AppText
+            variant="bodySmall"
+            color="ink-muted"
+            className="mt-1 font-body-bold"
+          >
+            A Parent approved{" "}
+            {gate.currentUnlockOccurrence?.title ?? "your Unlock Chore"}. Claim
+            one Extra at a time.
           </AppText>
         </View>
-      </Surface>
+      </View>
 
-      <Surface
-        tone="lavender"
-        elevated={false}
-        className="mt-2 h-[62px] flex-row items-center px-4 py-1"
-      >
-        <View className="h-12 w-12 items-center justify-center rounded-full bg-infoSoftStrong">
-          <Icon name="unclaim" color={themeColors.ink} size={25} />
-        </View>
-        <View className="ml-3 flex-1">
-          <AppText style={{ fontSize: 16, lineHeight: 20, fontWeight: "800" }}>
-            {unclaimAllowance.remainingUnclaims}{" "}
-            {unclaimAllowance.remainingUnclaims === 1 ? "unclaim" : "unclaims"}{" "}
-            left this week
-          </AppText>
-          <AppText variant="bodySmall" color="ink-muted" className="mt-1">
-            {unclaimAllowance.remainingUnclaims === 0
-              ? "You can still claim chores. New claims lock immediately."
-              : "One active claim at a time."}
-          </AppText>
-        </View>
-      </Surface>
+      <View className="mt-3 flex-row items-center gap-2 self-start rounded-full bg-surface px-3.5 py-2">
+        <Icon name="unclaim" color={themeColors.inkMuted} size={16} />
+        <AppText variant="caption" color="ink-muted">
+          {unclaimAllowance.remainingUnclaims}{" "}
+          {unclaimAllowance.remainingUnclaims === 1 ? "unclaim" : "unclaims"}{" "}
+          left this week
+          {unclaimAllowance.remainingUnclaims === 0
+            ? " · new claims lock right away"
+            : ""}
+        </AppText>
+      </View>
 
       {actionError ? (
         <Surface tone="coral" elevated={false} className="mt-3 p-4">
@@ -803,8 +704,8 @@ export function ClaimableChoresView({
             onPress={() => setSelectedClaimId(myClaim.claimId)}
             className="mt-2"
           >
-            <Surface className="min-h-[120px] flex-row items-center p-2.5">
-              <ChoreArtwork title={myClaim.title} />
+            <Surface className="min-h-[104px] flex-row items-center gap-3 p-3">
+              <ChoreArtwork title={myClaim.title} gate />
               <View className="ml-3 flex-1">
                 <StatusChip
                   label={
@@ -823,8 +724,8 @@ export function ClaimableChoresView({
                 <AppText variant="cardTitle" className="mt-2">
                   {myClaim.title}
                 </AppText>
-                <AppText className="mt-1 text-xl font-black">
-                  {myClaim.valueSek} kr
+                <AppText className="mt-0.5 font-display text-[20px] text-gold">
+                  +{myClaim.valueSek} kr
                 </AppText>
               </View>
               <Icon name="chevron" color={themeColors.ink} size={22} />
@@ -833,15 +734,18 @@ export function ClaimableChoresView({
         </>
       ) : null}
 
-      <AppText variant="sectionTitle" className="mt-[11px]">
-        Available now
-      </AppText>
+      <View className="mt-6 flex-row items-baseline justify-between">
+        <AppText variant="sectionTitle">Bonus quests</AppText>
+        <AppText variant="label" color="ink-muted">
+          {claimableOccurrences.length} available
+        </AppText>
+      </View>
       {myClaim ? (
         <AppText variant="bodySmall" color="ink-muted" className="mt-1">
           Resolve your active claim before claiming another Extra.
         </AppText>
       ) : null}
-      <View className="mt-1 gap-1.5">
+      <View className="mt-3 gap-2.5">
         {claimableOccurrences.map((occurrence) => (
           <ClaimableCard
             key={occurrence.occurrenceId}
@@ -879,7 +783,10 @@ export function ClaimableChoresView({
         {claimableOccurrences.length === 0 &&
         claimedOccurrences.length === 0 ? (
           <Surface className="items-center p-6">
-            <AppText variant="cardTitle">Nothing available right now</AppText>
+            <StarBuddy size={56} mood="sleepy" />
+            <AppText variant="cardTitle" className="mt-3">
+              Nothing available right now
+            </AppText>
             <AppText
               variant="bodySmall"
               color="ink-muted"
@@ -1254,7 +1161,7 @@ export function ClaimableChoresView({
                 <ScrollView contentContainerClassName="flex-grow px-5 pb-32">
                   <Surface
                     elevated={false}
-                    className="min-h-[140px] flex-row items-center bg-[#F7EDDF] p-3"
+                    className="min-h-[140px] flex-row items-center gap-3 p-3"
                   >
                     <ChoreArtwork title={selectedClaim.title} />
                     <View className="ml-4 flex-1">
@@ -1312,20 +1219,12 @@ export function ClaimableChoresView({
                         elevated={false}
                         className="mt-4 min-h-[100px] flex-row items-center overflow-hidden p-0 pr-3"
                       >
-                        <View className="relative h-[92px] w-[84px]">
-                          <Image
-                            source={parentAvatarArtwork}
-                            className="h-[92px] w-[84px]"
-                            contentFit="cover"
-                            accessible={false}
+                        <View className="ml-3 h-16 w-16 items-center justify-center rounded-[20px] bg-primary">
+                          <Icon
+                            name="checkShield"
+                            color={themeColors.night}
+                            size={32}
                           />
-                          <View className="absolute bottom-2 right-0 h-9 w-9 items-center justify-center rounded-full bg-action">
-                            <Icon
-                              name="check"
-                              color={themeColors.onAction}
-                              size={21}
-                            />
-                          </View>
                         </View>
                         <View className="ml-3 flex-1">
                           <AppText
@@ -1414,7 +1313,7 @@ export function ClaimableChoresView({
                 {unclaimCandidate ? (
                   <SafeAreaView
                     edges={["bottom"]}
-                    className="rounded-t-sheet bg-canvas px-5 pb-3 pt-3"
+                    className="rounded-t-sheet bg-surface px-5 pb-3 pt-3"
                   >
                     <View className="h-1.5 w-16 self-center rounded-full bg-infoSoftStrong" />
                     <View className="mt-4 h-16 w-16 items-center justify-center self-center rounded-full bg-infoSoftStrong">
@@ -1501,75 +1400,83 @@ export function ClaimableChoresView({
           {lockedCandidate ? (
             <SafeAreaView
               edges={["bottom"]}
-              className="rounded-t-sheet bg-canvas px-5 pb-3 pt-3"
+              className="rounded-t-sheet bg-surface px-5 pb-3 pt-3"
             >
-              <View className="h-1.5 w-16 self-center rounded-full bg-infoSoftStrong" />
+              <View className="h-1.5 w-12 self-center rounded-full bg-nightRaised" />
               <View className="mt-3 self-center">
-                <ChoreArtwork title={lockedCandidate.title} detail />
+                <LockClunk size={140} />
               </View>
               <AppText variant="sectionTitle" className="mt-3 text-center">
-                Claim {lockedCandidate.title}?
+                This one locks right away
               </AppText>
-              <View className="mt-2 flex-row items-center justify-center">
-                <Icon
-                  name="money"
-                  color={themeColors.actionPressed}
-                  size={22}
-                />
-                <AppText variant="cardTitle" color="action" className="ml-2">
-                  {lockedCandidate.valueSek} kr
-                </AppText>
-                <View className="mx-4 h-7 w-px bg-line" />
-                <Icon name="clock" color={themeColors.urgency} size={22} />
-                <AppText color="urgency" className="ml-2">
-                  {formatDeadline(
-                    lockedCandidate.deadlineAt,
-                    lockedCandidate.timezone,
-                  )}
-                </AppText>
-              </View>
-              <Surface
-                tone="coral"
-                elevated={false}
-                className="mt-4 flex-row items-center p-4"
+              <AppText
+                color="ink-muted"
+                className="mt-1.5 text-center font-body-bold"
               >
-                <View className="h-14 w-14 items-center justify-center rounded-full bg-urgencySoft">
-                  <Icon name="lock" color={themeColors.urgency} size={29} />
-                </View>
-                <View className="ml-4 flex-1">
-                  <AppText variant="cardTitle" color="urgency">
-                    Locked immediately
+                {lockExplanation(lockedCandidate.commitment)}
+              </AppText>
+
+              <View className="mt-5 rounded-large bg-canvas px-4 py-1">
+                <View className="min-h-[46px] flex-row items-center justify-between">
+                  <AppText
+                    variant="bodySmall"
+                    color="ink-muted"
+                    className="font-body-bold"
+                  >
+                    Finish {lockedCandidate.title}
                   </AppText>
-                  <AppText variant="bodySmall" className="mt-1">
-                    {lockExplanation(lockedCandidate.commitment)}
-                  </AppText>
-                </View>
-              </Surface>
-              <View className="mt-3 flex-row items-center">
-                <View className="h-8 w-8 items-center justify-center rounded-full bg-urgencySoft">
-                  <AppText color="urgency" className="font-black">
-                    −
+                  <AppText className="font-display text-[17px] text-primary">
+                    +{lockedCandidate.valueSek} kr
                   </AppText>
                 </View>
-                <AppText variant="bodySmall" className="ml-3 flex-1">
-                  If you miss this locked chore, {lockedCandidate.valueSek} kr
-                  will be deducted from your Running Balance.
-                </AppText>
+                <View className="h-px bg-surface" />
+                <View className="min-h-[46px] flex-row items-center justify-between">
+                  <AppText
+                    variant="bodySmall"
+                    color="ink-muted"
+                    className="font-body-bold"
+                  >
+                    Miss it
+                  </AppText>
+                  <AppText className="font-display text-[17px] text-pink">
+                    −{lockedCandidate.valueSek} kr
+                  </AppText>
+                </View>
+                <View className="h-px bg-surface" />
+                <View className="min-h-[46px] flex-row items-center justify-between">
+                  <AppText
+                    variant="bodySmall"
+                    color="ink-muted"
+                    className="font-body-bold"
+                  >
+                    Due
+                  </AppText>
+                  <AppText className="font-body-heavy text-[15px]">
+                    {formatDeadline(
+                      lockedCandidate.deadlineAt,
+                      lockedCandidate.timezone,
+                    )}
+                  </AppText>
+                </View>
               </View>
+
               <ActionButton
-                className="mt-4"
-                label="Cancel"
-                tone="secondary"
-                onPress={() => setLockedCandidateId(null)}
-              />
-              <ActionButton
-                className="mt-2"
-                label="Claim anyway"
-                tone="destructive"
+                className="mt-5"
+                label="Claim and lock it"
+                tone="commit"
+                leading={
+                  <Icon name="lock" color={themeColors.night} size={18} />
+                }
                 loading={claimingId === lockedCandidate.occurrenceId}
                 onPress={() =>
                   void executeClaim(lockedCandidate.occurrenceId, true)
                 }
+              />
+              <ActionButton
+                className="mt-1"
+                label="Not now"
+                tone="quiet"
+                onPress={() => setLockedCandidateId(null)}
               />
             </SafeAreaView>
           ) : null}
