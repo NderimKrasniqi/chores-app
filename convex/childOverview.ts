@@ -31,40 +31,44 @@ export const getForParent = query({
     childId: v.id("children"),
     now: v.number(),
   },
-  returns: v.object({
-    displayName: v.string(),
-    timezone: v.string(),
-    runningBalanceSek: v.number(),
-    period: v.object({
-      startLocalDate: v.string(),
-      endLocalDate: v.string(),
-      startAt: v.number(),
-      endAt: v.number(),
+  returns: v.union(
+    v.null(),
+    v.object({
+      displayName: v.string(),
+      timezone: v.string(),
+      runningBalanceSek: v.number(),
+      period: v.object({
+        startLocalDate: v.string(),
+        endLocalDate: v.string(),
+        startAt: v.number(),
+        endAt: v.number(),
+      }),
+      entries: v.array(
+        v.object({
+          kind: v.union(v.literal("earning"), v.literal("penalty")),
+          amountSek: v.number(),
+          createdAt: v.number(),
+          choreTitle: v.union(v.string(), v.null()),
+        }),
+      ),
+      chores: v.array(
+        v.object({
+          occurrenceId: v.id("choreOccurrences"),
+          title: v.string(),
+          valueSek: v.number(),
+          deadlineAt: v.number(),
+          scheduledLocalDate: v.string(),
+          isUnlockChore: v.boolean(),
+          state: occurrenceStateValidator,
+        }),
+      ),
     }),
-    entries: v.array(
-      v.object({
-        kind: v.union(v.literal("earning"), v.literal("penalty")),
-        amountSek: v.number(),
-        createdAt: v.number(),
-        choreTitle: v.union(v.string(), v.null()),
-      }),
-    ),
-    chores: v.array(
-      v.object({
-        occurrenceId: v.id("choreOccurrences"),
-        title: v.string(),
-        valueSek: v.number(),
-        deadlineAt: v.number(),
-        scheduledLocalDate: v.string(),
-        isUnlockChore: v.boolean(),
-        state: occurrenceStateValidator,
-      }),
-    ),
-  }),
+  ),
   handler: async (ctx, args) => {
     const child = await ctx.db.get(args.childId);
+    // Removed meanwhile by another parent: the page just closes.
     if (!child || child.archivedAt !== undefined) {
-      throw new ConvexError("Child not found.");
+      return null;
     }
     await requireCurrentParentForHousehold(ctx, child.householdId);
     const household = await ctx.db.get(child.householdId);

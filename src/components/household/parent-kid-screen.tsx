@@ -211,7 +211,7 @@ export function ParentKidScreen({
         Their chores
       </AppText>
       <View className="mt-3 gap-2">
-        {overview === undefined ? (
+        {!overview ? (
           <AppText color="ink-muted">Loading…</AppText>
         ) : overview.chores.length === 0 ? (
           <View

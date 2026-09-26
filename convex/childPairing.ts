@@ -396,6 +396,10 @@ export const storeGeneratedCredential = internalMutation({
       throw new ConvexError("Child does not belong to this household.");
     }
 
+    if (child.archivedAt !== undefined) {
+      throw new ConvexError("This child has been removed from the household.");
+    }
+
     /*
      * The generated secrets are random, but verify that neither
      * hash already exists before persisting. This protects the
@@ -514,6 +518,11 @@ export const consumeQrCredential = internalMutation({
     }
 
     if (credential.expiresAt <= now) {
+      throw new ConvexError("Invalid or unavailable QR pairing token.");
+    }
+
+    const qrChild = await ctx.db.get(credential.childId);
+    if (!qrChild || qrChild.archivedAt !== undefined) {
       throw new ConvexError("Invalid or unavailable QR pairing token.");
     }
 
@@ -674,11 +683,17 @@ export const consumeManualCredential = internalMutation({
       }
     }
 
+    const manualChild = credential
+      ? await ctx.db.get(credential.childId)
+      : null;
+
     const credentialIsAvailable =
       credential !== null &&
       credential.revokedAt === undefined &&
       credential.redeemedAt === undefined &&
-      credential.expiresAt > now;
+      credential.expiresAt > now &&
+      manualChild !== null &&
+      manualChild.archivedAt === undefined;
 
     if (credentialIsAvailable) {
       const activeGrant = await getUniqueActiveChildAccessGrantForAuthUser(

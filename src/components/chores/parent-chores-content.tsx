@@ -241,7 +241,12 @@ export function ParentChoresContent({
     setValueSek(String(definition.valueSek));
     setPersonalChildId(definition.personalChildId ?? children[0]?.childId);
     setRestrictEligibility(definition.eligibleChildIds !== undefined);
-    setEligibleChildIds(definition.eligibleChildIds ?? []);
+    // Only kids still in the household (removed kids aren't shown).
+    setEligibleChildIds(
+      (definition.eligibleChildIds ?? []).filter((id) =>
+        children.some((child) => child.childId === id),
+      ),
+    );
     setRecurrenceKind(definition.recurrence.kind);
     setScheduledDate(
       definition.recurrence.kind === "one_off"

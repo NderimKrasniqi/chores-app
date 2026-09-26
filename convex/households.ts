@@ -451,10 +451,12 @@ export const archiveChild = mutation({
     const now = Date.now();
 
     // Their phones stop working and open pairing codes die.
+    // Newest first, so live rows are never beyond the read cap.
     const grants = await ctx.db
       .query("childDeviceAccessGrants")
       .withIndex("by_child", (q) => q.eq("childId", child._id))
-      .take(100);
+      .order("desc")
+      .take(200);
     for (const grant of grants) {
       if (grant.revokedAt === undefined) {
         await ctx.db.patch(grant._id, {
@@ -466,11 +468,13 @@ export const archiveChild = mutation({
     const credentials = await ctx.db
       .query("childPairingCredentials")
       .withIndex("by_child", (q) => q.eq("childId", child._id))
-      .take(100);
+      .order("desc")
+      .take(50);
     for (const credential of credentials) {
       if (
         credential.revokedAt === undefined &&
-        credential.redeemedAt === undefined
+        credential.redeemedAt === undefined &&
+        credential.expiresAt > now
       ) {
         await ctx.db.patch(credential._id, {
           revokedAt: now,
@@ -485,7 +489,8 @@ export const archiveChild = mutation({
       .withIndex("by_household_personal_child", (q) =>
         q.eq("householdId", child.householdId).eq("personalChildId", child._id),
       )
-      .take(200);
+      .order("desc")
+      .take(500);
     for (const definition of definitions) {
       if (definition.archivedAt === undefined) {
         await ctx.db.patch(definition._id, {
@@ -493,6 +498,50 @@ export const archiveChild = mutation({
           archivedByAuthUserId: authUser._id,
           updatedAt: now,
         });
+      }
+    }
+
+    // Extras restricted to this child: drop them from the list; if nobody is
+    // left, archive the Extra rather than let it generate unclaimable work.
+    const claimables = await ctx.db
+      .query("choreDefinitions")
+      .withIndex("by_household_kind", (q) =>
+        q.eq("householdId", child.householdId).eq("kind", "claimable"),
+      )
+      .take(500);
+    for (const definition of claimables) {
+      if (
+        definition.archivedAt !== undefined ||
+        definition.eligibleChildIds === undefined ||
+        !definition.eligibleChildIds.includes(child._id)
+      ) {
+        continue;
+      }
+      const remaining = definition.eligibleChildIds.filter(
+        (id) => id !== child._id,
+      );
+      await ctx.db.patch(
+        definition._id,
+        remaining.length > 0
+          ? { eligibleChildIds: remaining, updatedAt: now }
+          : {
+              archivedAt: now,
+              archivedByAuthUserId: authUser._id,
+              updatedAt: now,
+            },
+      );
+    }
+
+    // Already-generated upcoming chores for this child are cancelled.
+    for (const state of ["scheduled", "available"] as const) {
+      const upcoming = await ctx.db
+        .query("choreOccurrences")
+        .withIndex("by_personal_child_state_availability", (q) =>
+          q.eq("personalChildId", child._id).eq("state", state),
+        )
+        .take(100);
+      for (const occurrence of upcoming) {
+        await ctx.db.patch(occurrence._id, { state: "cancelled" });
       }
     }
 

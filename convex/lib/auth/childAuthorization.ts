@@ -39,7 +39,7 @@ export async function requireCurrentChildAccess(ctx: MutationCtx | QueryCtx) {
 
   const child = await ctx.db.get(grant.childId);
 
-  if (!child) {
+  if (!child || child.archivedAt !== undefined) {
     throw new ConvexError("Child profile no longer exists.");
   }
 

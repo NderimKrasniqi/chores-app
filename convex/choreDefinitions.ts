@@ -345,7 +345,11 @@ async function validateDefinitionInput(
 
     const child = await ctx.db.get(args.personalChildId);
 
-    if (!child || child.householdId !== args.householdId) {
+    if (
+      !child ||
+      child.householdId !== args.householdId ||
+      child.archivedAt !== undefined
+    ) {
       throw new ConvexError(
         "Assigned Child does not belong to this household.",
       );
@@ -377,7 +381,11 @@ async function validateDefinitionInput(
       for (const childId of uniqueChildIds) {
         const child = await ctx.db.get(childId);
 
-        if (!child || child.householdId !== args.householdId) {
+        if (
+          !child ||
+          child.householdId !== args.householdId ||
+          child.archivedAt !== undefined
+        ) {
           throw new ConvexError(
             "Every eligible Child must belong to this household.",
           );

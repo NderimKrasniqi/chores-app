@@ -57,6 +57,10 @@ function useNotificationTaps() {
             response.notification.request.identifier,
             response.notification.request.content.data,
           );
+          // So a JS reload doesn't navigate there again.
+          void Notifications.clearLastNotificationResponseAsync?.().catch(
+            () => {},
+          );
         }
       })
       .catch(() => {});

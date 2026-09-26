@@ -171,7 +171,9 @@ export function ActiveClaimableClaimsView({
         : { label: "Working on it", color: tokens.action };
 
   const detailClaim = selectedClaim ?? unavailableClaim ?? undefined;
-  const unavailable = unavailableClaim !== null && !selectedClaim;
+  const unavailable =
+    unavailableClaim !== null &&
+    unavailableClaim.claimId === detailClaim?.claimId;
 
   return (
     <View className={homeVariant ? "mt-6" : "mt-5"}>

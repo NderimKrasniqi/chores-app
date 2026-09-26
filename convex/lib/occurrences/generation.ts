@@ -162,6 +162,15 @@ export async function generateOccurrencesForWindow(
   const scheduleTransitions = options.scheduleTransitions ?? true;
 
   for (const definition of definitions) {
+    // Defensive: never generate for a removed child.
+    if (
+      definition.kind === "personal" &&
+      definition.personalChildId !== undefined &&
+      !allChildIds.includes(definition.personalChildId)
+    ) {
+      continue;
+    }
+
     const scheduledDates = getScheduledLocalDates(
       definition.recurrence,
       fromLocalDate,
@@ -212,7 +221,9 @@ export async function generateOccurrencesForWindow(
         eligibleChildIds =
           definition.eligibleChildIds === undefined
             ? [...allChildIds]
-            : [...definition.eligibleChildIds];
+            : definition.eligibleChildIds.filter((id) =>
+                allChildIds.includes(id),
+              );
       }
 
       const state = determineInitialState(

@@ -117,8 +117,9 @@ export const getCurrentChildAccess = query({
 
     const child = await ctx.db.get(grant.childId);
 
-    if (!child) {
-      throw new ConvexError("Child profile no longer exists.");
+    // A removed child has no access (their grants are revoked too).
+    if (!child || child.archivedAt !== undefined) {
+      return null;
     }
 
     if (child.householdId !== grant.householdId) {
