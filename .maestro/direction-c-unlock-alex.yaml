@@ -1,0 +1,10 @@
+appId: host.exp.Exponent
+---
+- inputText: "1234"
+
+- tapOn:
+    text: "Unlock profile"
+
+- extendedWaitUntil:
+    visible: "Hi, Alex!"
+    timeout: 30000

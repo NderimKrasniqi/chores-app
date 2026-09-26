@@ -1,0 +1,8 @@
+appId: host.exp.Exponent
+---
+- tapOn:
+    text: "Extras"
+
+- extendedWaitUntil:
+    visible: "Extras"
+    timeout: 30000

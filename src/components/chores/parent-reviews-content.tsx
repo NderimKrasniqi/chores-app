@@ -16,6 +16,7 @@ import {
   Pressable,
   ScrollView,
   TextInput,
+  useWindowDimensions,
   View,
 } from "react-native";
 import {
@@ -165,6 +166,7 @@ export function ParentReviewsContent({
   householdTimezone: string;
 }) {
   const insets = useSafeAreaInsets();
+  const { height: screenHeight } = useWindowDimensions();
   const personal = useQuery(api.personalChoreReviews.listPending, {
     householdId,
   });
@@ -315,17 +317,21 @@ export function ParentReviewsContent({
   }
 
   return (
-    <View>
+    <View
+      style={{
+        minHeight: Math.max(0, screenHeight - insets.top - insets.bottom - 130),
+      }}
+    >
       <Surface
         tone={items.length > 0 ? "coral" : "mint"}
         elevated={false}
         className="flex-row items-center p-4"
       >
         {items.length > 0 ? (
-          <View className="bg-urgencySoftStrong h-16 w-16 items-center justify-center rounded-full">
+          <View className="h-[76px] w-[76px] items-center justify-center rounded-full bg-urgency">
             <Image
               source={reviewClipboard}
-              className="h-16 w-16"
+              className="h-[76px] w-[76px]"
               contentFit="contain"
               accessible={false}
             />
@@ -340,14 +346,20 @@ export function ParentReviewsContent({
           </View>
         )}
         <View className="ml-4 flex-1">
-          <AppText variant="sectionTitle">
+          <AppText style={{ fontSize: 25, lineHeight: 30, fontWeight: "900" }}>
             {loading
               ? "Checking submissions…"
               : items.length > 0
                 ? `${items.length} waiting for you`
                 : "All caught up"}
           </AppText>
-          <AppText className="mt-1">
+          <AppText
+            variant="bodySmall"
+            className="mt-1"
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.85}
+          >
             {items.length > 0
               ? waitingNames.length > 0
                 ? `${waitingNames.join(" and ")} sent work to check.`
@@ -357,15 +369,17 @@ export function ParentReviewsContent({
         </View>
       </Surface>
 
-      <View className="mt-6 flex-row items-center justify-between">
-        <AppText variant="sectionTitle">Waiting for review</AppText>
+      <View className="mt-4 flex-row items-center justify-between">
+        <AppText style={{ fontSize: 26, lineHeight: 31, fontWeight: "900" }}>
+          Waiting for review
+        </AppText>
         <View className="min-w-12 items-center rounded-full bg-infoSoft px-3 py-1.5">
           <AppText variant="label">{items.length}</AppText>
         </View>
       </View>
 
       {items.length > 0 ? (
-        <View className="mt-3 gap-3">
+        <View className="mt-2 gap-2">
           {items.map((item) => (
             <Pressable
               key={item.submissionId}
@@ -376,18 +390,23 @@ export function ParentReviewsContent({
                 setError(null);
               }}
             >
-              <Surface className="min-h-[118px] flex-row items-center p-3">
+              <Surface className="min-h-[96px] flex-row items-center p-2">
                 <Image
                   source={getArtwork(item.title)}
-                  className="h-24 w-24 rounded-control bg-infoSoft"
+                  className="h-20 w-20 rounded-control bg-infoSoft"
                   contentFit="contain"
                 />
                 <View className="ml-3 flex-1">
                   <View className="flex-row items-start">
                     <View className="flex-1">
-                      <AppText variant="cardTitle">{item.title}</AppText>
+                      <AppText className="text-[18px] font-extrabold leading-[21px]">
+                        {item.title}
+                      </AppText>
                       <View className="mt-0.5 flex-row flex-wrap items-center gap-2">
-                        <AppText variant="cardTitle" color="urgency">
+                        <AppText
+                          color="urgency"
+                          className="text-[18px] font-extrabold leading-[21px]"
+                        >
                           {item.valueSek} kr
                         </AppText>
                         {item.isUnlockChore ? (
@@ -423,12 +442,12 @@ export function ParentReviewsContent({
                       </View>
                     ) : null}
                   </View>
-                  <View className="mt-2 flex-row items-center">
+                  <View className="mt-1 flex-row items-center">
                     {avatarForName(item.childDisplayName) ? (
                       <DirectionCAvatar
                         source={avatarForName(item.childDisplayName)}
                         tone={childAvatarTone(item.childDisplayName)}
-                        className="h-9 w-9"
+                        className="h-7 w-7"
                       />
                     ) : (
                       <View className="h-8 w-8 items-center justify-center rounded-full bg-rewardSoft">
@@ -485,21 +504,22 @@ export function ParentReviewsContent({
         </Surface>
       ) : null}
 
-      <Surface
-        tone="lavender"
-        elevated={false}
-        className="mt-5 flex-row items-center p-3"
-      >
-        <DirectionCIcon
-          name="info"
-          color={DirectionC.color.inkMuted}
-          size={23}
-        />
-        <AppText variant="bodySmall" className="ml-3 flex-1">
-          Approval creates the earning. A first rejection requires one Redo
-          deadline.
-        </AppText>
-      </Surface>
+      <View style={{ marginTop: "auto", paddingTop: 20 }}>
+        <Surface
+          tone="lavender"
+          elevated={false}
+          className="flex-row items-center p-3"
+        >
+          <DirectionCIcon
+            name="info"
+            color={DirectionC.color.inkMuted}
+            size={23}
+          />
+          <AppText variant="bodySmall" className="ml-3 flex-1">
+            Approval creates the earning. Rejection requires one Redo deadline.
+          </AppText>
+        </Surface>
+      </View>
 
       <Modal
         visible={selected !== null}
@@ -511,17 +531,19 @@ export function ParentReviewsContent({
           <SafeAreaView
             edges={["bottom"]}
             className="flex-1 bg-canvas"
-            style={{ paddingTop: insets.top }}
+            style={{ paddingTop: Math.max(0, insets.top - 12) }}
           >
             <View className="px-5">
               <TopBar
                 title={settingRedo ? "Set Redo deadline" : "Review work"}
+                titleStyle={{ fontSize: 22, lineHeight: 27 }}
                 onBack={() =>
                   settingRedo ? setSettingRedo(false) : setSelected(null)
                 }
               />
             </View>
             <ScrollView
+              className="flex-1"
               contentContainerClassName="px-5 pb-7"
               showsVerticalScrollIndicator={false}
             >
@@ -558,7 +580,14 @@ export function ParentReviewsContent({
                     >
                       {selected.childDisplayName}
                     </AppText>
-                    <AppText variant="sectionTitle" className="mt-0.5">
+                    <AppText
+                      className="mt-0.5"
+                      style={{
+                        fontSize: 24,
+                        lineHeight: 29,
+                        fontWeight: "900",
+                      }}
+                    >
                       {selected.title}
                     </AppText>
                     <View className="mt-2 flex-row gap-2">
@@ -652,7 +681,10 @@ export function ParentReviewsContent({
                       </AppText>
                     </View>
                   </Surface>
-                  <AppText variant="sectionTitle" className="mt-5">
+                  <AppText
+                    className="mt-5"
+                    style={{ fontSize: 24, lineHeight: 29, fontWeight: "900" }}
+                  >
                     New deadline
                   </AppText>
                   <Surface className="mt-3 px-4 py-3">
@@ -748,7 +780,11 @@ export function ParentReviewsContent({
                       color={DirectionC.color.ink}
                       size={23}
                     />
-                    <AppText variant="bodySmall" className="ml-3 flex-1">
+                    <AppText
+                      variant="bodySmall"
+                      className="ml-3 flex-1"
+                      style={{ fontSize: 13, lineHeight: 18 }}
+                    >
                       Extras stay locked until the Redo is approved.{"\n"}
                       {selected.kind === "personal"
                         ? `If this Personal Chore fails, ${selected.childDisplayName} earns 0 kr with no penalty.`
@@ -761,7 +797,9 @@ export function ParentReviewsContent({
                   {selected.description ? (
                     <View className="mt-4">
                       <AppText variant="cardTitle">Parent instructions</AppText>
-                      <AppText className="mt-1">{selected.description}</AppText>
+                      <AppText variant="bodySmall" className="mt-1">
+                        {selected.description}
+                      </AppText>
                     </View>
                   ) : null}
                   {selected.hasEvidence ? (
@@ -792,7 +830,10 @@ export function ParentReviewsContent({
               ) : null}
             </ScrollView>
 
-            <View className="border-t border-line bg-surfaceRaised px-5 pt-3">
+            <View
+              className="border-t border-line bg-surfaceRaised px-5 pt-3"
+              style={{ paddingBottom: insets.bottom + 16 }}
+            >
               {settingRedo ? (
                 <View>
                   <AppText

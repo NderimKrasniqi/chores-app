@@ -35,7 +35,8 @@ Approved Direction C screens define the visual target. Production illustrations 
 | `extras-unlocked.png`             | Child Extras references                                                          | Extras lock/unlock motif             |
 | `extras-lock.png`                 | `child-extras-gate-approved.png`                                                 | Locked Extras state                  |
 | `extras-open-lock.png`            | `child-extras-pool-approved.png`                                                 | Unlocked Extras state                |
-| `activity-empty.png`              | Child and Parent activity-empty references                                       | Shared empty activity state          |
+| `activity-empty.png`              | `child-activity-empty-approved.png`                                             | Child Activity empty-state artwork   |
+| `activity-empty-parent.png`       | `parent-activity-empty-approved.png`                                            | Parent Activity empty-state artwork  |
 | `activity-celebration.png`        | `child-activity-celebration-approved.png`                                        | Child approval celebration badge     |
 | `activity-celebration-parent.png` | `parent-activity-celebration-approved.png`                                       | Parent approval celebration badge    |
 | `one-step-note.png`               | `child-active-claim-approved.png`                                                | Active claim next-step note          |
@@ -47,6 +48,9 @@ Approved Direction C screens define the visual target. Production illustrations 
 | `chore-laundry.png`               | Child Activity and Extras references                                             | Fold-laundry cards                   |
 | `chore-plants.png`                | Child Activity and Extras references                                             | Water-plants cards                   |
 | `chore-dishwasher.png`            | Child Activity and Extras references                                             | Load-dishwasher cards                |
+| `parent-activity-chore-table-no-confetti-v2.png` | `parent-activity-approved.png` | Parent Activity table card; original scene retained, confetti removed |
+| `parent-activity-laundry-no-confetti-v2.png` | `parent-activity-approved.png` | Parent Activity laundry card; original scene retained, confetti removed |
+| `parent-activity-dishwasher-no-confetti-v2.png` | `parent-activity-approved.png` | Parent Activity dishwasher card; original scene retained, confetti removed |
 | `chore-bedroom.png`               | `child-home-approved.png`, Child Chore Detail references                         | Clean-your-room cards                |
 | `chore-dog-bowl.png`              | `child-home-approved.png`                                                        | Feed-the-dog cards                   |
 | `chore-dog-walk.png`              | Child Extras and Activity references                                             | Walk-the-dog cards                   |

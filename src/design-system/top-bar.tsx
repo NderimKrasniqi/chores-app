@@ -1,7 +1,7 @@
 import { DirectionCIcon } from "@/components/ui/direction-c-icon";
 import { DirectionC } from "@/constants/direction-c";
 import type { ReactNode } from "react";
-import { Pressable, View } from "react-native";
+import { Pressable, type StyleProp, type TextStyle, View } from "react-native";
 
 import { AppText } from "./text";
 
@@ -10,11 +10,13 @@ export function TopBar({
   onBack,
   backLabel = "Back",
   trailing,
+  titleStyle,
 }: {
   title: string;
   onBack?: () => void;
   backLabel?: string;
   trailing?: ReactNode;
+  titleStyle?: StyleProp<TextStyle>;
 }) {
   return (
     <View className="h-14 flex-row items-center justify-between">
@@ -31,7 +33,11 @@ export function TopBar({
         <View className="h-11 w-11" />
       )}
 
-      <AppText variant="sectionTitle" className="text-center">
+      <AppText
+        variant="sectionTitle"
+        className="text-center"
+        style={titleStyle}
+      >
         {title}
       </AppText>
 

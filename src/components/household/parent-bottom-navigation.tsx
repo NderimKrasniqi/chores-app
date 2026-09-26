@@ -44,7 +44,7 @@ export function ParentBottomNavigation({
     (personal?.length ?? 0) + (claimable?.length ?? 0) + (redos?.length ?? 0);
 
   return (
-    <View className="min-h-bottom-navigation flex-row border-t border-line bg-surfaceRaised px-2 pt-2">
+    <View className="min-h-[48px] flex-row rounded-t-sheet bg-surfaceRaised px-1.5 pt-1">
       {items.map((item) => {
         const active = activeSection === item.section;
         return (
@@ -53,15 +53,27 @@ export function ParentBottomNavigation({
             accessibilityRole="button"
             accessibilityState={{ selected: active }}
             onPress={() => onSelect(item.section)}
-            className="min-h-[64px] flex-1 items-center justify-start pt-1"
+            className="min-h-[46px] flex-1 items-center justify-center"
           >
-            <View className="relative h-8 w-10 items-center justify-center">
+            <View className="relative h-7 w-10 items-center justify-center">
               <DirectionCIcon
-                name={item.icon}
+                name={
+                  active
+                    ? item.icon
+                    : item.icon === "home"
+                      ? "home"
+                      : item.icon === "chores"
+                        ? "choresOutline"
+                        : item.icon === "reviews"
+                          ? "reviewsOutline"
+                          : item.icon === "money"
+                            ? "moneyOutline"
+                            : "familyOutline"
+                }
                 color={
                   active ? DirectionC.color.green : DirectionC.color.inkMuted
                 }
-                size={25}
+                size={26}
               />
               {item.section === "reviews" && reviewCount > 0 ? (
                 <View className="absolute -right-1 -top-1 min-w-5 items-center rounded-full bg-urgency px-1 py-0.5">
@@ -74,7 +86,7 @@ export function ParentBottomNavigation({
             <AppText
               variant="caption"
               color={active ? "action" : "ink-muted"}
-              className="mt-0.5"
+              className={`mt-0.5 ${active ? "font-black" : ""}`}
             >
               {item.label}
             </AppText>

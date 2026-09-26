@@ -8,6 +8,13 @@ import { View } from "react-native";
 
 import type { Id } from "../../../convex/_generated/dataModel";
 
+const celebrationVisibilityMs = __DEV__ ? 30_000 : 6_000;
+// Shells use different insets; these keep the marker axis on the approved x-coordinate.
+const timelineGeometry = {
+  parent: { markerOffsetX: -1.25, railLeft: 7.75 },
+  child: { markerOffsetX: -8.25, railLeft: 0.75 },
+} as const;
+
 const artwork = {
   bedroom: require("../../../assets/images/direction-c/chore-bedroom.png"),
   dishwasher: require("../../../assets/images/direction-c/chore-dishwasher.png"),
@@ -18,17 +25,25 @@ const artwork = {
   table: require("../../../assets/images/direction-c/chore-table.png"),
 };
 
+const parentActivityArtwork = {
+  dishwasher: require("../../../assets/images/direction-c/parent-activity-dishwasher-no-confetti-v2.png"),
+  laundry: require("../../../assets/images/direction-c/parent-activity-laundry-no-confetti-v2.png"),
+  table: require("../../../assets/images/direction-c/parent-activity-chore-table-no-confetti-v2.png"),
+};
+
 const emptyActivityArtwork = require("../../../assets/images/direction-c/activity-empty.png");
+const parentEmptyActivityArtwork = require("../../../assets/images/direction-c/activity-empty-parent.png");
 const celebrationArtwork = require("../../../assets/images/direction-c/activity-celebration.png");
 const parentCelebrationArtwork = require("../../../assets/images/direction-c/activity-celebration-parent.png");
 
-function artworkForTitle(title: string) {
+function artworkForTitle(title: string, parentMode: boolean) {
   const normalized = title.toLowerCase();
   if (normalized.includes("dishwasher") || normalized.includes("dishes"))
-    return artwork.dishwasher;
-  if (normalized.includes("table")) return artwork.table;
+    return parentMode ? parentActivityArtwork.dishwasher : artwork.dishwasher;
+  if (normalized.includes("table"))
+    return parentMode ? parentActivityArtwork.table : artwork.table;
   if (normalized.includes("laundry") || normalized.includes("fold"))
-    return artwork.laundry;
+    return parentMode ? parentActivityArtwork.laundry : artwork.laundry;
   if (normalized.includes("plant") || normalized.includes("water"))
     return artwork.plants;
   if (normalized.includes("dog") || normalized.includes("walk"))
@@ -92,29 +107,54 @@ function ActivityCard({
   item,
   timezone,
   viewerChildId,
+  parentMode,
 }: {
   item: ApprovalActivityItem;
   timezone: string;
   viewerChildId?: Id<"children">;
+  parentMode: boolean;
 }) {
   const mine = item.childId === viewerChildId;
-  const artworkSource = artworkForTitle(item.choreTitle);
+  const artworkSource = artworkForTitle(item.choreTitle, parentMode);
   return (
-    <View className="flex-row">
-      <View className="w-5 items-center">
-        <View className="mt-[47px] h-3 w-3 rounded-full bg-action" />
-        <View className="w-0.5 flex-1 bg-actionSoftStrong" />
+    <View className="mb-2 flex-row items-center">
+      <View className="w-5 items-center justify-center">
+        <View
+          className="z-10 h-[15px] w-[15px] rounded-full bg-action"
+          style={{
+            transform: [
+              {
+                translateX: parentMode
+                  ? timelineGeometry.parent.markerOffsetX
+                  : timelineGeometry.child.markerOffsetX,
+              },
+              { translateY: -6 },
+            ],
+          }}
+        />
       </View>
-      <Surface className="mb-2 ml-2 min-h-[100px] flex-1 flex-row items-center p-2.5">
+      <Surface
+        elevated={false}
+        className="min-h-[104px] flex-1 flex-row items-center py-1.5 pl-3 pr-1.5"
+      >
         {artworkSource ? (
           <Image
             source={artworkSource}
-            className="h-[84px] w-[84px] rounded-control bg-[#F7EDDF]"
+            className={
+              parentMode
+                ? "h-[94px] w-[94px] rounded-control bg-[#F7EDDF]"
+                : "h-[90px] w-[90px] rounded-control bg-[#F7EDDF]"
+            }
+            style={
+              parentMode && item.choreTitle.toLowerCase().includes("dog")
+                ? { transform: [{ scaleX: -1 }] }
+                : undefined
+            }
             contentFit="contain"
             accessible={false}
           />
         ) : (
-          <View className="h-[84px] w-[84px] items-center justify-center rounded-control bg-rewardSoft">
+          <View className="h-[90px] w-[90px] items-center justify-center rounded-control bg-rewardSoft">
             <DirectionCIcon
               name={item.choreKind === "claimable" ? "star" : "chores"}
               color={DirectionC.color.greenDeep}
@@ -122,24 +162,42 @@ function ActivityCard({
             />
           </View>
         )}
-        <View className="ml-3 flex-1">
+        <View className="ml-[18px] flex-1">
           <AppText
-            className="text-[17px] font-extrabold leading-[20px]"
+            className={
+              parentMode
+                ? "text-[18px] font-extrabold leading-[22px]"
+                : "text-[17px] font-extrabold leading-[20px]"
+            }
             numberOfLines={2}
           >
             {mine ? "You" : item.childDisplayName} completed{`\n`}
             {item.choreTitle}
           </AppText>
-          <AppText variant="caption" color="ink-muted" className="mt-1">
+          <AppText
+            variant="caption"
+            color="ink-muted"
+            className="mt-1"
+            numberOfLines={parentMode ? 1 : undefined}
+            adjustsFontSizeToFit={parentMode}
+            minimumFontScale={parentMode ? 0.82 : undefined}
+            style={parentMode ? { fontSize: 13, lineHeight: 18 } : undefined}
+          >
             {item.choreKind === "claimable"
               ? "Claimable chore"
               : "Personal chore"}{" "}
             · {formatApprovedAt(item.approvedAt, timezone)}
           </AppText>
         </View>
-        <View className="rounded-control bg-actionSoft px-2 py-2">
+        <View
+          className={`rounded-control bg-actionSoft ${parentMode ? "px-3" : "px-2"} py-2`}
+        >
           <AppText
-            className="text-[18px] font-extrabold leading-[22px]"
+            className={
+              parentMode
+                ? "text-[20px] font-extrabold leading-[24px]"
+                : "text-[18px] font-extrabold leading-[22px]"
+            }
             color="action"
           >
             +{item.valueSek} kr
@@ -181,6 +239,10 @@ export function ApprovalActivitySurface({
     celebrationStyle === "parent"
       ? parentCelebrationArtwork
       : celebrationArtwork;
+  const emptyArtwork =
+    celebrationStyle === "parent"
+      ? parentEmptyActivityArtwork
+      : emptyActivityArtwork;
   const [celebration, setCelebration] = useState<ApprovalActivityItem | null>(
     initialCelebrationItem ?? null,
   );
@@ -206,7 +268,7 @@ export function ApprovalActivitySurface({
     timeoutRef.current = setTimeout(() => {
       setCelebration(null);
       timeoutRef.current = null;
-    }, 6000);
+    }, celebrationVisibilityMs);
   }, [items]);
 
   useEffect(
@@ -244,30 +306,61 @@ export function ApprovalActivitySurface({
         <Surface
           tone="mint"
           elevated={false}
-          className="mt-2 min-h-[112px] flex-row items-center overflow-hidden p-4"
+          className={`flex-row items-center overflow-hidden ${celebrationStyle === "parent" ? "mt-0 min-h-[72px] px-2 py-2" : "mt-2 min-h-[84px] p-3"}`}
+          style={
+            celebrationStyle === "parent"
+              ? { backgroundColor: "#EFFAE4" }
+              : undefined
+          }
           testID="household-approval-celebration"
         >
           <View className="absolute left-5 top-2 h-3 w-1.5 rotate-[-35deg] rounded-full bg-action" />
-          <View className="absolute left-[102px] top-2 h-3 w-1.5 rotate-[28deg] rounded-full bg-reward" />
+          <View
+            className={`absolute ${celebrationStyle === "parent" ? "left-[74px]" : "left-[102px]"} top-2 h-3 w-1.5 rotate-[28deg] rounded-full bg-reward`}
+          />
           <View className="absolute bottom-2 left-3 h-3 w-1.5 rotate-[-38deg] rounded-full bg-reward" />
           <View className="absolute right-5 top-2 h-3 w-1.5 rotate-[-38deg] rounded-full bg-reward" />
           <View className="absolute bottom-2 right-5 h-3 w-1.5 rotate-[38deg] rounded-full bg-action" />
           <Image
             source={celebrationImage}
-            className="h-[72px] w-[72px]"
-            contentFit="contain"
+            className={
+              celebrationStyle === "parent"
+                ? "h-[52px] w-[64px]"
+                : "h-[60px] w-[80px]"
+            }
+            contentFit="fill"
             accessible={false}
           />
-          <View className="ml-2 flex-1">
+          <View
+            className={`flex-1 ${celebrationStyle === "parent" ? "ml-3" : "ml-[25px]"}`}
+          >
             <AppText
               variant="cardTitle"
+              style={
+                celebrationStyle === "parent"
+                  ? { fontSize: 18, lineHeight: 22 }
+                  : undefined
+              }
+              numberOfLines={1}
+              adjustsFontSizeToFit={celebrationStyle === "parent"}
+              minimumFontScale={
+                celebrationStyle === "parent" ? 0.85 : undefined
+              }
               testID="household-approval-celebration-title"
             >
               Household win!
             </AppText>
             <AppText
-              className="mt-0.5 text-[13px] leading-[16px]"
-              numberOfLines={2}
+              className={
+                celebrationStyle === "parent"
+                  ? "mt-0.5 text-[12px] leading-[16px]"
+                  : "mt-0.5 text-[13px] leading-[16px]"
+              }
+              numberOfLines={celebrationStyle === "parent" ? 1 : 2}
+              adjustsFontSizeToFit={celebrationStyle === "parent"}
+              minimumFontScale={
+                celebrationStyle === "parent" ? 0.85 : undefined
+              }
             >
               {actorName(celebration, viewerChildId)} completed{" "}
               {celebration.choreTitle}
@@ -282,10 +375,13 @@ export function ApprovalActivitySurface({
             )}
           </View>
           {celebrationStyle === "parent" ? (
-            <View className="rounded-control bg-actionSoft px-2 py-2">
+            <View className="ml-1 shrink-0 rounded-control bg-actionSoft px-2 py-1">
               <AppText
-                className="text-[16px] font-extrabold leading-[20px]"
+                className="text-[12px] font-extrabold leading-[16px]"
                 color="action"
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.85}
               >
                 +{celebration.valueSek} kr approved
               </AppText>
@@ -300,56 +396,139 @@ export function ApprovalActivitySurface({
           <Surface
             tone="lavender"
             elevated={false}
-            className="mt-3 flex-row items-center p-3"
+            className={`flex-row items-center px-5 ${celebrationStyle === "parent" ? "mt-5" : "mt-3"}`}
+            style={{
+              height:
+                celebrationStyle === "parent"
+                  ? celebration
+                    ? 64
+                    : 68
+                  : celebration
+                    ? 68
+                    : 64,
+            }}
           >
-            <View className="h-10 w-10 items-center justify-center rounded-full bg-infoSoftStrong">
+            <View className="h-[52px] w-[52px] items-center justify-center rounded-full">
               <DirectionCIcon
-                name="lock"
+                name="info"
                 color={DirectionC.color.ink}
-                size={23}
+                size={30}
               />
             </View>
-            <AppText variant="caption" className="ml-3 flex-1">
+            <AppText
+              className="ml-4 flex-1"
+              style={{ fontSize: 15, lineHeight: 21, fontWeight: "500" }}
+            >
               {privacyCopy}
             </AppText>
           </Surface>
 
           {items.length === 0 ? (
             <View
-              className="flex-1 items-center px-5 pb-8 pt-14"
+              className={`flex-1 items-center px-5 pb-8 ${celebrationStyle === "parent" ? "pt-[42px]" : "pt-[46px]"}`}
               testID="household-approval-activity"
             >
               <Image
-                source={emptyActivityArtwork}
+                source={emptyArtwork}
                 className="h-[245px] w-full"
+                style={{
+                  transform:
+                    celebrationStyle === "parent"
+                      ? [
+                          { scaleX: 1.26 },
+                          { scaleY: 1.3 },
+                          { translateY: -6 },
+                        ]
+                      : [{ scaleX: 1.14 }, { scaleY: 1.19 }],
+                }}
                 contentFit="contain"
                 accessible={false}
               />
-              <AppText variant="sectionTitle" className="mt-6 text-center">
+              <AppText
+                variant="sectionTitle"
+                className="mt-6 text-center"
+                style={
+                  celebrationStyle === "parent"
+                    ? { fontSize: 30, lineHeight: 36 }
+                    : undefined
+                }
+              >
                 {emptyTitle}
               </AppText>
-              <AppText className="mt-2 text-center">{emptyBody}</AppText>
+              <AppText
+                className="mt-3 w-[90%] text-center leading-[26px]"
+                style={
+                  celebrationStyle === "parent"
+                    ? { fontSize: 18, lineHeight: 26 }
+                    : undefined
+                }
+              >
+                {emptyBody}
+              </AppText>
               {onOpenChores ? (
                 <ActionButton
-                  className="mt-6 w-[80%]"
-                  tone="soft"
+                  tone={celebrationStyle === "parent" ? "soft" : "primary"}
+                  className={`mt-10 h-[60px] ${celebrationStyle === "parent" ? "w-[90%]" : "w-[77%]"} rounded-full`}
+                  labelStyle={
+                    celebrationStyle === "parent"
+                      ? { color: DirectionC.color.ink }
+                      : undefined
+                  }
+                  style={{
+                    backgroundColor:
+                      celebrationStyle === "parent" ? "#BAE7C5" : undefined,
+                    shadowColor: "#3B2458",
+                    shadowOpacity: 0.09,
+                    shadowRadius: 16,
+                    shadowOffset: { width: 0, height: 6 },
+                    elevation: 4,
+                  }}
                   label={emptyActionLabel}
                   onPress={onOpenChores}
                 />
               ) : null}
             </View>
           ) : (
-            <View className="mt-4" testID="household-approval-activity">
+            <View
+              className={
+                celebration
+                  ? "mt-1"
+                  : celebrationStyle === "parent"
+                    ? "mt-[14px]"
+                    : "mt-3"
+              }
+              testID="household-approval-activity"
+            >
               {today.length > 0 ? (
                 <>
-                  <AppText variant="sectionTitle">Today</AppText>
-                  <View className="mt-2">
+                  <AppText
+                    variant="sectionTitle"
+                    style={
+                      celebrationStyle === "parent"
+                        ? { fontSize: 20, lineHeight: 28 }
+                        : undefined
+                    }
+                  >
+                    Today
+                  </AppText>
+                  <View className="relative mt-2">
+                    <View
+                      pointerEvents="none"
+                      className="absolute bottom-2 top-0 w-0.5 rounded-full bg-[#DDE3DD]"
+                      style={{
+                        left:
+                          celebrationStyle === "parent"
+                            ? timelineGeometry.parent.railLeft
+                            : timelineGeometry.child.railLeft,
+                      }}
+                    />
                     {today.map((item) => (
                       <ActivityCard
                         key={item.activityId}
                         item={item}
                         timezone={timezone}
                         viewerChildId={viewerChildId}
+                        parentMode={celebrationStyle === "parent"}
                       />
                     ))}
                   </View>
@@ -359,17 +538,41 @@ export function ApprovalActivitySurface({
                 <>
                   <AppText
                     variant="sectionTitle"
-                    className={today.length > 0 ? "mt-3" : ""}
+                    className={
+                      today.length > 0
+                        ? celebration
+                          ? "mt-0"
+                          : celebrationStyle === "parent"
+                            ? "mt-[13px]"
+                            : "mt-[17px]"
+                        : ""
+                    }
+                    style={
+                      celebrationStyle === "parent"
+                        ? { fontSize: 20, lineHeight: 28 }
+                        : undefined
+                    }
                   >
                     Earlier this week
                   </AppText>
-                  <View className="mt-2">
+                  <View className="relative mt-2">
+                    <View
+                      pointerEvents="none"
+                      className="absolute bottom-2 top-0 w-0.5 rounded-full bg-[#DDE3DD]"
+                      style={{
+                        left:
+                          celebrationStyle === "parent"
+                            ? timelineGeometry.parent.railLeft
+                            : timelineGeometry.child.railLeft,
+                      }}
+                    />
                     {earlier.map((item) => (
                       <ActivityCard
                         key={item.activityId}
                         item={item}
                         timezone={timezone}
                         viewerChildId={viewerChildId}
+                        parentMode={celebrationStyle === "parent"}
                       />
                     ))}
                   </View>

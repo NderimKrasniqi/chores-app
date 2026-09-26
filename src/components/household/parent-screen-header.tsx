@@ -8,22 +8,32 @@ export function ParentScreenHeader({
   title,
   subtitle,
   onOpenAccount,
+  compact = false,
 }: {
   title: string;
   subtitle: string;
   onOpenAccount: () => void;
+  compact?: boolean;
 }) {
   return (
-    <View className="flex-row items-center">
-      <View className="flex-1 pr-4">
-        <AppText variant="display">{title}</AppText>
-        <AppText className="mt-1">{subtitle}</AppText>
+    <View className="flex-row items-center px-1">
+      <View className="flex-1">
+        <AppText variant="display" style={{ fontSize: 36, lineHeight: 40 }}>
+          {title}
+        </AppText>
+        <AppText
+          variant={compact ? "body" : "bodySmall"}
+          className={compact ? "mt-0" : "mt-1"}
+          style={compact ? { fontSize: 17, lineHeight: 20 } : undefined}
+        >
+          {subtitle}
+        </AppText>
       </View>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Open Parent account"
         onPress={onOpenAccount}
-        className="h-[64px] w-[64px]"
+        className="h-[76px] w-[76px]"
       >
         <DirectionCAvatar
           source={parentAvatar}

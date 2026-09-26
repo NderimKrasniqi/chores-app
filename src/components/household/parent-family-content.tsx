@@ -57,14 +57,14 @@ function ChildAccessRow({
 
   return (
     <Pressable accessibilityRole="button" onPress={onOpen}>
-      <Surface className="min-h-[62px] flex-row items-center px-3 py-2">
+      <Surface className="h-[64px] min-h-[64px] flex-row items-center px-3 py-0">
         <DirectionCAvatar
           source={childAvatar(child.displayName)}
           tone={childAvatarTone(child.displayName)}
-          className="h-12 w-12"
+          className="h-16 w-16"
           fallbackLabel={child.displayName}
         />
-        <View className="ml-3 flex-1">
+        <View className="ml-4 flex-1">
           <AppText variant="cardTitle">{child.displayName}</AppText>
           <View className="mt-1 flex-row items-center">
             <DirectionCIcon
@@ -120,17 +120,23 @@ export function ParentFamilyContent({
       <Surface
         tone="lavender"
         elevated={false}
-        className="mt-3 h-[116px] overflow-hidden p-3"
+        className="mt-2 h-[124px] overflow-hidden p-3"
       >
         <Image
           source={familyArtwork}
-          className="absolute -bottom-8 -left-2 h-[158px] w-[178px]"
+          className="absolute -bottom-10 -left-2 h-[180px] w-[210px]"
           contentFit="contain"
           accessible={false}
         />
-        <View className="ml-[50%] flex-1 justify-center">
-          <AppText variant="sectionTitle">{household.name}</AppText>
-          <AppText className="mt-1">
+        <View className="ml-[52%] flex-1 -translate-y-2 translate-x-2 justify-center">
+          <AppText
+            variant="sectionTitle"
+            style={{ fontSize: 21, lineHeight: 25 }}
+            numberOfLines={1}
+          >
+            {household.name}
+          </AppText>
+          <AppText className="mt-1" style={{ fontSize: 17, lineHeight: 22 }}>
             {household.children.length}{" "}
             {household.children.length === 1 ? "child" : "children"} ·{" "}
             {household.parents.length}{" "}
@@ -139,10 +145,14 @@ export function ParentFamilyContent({
         </View>
       </Surface>
 
-      <AppText variant="sectionTitle" className="mt-3">
+      <AppText
+        variant="sectionTitle"
+        className="ml-1 mt-2"
+        style={{ fontSize: 19, lineHeight: 24 }}
+      >
         Children
       </AppText>
-      <View className="mt-2 gap-2">
+      <View className="mt-3 gap-2">
         {household.children.map((child) => (
           <ChildAccessRow
             key={child.childId}
@@ -153,29 +163,33 @@ export function ParentFamilyContent({
         ))}
       </View>
 
-      <AppText variant="sectionTitle" className="mt-3">
+      <AppText
+        variant="sectionTitle"
+        className="ml-1 mt-2"
+        style={{ fontSize: 19, lineHeight: 24 }}
+      >
         Parents
       </AppText>
       <View className="mt-2 gap-2">
         {household.parents.map((parent) => (
           <Surface
             key={parent.membershipId}
-            className="min-h-[62px] flex-row items-center px-3 py-2"
+            className="h-[64px] min-h-[64px] flex-row items-center px-3 py-0"
           >
             {parent.isCurrent ? (
               <DirectionCAvatar
                 source={parentAvatar}
                 tone="parent"
-                className="h-12 w-12"
+                className="h-16 w-16"
               />
             ) : (
-              <View className="h-12 w-12 items-center justify-center rounded-full bg-infoSoftStrong">
+              <View className="h-16 w-16 items-center justify-center rounded-full bg-infoSoftStrong">
                 <AppText variant="cardTitle">
                   {parent.displayName.trim().charAt(0).toUpperCase()}
                 </AppText>
               </View>
             )}
-            <View className="ml-3 flex-1">
+            <View className="ml-4 flex-1">
               <AppText variant="cardTitle">{parent.displayName}</AppText>
               <AppText variant="bodySmall" className="mt-1">
                 {parent.isCurrent ? "You · Equal authority" : "Equal authority"}
@@ -220,8 +234,14 @@ export function ParentFamilyContent({
         />
       </Modal>
 
-      <View className="mt-4 flex-row items-center justify-between">
-        <AppText variant="sectionTitle">Household</AppText>
+      <View className="mt-3 flex-row items-center justify-between">
+        <AppText
+          variant="sectionTitle"
+          className="ml-1"
+          style={{ fontSize: 19, lineHeight: 24 }}
+        >
+          Household
+        </AppText>
         <Pressable
           accessibilityRole="button"
           onPress={onOpenSettings}

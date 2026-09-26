@@ -20,13 +20,20 @@ import {
   DirectionCAvatar,
 } from "@/components/ui/direction-c-avatar";
 import { DirectionC } from "@/constants/direction-c";
-import { AppText, Surface } from "@/design-system";
+import { AppText, DesignTokens, Surface } from "@/design-system";
 import { useAuthRuntime } from "@/providers/auth-runtime-provider";
 import { useQuery } from "convex/react";
 import { AppImage as Image } from "@/components/ui/app-image";
+import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { api } from "../../../convex/_generated/api";
@@ -45,6 +52,21 @@ function childAvatar(displayName: string) {
 type EntryChoiceScreenProps = {
   onChooseParent: () => void;
 };
+
+const styles = StyleSheet.create({
+  parentChoice: {
+    minHeight: 104,
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+  },
+  childChoice: {
+    minHeight: 84,
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 14,
+  },
+});
 
 /*
  * Only one automatic single-Child open
@@ -505,32 +527,37 @@ export function EntryChoiceScreen({ onChooseParent }: EntryChoiceScreenProps) {
     <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-canvas">
       <StatusBar style="dark" />
       <ScrollView
-        contentContainerClassName="flex-grow px-5 pb-6 pt-10"
+        contentContainerClassName="flex-grow px-5 pb-6 pt-2"
         showsVerticalScrollIndicator={false}
       >
-        <View className="min-h-[250px]">
-          <View className="relative z-10">
-            <AppText
-              variant="label"
-              color="ink-faint"
-              className="uppercase tracking-widest"
-            >
-              Chores App
-            </AppText>
-            <AppText variant="display" className="mt-4 w-[70%]">
-              Who’s using this device?
-            </AppText>
-            <AppText className="mt-3 w-[82%]">
-              Choose a saved Child profile, sign in{"\n"}as a Parent, or pair
-              another Child.
-            </AppText>
+        <View className="min-h-[214px]">
+          <View className="flex-row items-start">
+            <View className="min-w-0 flex-1">
+              <AppText
+                variant="label"
+                color="ink-faint"
+                className="uppercase tracking-widest"
+              >
+                Chores App
+              </AppText>
+              <AppText
+                variant="display"
+                className="mt-2 text-[34px] leading-[40px]"
+              >
+                Who’s using this device?
+              </AppText>
+            </View>
+            <Image
+              source={chooserHero}
+              className="h-36 w-36"
+              contentFit="contain"
+              accessible={false}
+            />
           </View>
-          <Image
-            source={chooserHero}
-            className="absolute -right-16 top-2 z-0 h-60 w-48"
-            contentFit="contain"
-            accessible={false}
-          />
+          <AppText className="mt-2 text-[14px] leading-[21px]">
+            Choose a saved Child profile, sign in as a Parent, or pair another
+            Child.
+          </AppText>
         </View>
 
         {localChildContexts.length > 0 ? (
@@ -548,20 +575,29 @@ export function EntryChoiceScreen({ onChooseParent }: EntryChoiceScreenProps) {
                 key={context.contextId}
                 accessibilityRole="button"
                 accessibilityLabel={`Open ${context.childDisplayName} in ${context.householdName}`}
-                className="mt-3 min-h-[92px] flex-row items-center rounded-large bg-surface p-3 shadow-md"
+                className="-mx-[6px] mt-3 min-h-[116px] flex-row items-center rounded-large bg-surface px-3 py-2"
+                style={DesignTokens.shadowStyle.card}
                 onPress={() => handleChooseSavedChild(context)}
               >
                 <DirectionCAvatar
                   source={childAvatar(context.childDisplayName)}
                   tone={childAvatarTone(context.childDisplayName)}
-                  className="h-[76px] w-[76px]"
+                  className="h-[100px] w-[100px]"
                   fallbackLabel={context.childDisplayName}
                 />
-                <View className="ml-4 flex-1">
-                  <AppText variant="sectionTitle">
+                <View className="ml-7 flex-1">
+                  <AppText
+                    variant="sectionTitle"
+                    className="text-[30px] leading-[34px]"
+                  >
                     {context.childDisplayName}
                   </AppText>
-                  <AppText color="ink-muted">{context.householdName}</AppText>
+                  <AppText
+                    color="ink-muted"
+                    className="text-[16px] leading-[22px]"
+                  >
+                    {context.householdName}
+                  </AppText>
                 </View>
                 <DirectionCIcon
                   name="chevron"
@@ -574,60 +610,84 @@ export function EntryChoiceScreen({ onChooseParent }: EntryChoiceScreenProps) {
         ) : null}
 
         <Pressable
+          testID="entry-continue-parent"
           accessibilityRole="button"
           accessibilityLabel="Continue as a parent"
-          className="mt-6 min-h-[94px] flex-row items-center rounded-large bg-actionSoft p-4"
+          className="-mx-[6px] mt-6 overflow-hidden rounded-large"
           onPress={handleChooseParent}
         >
-          <View className="h-14 w-14 items-center justify-center rounded-full bg-actionSoftStrong">
+          <LinearGradient
+            colors={["#D5F4E1", "#D8F5E3"]}
+            start={{ x: 0, y: 0.5 }}
+            end={{ x: 1, y: 0.5 }}
+            style={styles.parentChoice}
+          >
+            <View className="h-[68px] w-[68px] items-center justify-center rounded-full bg-[#E5F8EF]">
+              <DirectionCIcon
+                name="person"
+                color={DirectionC.color.greenDeep}
+                size={36}
+              />
+            </View>
+            <View className="ml-4 flex-1">
+              <AppText variant="cardTitle">I’m a parent</AppText>
+              <AppText
+                variant="bodySmall"
+                color="ink-muted"
+                className="mt-1 text-[13px] leading-[18px]"
+              >
+                Sign in or open the Parent account.
+              </AppText>
+            </View>
             <DirectionCIcon
-              name="person"
-              color={DirectionC.color.greenDeep}
-              size={28}
+              name="chevron"
+              color={DirectionC.color.ink}
+              size={24}
             />
-          </View>
-          <View className="ml-4 flex-1">
-            <AppText variant="cardTitle">I’m a parent</AppText>
-            <AppText variant="bodySmall" color="ink-muted" className="mt-1">
-              Sign in or open the Parent account.
-            </AppText>
-          </View>
-          <DirectionCIcon
-            name="chevron"
-            color={DirectionC.color.ink}
-            size={24}
-          />
+          </LinearGradient>
         </Pressable>
 
         <Pressable
+          testID="entry-pair-child"
           accessibilityRole="button"
           accessibilityLabel="Pair another child"
-          className="mt-4 min-h-[94px] flex-row items-center rounded-large border-2 border-infoSoftStrong bg-surface p-4"
+          className="-mx-[6px] mt-4 overflow-hidden rounded-large border-2 border-infoSoftStrong"
           disabled={startingChildSession}
           onPress={handleAddChild}
         >
-          <View className="h-14 w-14 items-center justify-center rounded-full bg-infoSoft">
+          <LinearGradient
+            colors={["#F8F4FF", "#FFFDF9"]}
+            start={{ x: 0, y: 0.5 }}
+            end={{ x: 1, y: 0.5 }}
+            style={styles.childChoice}
+          >
+            <View className="h-16 w-16 items-center justify-center rounded-full bg-infoSoft">
+              <DirectionCIcon
+                name="devices"
+                color={DirectionC.color.ink}
+                size={36}
+              />
+            </View>
+            <View className="ml-6 flex-1">
+              <AppText variant="cardTitle">
+                {startingChildSession
+                  ? "Starting Child setup…"
+                  : "Pair another child"}
+              </AppText>
+              <AppText
+                variant="bodySmall"
+                color="ink-muted"
+                className="mt-1 text-[12px] leading-4"
+              >
+                Add another Child profile to this device
+              </AppText>
+            </View>
             <DirectionCIcon
-              name="devices"
+              name="chevron"
               color={DirectionC.color.ink}
-              size={28}
+              size={24}
             />
-          </View>
-          <View className="ml-4 flex-1">
-            <AppText variant="cardTitle">
-              {startingChildSession
-                ? "Starting Child setup…"
-                : "Pair another child"}
-            </AppText>
-            <AppText variant="bodySmall" color="ink-muted" className="mt-1">
-              Add another Child profile to this device
-            </AppText>
-          </View>
-          <DirectionCIcon
-            name="chevron"
-            color={DirectionC.color.ink}
-            size={24}
-          />
+          </LinearGradient>
         </Pressable>
 
         {errorMessage ? (
@@ -645,7 +705,7 @@ export function EntryChoiceScreen({ onChooseParent }: EntryChoiceScreenProps) {
         <AppText
           variant="caption"
           color="ink-muted"
-          className="mt-8 text-center"
+          className="mt-10 text-center"
         >
           Saved profiles stay private on this device.
         </AppText>

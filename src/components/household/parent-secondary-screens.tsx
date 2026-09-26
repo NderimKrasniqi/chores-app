@@ -17,7 +17,10 @@ import { useServerConfirmedMutation } from "@/hooks/use-server-confirmed-mutatio
 import { AppImage as Image } from "@/components/ui/app-image";
 import { useState } from "react";
 import { Linking, Modal, Pressable, ScrollView, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
@@ -55,13 +58,22 @@ export function ParentChildAccessScreen({
   onBack: () => void;
   visualFixture?: ParentChildAccessVisualFixture;
 }) {
+  const insets = useSafeAreaInsets();
+
   return (
-    <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-canvas">
-      <View className="px-5">
-        <TopBar title="Child access" onBack={onBack} />
+    <SafeAreaView edges={[]} className="flex-1 bg-canvas">
+      <View
+        className="px-3"
+        style={{ paddingTop: Math.max(0, insets.top - 8) }}
+      >
+        <TopBar
+          title="Child access"
+          onBack={onBack}
+          titleStyle={{ fontSize: 20, lineHeight: 24 }}
+        />
       </View>
       <ScrollView
-        contentContainerClassName="px-5 pb-8 pt-4"
+        contentContainerClassName="px-3 pb-8"
         showsVerticalScrollIndicator={false}
       >
         <ParentChildAccessContent
@@ -90,16 +102,16 @@ function SettingRow({
   onPress?: () => void;
 }) {
   const content = (
-    <View className="min-h-[76px] flex-row items-center px-4">
+    <View className="min-h-[72px] flex-row items-center px-3">
       <View
-        className={`h-12 w-12 items-center justify-center rounded-full ${tone === "mint" ? "bg-actionSoftStrong" : "bg-infoSoft"}`}
+        className={`h-14 w-14 items-center justify-center rounded-full ${tone === "mint" ? "bg-actionSoftStrong" : "bg-infoSoft"}`}
       >
         <DirectionCIcon
           name={icon}
           color={
             tone === "mint" ? DirectionC.color.greenDeep : DirectionC.color.ink
           }
-          size={25}
+          size={24}
         />
       </View>
       <AppText color="ink-muted" className="ml-4 flex-1">
@@ -138,11 +150,15 @@ export function ParentActivityScreen({
 }) {
   return (
     <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-canvas">
-      <View className="px-5">
-        <TopBar title="Activity" onBack={onBack} />
+      <View className="px-3">
+        <TopBar
+          title="Activity"
+          onBack={onBack}
+          titleStyle={{ fontSize: 22, lineHeight: 28 }}
+        />
       </View>
       <ScrollView
-        contentContainerClassName="px-5 pb-8"
+        contentContainerClassName="px-3 pb-8"
         showsVerticalScrollIndicator={false}
       >
         <ParentHouseholdActivity
@@ -151,7 +167,11 @@ export function ParentActivityScreen({
           onAddChore={onAddChore}
           historyHeader={
             <View>
-              <AppText variant="screenTitle" className="mt-3">
+              <AppText
+                variant="screenTitle"
+                className="mt-1"
+                style={{ fontSize: 32, lineHeight: 36 }}
+              >
                 Household activity
               </AppText>
               <AppText variant="bodySmall" className="mt-1">
@@ -186,24 +206,40 @@ export function ParentAccountScreen({
   onSignOut: () => void;
   signingOut: boolean;
 }) {
+  const insets = useSafeAreaInsets();
+
   return (
-    <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-canvas">
-      <View className="px-5">
-        <TopBar title="Account" onBack={onBack} />
+    <SafeAreaView edges={[]} className="flex-1 bg-canvas">
+      <View
+        className="px-5"
+        style={{ paddingTop: Math.max(0, insets.top - 8) }}
+      >
+        <TopBar
+          title="Account"
+          onBack={onBack}
+          titleStyle={{ fontSize: 20, lineHeight: 24 }}
+        />
       </View>
       <ScrollView
-        contentContainerClassName="px-5 pb-8"
+        contentContainerClassName="px-5 pb-6"
         showsVerticalScrollIndicator={false}
       >
-        <Surface className="mt-3 flex-row items-center p-5">
+        <Surface className="mt-3 flex-row items-center p-3">
           <DirectionCAvatar
             source={parentAvatar}
             tone="parent"
-            className="h-24 w-24"
+            className="h-28 w-28"
           />
-          <View className="ml-5 flex-1">
-            <AppText variant="screenTitle">{parentName}</AppText>
-            <AppText className="mt-1">{parentEmail}</AppText>
+          <View className="ml-7 flex-1">
+            <AppText
+              variant="screenTitle"
+              style={{ fontSize: 32, lineHeight: 36 }}
+            >
+              {parentName}
+            </AppText>
+            <AppText className="mt-1" style={{ fontSize: 17, lineHeight: 22 }}>
+              {parentEmail}
+            </AppText>
           </View>
         </Surface>
 
@@ -213,31 +249,50 @@ export function ParentAccountScreen({
         <Surface
           tone="lavender"
           elevated={false}
-          className="mt-2 h-[112px] overflow-hidden p-4"
+          className="mt-1 h-[104px] overflow-hidden p-3"
         >
           <Image
             source={familyArtwork}
-            className="absolute -bottom-10 -left-2 h-[150px] w-[190px]"
+            className="absolute -bottom-10 -left-2 h-[160px] w-[180px]"
             contentFit="contain"
           />
-          <View className="ml-[48%] flex-1 justify-center">
-            <AppText variant="cardTitle">{household.name}</AppText>
-            <AppText className="mt-1">Current household</AppText>
+          <View className="ml-[46%] flex-1 justify-center">
+            <AppText
+              variant="cardTitle"
+              style={{ fontSize: 19, lineHeight: 23 }}
+            >
+              {household.name}
+            </AppText>
+            <AppText className="mt-1" style={{ fontSize: 16, lineHeight: 20 }}>
+              Current household
+            </AppText>
           </View>
         </Surface>
         {canSwitchHousehold ? (
           <Pressable accessibilityRole="button" onPress={onSwitchHousehold}>
-            <Surface className="mt-3 min-h-[82px] flex-row items-center p-4">
-              <View className="h-12 w-12 items-center justify-center rounded-full bg-actionSoft">
+            <Surface className="mt-2 h-[76px] flex-row items-center p-3">
+              <View className="h-14 w-14 items-center justify-center rounded-full bg-actionSoft">
                 <DirectionCIcon
                   name="family"
                   color={DirectionC.color.green}
                   size={26}
                 />
               </View>
-              <View className="ml-4 flex-1">
-                <AppText variant="cardTitle">Switch household</AppText>
-                <AppText variant="bodySmall" className="mt-1">
+              <View className="ml-6 flex-1">
+                <AppText
+                  variant="cardTitle"
+                  style={{ fontSize: 19, lineHeight: 23 }}
+                >
+                  Switch household
+                </AppText>
+                <AppText
+                  variant="bodySmall"
+                  className="mt-0"
+                  style={{ fontSize: 14, lineHeight: 18 }}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.85}
+                >
                   Choose another household you belong to
                 </AppText>
               </View>
@@ -250,24 +305,34 @@ export function ParentAccountScreen({
           </Pressable>
         ) : null}
 
-        <AppText variant="sectionTitle" className="mt-6">
+        <AppText variant="sectionTitle" className="mt-4">
           Preferences
         </AppText>
         <Pressable
           accessibilityRole="button"
           onPress={() => void Linking.openSettings()}
         >
-          <Surface className="mt-2 min-h-[82px] flex-row items-center p-4">
-            <View className="h-12 w-12 items-center justify-center rounded-full bg-actionSoft">
+          <Surface className="mt-2 h-[72px] flex-row items-center p-3">
+            <View className="h-14 w-14 items-center justify-center rounded-full bg-actionSoft">
               <DirectionCIcon
                 name="bell"
                 color={DirectionC.color.green}
                 size={25}
               />
             </View>
-            <View className="ml-4 flex-1">
-              <AppText variant="cardTitle">Notifications</AppText>
-              <AppText variant="bodySmall" className="mt-1">
+            <View className="ml-6 flex-1">
+              <AppText
+                variant="cardTitle"
+                style={{ fontSize: 19, lineHeight: 23 }}
+              >
+                Notifications
+              </AppText>
+              <AppText
+                variant="bodySmall"
+                className="mt-0"
+                style={{ fontSize: 14, lineHeight: 18 }}
+                numberOfLines={1}
+              >
                 Manage device notification settings
               </AppText>
             </View>
@@ -279,17 +344,27 @@ export function ParentAccountScreen({
           </Surface>
         </Pressable>
         <Pressable accessibilityRole="button" onPress={onOpenHelp}>
-          <Surface className="mt-3 min-h-[82px] flex-row items-center p-4">
-            <View className="h-12 w-12 items-center justify-center rounded-full bg-infoSoft">
+          <Surface className="mt-3 h-[72px] flex-row items-center p-3">
+            <View className="h-14 w-14 items-center justify-center rounded-full bg-infoSoft">
               <DirectionCIcon
                 name="help"
                 color={DirectionC.color.info}
                 size={26}
               />
             </View>
-            <View className="ml-4 flex-1">
-              <AppText variant="cardTitle">Help & onboarding</AppText>
-              <AppText variant="bodySmall" className="mt-1">
+            <View className="ml-6 flex-1">
+              <AppText
+                variant="cardTitle"
+                style={{ fontSize: 19, lineHeight: 23 }}
+              >
+                Help & onboarding
+              </AppText>
+              <AppText
+                variant="bodySmall"
+                className="mt-0"
+                style={{ fontSize: 14, lineHeight: 18 }}
+                numberOfLines={1}
+              >
                 Review how the app works
               </AppText>
             </View>
@@ -324,23 +399,40 @@ export function HouseholdSwitcherScreen({
   onBack: () => void;
   onSelect: (householdId: HouseholdSummary["householdId"]) => void;
 }) {
+  const insets = useSafeAreaInsets();
+
   return (
-    <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-canvas">
-      <View className="px-5">
-        <TopBar title="Switch household" onBack={onBack} />
+    <SafeAreaView edges={[]} className="flex-1 bg-canvas">
+      <View
+        className="px-3"
+        style={{ paddingTop: Math.max(0, insets.top - 8) }}
+      >
+        <TopBar
+          title="Switch household"
+          onBack={onBack}
+          titleStyle={{ fontSize: 20, lineHeight: 24 }}
+        />
       </View>
       <ScrollView
-        contentContainerClassName="px-5 pb-8"
+        contentContainerClassName="px-3 pb-6"
         showsVerticalScrollIndicator={false}
       >
-        <AppText variant="display" className="mt-5">
+        <AppText
+          variant="display"
+          className="ml-5 mt-7"
+          style={{ fontSize: 34, lineHeight: 38 }}
+          numberOfLines={1}
+        >
           Choose a household
         </AppText>
-        <AppText className="mt-3 max-w-[350px]">
+        <AppText
+          className="ml-5 mt-3 max-w-[280px]"
+          style={{ fontSize: 17, lineHeight: 22 }}
+        >
           This changes the Household shown in your Parent app.
         </AppText>
 
-        <View className="mt-6 gap-4">
+        <View className="mt-8 gap-5">
           {households.map((household) => {
             const current = household.householdId === currentHouseholdId;
             const isGrandmasHouse = household.name
@@ -355,7 +447,7 @@ export function HouseholdSwitcherScreen({
               >
                 <Surface
                   tone={current ? "mint" : "raised"}
-                  className={`min-h-[132px] overflow-hidden p-4 ${current ? "border-2 border-action" : "border border-infoSoftStrong"}`}
+                  className={`min-h-[144px] overflow-hidden p-3 ${current ? "border-2 border-action" : "border border-infoSoftStrong"}`}
                 >
                   <Image
                     source={
@@ -368,9 +460,22 @@ export function HouseholdSwitcherScreen({
                     className="absolute -bottom-9 -left-2 h-[170px] w-[200px]"
                     contentFit="contain"
                   />
-                  <View className="ml-[48%] flex-1 justify-center pr-4">
-                    <AppText variant="cardTitle">{household.name}</AppText>
-                    <AppText variant="bodySmall" className="mt-1">
+                  <View
+                    className={`${current ? "ml-[50%]" : "ml-[45%]"} flex-1 justify-center pr-3`}
+                  >
+                    <AppText
+                      variant="cardTitle"
+                      style={{ fontSize: 19, lineHeight: 23 }}
+                      numberOfLines={1}
+                    >
+                      {household.name}
+                    </AppText>
+                    <AppText
+                      variant="bodySmall"
+                      className="mt-1"
+                      style={{ fontSize: 14, lineHeight: 18 }}
+                      numberOfLines={1}
+                    >
                       {household.children.length}{" "}
                       {household.children.length === 1 ? "child" : "children"} ·
                       Payout {formatWeekday(household.payoutWeekday)}
@@ -388,6 +493,7 @@ export function HouseholdSwitcherScreen({
                           variant="label"
                           color="action"
                           className="ml-2"
+                          style={{ fontSize: 16, lineHeight: 20 }}
                         >
                           Current
                         </AppText>
@@ -412,15 +518,28 @@ export function HouseholdSwitcherScreen({
         <Surface
           tone="lavender"
           elevated={false}
-          className="mt-6 flex-row items-center p-4"
+          className="mt-6 min-h-[96px] flex-row items-center p-3"
         >
-          <DirectionCIcon
-            name="housePair"
-            color={DirectionC.color.green}
-            size={32}
-          />
-          <AppText className="ml-4 flex-1">
-            Your Parent account can belong to more than one Household.
+          <View className="h-16 w-16 items-center justify-center rounded-full bg-infoSoft">
+            <View className="relative h-12 w-16">
+              <View className="absolute left-0 top-1">
+                <DirectionCIcon
+                  name="home"
+                  color={DirectionC.color.green}
+                  size={38}
+                />
+              </View>
+              <View className="absolute left-5 top-0">
+                <DirectionCIcon
+                  name="home"
+                  color={DirectionC.color.info}
+                  size={38}
+                />
+              </View>
+            </View>
+          </View>
+          <AppText className="ml-12 flex-1">
+            Your Parent account can belong{"\n"}to more than one Household.
           </AppText>
         </Surface>
         <AppText
@@ -442,6 +561,7 @@ export function HouseholdSettingsScreen({
   household: HouseholdSummary;
   onBack: () => void;
 }) {
+  const insets = useSafeAreaInsets();
   const setTimezoneSetting = useServerConfirmedMutation(
     api.households.setTimezone,
   );
@@ -533,23 +653,43 @@ export function HouseholdSettingsScreen({
 
   return (
     <>
-      <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-canvas">
-        <View className="px-5">
-          <TopBar title="Household settings" onBack={onBack} />
+      <SafeAreaView edges={[]} className="flex-1 bg-canvas">
+        <View
+          className="px-3"
+          style={{ paddingTop: Math.max(0, insets.top - 18) }}
+        >
+          <TopBar
+            title="Household settings"
+            onBack={onBack}
+            titleStyle={{ fontSize: 20, lineHeight: 24 }}
+          />
         </View>
         <ScrollView
-          contentContainerClassName="px-5 pb-8"
+          contentContainerClassName="px-3 pb-6"
           showsVerticalScrollIndicator={false}
         >
-          <View className="mt-4 flex-row items-center">
+          <View className="relative mt-0 h-[116px]">
             <Image
               source={houseArtwork}
-              className="h-28 w-40"
+              className="absolute -left-6 h-[120px] w-[170px]"
               contentFit="contain"
             />
-            <View className="ml-2 flex-1">
-              <AppText variant="sectionTitle">{household.name}</AppText>
-              <AppText variant="bodySmall" className="mt-1">
+            <View className="absolute bottom-[35px] left-[138px] right-0">
+              <AppText
+                variant="sectionTitle"
+                style={{ fontSize: 22, lineHeight: 26 }}
+                numberOfLines={1}
+              >
+                {household.name}
+              </AppText>
+              <AppText
+                variant="bodySmall"
+                className="mt-1"
+                style={{ fontSize: 13, lineHeight: 17, letterSpacing: -0.2 }}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.8}
+              >
                 Settings shared by {household.children.length}{" "}
                 {household.children.length === 1 ? "child" : "children"} and{" "}
                 {household.parents.length}{" "}
@@ -558,17 +698,21 @@ export function HouseholdSettingsScreen({
             </View>
           </View>
 
-          <AppText variant="sectionTitle" className="mt-7">
+          <AppText
+            variant="sectionTitle"
+            className="mt-5"
+            style={{ fontSize: 20, lineHeight: 24 }}
+          >
             Schedule & payouts
           </AppText>
-          <Surface className="mt-3 overflow-hidden">
+          <Surface className="mt-5 overflow-hidden">
             <SettingRow
               icon="globe"
               label="Timezone"
               value={household.timezone}
               onPress={() => openEditor("timezone")}
             />
-            <View className="mx-4 h-px bg-line" />
+            <View className="mx-3 h-px bg-line" />
             <SettingRow
               icon="calendar"
               label="Payout day"
@@ -579,20 +723,28 @@ export function HouseholdSettingsScreen({
           <Surface
             tone="lavender"
             elevated={false}
-            className="mt-4 flex-row p-4"
+            className="mt-5 flex-row p-4"
           >
             <DirectionCIcon
               name="clock"
               color={DirectionC.color.ink}
               size={28}
             />
-            <AppText variant="bodySmall" className="ml-3 flex-1">
+            <AppText
+              variant="bodySmall"
+              color="ink-muted"
+              className="ml-3 flex-1"
+            >
               Time changes affect future chores and payout periods. A payout-day
               change starts with the next period.
             </AppText>
           </Surface>
 
-          <AppText variant="sectionTitle" className="mt-7">
+          <AppText
+            variant="sectionTitle"
+            className="mt-8"
+            style={{ fontSize: 20, lineHeight: 24 }}
+          >
             Chore flexibility
           </AppText>
           <Surface className="mt-3">
@@ -604,13 +756,13 @@ export function HouseholdSettingsScreen({
               onPress={() => openEditor("unclaims")}
             />
           </Surface>
-          <AppText variant="bodySmall" color="ink-muted" className="mt-3">
+          <AppText variant="bodySmall" color="ink-muted" className="mt-4">
             The same allowance applies to every child and resets each payout
             week.
           </AppText>
 
-          <View className="mt-7 h-px bg-line" />
-          <View className="mt-5 flex-row items-center px-2">
+          <View className="mt-8 h-px bg-line" />
+          <View className="mt-6 flex-row items-center px-2">
             <DirectionCIcon
               name="family"
               color={DirectionC.color.green}

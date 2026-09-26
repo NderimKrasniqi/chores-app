@@ -84,10 +84,13 @@ export function ParentAuthScreen({ onBack }: ParentAuthScreenProps) {
         >
           <View className="mt-3 min-h-[190px]">
             <View className="relative z-10">
-              <AppText variant="screenTitle">
+              <AppText
+                variant="screenTitle"
+                className="max-w-[72%] text-[29px] leading-[33px]"
+              >
                 {mode === "sign-up" ? "Create parent account" : "Welcome back"}
               </AppText>
-              <AppText className="mt-2 w-[62%]">
+              <AppText className="mt-3 w-[58%] text-[15px] leading-[21px]">
                 {mode === "sign-up"
                   ? "Set up and manage your family’s chores and rewards."
                   : "Sign in to open your household."}
@@ -95,16 +98,17 @@ export function ParentAuthScreen({ onBack }: ParentAuthScreenProps) {
             </View>
             <Image
               source={parentAccessHero}
-              className="absolute -right-4 -top-2 z-0 h-[230px] w-[205px]"
+              className="absolute bottom-0 right-0 z-0 h-[180px] w-[180px]"
               contentFit="contain"
               accessible={false}
             />
           </View>
 
-          <View className="mt-3 gap-4">
+          <View className="mt-3 gap-[26px]">
             {mode === "sign-up" ? (
-              <FormField
-                label="Name"
+            <FormField
+              testID="parent-auth-name"
+              label="Name"
                 placeholder="Your name"
                 value={parentName}
                 onChangeText={setParentName}
@@ -114,6 +118,7 @@ export function ParentAuthScreen({ onBack }: ParentAuthScreenProps) {
             ) : null}
 
             <FormField
+              testID="parent-auth-email"
               label="Email"
               placeholder="you@example.com"
               value={email}
@@ -125,6 +130,7 @@ export function ParentAuthScreen({ onBack }: ParentAuthScreenProps) {
             />
 
             <FormField
+              testID="parent-auth-password"
               label="Password"
               placeholder="Enter a password"
               value={password}
@@ -174,13 +180,20 @@ export function ParentAuthScreen({ onBack }: ParentAuthScreenProps) {
             elevated={false}
             className="mt-3 flex-row items-center p-3"
           >
-            <Image
-              source={childAvatar}
-              className="h-20 w-20"
-              contentFit="contain"
-              accessible={false}
-            />
-            <AppText className="ml-3 flex-1">
+            <View className="relative h-20 w-20 shrink-0 items-center justify-center">
+              <View className="h-16 w-16 overflow-hidden rounded-full bg-[#E9DEFF]">
+                <Image
+                  source={childAvatar}
+                  className="h-full w-full"
+                  contentFit="contain"
+                  accessible={false}
+                />
+              </View>
+              <View className="absolute right-1 top-1 h-1 w-3 rotate-[35deg] rounded-full bg-[#F2A900]" />
+              <View className="absolute right-3 top-0 h-1 w-3 rotate-[5deg] rounded-full bg-[#F2A900]" />
+              <View className="absolute right-5 top-1 h-1 w-3 -rotate-[25deg] rounded-full bg-[#F2A900]" />
+            </View>
+            <AppText variant="bodySmall" className="ml-3 flex-1 text-[14px] leading-[18px]">
               Children join without email accounts.
             </AppText>
           </Surface>

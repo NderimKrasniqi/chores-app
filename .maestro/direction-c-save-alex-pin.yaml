@@ -1,0 +1,38 @@
+appId: host.exp.Exponent
+---
+- assertVisible:
+    id: "child-pin-dismiss-keyboard"
+
+- tapOn:
+    id: "child-pin-create"
+- eraseText: 8
+- inputText: "1234"
+
+- tapOn:
+    id: "child-pin-dismiss-keyboard"
+- waitForAnimationToEnd
+
+- tapOn:
+    id: "child-pin-confirm"
+- waitForAnimationToEnd
+- eraseText: 8
+- inputText: "1234"
+
+- tapOn:
+    id: "child-pin-dismiss-keyboard"
+- waitForAnimationToEnd
+
+- scrollUntilVisible:
+    element:
+      id: "child-pin-save"
+    direction: DOWN
+    timeout: 10000
+    visibilityPercentage: 80
+
+- tapOn:
+    id: "child-pin-save"
+    retryTapIfNoChange: true
+
+- extendedWaitUntil:
+    visible: "Hi, Alex"
+    timeout: 30000

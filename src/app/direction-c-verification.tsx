@@ -6,10 +6,18 @@ import {
   type ChildHomeRedo,
 } from "@/components/child-access/child-home-chore-list";
 import { ChildNoAccessScreen } from "@/components/child-access/child-no-access-screen";
+import { ChildJoinScreen } from "@/components/child-access/child-join-screen";
+import { ChildPinSetupScreen } from "@/components/child-access/child-pin-setup-screen";
+import { ChildPinUnlockScreen } from "@/components/child-access/child-pin-unlock-screen";
+import { ChildQrScannerScreen } from "@/components/child-access/child-qr-scanner-screen";
 import {
   ActiveClaimableClaimsView,
   type ActiveClaimableClaimViewModel,
 } from "@/components/chores/active-claimable-claims-view";
+import {
+  ClaimableChoresView,
+  type ClaimableChoresViewModel,
+} from "@/components/chores/claimable-chores-view";
 import {
   ParentChoresContent,
   type ParentChoresVisualForm,
@@ -18,6 +26,7 @@ import { ParentBottomNavigation } from "@/components/household/parent-bottom-nav
 import { ParentFamilyContent } from "@/components/household/parent-family-content";
 import { ParentInviteCard } from "@/components/household/parent-invite-card";
 import { ParentScreenHeader } from "@/components/household/parent-screen-header";
+import { RecoveryPayoutDetail } from "@/components/household/parent-money-content";
 import {
   HouseholdSettingsScreen,
   HouseholdSwitcherScreen,
@@ -25,12 +34,16 @@ import {
   ParentChildAccessScreen,
 } from "@/components/household/parent-secondary-screens";
 import { HouseholdSetupScreen } from "@/components/household/household-setup-screen";
+import { OnboardingScreen } from "@/components/onboarding/onboarding-screen";
 import type { HouseholdSummary } from "@/components/household/household-card";
 import { AppText } from "@/design-system";
 import { Redirect, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { ScrollView, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
 import type { Id } from "../../convex/_generated/dataModel";
 
@@ -84,6 +97,12 @@ function atLocalTime(dayOffset: number, hour: number, minute = 0) {
   value.setDate(value.getDate() + dayOffset);
   value.setHours(hour, minute, 0, 0);
   return value.getTime();
+}
+
+function atReferencePairingTime(hour: number, minute: number) {
+  return new Date(
+    `2026-09-12T${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00+02:00`,
+  ).getTime();
 }
 
 const choreOccurrenceBase: ChildHomeChoreOccurrence = {
@@ -184,15 +203,33 @@ const pairingCode = {
   pairingCredentialId,
   qrToken: "visual-direction-c-pairing-token",
   manualCode: "K7M4P-9Q2RW",
-  expiresAt: atLocalTime(0, 23, 59),
+  expiresAt: atReferencePairingTime(9, 56),
 };
 
 function ChildChoreDetail({
   state,
 }: {
-  state: "approved" | "missed" | "redo_required";
+  state:
+    | "available"
+    | "scheduled"
+    | "submitted"
+    | "approved"
+    | "missed"
+    | "redo_required";
 }) {
-  const occurrence = { ...choreOccurrenceBase, state };
+  const occurrence = {
+    ...choreOccurrenceBase,
+    state,
+    canSubmit: state === "available",
+    availabilityStartsAt:
+      state === "scheduled"
+        ? atLocalTime(1, 8)
+        : choreOccurrenceBase.availabilityStartsAt,
+    deadlineAt:
+      state === "scheduled"
+        ? atLocalTime(1, 18)
+        : choreOccurrenceBase.deadlineAt,
+  };
   return (
     <View className="flex-1 bg-canvas">
       <ChildHomeChoreList
@@ -205,18 +242,21 @@ function ChildChoreDetail({
 }
 
 function ParentFamilyScreen() {
+  const insets = useSafeAreaInsets();
+
   return (
-    <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-canvas">
+    <SafeAreaView edges={["top"]} className="flex-1 bg-canvas">
       <StatusBar style="dark" />
       <ScrollView
         className="flex-1"
-        contentContainerClassName="px-5 pb-5 pt-4"
+        contentContainerClassName="px-3 pb-4 pt-1"
         showsVerticalScrollIndicator={false}
       >
         <ParentScreenHeader
           title="Family"
           subtitle="People, access, and household."
           onOpenAccount={noop}
+          compact
         />
         <ParentFamilyContent
           household={household}
@@ -225,12 +265,15 @@ function ParentFamilyScreen() {
           visualDeviceCounts={{ [alexId]: 1, [mayaId]: 0 }}
         />
       </ScrollView>
-      <ParentBottomNavigation
-        householdId={householdId}
-        activeSection="family"
-        onSelect={noop}
-        visualReviewCount={1}
-      />
+      <View className="bg-canvas">
+        <ParentBottomNavigation
+          householdId={householdId}
+          activeSection="family"
+          onSelect={noop}
+          visualReviewCount={1}
+        />
+        <View className="bg-surfaceRaised" style={{ height: insets.bottom }} />
+      </View>
     </SafeAreaView>
   );
 }
@@ -265,10 +308,120 @@ function ParentClaim({
   );
 }
 
+function ChildClaimFixture({
+  state,
+}: {
+  state: "active" | "unclaim" | "locked" | "redo";
+}) {
+  const deadlineAt = atLocalTime(0, 17, 30);
+  const commitment = {
+    lockAt: atLocalTime(0, 15, 30),
+    isTimeLocked: state === "locked",
+    hasUnclaimAllowance: state !== "locked",
+    remainingUnclaims: state === "locked" ? 0 : 1,
+    canUnclaim: state !== "locked" && state !== "redo",
+    isImmediatelyLocked: state === "locked",
+    lockReason: state === "locked" ? ("allowance_exhausted" as const) : null,
+  };
+  const result: ClaimableChoresViewModel = {
+    gate: {
+      canAccessClaimables: true,
+      currentUnlockOccurrence: {
+        occurrenceId,
+        title: "Clean your room",
+        state: "approved",
+        scheduledLocalDate: "2026-09-23",
+        availabilityStartsAt: atLocalTime(0, 7),
+        deadlineAt: atLocalTime(0, 18),
+      },
+    },
+    unclaimAllowance: {
+      allowance: 2,
+      usedUnclaims: state === "locked" ? 2 : 1,
+      remainingUnclaims: state === "locked" ? 0 : 1,
+      payoutWeek: {
+        startLocalDate: "2026-09-21",
+        endLocalDate: "2026-09-27",
+        startAt: atLocalTime(-2, 0),
+        endAt: atLocalTime(4, 23, 59),
+      },
+    },
+    claimableOccurrences:
+      state === "locked"
+        ? [
+            {
+              occurrenceId,
+              title: "Wash the car",
+              description:
+                "Wash the outside of the car and put the bucket away.",
+              valueSek: 50,
+              timezone: household.timezone,
+              deadlineAt,
+              commitment,
+            },
+          ]
+        : [],
+    claimedOccurrences:
+      state === "locked"
+        ? []
+        : [
+            {
+              claimId,
+              occurrenceId,
+              childId: alexId,
+              claimedByDisplayName: "Alex",
+              claimState: state === "redo" ? "redo_required" : "claimed",
+              claimedAt: atLocalTime(0, 15),
+              title: "Wash the car",
+              description:
+                "Wash the outside of the car and put the bucket away.",
+              valueSek: 50,
+              scheduledLocalDate: "2026-09-23",
+              timezone: household.timezone,
+              deadlineAt,
+              isMine: true,
+              commitment,
+            },
+          ],
+  };
+
+  return (
+    <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-canvas">
+      <ScrollView className="flex-1 px-5" showsVerticalScrollIndicator={false}>
+        <AppText variant="screenTitle" className="mt-4">
+          Extras
+        </AppText>
+        <AppText>Choose one extra chore to earn more.</AppText>
+        <ClaimableChoresView
+          result={result}
+          onClaim={async () => {}}
+          onUnclaim={async () => {}}
+          onSubmit={async () => {}}
+          redos={
+            state === "redo"
+              ? [
+                  {
+                    occurrenceId,
+                    deadlineAt: atLocalTime(1, 17),
+                    canSubmitRedo: true,
+                  },
+                ]
+              : []
+          }
+          onSubmitRedo={async () => {}}
+          initialVisualState={state}
+        />
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
 function ParentChildAccess({
   variant,
 }: {
   variant:
+    | "empty"
+    | "code"
     | "code-confirmation"
     | "expired"
     | "regenerated"
@@ -288,9 +441,18 @@ function ParentChildAccess({
     isActive: false,
   };
   const generated =
-    variant === "expired"
-      ? { ...pairingCode, expiresAt: atLocalTime(-1, 9, 56) }
-      : pairingCode;
+    variant === "empty"
+      ? undefined
+      : variant === "expired"
+        ? { ...pairingCode, expiresAt: atReferencePairingTime(9, 56) }
+        : variant === "regenerated"
+          ? {
+              ...pairingCode,
+              qrToken: "visual-direction-c-regenerated-pairing-token",
+              manualCode: "R8T6H-4L2KQ",
+              expiresAt: atReferencePairingTime(10, 12),
+            }
+          : pairingCode;
   const devices =
     variant === "device" || variant === "device-confirmation"
       ? [activeDevice]
@@ -300,6 +462,7 @@ function ParentChildAccess({
 
   return (
     <ParentChildAccessScreen
+      key={variant}
       householdId={householdId}
       timezone={household.timezone}
       child={household.children[1]}
@@ -307,7 +470,14 @@ function ParentChildAccess({
       visualFixture={{
         devices,
         generated,
-        generationCount: variant === "regenerated" ? 2 : 1,
+        generationCount:
+          variant === "empty" ? 0 : variant === "regenerated" ? 2 : 1,
+        visualNow:
+          variant === "expired"
+            ? atReferencePairingTime(10, 0)
+            : variant === "regenerated"
+              ? atReferencePairingTime(10, 0)
+              : atReferencePairingTime(9, 40),
         confirmCodeRevoke: variant === "code-confirmation",
         confirmDeviceId:
           variant === "device-confirmation" ? accessGrantId : undefined,
@@ -391,7 +561,143 @@ function JoinHousehold({
 }
 
 function VerificationState({ state }: { state: string }) {
+  const insets = useSafeAreaInsets();
   switch (state) {
+    case "onboarding":
+      return <OnboardingScreen onChooseParent={noop} onChooseChild={noop} />;
+    case "onboarding-how":
+      return (
+        <OnboardingScreen
+          onChooseParent={noop}
+          onChooseChild={noop}
+          initialPage={1}
+        />
+      );
+    case "onboarding-rewards":
+      return (
+        <OnboardingScreen
+          onChooseParent={noop}
+          onChooseChild={noop}
+          initialPage={2}
+        />
+      );
+    case "onboarding-role":
+      return (
+        <OnboardingScreen
+          onChooseParent={noop}
+          onChooseChild={noop}
+          initialPage={3}
+        />
+      );
+    case "child-pairing-entry":
+      return <ChildJoinScreen />;
+    case "child-pairing-scanner":
+      return <ChildQrScannerScreen onCancel={noop} />;
+    case "child-pin-setup":
+      return (
+        <ChildPinSetupScreen
+          householdId={householdId}
+          householdName={household.name}
+          childId={alexId}
+          childDisplayName="Alex"
+          authStoragePrefix="visual-alex"
+          onComplete={noop}
+        />
+      );
+    case "child-pin-unlock":
+      return (
+        <ChildPinUnlockScreen
+          context={{
+            contextId: "visual-alex-context",
+            householdId,
+            householdName: household.name,
+            childId: alexId,
+            childDisplayName: "Alex",
+            authStoragePrefix: "visual-alex",
+            pinSalt: "visual-only",
+            pinVerifier: "visual-only",
+            createdAt: atLocalTime(-7, 12),
+            updatedAt: atLocalTime(-7, 12),
+          }}
+          onUnlocked={noop}
+        />
+      );
+    case "child-home":
+      return (
+        <ChildHomeScreen
+          access={{
+            accessGrantId,
+            householdId,
+            householdName: household.name,
+            childId: alexId,
+            childDisplayName: "Alex",
+            grantedAt: atLocalTime(-7, 12),
+          }}
+          visualFixture={{
+            balanceSek: 240,
+            homeOccurrences: [
+              {
+                ...choreOccurrenceBase,
+                state: "available",
+                canSubmit: true,
+              },
+              {
+                ...choreOccurrenceBase,
+                occurrenceId: "visual-feed-dog" as Id<"choreOccurrences">,
+                choreDefinitionId: "visual-feed-dog" as Id<"choreDefinitions">,
+                title: "Feed the dog",
+                valueSek: 10,
+                description: "Give the dog dinner and fresh water.",
+                isUnlockChore: false,
+                state: "available",
+                canSubmit: true,
+                deadlineAt: atLocalTime(0, 20),
+              },
+              {
+                ...choreOccurrenceBase,
+                occurrenceId: "visual-recycling" as Id<"choreOccurrences">,
+                choreDefinitionId: "visual-recycling" as Id<"choreDefinitions">,
+                title: "Take out recycling",
+                valueSek: 20,
+                isUnlockChore: false,
+                state: "submitted",
+                canSubmit: false,
+              },
+            ],
+            homeRedos: [],
+          }}
+        />
+      );
+    case "child-chore-detail":
+      return <ChildChoreDetail state="available" />;
+    case "child-submit-empty":
+    case "child-submit-photo":
+      return (
+        <View className="flex-1 bg-canvas">
+          <ChildHomeChoreList
+            initialOccurrenceId={occurrenceId}
+            visualOccurrences={[
+              {
+                ...choreOccurrenceBase,
+                state: "available",
+                canSubmit: true,
+              },
+            ]}
+            visualRedos={[]}
+            initialVisualSubmissionState={
+              state === "child-submit-photo" ? "photo" : "empty"
+            }
+          />
+        </View>
+      );
+    case "child-active-claim":
+      return <ChildClaimFixture state="active" />;
+    case "child-unclaim-confirmation":
+      return <ChildClaimFixture state="unclaim" />;
+    case "child-claim-locked-confirmation":
+      return <ChildClaimFixture state="locked" />;
+    case "child-claimable-redo":
+      return <ChildClaimFixture state="redo" />;
     case "parent-household-start":
       return <HouseholdSetupScreen visualFixture={{ mode: "start" }} />;
     case "parent-create-household":
@@ -409,6 +715,47 @@ function VerificationState({ state }: { state: string }) {
       );
     case "child-access-recovery":
       return <ChildNoAccessScreen visualState="error" />;
+    case "parent-payout-recovery":
+      return (
+        <RecoveryPayoutDetail
+          selected={{
+            payoutId: "visual-payout" as Id<"payouts">,
+            childId: alexId,
+            childDisplayName: "Alex",
+            periodEndLocalDate: "2026-09-11",
+            balanceAtCloseSek: 240,
+            amountDueSek: 70,
+            pendingOutcomeCount: 1,
+            status: "pending",
+            paidAt: null,
+            runningBalanceSek: 240,
+          }}
+          insetTop={Math.max(0, insets.top - 12)}
+          onBack={noop}
+        />
+      );
+    case "child-activity-loading":
+      return (
+        <ChildHomeScreen
+          access={{
+            accessGrantId,
+            householdId,
+            householdName: household.name,
+            childId: alexId,
+            childDisplayName: "Alex",
+            grantedAt: atLocalTime(-7, 12),
+          }}
+          visualFixture={{
+            initialTab: "activity",
+            balanceSek: 240,
+            activity: {
+              loading: true,
+              items: [],
+              timezone: household.timezone,
+            },
+          }}
+        />
+      );
     case "child-activity-celebration":
       return (
         <ChildHomeScreen
@@ -432,6 +779,12 @@ function VerificationState({ state }: { state: string }) {
       );
     case "child-chore-detail-approved-state":
       return <ChildChoreDetail state="approved" />;
+    case "child-chore-detail-approved":
+      return <ChildChoreDetail state="available" />;
+    case "child-chore-detail-upcoming":
+      return <ChildChoreDetail state="scheduled" />;
+    case "child-chore-detail-submitted":
+      return <ChildChoreDetail state="submitted" />;
     case "child-chore-detail-missed":
       return <ChildChoreDetail state="missed" />;
     case "child-chore-detail-redo":
@@ -513,6 +866,10 @@ function VerificationState({ state }: { state: string }) {
       );
     case "parent-child-access-code-revoke-confirmation":
       return <ParentChildAccess variant="code-confirmation" />;
+    case "parent-child-access-empty":
+      return <ParentChildAccess variant="empty" />;
+    case "parent-child-access-code":
+      return <ParentChildAccess variant="code" />;
     case "parent-child-access-expired-code":
       return <ParentChildAccess variant="expired" />;
     case "parent-child-access-regenerated-code":

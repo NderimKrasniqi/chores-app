@@ -177,6 +177,7 @@ export function ChildJoinScreen() {
 
           <AppText variant="cardTitle">Manual pairing code</AppText>
           <TextInput
+            testID="child-pairing-manual-code"
             className="mt-2 min-h-[74px] rounded-control border-2 border-infoSoftStrong bg-surface px-4 text-center font-rounded text-[24px] font-black tracking-[2px] text-ink"
             placeholder="A B C D E - 2 3 4 5 6"
             placeholderTextColor="#8D73BC"
@@ -204,6 +205,7 @@ export function ChildJoinScreen() {
           ) : null}
 
           <ActionButton
+            testID="child-pairing-submit-manual-code"
             tone="secondary"
             className="mt-6"
             label="Join with manual code"

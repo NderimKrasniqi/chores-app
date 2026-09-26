@@ -1,0 +1,8 @@
+appId: host.exp.Exponent
+---
+- tapOn:
+    text: "Open Alex in Krasniqi Family"
+
+- extendedWaitUntil:
+    visible: "Hi, Alex!"
+    timeout: 30000

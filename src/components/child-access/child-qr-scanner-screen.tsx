@@ -1,6 +1,7 @@
 import { ActionButton, AppText, Surface } from "@/design-system";
 import { DirectionC } from "@/constants/direction-c";
 import { AppImage as Image } from "@/components/ui/app-image";
+import { PairingQrCode } from "@/components/ui/pairing-qr-code";
 import { useAction } from "convex/react";
 import {
   CameraView,
@@ -143,6 +144,32 @@ export function ChildQrScannerScreen({ onCancel }: ChildQrScannerScreenProps) {
             contentFit="cover"
             accessible={false}
           />
+          {!Device.isDevice ? (
+            <View
+              pointerEvents="none"
+              style={{
+                position: "absolute",
+                left: "40%",
+                top: "32%",
+                width: 70,
+                height: 150,
+                borderRadius: 8,
+                backgroundColor: "#D5E1ED",
+                alignItems: "center",
+                justifyContent: "center",
+                opacity: 0.78,
+                transform: [{ rotate: "-3deg" }],
+              }}
+            >
+              <PairingQrCode
+                value="visual-scanner-preview"
+                size={46}
+                quietZone={1}
+                color="#3A4C55"
+                backgroundColor="#D5E1ED"
+              />
+            </View>
+          ) : null}
           {Device.isDevice ? (
             <CameraView
               className="flex-1"

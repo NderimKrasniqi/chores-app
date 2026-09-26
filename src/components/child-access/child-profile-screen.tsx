@@ -36,8 +36,8 @@ function SettingsRow({
   onPress: () => void;
 }) {
   return (
-    <Pressable accessibilityRole="button" onPress={onPress} className="mt-3">
-      <Surface className="min-h-[82px] flex-row items-center px-4 py-3">
+    <Pressable accessibilityRole="button" onPress={onPress} className="mt-2">
+      <Surface className="min-h-[76px] flex-row items-center px-3 py-2">
         <View
           className={`h-14 w-14 items-center justify-center rounded-full ${tone === "mint" ? "bg-actionSoftStrong" : "bg-infoSoftStrong"}`}
         >
@@ -93,14 +93,14 @@ export function ChildProfileScreen({
         contentContainerClassName="px-5 pb-8"
         showsVerticalScrollIndicator={false}
       >
-        <Surface className="mt-2 min-h-[148px] flex-row items-center p-4">
+        <Surface className="mt-2 min-h-[120px] flex-row items-center p-3">
           <DirectionCAvatar
             source={childAvatar(childName)}
             tone={childAvatarTone(childName)}
-            className="h-32 w-32"
+            className="h-28 w-28"
             fallbackLabel={childName}
           />
-          <View className="ml-5 flex-1">
+          <View className="ml-4 flex-1">
             <AppText variant="screenTitle" numberOfLines={1}>
               {childName}
             </AppText>
@@ -110,17 +110,17 @@ export function ChildProfileScreen({
           </View>
         </Surface>
 
-        <AppText variant="sectionTitle" className="mt-5">
+        <AppText variant="sectionTitle" className="mt-3">
           Household
         </AppText>
         <Surface
           tone="lavender"
           elevated={false}
-          className="mt-2 h-[132px] flex-row items-center overflow-hidden pr-4"
+          className="mt-2 h-[108px] flex-row items-center overflow-hidden pr-3"
         >
           <Image
             source={familyArtwork}
-            className="h-[132px] w-[164px]"
+            className="h-[108px] w-[152px]"
             contentFit="contain"
           />
           <View className="ml-3 flex-1">
@@ -133,18 +133,18 @@ export function ChildProfileScreen({
           </View>
         </Surface>
 
-        <AppText variant="sectionTitle" className="mt-5">
+        <AppText variant="sectionTitle" className="mt-3">
           This device
         </AppText>
-        <Surface className="mt-2 min-h-[92px] flex-row items-center p-4">
-          <View className="h-16 w-16 items-center justify-center rounded-full bg-actionSoftStrong">
+        <Surface className="mt-2 min-h-[80px] flex-row items-center p-3">
+          <View className="h-14 w-14 items-center justify-center rounded-full bg-actionSoftStrong">
             <DirectionCIcon
               name="checkShield"
               color={DirectionC.color.greenDeep}
-              size={32}
+              size={28}
             />
           </View>
-          <View className="ml-4 flex-1">
+          <View className="ml-3 flex-1">
             <AppText variant="cardTitle">Device access</AppText>
             <AppText className="mt-1" color="ink-muted">
               Active for {childName}
@@ -152,7 +152,7 @@ export function ChildProfileScreen({
           </View>
         </Surface>
 
-        <AppText variant="sectionTitle" className="mt-5">
+        <AppText variant="sectionTitle" className="mt-3">
           Help & settings
         </AppText>
         <SettingsRow
@@ -171,7 +171,8 @@ export function ChildProfileScreen({
         />
 
         <ActionButton
-          className="mt-5"
+          testID="child-pin-use-another-profile"
+          className="mt-3 border-ink"
           label="Lock / switch profile"
           tone="secondary"
           loading={locking}
@@ -187,7 +188,7 @@ export function ChildProfileScreen({
         <AppText
           variant="bodySmall"
           color="ink-muted"
-          className="mt-3 text-center"
+          className="mt-1 text-center"
         >
           You’ll need your PIN to open {childName} again.{`\n`}This profile
           stays saved on this device.

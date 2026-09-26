@@ -6,7 +6,10 @@ import { authClient } from "@/lib/auth/client";
 import { StatusBar } from "expo-status-bar";
 import { useMemo, useState } from "react";
 import { ScrollView, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
 import type { HouseholdSummary } from "./household-card";
 import {
@@ -58,6 +61,7 @@ export function HouseholdListScreen({
   parentEmail,
   households,
 }: HouseholdListScreenProps) {
+  const insets = useSafeAreaInsets();
   const [activeSection, setActiveSection] = useState<ParentSection>("home");
   const [route, setRoute] = useState<ParentRoute>("main");
   const [selectedHouseholdId, setSelectedHouseholdId] = useState<
@@ -169,14 +173,15 @@ export function HouseholdListScreen({
   }
 
   return (
-    <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-canvas">
+    <SafeAreaView edges={["top"]} className="flex-1 bg-canvas">
       <StatusBar style="dark" />
       <ScrollView
+        key={`${household.householdId}-${activeSection}`}
         className="flex-1"
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
         showsVerticalScrollIndicator={false}
-        contentContainerClassName="px-5 pb-5 pt-4"
+        contentContainerClassName="px-5 pb-5 pt-0"
       >
         {activeSection === "home" ? (
           <ParentHomeContent
@@ -186,6 +191,7 @@ export function HouseholdListScreen({
             onOpenReviews={() => setActiveSection("reviews")}
             onAddChore={() => setActiveSection("chores")}
             onOpenActivity={() => setRoute("activity")}
+            onOpenMoney={() => setActiveSection("money")}
           />
         ) : (
           <View>
@@ -196,7 +202,7 @@ export function HouseholdListScreen({
             />
 
             {activeSection === "chores" ? (
-              <View className="mt-5">
+              <View className="mt-2">
                 <ParentChoresContent
                   householdId={household.householdId}
                   children={household.children}
@@ -205,7 +211,7 @@ export function HouseholdListScreen({
             ) : null}
 
             {activeSection === "reviews" ? (
-              <View className="mt-5">
+              <View className="mt-2">
                 <ParentReviewsContent
                   householdId={household.householdId}
                   householdTimezone={household.timezone}
@@ -214,7 +220,7 @@ export function HouseholdListScreen({
             ) : null}
 
             {activeSection === "money" ? (
-              <View className="mt-5">
+              <View className="mt-2">
                 <ParentMoneyContent householdId={household.householdId} />
               </View>
             ) : null}
@@ -241,14 +247,17 @@ export function HouseholdListScreen({
         ) : null}
       </ScrollView>
 
-      <ParentBottomNavigation
-        householdId={household.householdId}
-        activeSection={activeSection}
-        onSelect={(section) => {
-          setActiveSection(section);
-          setRoute("main");
-        }}
-      />
+      <View className="bg-canvas">
+        <ParentBottomNavigation
+          householdId={household.householdId}
+          activeSection={activeSection}
+          onSelect={(section) => {
+            setActiveSection(section);
+            setRoute("main");
+          }}
+        />
+        <View className="bg-surfaceRaised" style={{ height: insets.bottom }} />
+      </View>
     </SafeAreaView>
   );
 }

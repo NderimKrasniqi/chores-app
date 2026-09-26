@@ -1,0 +1,21 @@
+appId: host.exp.Exponent
+---
+- tapOn:
+    point: "20%,15%"
+
+- waitForAnimationToEnd
+
+- scrollUntilVisible:
+    element:
+      text: "Lock / switch profile"
+    direction: DOWN
+    timeout: 10000
+    visibilityPercentage: 80
+
+- tapOn:
+    text: "Lock / switch profile"
+    retryTapIfNoChange: true
+
+- extendedWaitUntil:
+    visible: "Who’s using this device?"
+    timeout: 30000

@@ -123,12 +123,14 @@ export function ChildNoAccessScreen({
   if (cleanupState === "error") {
     return (
       <View className="flex-1 items-center justify-center bg-canvas px-5">
-        <Image
-          source={recoveryArtwork}
-          className="h-56 w-64"
-          contentFit="contain"
-          accessible={false}
-        />
+        <View className="h-64 w-64 items-center justify-center rounded-full bg-[#FFE9E2]">
+          <Image
+            source={recoveryArtwork}
+            className="h-60 w-60"
+            contentFit="contain"
+            accessible={false}
+          />
+        </View>
         <AppText
           variant="label"
           color="urgency"

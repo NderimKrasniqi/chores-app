@@ -4,14 +4,17 @@ import {
   DirectionCAvatar,
 } from "@/components/ui/direction-c-avatar";
 import { DirectionC } from "@/constants/direction-c";
-import { ActionButton, AppText, Surface } from "@/design-system";
+import { ActionButton, AppText, DesignTokens, Surface } from "@/design-system";
 import { useServerConfirmedMutation } from "@/hooks/use-server-confirmed-mutation";
 import { useAction, useQuery } from "convex/react";
 import { AppImage as Image } from "@/components/ui/app-image";
 import { PairingQrCode } from "@/components/ui/pairing-qr-code";
 import { useEffect, useState } from "react";
 import { Modal, Pressable, Share, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
@@ -21,6 +24,7 @@ const devicePairingArtwork = require("../../../assets/images/direction-c/child-d
 const expiredPairingArtwork = require("../../../assets/images/direction-c/child-pairing-expired.png");
 const alexAvatar = require("../../../assets/images/direction-c/alex-avatar.png");
 const mayaAvatar = require("../../../assets/images/direction-c/maya-avatar.png");
+const accessMutedTextStyle = { color: "#3f5fa8" } as const;
 
 function childAvatar(displayName: string) {
   const normalized = displayName.trim().toLowerCase();
@@ -47,6 +51,7 @@ export type ParentChildAccessVisualFixture = {
   devices: ParentChildAccessVisualDevice[];
   generated?: GeneratedCredential;
   generationCount?: number;
+  visualNow?: number;
   confirmCodeRevoke?: boolean;
   confirmDeviceId?: Id<"childDeviceAccessGrants">;
   showRevoked?: boolean;
@@ -79,6 +84,8 @@ function ConfirmationSheet({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  const insets = useSafeAreaInsets();
+
   return (
     <Modal
       visible={visible}
@@ -89,10 +96,11 @@ function ConfirmationSheet({
       <View className="flex-1 justify-end bg-scrim">
         <SafeAreaView
           edges={["bottom"]}
-          className="rounded-t-sheet bg-canvas px-5 pb-3 pt-5"
+          className="rounded-t-sheet bg-canvas px-5 pb-2 pt-3"
+          style={{ paddingBottom: insets.bottom + 8 }}
         >
           <View className="mx-auto h-1.5 w-16 rounded-full bg-infoSoftStrong" />
-          <View className="mt-5 items-center">
+          <View className="mt-3 items-center">
             <View className="h-16 w-16 items-center justify-center rounded-full bg-urgencySoft">
               <DirectionCIcon
                 name={icon}
@@ -100,28 +108,24 @@ function ConfirmationSheet({
                 size={32}
               />
             </View>
-            <AppText variant="sectionTitle" className="mt-3 text-center">
+            <AppText variant="sectionTitle" className="mt-2 text-center">
               {title}
             </AppText>
-            <AppText className="mt-2 text-center">{body}</AppText>
-            <AppText
-              variant="bodySmall"
-              color="action"
-              className="mt-2 text-center"
-            >
+            <AppText className="mt-1 text-center">{body}</AppText>
+            <AppText variant="body" color="action" className="text-center">
               {reassurance}
             </AppText>
           </View>
           <ActionButton
             tone="destructive"
-            className="mt-6"
+            className="mt-4"
             label={actionLabel}
             loading={loading}
             onPress={onConfirm}
           />
           <ActionButton
             tone="secondary"
-            className="mt-2"
+            className="mt-1"
             label={cancelLabel}
             onPress={onCancel}
           />
@@ -144,6 +148,7 @@ export function ParentChildAccessContent({
   timezone: string;
   visualFixture?: ParentChildAccessVisualFixture;
 }) {
+  const artworkAvatar = childAvatar(childDisplayName);
   const queriedDevices = useQuery(
     api.childAccess.listDevicesForChild,
     visualFixture ? "skip" : { childId },
@@ -176,7 +181,7 @@ export function ParentChildAccessContent({
     visualFixture?.showRevoked ?? false,
   );
   const [error, setError] = useState<string | null>(null);
-  const [now, setNow] = useState(() => Date.now());
+  const [now, setNow] = useState(() => visualFixture?.visualNow ?? Date.now());
 
   const activeDevices = devices?.filter((device) => device.isActive) ?? [];
   const revokedDevices = devices?.filter((device) => !device.isActive) ?? [];
@@ -184,11 +189,11 @@ export function ParentChildAccessContent({
   const showGeneratedDivider = generatedExpired || generationCount > 1;
 
   useEffect(() => {
-    if (!generated) return;
+    if (!generated || visualFixture?.visualNow !== undefined) return;
 
     const timer = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(timer);
-  }, [generated]);
+  }, [generated, visualFixture?.visualNow]);
 
   async function generate() {
     setGenerating(true);
@@ -279,19 +284,14 @@ export function ParentChildAccessContent({
         <DirectionCAvatar
           source={childAvatar(childDisplayName)}
           tone={childAvatarTone(childDisplayName)}
-          className="h-16 w-16"
+          className="h-24 w-24"
           fallbackLabel={childDisplayName}
         />
-        <View className="ml-4 flex-1">
+        <View className="ml-5 flex-1">
           <AppText variant="sectionTitle">{childDisplayName}</AppText>
           <AppText
-            color={
-              generated
-                ? generatedExpired
-                  ? "urgency"
-                  : "action"
-                : "ink-muted"
-            }
+            color={generated ? "ink-muted" : "ink-muted"}
+            style={accessMutedTextStyle}
             className="mt-1"
           >
             {generated
@@ -315,21 +315,41 @@ export function ParentChildAccessContent({
           <Surface
             tone="lavender"
             elevated={false}
-            className="mt-3 h-[236px] flex-row overflow-hidden p-0"
+            className="mt-2 h-[160px] flex-row overflow-hidden p-0"
           >
-            <View className="h-full w-[54%] items-center justify-center overflow-hidden">
+            <View className="relative h-full w-[50%] items-center justify-center overflow-hidden">
               <Image
                 source={devicePairingArtwork}
-                className="h-[218px] w-[254px]"
+                className="h-[150px] w-[200px]"
                 contentFit="contain"
                 accessible={false}
               />
+              {artworkAvatar ? (
+                <Image
+                  source={artworkAvatar}
+                  className="absolute h-[36px] w-[36px]"
+                  style={{ left: 111, top: 60 }}
+                  contentFit="cover"
+                  accessible={false}
+                />
+              ) : null}
             </View>
-            <View className="flex-1 justify-center pl-1 pr-4">
-              <AppText variant="cardTitle">
+            <View className="flex-1 justify-center pl-1 pr-2">
+              <AppText
+                variant="cardTitle"
+                style={{ fontSize: 18, lineHeight: 22 }}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.84}
+              >
                 Connect {childDisplayName}’s device
               </AppText>
-              <AppText variant="bodySmall" color="ink-muted" className="mt-2">
+              <AppText
+                variant="bodySmall"
+                color="ink-muted"
+                style={[accessMutedTextStyle, { fontSize: 14 }]}
+                className="mt-2"
+              >
                 Create a secure code, then scan it or enter it on{" "}
                 {childDisplayName}’s device.
               </AppText>
@@ -337,20 +357,22 @@ export function ParentChildAccessContent({
           </Surface>
           <View className="mt-4 gap-3">
             {[
-              `Open Chores on ${childDisplayName}’s device`,
+              `Open Chores App on ${childDisplayName}’s device`,
               "Choose Child, then scan or enter the code",
             ].map((step, index) => (
               <View key={step} className="flex-row items-center">
                 <View className="h-10 w-10 items-center justify-center rounded-full bg-infoSoft">
                   <AppText variant="cardTitle">{index + 1}</AppText>
                 </View>
-                <AppText className="ml-3 flex-1">{step}</AppText>
+                <AppText className="ml-3 flex-1" style={accessMutedTextStyle}>
+                  {step}
+                </AppText>
               </View>
             ))}
           </View>
           <ActionButton
             tone="soft"
-            className="mt-5"
+            className="mt-7"
             label="Create pairing code"
             leading={
               <DirectionCIcon
@@ -365,6 +387,7 @@ export function ParentChildAccessContent({
           <AppText
             variant="caption"
             color="ink-muted"
+            style={accessMutedTextStyle}
             className="mt-2 text-center"
           >
             The code expires after 15 minutes and can be used once.
@@ -378,15 +401,15 @@ export function ParentChildAccessContent({
           <Surface
             tone="lavender"
             elevated={false}
-            className="mt-3 items-center p-5"
+            className="mt-3 items-center px-2 pb-4 pt-2"
           >
             <Image
               source={expiredPairingArtwork}
-              className="h-40 w-56"
-              contentFit="contain"
+              className="h-[160px] w-[264px]"
+              contentFit="cover"
               accessible={false}
             />
-            <View className="mt-4 rounded-full bg-urgencySoft px-4 py-2">
+            <View className="mt-3 rounded-full bg-urgencySoft px-4 py-2">
               <View className="flex-row items-center">
                 <DirectionCIcon
                   name="clock"
@@ -401,11 +424,15 @@ export function ParentChildAccessContent({
             <AppText variant="cardTitle" className="mt-5">
               This code can’t be used anymore.
             </AppText>
-            <AppText color="ink-muted" className="mt-1 text-center">
+            <AppText
+              color="ink-muted"
+              style={accessMutedTextStyle}
+              className="mt-1 text-center"
+            >
               Generate a new one to pair {childDisplayName}’s device.
             </AppText>
             <ActionButton
-              className="mt-5 w-full"
+              className="mt-4 w-full bg-[#3f1dc9]"
               label="Generate new code"
               leading={
                 <DirectionCIcon
@@ -429,25 +456,30 @@ export function ParentChildAccessContent({
           <Surface
             tone="lavender"
             elevated={false}
-            className={`${generationCount > 1 ? "mt-2" : "mt-4"} items-center p-3 ${generationCount === 1 ? "bg-transparent" : ""}`}
+            className={`${generationCount > 1 ? "mt-4" : "mt-0"} items-center p-3 ${generationCount === 1 ? "bg-transparent" : ""}`}
           >
             {generationCount > 1 ? (
-              <View className="mb-3 flex-row items-center rounded-full bg-actionSoft px-4 py-2">
-                <DirectionCIcon
-                  name="check"
-                  color={DirectionC.color.green}
-                  size={18}
-                />
+              <View className="mb-3 w-full flex-row items-center justify-center rounded-full bg-actionSoft px-4 py-2.5">
+                <View className="h-8 w-8 items-center justify-center rounded-full bg-action">
+                  <DirectionCIcon
+                    name="check"
+                    color={DirectionC.color.white}
+                    size={18}
+                  />
+                </View>
                 <AppText variant="label" color="action" className="ml-2">
                   New pairing code ready
                 </AppText>
               </View>
             ) : null}
-            <View className="rounded-control bg-white p-3 shadow-md">
+            <View
+              className="rounded-control bg-white p-0.5"
+              style={DesignTokens.shadowStyle.card}
+            >
               <PairingQrCode
                 value={generated.qrToken}
-                size={120}
-                quietZone={6}
+                size={generationCount > 1 ? 116 : 124}
+                quietZone={4}
                 backgroundColor={DirectionC.color.white}
                 color="#000000"
               />
@@ -467,12 +499,17 @@ export function ParentChildAccessContent({
             </View>
             <View className="my-2 flex-row items-center">
               <View className="h-px flex-1 bg-infoSoftStrong" />
-              <AppText variant="bodySmall" color="ink-muted" className="px-4">
+              <AppText
+                variant="bodySmall"
+                color="ink-muted"
+                style={accessMutedTextStyle}
+                className="px-4"
+              >
                 or enter manually
               </AppText>
               <View className="h-px flex-1 bg-infoSoftStrong" />
             </View>
-            <View className="min-h-control w-full flex-row items-center rounded-control bg-infoSoftStrong px-4">
+            <View className="min-h-control w-full flex-row items-center rounded-control bg-infoSoft px-4">
               <AppText
                 selectable
                 variant="cardTitle"
@@ -496,7 +533,7 @@ export function ParentChildAccessContent({
             </View>
             <ActionButton
               tone="secondary"
-              className="mt-3 w-full"
+              className={`${generationCount > 1 ? "mt-3" : "mt-8"} w-full`}
               label="Generate another code"
               leading={
                 <DirectionCIcon
@@ -538,27 +575,36 @@ export function ParentChildAccessContent({
         </View>
       )}
 
-      {showGeneratedDivider ? <View className="mt-4 h-px bg-line" /> : null}
+      {showGeneratedDivider ? <View className="mt-6 h-px bg-line" /> : null}
       <AppText
         variant="sectionTitle"
-        className={showGeneratedDivider ? "mt-3" : "mt-5"}
+        className={
+          showGeneratedDivider ? "mt-5" : generated ? "mt-5" : "mt-[37px]"
+        }
       >
         Paired devices
       </AppText>
       {devices === undefined ? (
         <Surface className="mt-3 p-5">
           <AppText variant="cardTitle">Checking devices…</AppText>
-          <AppText variant="bodySmall" color="ink-muted" className="mt-1">
+          <AppText
+            variant="bodySmall"
+            color="ink-muted"
+            style={accessMutedTextStyle}
+            className="mt-1"
+          >
             Active Child sessions will appear here.
           </AppText>
         </Surface>
       ) : activeDevices.length === 0 ? (
-        <View className="mt-3 flex-row items-center px-2">
+        <View
+          className={`flex-row items-center px-2 ${showGeneratedDivider ? "mt-4" : generated ? "mt-7" : "mt-3"}`}
+        >
           <View
             className={`items-center justify-center rounded-full ${
               revokedDevices.length > 0
                 ? "h-14 w-14 bg-transparent"
-                : "h-20 w-20 bg-infoSoft"
+                : "h-[60px] w-[60px] bg-infoSoft"
             }`}
           >
             <DirectionCIcon
@@ -573,7 +619,12 @@ export function ParentChildAccessContent({
                 ? "No active devices"
                 : "No devices yet"}
             </AppText>
-            <AppText variant="bodySmall" color="ink-muted" className="mt-1">
+            <AppText
+              variant="bodySmall"
+              color="ink-muted"
+              style={accessMutedTextStyle}
+              className="mt-1"
+            >
               {revokedDevices.length > 0
                 ? "All paired devices are revoked."
                 : "Paired devices will appear here."}
@@ -587,21 +638,26 @@ export function ParentChildAccessContent({
               key={device.accessGrantId}
               tone="lavender"
               elevated={false}
-              className="flex-row items-center p-4"
+              className="flex-row items-center p-2"
             >
-              <View className="h-14 w-14 items-center justify-center rounded-full bg-infoSoftStrong">
+              <View className="h-8 w-8 items-center justify-center rounded-full bg-infoSoftStrong">
                 <DirectionCIcon
                   name="phone"
                   color={DirectionC.color.ink}
-                  size={28}
+                  size={20}
                 />
               </View>
               <View className="ml-3 flex-1">
                 <AppText variant="cardTitle">Paired device {index + 1}</AppText>
-                <AppText variant="bodySmall" color="ink-muted" className="mt-1">
+                <AppText
+                  variant="bodySmall"
+                  color="ink-muted"
+                  style={accessMutedTextStyle}
+                  className="mt-0.5"
+                >
                   Paired {formatDateTime(device.createdAt, timezone)}
                 </AppText>
-                <View className="mt-2 self-start rounded-full bg-actionSoft px-3 py-1">
+                <View className="mt-1 self-start rounded-full bg-actionSoft px-2 py-0.5">
                   <View className="flex-row items-center">
                     <View className="h-2.5 w-2.5 rounded-full bg-action" />
                     <AppText
@@ -665,6 +721,7 @@ export function ParentChildAccessContent({
                     <AppText
                       variant="caption"
                       color="ink-muted"
+                      style={accessMutedTextStyle}
                       className="mt-1"
                     >
                       Revoked {formatDateTime(device.revokedAt, timezone)}

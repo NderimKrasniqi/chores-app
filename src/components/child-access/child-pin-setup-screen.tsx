@@ -16,8 +16,10 @@ import { useAuthRuntime } from "@/providers/auth-runtime-provider";
 import { StatusBar } from "expo-status-bar";
 import { useState } from "react";
 import {
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   ScrollView,
   TextInput,
   View,
@@ -178,23 +180,31 @@ export function ChildPinSetupScreen({
       >
         <ScrollView
           contentContainerClassName="flex-grow px-5 pb-5 pt-7"
+          keyboardDismissMode="on-drag"
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <AppText
-            variant="label"
-            color="action"
-            className="uppercase tracking-widest"
+          <Pressable
+            accessibilityLabel="Dismiss keyboard"
+            accessibilityRole="button"
+            onPress={Keyboard.dismiss}
+            testID="child-pin-dismiss-keyboard"
           >
-            Pairing complete
-          </AppText>
-          <AppText variant="display" className="mt-3">
-            Protect {childDisplayName}
-          </AppText>
-          <AppText color="ink-muted" className="mt-2">
-            Create a local PIN for this Child profile. You’ll use it when
-            selecting {childDisplayName} on a shared device.
-          </AppText>
+            <AppText
+              variant="label"
+              color="action"
+              className="uppercase tracking-widest"
+            >
+              Pairing complete
+            </AppText>
+            <AppText variant="display" className="mt-3">
+              Protect {childDisplayName}
+            </AppText>
+            <AppText color="ink-muted" className="mt-2">
+              Create a local PIN for this Child profile. You’ll use it when
+              selecting {childDisplayName} on a shared device.
+            </AppText>
+          </Pressable>
 
           <Surface className="mt-5 flex-row items-center p-3">
             <DirectionCAvatar
@@ -220,6 +230,7 @@ export function ChildPinSetupScreen({
             Create PIN
           </AppText>
           <TextInput
+            testID="child-pin-create"
             className="mt-2 min-h-[72px] rounded-control border-2 border-infoSoftStrong bg-surface text-center font-rounded text-[28px] font-black tracking-[12px] text-ink"
             placeholder="••••"
             placeholderTextColor="#8D73BC"
@@ -238,10 +249,12 @@ export function ChildPinSetupScreen({
             Confirm PIN
           </AppText>
           <TextInput
+            testID="child-pin-confirm"
             className="mt-2 min-h-[72px] rounded-control border-2 border-infoSoftStrong bg-surface text-center font-rounded text-[28px] font-black tracking-[12px] text-ink"
             placeholder="••••"
             placeholderTextColor="#8D73BC"
             value={confirmPin}
+            onPressIn={() => setConfirmPin("")}
             onChangeText={(value) => setConfirmPin(normalizePinInput(value))}
             keyboardType="number-pad"
             secureTextEntry
@@ -255,6 +268,7 @@ export function ChildPinSetupScreen({
           ) : null}
 
           <ActionButton
+            testID="child-pin-save"
             className="mt-6"
             label="Save PIN"
             loading={saving}

@@ -51,6 +51,17 @@ type FixtureContext = {
 };
 
 const EXPECTED_HOUSEHOLD_NAME = "Krasniqi Family";
+const ADDITIONAL_VISUAL_HOUSEHOLD_NAMES = new Set(["Visual Parity Household"]);
+const ALEX_VISUAL_PAIRING_CODE = "ALEX2-026V7";
+const ALEX_VISUAL_PAIRING_CODE_HASH =
+  "fe3ca163342be34526fad6f37229e44ea8e056c8e94d3295f2ddff3d86e8818b";
+const ALEX_VISUAL_QR_TOKEN_HASH =
+  "3bd8dda1191f37fd15b237423bcad46d0c1d84ecc2daee87dbd92058a5482c80";
+const MAYA_VISUAL_PAIRING_CODE = "MAYA2-026V7";
+const MAYA_VISUAL_PAIRING_CODE_HASH =
+  "c9a7a69b25220eab510023be6f8e49dbba1a917f559b048b818d18d75cc48121";
+const MAYA_VISUAL_QR_TOKEN_HASH =
+  "90b84a337578d97607a8b924e9a59c6191c4acb4ff3d444f68fe651fb9430cd1";
 
 function assertDevelopmentOnly() {
   if (process.env.APP_ENV === "production") {
@@ -66,7 +77,11 @@ async function loadFixtureContext(
   assertDevelopmentOnly();
 
   const household = await ctx.db.get(householdId);
-  if (!household || household.name !== EXPECTED_HOUSEHOLD_NAME) {
+  if (
+    !household ||
+    (household.name !== EXPECTED_HOUSEHOLD_NAME &&
+      !ADDITIONAL_VISUAL_HOUSEHOLD_NAMES.has(household.name))
+  ) {
     throw new ConvexError("Refusing to seed an unexpected Household.");
   }
 
@@ -105,6 +120,40 @@ async function loadFixtureContext(
     today: getLocalDateForInstant(now, household.timezone),
   };
 }
+
+export const alignVisualHouseholdNameWithReference = internalMutation({
+  args: {
+    householdId: v.id("households"),
+    expectedParentAuthUserId: v.string(),
+  },
+  returns: v.object({ name: v.string(), updated: v.boolean() }),
+  handler: async (ctx, args) => {
+    const fixture = await loadFixtureContext(
+      ctx,
+      args.householdId,
+      args.expectedParentAuthUserId,
+    );
+    const household = await ctx.db.get(fixture.householdId);
+    if (!household) {
+      throw new ConvexError("Visual-test Household was not found.");
+    }
+
+    if (household.name === EXPECTED_HOUSEHOLD_NAME) {
+      return { name: household.name, updated: false };
+    }
+    if (!ADDITIONAL_VISUAL_HOUSEHOLD_NAMES.has(household.name)) {
+      throw new ConvexError(
+        "Refusing to rename an unexpected visual-test Household.",
+      );
+    }
+
+    await ctx.db.patch("households", fixture.householdId, {
+      name: EXPECTED_HOUSEHOLD_NAME,
+      updatedAt: Date.now(),
+    });
+    return { name: EXPECTED_HOUSEHOLD_NAME, updated: true };
+  },
+});
 
 async function deleteAll<T extends { _id: Id<any> }>(
   ctx: MutationCtx,
@@ -225,6 +274,7 @@ async function createPersonalDefinition(
     isUnlockChore?: boolean;
     description?: string;
     recurrence?:
+      | { kind: "one_off"; scheduledDate: string }
       | { kind: "daily"; startDate: string; interval: number }
       | {
           kind: "weekly";
@@ -461,12 +511,23 @@ async function setBalance(
   });
 }
 
+function previousLocalWeekday(today: string, weekday: number) {
+  const currentWeekday = new Date(`${today}T00:00:00.000Z`).getUTCDay();
+  const daysAgo = (currentWeekday - weekday + 7) % 7 || 7;
+  return addLocalDays(today, -daysAgo);
+}
+
 async function seedBalancesAndActivity(
   ctx: MutationCtx,
   fixture: FixtureContext,
+  useApprovedActivityWeekdays = false,
 ) {
-  const wednesday = addLocalDays(fixture.today, -5);
-  const thursday = addLocalDays(fixture.today, -4);
+  const wednesday = useApprovedActivityWeekdays
+    ? previousLocalWeekday(fixture.today, 3)
+    : addLocalDays(fixture.today, -5);
+  const thursday = useApprovedActivityWeekdays
+    ? previousLocalWeekday(fixture.today, 4)
+    : addLocalDays(fixture.today, -4);
   await createApprovedHistory(ctx, fixture, {
     childId: fixture.mayaId,
     title: "Set the table",
@@ -584,7 +645,8 @@ async function seedParentHome(ctx: MutationCtx, fixture: FixtureContext) {
 }
 
 async function seedChildHome(ctx: MutationCtx, fixture: FixtureContext) {
-  await seedBalancesAndActivity(ctx, fixture);
+  await setBalance(ctx, fixture, fixture.alexId, 240, 0, 0, 2);
+  await setBalance(ctx, fixture, fixture.mayaId, 110, 0, 0, 2);
   const chores = [
     {
       title: "Clean your room",
@@ -616,6 +678,7 @@ async function seedChildHome(ctx: MutationCtx, fixture: FixtureContext) {
       valueSek: chore.valueSek,
       deadlineLocalTime: chore.deadline,
       isUnlockChore: chore.unlock,
+      recurrence: { kind: "one_off", scheduledDate: fixture.today },
     });
     const occurrenceId = await createOccurrence(ctx, fixture, {
       definitionId,
@@ -836,6 +899,64 @@ async function seedReviewsQueue(
   );
 }
 
+async function reviewsQueueEvidenceSubmission(
+  ctx: MutationCtx | QueryCtx,
+  fixture: FixtureContext,
+) {
+  const definitions = await ctx.db
+    .query("choreDefinitions")
+    .withIndex("by_household_personal_child", (q) =>
+      q
+        .eq("householdId", fixture.householdId)
+        .eq("personalChildId", fixture.alexId),
+    )
+    .order("desc")
+    .take(100);
+  const matchingDefinitions = definitions.filter(
+    (definition) =>
+      definition.kind === "personal" && definition.title === "Clean your room",
+  );
+  if (matchingDefinitions.length === 0) return null;
+  if (matchingDefinitions.length !== 1) {
+    throw new ConvexError(
+      "Expected exactly one Alex Clean your room visual definition.",
+    );
+  }
+
+  const occurrence = await ctx.db
+    .query("choreOccurrences")
+    .withIndex("by_definition_scheduled_date", (q) =>
+      q
+        .eq("choreDefinitionId", matchingDefinitions[0]._id)
+        .eq("scheduledLocalDate", fixture.today),
+    )
+    .unique();
+  if (
+    !occurrence ||
+    occurrence.title !== "Clean your room" ||
+    occurrence.kind !== "personal" ||
+    occurrence.state !== "submitted" ||
+    occurrence.personalChildId !== fixture.alexId
+  ) {
+    throw new ConvexError(
+      "Expected Alex's submitted Clean your room visual occurrence.",
+    );
+  }
+
+  const submission = await ctx.db
+    .query("choreSubmissions")
+    .withIndex("by_occurrence_attempt", (q) =>
+      q.eq("occurrenceId", occurrence._id).eq("attemptNumber", 1),
+    )
+    .unique();
+  if (!submission || submission.householdId !== fixture.householdId) {
+    throw new ConvexError(
+      "Expected exactly one first-attempt Clean your room submission.",
+    );
+  }
+  return submission;
+}
+
 async function seedMoney(
   ctx: MutationCtx,
   fixture: FixtureContext,
@@ -846,20 +967,29 @@ async function seedMoney(
     timezone: fixture.timezone,
     payoutWeekday: "friday",
   });
+  // Keep the approved Money references deterministic while retaining current
+  // timestamps so the real Child-authenticated payout query resolves this
+  // seeded open period on any screenshot date.
+  const visualYear = new Date(fixture.now).getUTCFullYear();
+  const currentStartLocalDate = `${visualYear}-09-12`;
+  const currentEndLocalDate = `${visualYear}-09-18`;
+  const previousStartLocalDate = `${visualYear}-09-05`;
+  const previousEndLocalDate = `${visualYear}-09-11`;
   const currentPeriodId = await ctx.db.insert("payoutPeriods", {
     householdId: fixture.householdId,
     ...window,
+    startLocalDate: currentStartLocalDate,
+    endLocalDate: currentEndLocalDate,
     state: "open",
     createdAt: fixture.now,
   });
   void currentPeriodId;
 
-  const previousStart = addLocalDays(window.startLocalDate, -7);
   const previousPeriodId = await ctx.db.insert("payoutPeriods", {
     householdId: fixture.householdId,
-    startLocalDate: previousStart,
-    endLocalDate: window.startLocalDate,
-    startAt: at(fixture, previousStart, "00:00"),
+    startLocalDate: previousStartLocalDate,
+    endLocalDate: previousEndLocalDate,
+    startAt: window.startAt - 7 * 86_400_000,
     endAt: window.startAt,
     timezone: fixture.timezone,
     payoutWeekday: "friday",
@@ -896,13 +1026,13 @@ async function seedMoney(
     return;
   }
 
-  const balance = mode === "negative" ? -35 : 0;
+  const balance = mode === "negative" ? -40 : 0;
   await setBalance(
     ctx,
     fixture,
     fixture.alexId,
     0,
-    mode === "negative" ? -35 : 0,
+    mode === "negative" ? -40 : 0,
     0,
   );
   await setBalance(ctx, fixture, fixture.mayaId, 0);
@@ -942,7 +1072,7 @@ async function seedScenarioData(
     case "child_money_negative":
       return await seedMoney(ctx, fixture, "negative");
     case "activity_history":
-      return await seedBalancesAndActivity(ctx, fixture);
+      return await seedBalancesAndActivity(ctx, fixture, true);
     case "activity_empty":
       await setBalance(ctx, fixture, fixture.alexId, 0, 0, 0, 0);
       return await setBalance(ctx, fixture, fixture.mayaId, 0, 0, 0, 0);
@@ -974,6 +1104,112 @@ export const seed = internalMutation({
       householdId: fixture.householdId,
       alexId: fixture.alexId,
       mayaId: fixture.mayaId,
+    };
+  },
+});
+
+/**
+ * Create a normal one-use pairing credential for Maya so screenshot runs can
+ * redeem it through the production anonymous-device flow and choose a fresh
+ * local PIN. Only the guarded development Household can use this operation.
+ */
+export const createMayaPairingCredential = internalMutation({
+  args: {
+    householdId: v.id("households"),
+    expectedParentAuthUserId: v.string(),
+  },
+  returns: v.object({
+    childId: v.id("children"),
+    manualCode: v.string(),
+    expiresAt: v.number(),
+  }),
+  handler: async (ctx, args) => {
+    const fixture = await loadFixtureContext(
+      ctx,
+      args.householdId,
+      args.expectedParentAuthUserId,
+    );
+
+    const existingCredentials = await ctx.db
+      .query("childPairingCredentials")
+      .withIndex("by_child", (q) => q.eq("childId", fixture.mayaId))
+      .collect();
+
+    // This visual-test helper intentionally reuses a fixed manual-code hash.
+    // Remove redeemed credentials too so the production lookup's unique()
+    // invariant remains true across repeated screenshot runs.
+    await deleteAll(ctx, existingCredentials);
+
+    const now = Date.now();
+    const expiresAt = now + 15 * 60 * 1000;
+
+    await ctx.db.insert("childPairingCredentials", {
+      householdId: fixture.householdId,
+      childId: fixture.mayaId,
+      qrTokenHash: MAYA_VISUAL_QR_TOKEN_HASH,
+      manualCodeHash: MAYA_VISUAL_PAIRING_CODE_HASH,
+      createdByAuthUserId: fixture.parentAuthUserId,
+      createdAt: now,
+      expiresAt,
+      manualAttemptCount: 0,
+    });
+
+    return {
+      childId: fixture.mayaId,
+      manualCode: MAYA_VISUAL_PAIRING_CODE,
+      expiresAt,
+    };
+  },
+});
+
+/**
+ * Create a normal one-use pairing credential for Alex so the approved Child
+ * Home fixture can be exercised through the production anonymous-device flow.
+ * Only the guarded development Household can use this operation.
+ */
+export const createAlexPairingCredential = internalMutation({
+  args: {
+    householdId: v.id("households"),
+    expectedParentAuthUserId: v.string(),
+  },
+  returns: v.object({
+    childId: v.id("children"),
+    manualCode: v.string(),
+    expiresAt: v.number(),
+  }),
+  handler: async (ctx, args) => {
+    const fixture = await loadFixtureContext(
+      ctx,
+      args.householdId,
+      args.expectedParentAuthUserId,
+    );
+
+    const existingCredentials = await ctx.db
+      .query("childPairingCredentials")
+      .withIndex("by_child", (q) => q.eq("childId", fixture.alexId))
+      .collect();
+
+    // The fixed visual-test hash must remain unique for production lookup.
+    await deleteAll(ctx, existingCredentials);
+
+    const now = Date.now();
+    const expiresAt = now + 15 * 60 * 1000;
+
+    await ctx.db.insert("childPairingCredentials", {
+      householdId: fixture.householdId,
+      childId: fixture.alexId,
+      qrTokenHash: ALEX_VISUAL_QR_TOKEN_HASH,
+      manualCodeHash: ALEX_VISUAL_PAIRING_CODE_HASH,
+      createdByAuthUserId: fixture.parentAuthUserId,
+      createdAt: now,
+      expiresAt,
+      manualAttemptCount: 0,
+    });
+
+    return {
+      childId: fixture.alexId,
+      manualCode: ALEX_VISUAL_PAIRING_CODE,
+      expiresAt,
     };
   },
 });
@@ -1052,8 +1288,8 @@ export const seedActivityHistoryIfEmpty = internalMutation({
       );
     }
 
-    const wednesday = addLocalDays(fixture.today, -5);
-    const thursday = addLocalDays(fixture.today, -4);
+    const wednesday = previousLocalWeekday(fixture.today, 3);
+    const thursday = previousLocalWeekday(fixture.today, 4);
     await createApprovedHistory(ctx, fixture, {
       childId: fixture.mayaId,
       title: "Set the table",
@@ -1084,11 +1320,75 @@ export const seedActivityHistoryIfEmpty = internalMutation({
   },
 });
 
+export const alignActivityWeekdayFixture = internalMutation({
+  args: {
+    householdId: v.id("households"),
+    expectedParentAuthUserId: v.string(),
+  },
+  returns: v.object({ updatedReviews: v.number() }),
+  handler: async (ctx, args) => {
+    const fixture = await loadFixtureContext(
+      ctx,
+      args.householdId,
+      args.expectedParentAuthUserId,
+    );
+    const reviews = await ctx.db
+      .query("choreReviews")
+      .withIndex("by_household_reviewed_at", (q) =>
+        q.eq("householdId", fixture.householdId),
+      )
+      .collect();
+    if (reviews.length !== 4) {
+      throw new ConvexError(
+        "Activity weekday alignment requires exactly four fixture reviews.",
+      );
+    }
+
+    const reviewByTitle = new Map<string, (typeof reviews)[number]>();
+    for (const review of reviews) {
+      const occurrence = await ctx.db.get(review.occurrenceId);
+      if (
+        review.decision !== "approved" ||
+        !occurrence ||
+        occurrence.householdId !== fixture.householdId ||
+        reviewByTitle.has(occurrence.title)
+      ) {
+        throw new ConvexError(
+          "Refusing to align an unexpected Activity visual fixture.",
+        );
+      }
+      reviewByTitle.set(occurrence.title, review);
+    }
+
+    const dishwasherReview = reviewByTitle.get("Load dishwasher");
+    const laundryReview = reviewByTitle.get("Fold laundry");
+    if (
+      !dishwasherReview ||
+      !laundryReview ||
+      reviewByTitle.size !== 4 ||
+      !reviewByTitle.has("Set the table") ||
+      !reviewByTitle.has("Walk the dog")
+    ) {
+      throw new ConvexError(
+        "Refusing to align an unexpected Activity visual fixture.",
+      );
+    }
+
+    await ctx.db.patch(dishwasherReview._id, {
+      reviewedAt: at(fixture, previousLocalWeekday(fixture.today, 4), "18:06"),
+    });
+    await ctx.db.patch(laundryReview._id, {
+      reviewedAt: at(fixture, previousLocalWeekday(fixture.today, 3), "17:31"),
+    });
+    return { updatedReviews: 2 };
+  },
+});
+
 export const setActivityCelebrationFixtureMinute = internalMutation({
   args: {
     householdId: v.id("households"),
     expectedParentAuthUserId: v.string(),
-    minute: v.union(v.literal("13"), v.literal("14")),
+    minute: v.union(v.literal("13"), v.literal("14"), v.literal("now")),
   },
   returns: v.object({ reviewedAt: v.number() }),
   handler: async (ctx, args) => {
@@ -1122,7 +1422,10 @@ export const setActivityCelebrationFixtureMinute = internalMutation({
       throw new ConvexError("Set the table fixture review was not found.");
     }
 
-    const reviewedAt = at(fixture, fixture.today, `08:${args.minute}`);
+    const reviewedAt =
+      args.minute === "now"
+        ? Date.now()
+        : at(fixture, fixture.today, `08:${args.minute}`);
     await ctx.db.patch(target.review._id, { reviewedAt });
     return { reviewedAt };
   },
@@ -2299,6 +2602,119 @@ export const validateTarget = internalQuery({
       args.expectedParentAuthUserId,
     );
     return null;
+  },
+});
+
+export const inspectReviewsQueueEvidence = internalQuery({
+  args: {
+    householdId: v.id("households"),
+    expectedParentAuthUserId: v.string(),
+  },
+  returns: v.object({
+    submissionId: v.union(v.id("choreSubmissions"), v.null()),
+    evidenceStorageId: v.union(v.id("_storage"), v.null()),
+    pendingTitles: v.array(v.string()),
+  }),
+  handler: async (ctx, args) => {
+    const fixture = await loadFixtureContext(
+      ctx,
+      args.householdId,
+      args.expectedParentAuthUserId,
+    );
+    const submission = await reviewsQueueEvidenceSubmission(ctx, fixture);
+    const pendingOccurrences = await ctx.db
+      .query("choreOccurrences")
+      .withIndex("by_household_state_availability", (q) =>
+        q.eq("householdId", fixture.householdId).eq("state", "submitted"),
+      )
+      .take(20);
+    return {
+      submissionId: submission?._id ?? null,
+      evidenceStorageId: submission?.evidenceStorageId ?? null,
+      pendingTitles: pendingOccurrences.map((occurrence) => occurrence.title),
+    };
+  },
+});
+
+export const ensureReviewsQueueEvidence = internalMutation({
+  args: {
+    householdId: v.id("households"),
+    expectedParentAuthUserId: v.string(),
+    evidenceStorageId: v.id("_storage"),
+  },
+  returns: v.object({
+    submissionId: v.id("choreSubmissions"),
+    evidenceStorageId: v.id("_storage"),
+    newlyAttached: v.boolean(),
+    seededQueue: v.boolean(),
+  }),
+  handler: async (ctx, args) => {
+    const fixture = await loadFixtureContext(
+      ctx,
+      args.householdId,
+      args.expectedParentAuthUserId,
+    );
+    const metadata = await ctx.db.system.get(
+      "_storage",
+      args.evidenceStorageId,
+    );
+    if (!metadata || metadata.contentType !== "image/png") {
+      throw new ConvexError(
+        "Visual review evidence must reference an uploaded PNG image.",
+      );
+    }
+
+    let submission = await reviewsQueueEvidenceSubmission(ctx, fixture);
+    let seededQueue = false;
+    if (!submission) {
+      const pendingOccurrences = await ctx.db
+        .query("choreOccurrences")
+        .withIndex("by_household_state_availability", (q) =>
+          q.eq("householdId", fixture.householdId).eq("state", "submitted"),
+        )
+        .take(20);
+      if (pendingOccurrences.length > 0) {
+        throw new ConvexError(
+          "Refusing to add review fixtures while other submissions are pending.",
+        );
+      }
+
+      await seedReviewsQueue(ctx, fixture, args.evidenceStorageId);
+      submission = await reviewsQueueEvidenceSubmission(ctx, fixture);
+      if (
+        !submission ||
+        submission.evidenceStorageId !== args.evidenceStorageId
+      ) {
+        throw new ConvexError(
+          "Unable to confirm the newly seeded review evidence.",
+        );
+      }
+      seededQueue = true;
+    }
+
+    if (submission.evidenceStorageId === args.evidenceStorageId) {
+      return {
+        submissionId: submission._id,
+        evidenceStorageId: args.evidenceStorageId,
+        newlyAttached: seededQueue,
+        seededQueue,
+      };
+    }
+    if (submission.evidenceStorageId !== undefined) {
+      throw new ConvexError(
+        "Refusing to replace existing evidence on the visual submission.",
+      );
+    }
+
+    await ctx.db.patch("choreSubmissions", submission._id, {
+      evidenceStorageId: args.evidenceStorageId,
+    });
+    return {
+      submissionId: submission._id,
+      evidenceStorageId: args.evidenceStorageId,
+      newlyAttached: true,
+      seededQueue,
+    };
   },
 });
 

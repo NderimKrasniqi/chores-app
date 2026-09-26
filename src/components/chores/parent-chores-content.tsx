@@ -132,6 +132,8 @@ function getArtwork(title: string) {
   if (normalized.includes("table")) return artwork.table;
   if (normalized.includes("laundry") || normalized.includes("fold"))
     return artwork.laundry;
+  if (normalized.includes("feed") && normalized.includes("dog"))
+    return artwork.dog;
   if (normalized.includes("plant") || normalized.includes("water"))
     return artwork.plants;
   if (normalized.includes("car") || normalized.includes("wash"))
@@ -246,7 +248,7 @@ function PersonChoice({
       accessibilityRole="button"
       accessibilityState={{ selected: active }}
       onPress={onPress}
-      className={`min-h-[50px] flex-1 flex-row items-center rounded-control border px-2.5 ${
+      className={`min-h-[40px] flex-1 flex-row items-center rounded-control border px-1.5 ${
         active
           ? "border-action bg-actionSoft"
           : "border-infoSoftStrong bg-surfaceRaised"
@@ -256,7 +258,7 @@ function PersonChoice({
         <DirectionCAvatar
           source={avatar}
           tone={childAvatarTone(child.displayName)}
-          className="h-9 w-9"
+          className="h-7 w-7"
         />
       ) : (
         <View className="h-9 w-9 items-center justify-center rounded-full bg-infoSoft">
@@ -270,13 +272,14 @@ function PersonChoice({
       <AppText
         variant="cardTitle"
         color={active ? "action" : "ink"}
-        className="ml-2 flex-1"
+        className="ml-1 flex-1 text-[14px] leading-[18px]"
+        style={{ fontSize: 14, lineHeight: 18 }}
         numberOfLines={1}
       >
         {child.displayName}
       </AppText>
       <View
-        className={`h-7 w-7 items-center justify-center rounded-full border-2 ${
+        className={`h-5 w-5 items-center justify-center rounded-full border-2 ${
           active
             ? "border-action bg-action"
             : "border-infoSoftStrong bg-transparent"
@@ -286,7 +289,7 @@ function PersonChoice({
           <DirectionCIcon
             name="check"
             color={DirectionC.color.white}
-            size={18}
+            size={14}
           />
         ) : null}
       </View>
@@ -310,29 +313,30 @@ function EligibilityChoice({
       accessibilityRole="button"
       accessibilityState={{ selected: active }}
       onPress={onPress}
-      className={`min-h-[50px] flex-1 flex-row items-center rounded-control border px-2.5 ${
+      className={`min-h-[40px] flex-1 flex-row items-center rounded-control border px-1.5 ${
         active
           ? "border-action bg-actionSoft"
           : "border-infoSoftStrong bg-surfaceRaised"
       }`}
     >
-      <View className="h-9 w-9 items-center justify-center rounded-full bg-infoSoft">
+      <View className="h-7 w-7 items-center justify-center rounded-full bg-infoSoft">
         <DirectionCIcon
           name={selectedChildren ? "person" : "family"}
           color={active ? DirectionC.color.green : DirectionC.color.ink}
-          size={26}
+          size={20}
         />
       </View>
       <AppText
         variant="cardTitle"
         color={active ? "action" : "ink"}
-        className="ml-2 flex-1"
-        numberOfLines={2}
+        className="ml-1 flex-1 text-[12px] leading-[16px]"
+        style={{ fontSize: 12, lineHeight: 16 }}
+        numberOfLines={1}
       >
         {label}
       </AppText>
       <View
-        className={`h-7 w-7 items-center justify-center rounded-full border-2 ${
+        className={`h-5 w-5 items-center justify-center rounded-full border-2 ${
           active
             ? "border-action bg-action"
             : "border-infoSoftStrong bg-transparent"
@@ -342,7 +346,7 @@ function EligibilityChoice({
           <DirectionCIcon
             name="check"
             color={DirectionC.color.white}
-            size={18}
+            size={14}
           />
         ) : null}
       </View>
@@ -366,17 +370,22 @@ function ScheduleFieldRow({
       accessibilityRole="button"
       accessibilityLabel={`${label}: ${displayValue}`}
       onPress={onPress}
-      className="min-h-target flex-row items-center border-b border-line px-1"
+      className="min-h-[36px] flex-row items-center border-b border-line px-1"
     >
-      <View className="h-9 w-9 items-center justify-center rounded-full bg-infoSoft">
-        <DirectionCIcon name={icon} color={DirectionC.color.ink} size={23} />
+      <View className="h-7 w-7 items-center justify-center rounded-full bg-infoSoft">
+        <DirectionCIcon name={icon} color={DirectionC.color.ink} size={18} />
       </View>
-      <AppText className="ml-3 flex-1" numberOfLines={1}>
+      <AppText
+        className="ml-2 flex-1 text-[14px] leading-[18px]"
+        style={{ fontSize: 14, lineHeight: 18 }}
+        numberOfLines={1}
+      >
         {label}
       </AppText>
       <AppText
         color={displayValue.startsWith("Choose") ? "ink-muted" : "ink"}
-        className="max-w-[190px] text-right"
+        className="max-w-[190px] text-right text-[14px] leading-[18px]"
+        style={{ fontSize: 14, lineHeight: 18 }}
         numberOfLines={1}
       >
         {displayValue}
@@ -397,9 +406,11 @@ type ScheduleEditorKey =
 function SegmentedControl({
   value,
   onChange,
+  compact = false,
 }: {
   value: ChoreKind;
   onChange: (value: ChoreKind) => void;
+  compact?: boolean;
 }) {
   return (
     <View className="flex-row rounded-control bg-infoSoft p-1">
@@ -411,11 +422,16 @@ function SegmentedControl({
             accessibilityRole="button"
             accessibilityState={{ selected: active }}
             onPress={() => onChange(kind)}
-            className={`min-h-target flex-1 items-center justify-center rounded-control ${
+            className={`${compact ? "min-h-[32px]" : "min-h-[36px]"} flex-1 items-center justify-center rounded-control ${
               active ? "bg-actionSoftStrong" : "bg-transparent"
             }`}
           >
-            <AppText variant="cardTitle" color={active ? "action" : "ink"}>
+            <AppText
+              variant="cardTitle"
+              color={active ? "action" : "ink"}
+              className={compact ? "text-[14px] leading-[18px]" : ""}
+              style={compact ? { fontSize: 14, lineHeight: 18 } : undefined}
+            >
               {kind === "personal" ? "Personal" : "Claimable"}
             </AppText>
           </Pressable>
@@ -768,7 +784,7 @@ export function ParentChoresContent({
       <Pressable
         accessibilityRole="button"
         onPress={openNew}
-        className="min-h-[72px] flex-row items-center rounded-control bg-actionSoft px-4"
+        className="min-h-[44px] flex-row items-center rounded-control bg-actionSoft px-4"
       >
         <View className="h-12 w-12 items-center justify-center rounded-full bg-action">
           <DirectionCIcon
@@ -788,7 +804,9 @@ export function ParentChoresContent({
       </View>
 
       <View className="mt-5 flex-row items-center justify-between">
-        <AppText variant="sectionTitle">Active chores</AppText>
+        <AppText style={{ fontSize: 26, lineHeight: 31, fontWeight: "900" }}>
+          Active chores
+        </AppText>
         <View className="min-w-12 items-center rounded-full bg-infoSoft px-3 py-1.5">
           <AppText variant="label">{visibleDefinitions.length}</AppText>
         </View>
@@ -824,7 +842,7 @@ export function ParentChoresContent({
           </AppText>
         </Surface>
       ) : (
-        <View className="mt-3 gap-3">
+        <View className="mt-3 gap-2">
           {visibleDefinitions.map((definition) => {
             const childName =
               definition.kind === "personal"
@@ -860,6 +878,8 @@ export function ParentChoresContent({
                         variant="cardTitle"
                         className="text-[17px] leading-[20px]"
                         numberOfLines={1}
+                        adjustsFontSizeToFit
+                        minimumFontScale={0.82}
                       >
                         {definition.title}
                       </AppText>
@@ -955,7 +975,7 @@ export function ParentChoresContent({
       <Surface
         tone="muted"
         elevated={false}
-        className="mt-4 flex-row items-center p-3"
+        className="mt-2 flex-row items-center p-3"
       >
         <DirectionCIcon
           name="info"
@@ -974,87 +994,106 @@ export function ParentChoresContent({
         onRequestClose={() => setShowForm(false)}
       >
         <SafeAreaView
-          edges={["bottom"]}
+          edges={[]}
           className="flex-1 bg-canvas"
-          style={{ paddingTop: safeAreaInsets.top }}
+          style={{ paddingTop: Math.max(0, safeAreaInsets.top - 12) }}
         >
           <KeyboardAvoidingView
             className="flex-1"
             behavior={Platform.OS === "ios" ? "padding" : undefined}
           >
-            <View className="px-5">
+            <View className={`px-3 ${editingId ? "-mb-3" : ""}`}>
               <TopBar
                 title={editingId ? "Edit chore" : "New chore"}
                 onBack={() => setShowForm(false)}
+                titleStyle={{ fontSize: 24, lineHeight: 28 }}
               />
             </View>
             <ScrollView
+              className="flex-1"
               keyboardShouldPersistTaps="handled"
               keyboardDismissMode="on-drag"
               showsVerticalScrollIndicator={false}
-              contentContainerClassName="px-5 pb-5"
+              contentContainerClassName={`${editingId ? "" : "-mt-2"} px-3 pb-5`}
             >
               {editingId ? (
                 <Surface
                   tone="lavender"
                   elevated={false}
-                  className="mt-1 flex-row items-center p-3"
+                  className="flex-row items-center p-2"
                 >
                   <DirectionCIcon
                     name="info"
                     color={DirectionC.color.inkMuted}
-                    size={25}
+                    size={20}
                   />
                   <View className="ml-3 flex-1">
-                    <AppText variant="cardTitle">
+                    <AppText
+                      variant="cardTitle"
+                      className="text-[14px] leading-[18px]"
+                      style={{ fontSize: 14, lineHeight: 18 }}
+                      numberOfLines={1}
+                    >
                       Changes apply to future chores only.
                     </AppText>
-                    <AppText variant="bodySmall" className="mt-0.5">
+                    <AppText
+                      variant="bodySmall"
+                      className="mt-0.5 text-[12px] leading-[16px]"
+                      style={{ fontSize: 12, lineHeight: 16 }}
+                      numberOfLines={1}
+                    >
                       Existing chores keep their current value and deadlines.
                     </AppText>
                   </View>
                 </Surface>
               ) : null}
 
-              <SegmentedControl
-                value={kind}
-                onChange={(next) => {
-                  setKind(next);
-                  if (next === "claimable") setIsUnlockChore(false);
-                }}
-              />
+              <View>
+                <SegmentedControl
+                  value={kind}
+                  onChange={(next) => {
+                    setKind(next);
+                    if (next === "claimable") setIsUnlockChore(false);
+                  }}
+                  compact
+                />
+              </View>
 
-              <Surface className="mt-3 p-2.5">
+              <Surface className="mt-3 p-1.5">
                 <FormField
                   label="Chore name"
                   placeholder="Clean your room"
                   value={title}
                   onChangeText={setTitle}
-                  className="mt-1 min-h-[44px] py-2"
+                  compact
                 />
               </Surface>
-              <Surface className="mt-2 p-2.5">
+              <Surface className="mt-2 p-1.5">
                 <FormField
                   label="Instructions (optional)"
                   placeholder="Add clear instructions"
                   value={description}
                   onChangeText={setDescription}
                   multiline
-                  className="mt-1 min-h-[58px] py-2"
+                  compact
                 />
               </Surface>
-              <Surface className="mt-2 p-2.5">
+              <Surface className="mt-2 p-1.5">
                 <FormField
                   label="Reward"
                   placeholder="30 kr"
                   value={valueSek}
                   onChangeText={setValueSek}
                   keyboardType="number-pad"
-                  className="mt-1 min-h-[44px] py-2"
+                  compact
                 />
               </Surface>
 
-              <AppText variant="sectionTitle" className="mt-3">
+              <AppText
+                variant="sectionTitle"
+                className="mt-3 text-[20px] leading-[24px]"
+                style={{ fontSize: 20, lineHeight: 24 }}
+              >
                 {kind === "personal" ? "Assigned to" : "Eligibility"}
               </AppText>
               <Surface className="mt-2 p-2">
@@ -1106,7 +1145,11 @@ export function ParentChoresContent({
                 )}
               </Surface>
 
-              <AppText variant="sectionTitle" className="mt-3">
+              <AppText
+                variant="sectionTitle"
+                className="mt-3 text-[20px] leading-[24px]"
+                style={{ fontSize: 20, lineHeight: 24 }}
+              >
                 Schedule
               </AppText>
               <View className="mt-2">
@@ -1119,7 +1162,7 @@ export function ParentChoresContent({
                         accessibilityState={{
                           selected: recurrenceKind === value,
                         }}
-                        className={`min-h-[44px] flex-1 items-center justify-center rounded-control px-1 ${
+                        className={`min-h-[32px] flex-1 items-center justify-center rounded-control px-1 ${
                           recurrenceKind === value
                             ? "bg-actionSoftStrong"
                             : "bg-transparent"
@@ -1132,6 +1175,7 @@ export function ParentChoresContent({
                         <AppText
                           variant="label"
                           color={recurrenceKind === value ? "action" : "ink"}
+                          className="text-[14px] leading-[18px]"
                         >
                           {
                             {
@@ -1147,7 +1191,7 @@ export function ParentChoresContent({
                   )}
                 </View>
 
-                <Surface className="mt-2 overflow-hidden p-2">
+                <Surface className="mt-2 overflow-hidden p-1.5">
                   {recurrenceKind === "one_off" ? (
                     <ScheduleFieldRow
                       icon="calendar"
@@ -1285,6 +1329,8 @@ export function ParentChoresContent({
                     variant="bodySmall"
                     color="ink-muted"
                     className="ml-2 flex-1"
+                    style={{ fontSize: 12, lineHeight: 16 }}
+                    numberOfLines={1}
                   >
                     A child can have one active recurring Unlock Chore.
                   </AppText>
@@ -1300,10 +1346,15 @@ export function ParentChoresContent({
               ) : null}
             </ScrollView>
 
-            <View className="border-t border-line bg-surfaceRaised px-5 pt-3">
+            <View
+              className="border-t border-line bg-surfaceRaised px-3 pt-1"
+              style={{ paddingBottom: safeAreaInsets.bottom + 16 }}
+            >
               <ActionButton
                 label={editingId ? "Save changes" : "Create chore"}
                 loading={working}
+                style={{ minHeight: 40 }}
+                labelStyle={{ fontSize: 16, lineHeight: 20 }}
                 onPress={() => void save()}
               />
             </View>

@@ -60,15 +60,16 @@ export function ChildMoneyContent() {
   const balance = child.runningBalanceSek;
   const latest = child.latestPayout;
   const negative = balance < 0;
+  const compactGuide = latest?.status === "pending" || negative;
 
   return (
     <View className="pb-6">
       <Surface
         tone="mint"
         elevated={false}
-        className="mt-3 min-h-[170px] flex-row items-center p-4"
+        className="min-h-[136px] flex-row items-center p-3"
       >
-        <View className="h-28 w-28 items-center justify-center">
+        <View className="h-28 w-32 items-center justify-center">
           <Image
             source={moneyWalletArtwork}
             className="h-32 w-32"
@@ -76,17 +77,24 @@ export function ChildMoneyContent() {
             accessible={false}
           />
         </View>
-        <View className="ml-4 flex-1">
-          <AppText>Running balance</AppText>
+        <View className="ml-5 flex-1">
+          <AppText variant="bodySmall">Running balance</AppText>
           <AppText
             variant="display"
             color={negative ? "urgency" : "ink"}
-            className="mt-1"
+            className="mt-0.5"
             testID="task14-running-balance-value"
           >
             {balance} kr
           </AppText>
-          <AppText variant="bodySmall" color="ink-muted" className="mt-2">
+          <AppText
+            variant="bodySmall"
+            color="ink-muted"
+            className="mt-1"
+            numberOfLines={2}
+            adjustsFontSizeToFit
+            minimumFontScale={0.85}
+          >
             {negative
               ? "Future approved chores reduce this amount first."
               : "Approved chores add to this. Missed locked Extras can subtract."}
@@ -97,19 +105,19 @@ export function ChildMoneyContent() {
       <Surface
         tone="lavender"
         elevated={false}
-        className="mt-3 min-h-[148px] flex-row items-center p-4"
+        className="min-h-[128px] flex-row items-center p-3"
       >
-        <View className="h-24 w-24 items-center justify-center">
+        <View className="h-24 w-32 items-center justify-center">
           <Image
             source={moneyCalendarArtwork}
-            className="h-28 w-28"
+            className="h-32 w-32"
             contentFit="contain"
             accessible={false}
           />
         </View>
-        <View className="ml-4 flex-1">
+        <View className="ml-5 flex-1">
           <AppText variant="cardTitle">This payout week</AppText>
-          <AppText variant="sectionTitle" className="mt-1">
+          <AppText variant="sectionTitle" className="mt-0.5">
             {formatPeriod(
               currentPeriod.startLocalDate,
               currentPeriod.endLocalDate,
@@ -121,20 +129,27 @@ export function ChildMoneyContent() {
               color={DirectionC.color.ink}
               size={18}
             />
-            <AppText variant="bodySmall" className="ml-2">
+            <AppText variant="bodySmall" className="ml-1.5">
               Closes {formatWeekday(currentPeriod.payoutWeekday)}
             </AppText>
           </View>
-          <AppText variant="caption" color="ink-muted" className="mt-2">
+          <AppText
+            variant="caption"
+            color="ink-muted"
+            className="mt-1"
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.8}
+          >
             A new payout period starts after it closes.
           </AppText>
         </View>
       </Surface>
 
-      <AppText variant="sectionTitle" className="mt-5">
+      <AppText variant="sectionTitle" className="mt-3">
         Last week’s payout
       </AppText>
-      <Surface className="mt-2 p-4">
+      <Surface className="mt-2 px-3 py-1">
         {latest ? (
           <>
             <View className="flex-row items-center">
@@ -175,24 +190,23 @@ export function ChildMoneyContent() {
                           : "info"
                     }
                     icon={
-                      <DirectionCIcon
-                        name={
-                          latest.status === "pending"
-                            ? "clock"
-                            : latest.status === "paid"
-                              ? "check"
-                              : "minus"
-                        }
-                        color={
-                          latest.status === "pending" ||
-                          latest.status === "paid"
-                            ? DirectionC.color.greenDeep
-                            : latest.balanceAtCloseSek < 0
-                              ? DirectionC.color.coral
-                              : DirectionC.color.inkMuted
-                        }
-                        size={15}
-                      />
+                      latest.status === "no_payment" ? (
+                        <View
+                          className={`h-6 w-6 items-center justify-center rounded-full ${latest.balanceAtCloseSek < 0 ? "bg-urgency" : "bg-info"}`}
+                        >
+                          <DirectionCIcon
+                            name="minus"
+                            color={DirectionC.color.white}
+                            size={14}
+                          />
+                        </View>
+                      ) : (
+                        <DirectionCIcon
+                          name={latest.status === "pending" ? "clock" : "check"}
+                          color={DirectionC.color.greenDeep}
+                          size={15}
+                        />
+                      )
                     }
                   />
                 </View>
@@ -204,7 +218,10 @@ export function ChildMoneyContent() {
                 <AppText
                   variant="bodySmall"
                   color="ink-muted"
-                  className="mt-4 text-center"
+                  className="mt-2 text-center"
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.75}
                 >
                   This {latest.amountDueSek} kr is already included in your{" "}
                   {balance} kr balance.
@@ -212,7 +229,7 @@ export function ChildMoneyContent() {
                 <Surface
                   tone="mint"
                   elevated={false}
-                  className="mt-3 flex-row items-center justify-center px-3 py-3"
+                  className="mt-2 flex-row items-center justify-center px-3 py-1"
                 >
                   <AppText variant="cardTitle" numberOfLines={1}>
                     {balance} kr
@@ -247,14 +264,20 @@ export function ChildMoneyContent() {
                   <Surface
                     tone="lavender"
                     elevated={false}
-                    className="mt-3 flex-row items-center p-3"
+                    className="mt-1 flex-row items-center p-1"
                   >
                     <DirectionCIcon
                       name="info"
                       color={DirectionC.color.ink}
                       size={21}
                     />
-                    <AppText variant="bodySmall" className="ml-2 flex-1">
+                    <AppText
+                      variant="bodySmall"
+                      className="ml-2 flex-1"
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                      minimumFontScale={0.75}
+                    >
                       {latest.pendingOutcomeCount} unresolved chore{" "}
                       {latest.pendingOutcomeCount === 1
                         ? "result moves"
@@ -265,17 +288,17 @@ export function ChildMoneyContent() {
                 ) : null}
               </>
             ) : latest.status === "no_payment" ? (
-              <View className="mt-4">
+              <View className="mt-2 pb-3">
                 <AppText variant="bodySmall" color="ink-muted">
                   {latest.balanceAtCloseSek < 0
                     ? "Your balance was below zero when the week closed. No payout was created."
-                    : "Your balance was 0 kr when the week closed. No payout was created."}
+                    : "Your balance was 0 kr when the week closed.\nNo payout was created."}
                 </AppText>
                 {latest.balanceAtCloseSek < 0 ? (
                   <Surface
                     tone="lavender"
                     elevated={false}
-                    className="mt-3 flex-row items-center p-3"
+                    className="mt-1 flex-row items-center p-3"
                   >
                     <DirectionCIcon
                       name="info"
@@ -284,7 +307,7 @@ export function ChildMoneyContent() {
                     />
                     <AppText variant="bodySmall" className="ml-2 flex-1">
                       The next {Math.abs(latest.balanceAtCloseSek)} kr you earn
-                      brings that carried amount back to 0 kr.
+                      brings your balance back to 0 kr.
                     </AppText>
                   </Surface>
                 ) : null}
@@ -309,38 +332,64 @@ export function ChildMoneyContent() {
         )}
       </Surface>
 
-      <Surface className="mt-4 flex-row items-center p-4">
-        <View className="h-20 w-24 items-center justify-center rounded-control bg-rewardSoft">
+      <Surface
+        className={`${compactGuide ? "mt-2 p-1" : "mt-6 p-4"} flex-row items-center`}
+      >
+        <View
+          className={`${compactGuide ? "h-16 w-20" : "h-20 w-24"} items-center justify-center rounded-control bg-rewardSoft`}
+        >
           <Image
             source={moneyLightbulbArtwork}
-            className="h-24 w-24"
+            className={compactGuide ? "h-20 w-20" : "h-24 w-24"}
             contentFit="contain"
             accessible={false}
           />
         </View>
-        <View className="ml-4 flex-1">
+        <View className={`${compactGuide ? "ml-3" : "ml-4"} flex-1`}>
           <AppText variant="cardTitle">How your balance works</AppText>
-          <View className="mt-2 flex-row items-center">
-            <View className="h-7 w-7 items-center justify-center rounded-full bg-action">
+          <View
+            className={`${negative ? "mt-0" : compactGuide ? "mt-1" : "mt-2"} flex-row items-center`}
+          >
+            <View
+              className={`${negative ? "h-5 w-5" : compactGuide ? "h-6 w-6" : "h-7 w-7"} items-center justify-center rounded-full bg-action`}
+            >
               <DirectionCIcon
                 name="plus"
                 color={DirectionC.color.white}
-                size={17}
+                size={negative ? 13 : compactGuide ? 15 : 17}
               />
             </View>
-            <AppText variant="bodySmall" color="action" className="ml-2">
+            <AppText
+              variant="bodySmall"
+              color="action"
+              className="ml-2 flex-1"
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.75}
+            >
               Approved chores add their reward
             </AppText>
           </View>
-          <View className="mt-1 flex-row items-center">
-            <View className="h-7 w-7 items-center justify-center rounded-full bg-urgency">
+          <View
+            className={`${negative ? "mt-0" : "mt-1"} flex-row items-center`}
+          >
+            <View
+              className={`${negative ? "h-5 w-5" : compactGuide ? "h-6 w-6" : "h-7 w-7"} items-center justify-center rounded-full bg-urgency`}
+            >
               <DirectionCIcon
                 name="minus"
                 color={DirectionC.color.white}
-                size={17}
+                size={negative ? 13 : compactGuide ? 15 : 17}
               />
             </View>
-            <AppText variant="bodySmall" color="urgency" className="ml-2">
+            <AppText
+              variant="bodySmall"
+              color="urgency"
+              className="ml-2 flex-1"
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.75}
+            >
               Missed locked Extras subtract their full value
             </AppText>
           </View>

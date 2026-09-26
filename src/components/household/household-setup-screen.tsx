@@ -3,6 +3,7 @@ import { DirectionC } from "@/constants/direction-c";
 import {
   ActionButton,
   AppText,
+  DesignTokens,
   FormField,
   Surface,
   TopBar,
@@ -112,9 +113,10 @@ function ChoiceCard({
     <Pressable
       accessibilityRole="button"
       onPress={onPress}
-      className={`min-h-[152px] overflow-hidden rounded-large p-5 shadow-md ${
+      className={`min-h-[152px] overflow-hidden rounded-large p-5 ${
         tone === "mint" ? "bg-actionSoft" : "bg-infoSoft"
       }`}
+      style={DesignTokens.shadowStyle.card}
     >
       <Image
         source={imageSource}
@@ -284,6 +286,7 @@ function CreateHousehold(props: CreateScreenProps) {
           </AppText>
           <Surface className="mt-1 gap-3 p-3">
             <FormField
+              testID="household-setup-name"
               label="Household name"
               placeholder="Krasniqi Family"
               value={props.householdName}
@@ -292,6 +295,7 @@ function CreateHousehold(props: CreateScreenProps) {
               className="min-h-target py-2"
             />
             <FormField
+              testID="household-setup-timezone"
               label="Household timezone"
               helper="Use an IANA timezone such as Europe/Stockholm."
               placeholder="Europe/Stockholm"
@@ -334,6 +338,7 @@ function CreateHousehold(props: CreateScreenProps) {
             </View>
             <View className="mt-3">
               <FormField
+                testID="household-setup-allowance"
                 label="Weekly unclaim allowance"
                 helper="The same allowance applies to every child each payout week."
                 placeholder="Enter a whole number"
@@ -353,6 +358,7 @@ function CreateHousehold(props: CreateScreenProps) {
               {props.children.map((child, index) => (
                 <View key={index}>
                   <FormField
+                    testID={`household-setup-child-${index}`}
                     label={
                       props.children.length === 1
                         ? "Child name"
@@ -441,7 +447,11 @@ function JoinHousehold({
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <View className="px-5">
-          <TopBar title="Household setup" onBack={onBack} />
+          <TopBar
+            title="Household setup"
+            onBack={onBack}
+            titleStyle={{ fontSize: 22, lineHeight: 27 }}
+          />
         </View>
         <ScrollView
           keyboardShouldPersistTaps="handled"
@@ -463,7 +473,7 @@ function JoinHousehold({
           <Surface
             tone="mint"
             elevated={false}
-            className="mt-3 flex-row items-center p-3"
+            className="mt-5 flex-row items-center p-3"
           >
             <View className="relative h-12 w-12 items-center justify-center rounded-full bg-action">
               <DirectionCIcon
@@ -481,15 +491,15 @@ function JoinHousehold({
             </View>
             <View className="ml-4 flex-1">
               <AppText variant="cardTitle" color="action">
-                Equal Parent authority
+                Equal parent authority
               </AppText>
               <AppText color="ink-muted" className="mt-1">
-                You’ll have the same household controls as every other Parent.
+                You’ll have the same household controls as every other parent.
               </AppText>
             </View>
           </Surface>
 
-          <View className="mt-3">
+          <View className="mt-5">
             <FormField
               label="Parent invite code"
               placeholder="Paste invite code"
@@ -498,6 +508,11 @@ function JoinHousehold({
               autoCapitalize="none"
               autoCorrect={false}
               error={error ? " " : undefined}
+              className={
+                error
+                  ? "min-h-[66px] bg-surfaceRaised"
+                  : "min-h-[66px] bg-[#F9F4FF]"
+              }
             />
           </View>
 
@@ -505,7 +520,7 @@ function JoinHousehold({
             <Surface
               tone="coral"
               elevated={false}
-              className="mt-2 flex-row items-center p-3"
+              className="mt-2 flex-row items-center p-4"
             >
               <View className="h-10 w-10 items-center justify-center rounded-full bg-urgency">
                 <AppText variant="cardTitle" color="white">
@@ -544,6 +559,11 @@ function JoinHousehold({
             tone="quiet"
             className="mt-3"
             label="Create a new household"
+            labelStyle={{
+              color: DirectionC.color.ink,
+              fontSize: 17,
+              lineHeight: 22,
+            }}
             onPress={onCreate}
           />
         </ScrollView>

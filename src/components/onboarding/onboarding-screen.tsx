@@ -1,7 +1,7 @@
 import { DirectionCIcon } from "@/components/ui/direction-c-icon";
 import { AppImage as Image } from "@/components/ui/app-image";
 import { DirectionC } from "@/constants/direction-c";
-import { ActionButton, AppText, Surface } from "@/design-system";
+import { ActionButton, AppText, DesignTokens, Surface } from "@/design-system";
 import { markOnboardingComplete } from "@/lib/onboarding";
 import { StatusBar } from "expo-status-bar";
 import { useState } from "react";
@@ -10,6 +10,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 const familyArtwork = require("../../../assets/images/direction-c/onboarding-family.png");
 const parentAvatar = require("../../../assets/images/direction-c/sam-avatar.png");
+const roleParentArtwork = require("../../../assets/images/direction-c/onboarding-parent-role.png");
 const childAvatar = require("../../../assets/images/direction-c/alex-avatar.png");
 const bedroomArtwork = require("../../../assets/images/direction-c/chore-bedroom.png");
 const extrasArtwork = require("../../../assets/images/direction-c/extras-unlocked.png");
@@ -21,6 +22,7 @@ type OnboardingScreenProps = {
   onChooseChild: () => void;
   reviewMode?: boolean;
   onDone?: () => void;
+  initialPage?: 0 | 1 | 2 | 3;
 };
 
 export function OnboardingScreen({
@@ -28,8 +30,9 @@ export function OnboardingScreen({
   onChooseChild,
   reviewMode = false,
   onDone,
+  initialPage = 0,
 }: OnboardingScreenProps) {
-  const [page, setPage] = useState(0);
+  const [page, setPage] = useState<number>(initialPage);
   const [finishing, setFinishing] = useState(false);
 
   async function finish(next: () => void) {
@@ -144,7 +147,10 @@ function ReviewCompletePage({ onDone }: { onDone: () => void }) {
 function WelcomePage() {
   return (
     <View className="flex-1 px-5">
-      <AppText variant="screenTitle" className="mt-3">
+      <AppText
+        variant="screenTitle"
+        className="mt-3 text-[28px] leading-[32px]"
+      >
         A happier way{`\n`}to share chores
       </AppText>
       <AppText className="mt-2">
@@ -189,14 +195,17 @@ function HowItWorksPage() {
 
   return (
     <View className="flex-1 px-5">
-      <AppText variant="screenTitle" className="mt-3 text-center">
+      <AppText
+        variant="screenTitle"
+        className="mt-3 text-center text-[28px] leading-[32px]"
+      >
         Complete. Submit.{`\n`}Get approved.
       </AppText>
       <AppText className="mt-2 text-center">
         Earnings count only after approval.
       </AppText>
 
-      <View className="mt-5 flex-1 justify-center gap-3">
+      <View className="mt-5 flex-1 justify-around gap-3">
         {steps.map((step) => (
           <Surface
             key={step.number}
@@ -231,7 +240,10 @@ function HowItWorksPage() {
 function RealRewardsPage() {
   return (
     <View className="flex-1 px-5">
-      <AppText variant="screenTitle" className="mt-3 text-center">
+      <AppText
+        variant="screenTitle"
+        className="mt-3 text-center text-[28px] leading-[32px]"
+      >
         Real effort. Real SEK.
       </AppText>
       <AppText className="mt-2 text-center">
@@ -296,22 +308,26 @@ function ChooseRolePage({
 }) {
   return (
     <View className="flex-1 px-5">
-      <AppText variant="screenTitle" className="mt-3 text-center">
+      <AppText
+        variant="screenTitle"
+        className="mt-3 text-center text-[28px] leading-[32px]"
+      >
         How will you{`\n`}use the app?
       </AppText>
       <AppText className="mt-2 text-center">
         Your experience is tailored to your role.
       </AppText>
 
-      <View className="mt-6 gap-4">
+      <View className="mt-16 gap-4">
         <Pressable
           accessibilityRole="button"
           disabled={disabled}
           onPress={onChooseParent}
-          className="min-h-[168px] flex-row items-center rounded-large border-2 border-actionSoftStrong bg-actionSoft p-3 shadow-sm"
+          className="min-h-[168px] flex-row items-center rounded-large border-2 border-actionSoftStrong bg-actionSoft p-3"
+          style={DesignTokens.shadowStyle.card}
         >
           <Image
-            source={parentAvatar}
+            source={roleParentArtwork}
             className="h-32 w-32"
             contentFit="contain"
             accessible={false}
@@ -333,7 +349,8 @@ function ChooseRolePage({
           accessibilityRole="button"
           disabled={disabled}
           onPress={onChooseChild}
-          className="min-h-[168px] flex-row items-center rounded-large border-2 border-infoSoftStrong bg-infoSoft p-3 shadow-sm"
+          className="min-h-[168px] flex-row items-center rounded-large border-2 border-infoSoftStrong bg-infoSoft p-3"
+          style={DesignTokens.shadowStyle.card}
         >
           <Image
             source={childAvatar}
@@ -353,6 +370,14 @@ function ChooseRolePage({
             size={22}
           />
         </Pressable>
+      </View>
+      <View className="flex-1 justify-end">
+        <Image
+          source={rewardsArtwork}
+          className="h-56 w-full"
+          contentFit="contain"
+          accessible={false}
+        />
       </View>
     </View>
   );

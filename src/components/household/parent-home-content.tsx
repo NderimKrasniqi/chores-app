@@ -112,6 +112,7 @@ export function ParentHomeContent({
   onAddChore,
   onOpenSwitcher,
   onOpenActivity,
+  onOpenMoney,
 }: {
   household: HouseholdSummary;
   parentName: string;
@@ -119,6 +120,7 @@ export function ParentHomeContent({
   onAddChore: () => void;
   onOpenSwitcher: () => void;
   onOpenActivity: () => void;
+  onOpenMoney: () => void;
 }) {
   const householdId: Id<"households"> = household.householdId;
   const personal = useQuery(api.personalChoreReviews.listPending, {
@@ -147,7 +149,7 @@ export function ParentHomeContent({
       <View className="flex-row items-center">
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Open household switcher"
+          accessibilityLabel="Open Parent account"
           onPress={onOpenSwitcher}
           className="h-[76px] w-[76px]"
         >
@@ -175,13 +177,13 @@ export function ParentHomeContent({
         <Surface
           tone="coral"
           elevated={false}
-          className="mt-5 overflow-hidden p-2.5"
+          className="mt-3 overflow-hidden p-2"
         >
           <View className="flex-row items-center">
-            <View className="bg-urgencySoftStrong h-[60px] w-[60px] items-center justify-center rounded-full">
+            <View className="h-[72px] w-[72px] items-center justify-center rounded-full bg-urgency">
               <Image
                 source={reviewClipboard}
-                className="h-[60px] w-[60px]"
+                className="h-[72px] w-[72px]"
                 contentFit="contain"
                 accessible={false}
               />
@@ -201,7 +203,7 @@ export function ParentHomeContent({
           <Pressable
             accessibilityRole="button"
             onPress={onOpenReviews}
-            className="mt-2.5 min-h-[44px] flex-row items-center justify-center rounded-control bg-urgency px-5"
+            className="mt-2 min-h-[40px] flex-row items-center justify-center rounded-control bg-urgency px-5"
           >
             <AppText variant="cardTitle" color="white">
               Review work
@@ -219,7 +221,7 @@ export function ParentHomeContent({
         <Surface
           tone="mint"
           elevated={false}
-          className="mt-5 flex-row items-center p-4"
+          className="mt-3 flex-row items-center p-4"
         >
           <View className="h-12 w-12 items-center justify-center rounded-full bg-action">
             <DirectionCIcon
@@ -240,9 +242,9 @@ export function ParentHomeContent({
       <Pressable
         accessibilityRole="button"
         onPress={onAddChore}
-        className="mt-3 min-h-[72px] flex-row items-center rounded-control bg-actionSoft px-4"
+        className="mt-2 min-h-[44px] flex-row items-center rounded-control bg-actionSoft px-4"
       >
-        <View className="h-12 w-12 items-center justify-center rounded-full bg-action">
+        <View className="h-11 w-11 items-center justify-center rounded-full bg-action">
           <DirectionCIcon
             name="plus"
             color={DirectionC.color.white}
@@ -261,10 +263,10 @@ export function ParentHomeContent({
         </View>
       </Pressable>
 
-      <AppText variant="sectionTitle" className="mt-4">
+      <AppText variant="sectionTitle" className="mt-3">
         Your children
       </AppText>
-      <View className="mt-2 gap-3">
+      <View className="mt-2 gap-2.5">
         {household.children.map((child) => {
           const childPayout = payouts?.children.find(
             (item) => item.childId === child.childId,
@@ -277,34 +279,47 @@ export function ParentHomeContent({
               .length ?? 0;
           const childTodayCount = childPendingCount + childActiveCount;
           return (
-            <Surface
+            <Pressable
               key={child.childId}
-              className="min-h-[70px] flex-row items-center px-4 py-2"
+              accessibilityRole="button"
+              accessibilityLabel={`Open Money to view ${child.displayName}'s balance`}
+              onPress={onOpenMoney}
             >
-              <InitialAvatar name={child.displayName} />
-              <View className="ml-3 flex-1">
-                <AppText variant="cardTitle">{child.displayName}</AppText>
-                <AppText variant="bodySmall" className="mt-0.5">
-                  {childPendingCount > 0
-                    ? childActiveCount > 0
-                      ? `${childTodayCount} chores today`
-                      : `${childPendingCount} ${childPendingCount === 1 ? "chore" : "chores"} waiting for review`
-                    : childActiveCount > 0
-                      ? `${childActiveCount} ${childActiveCount === 1 ? "chore" : "chores"} today`
-                      : "No work waiting for review"}
-                </AppText>
-              </View>
-              {childPayout ? (
-                <AppText variant="amount" className="ml-2">
-                  {childPayout.runningBalanceSek} kr
-                </AppText>
-              ) : null}
-              <DirectionCIcon
-                name="chevron"
-                color={DirectionC.color.ink}
-                size={22}
-              />
-            </Surface>
+              <Surface className="min-h-[70px] flex-row items-center px-4 py-2">
+                <InitialAvatar name={child.displayName} />
+                <View className="ml-3 flex-1">
+                  <AppText variant="cardTitle">{child.displayName}</AppText>
+                  <AppText
+                    variant="bodySmall"
+                    className="mt-0.5"
+                    numberOfLines={1}
+                  >
+                    {childPendingCount > 0
+                      ? childActiveCount > 0
+                        ? `${childTodayCount} chores today`
+                        : `${childPendingCount} ${childPendingCount === 1 ? "chore" : "chores"} waiting for review`
+                      : childActiveCount > 0
+                        ? `${childActiveCount} ${childActiveCount === 1 ? "chore" : "chores"} today`
+                        : "No work waiting for review"}
+                  </AppText>
+                </View>
+                {childPayout ? (
+                  <AppText
+                    variant="amount"
+                    className="ml-2"
+                    style={{ fontSize: 24, lineHeight: 28, fontWeight: "900" }}
+                    numberOfLines={1}
+                  >
+                    {childPayout.runningBalanceSek} kr
+                  </AppText>
+                ) : null}
+                <DirectionCIcon
+                  name="chevron"
+                  color={DirectionC.color.ink}
+                  size={22}
+                />
+              </Surface>
+            </Pressable>
           );
         })}
       </View>
@@ -313,7 +328,7 @@ export function ParentHomeContent({
 
       {activity !== undefined ? (
         <View>
-          <AppText variant="sectionTitle" className="mt-4">
+          <AppText variant="sectionTitle" className="mt-3">
             Recent activity
           </AppText>
           <Pressable

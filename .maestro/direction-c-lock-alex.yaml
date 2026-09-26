@@ -1,0 +1,9 @@
+appId: host.exp.Exponent
+---
+- tapOn:
+    id: "child-pin-use-another-profile"
+    retryTapIfNoChange: true
+
+- extendedWaitUntil:
+    visible: "Who’s using this device?"
+    timeout: 30000

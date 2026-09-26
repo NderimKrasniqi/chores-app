@@ -60,7 +60,11 @@ function EqualAuthorityNotice({ compact = false }: { compact?: boolean }) {
         className="mt-2 flex-row items-center px-3 py-2"
       >
         <AuthorityIcon compact />
-        <AppText variant="cardTitle" color="action" className="ml-3 flex-1">
+        <AppText
+          color="action"
+          className="ml-3 flex-1"
+          style={{ fontSize: 14, lineHeight: 18, fontWeight: "600" }}
+        >
           Every parent has equal household authority.
         </AppText>
       </Surface>
@@ -228,7 +232,11 @@ export function ParentInviteCard({
   return (
     <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-canvas">
       <View className="px-5">
-        <TopBar title="Invite parent" onBack={onClose} />
+        <TopBar
+          title="Invite parent"
+          onBack={onClose}
+          titleStyle={{ fontSize: 20, lineHeight: 24 }}
+        />
       </View>
 
       <ScrollView

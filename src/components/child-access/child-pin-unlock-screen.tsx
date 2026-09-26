@@ -13,7 +13,14 @@ import {
 import { useAuthRuntime } from "@/providers/auth-runtime-provider";
 import { StatusBar } from "expo-status-bar";
 import { useState } from "react";
-import { KeyboardAvoidingView, Platform, TextInput, View } from "react-native";
+import {
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  TextInput,
+  TouchableWithoutFeedback,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 type ChildPinUnlockScreenProps = {
@@ -88,83 +95,88 @@ export function ChildPinUnlockScreen({
         className="flex-1 px-5"
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <View className="flex-1 justify-center">
-          <AppText
-            variant="label"
-            color="ink-faint"
-            className="uppercase tracking-widest"
-          >
-            Child profile
-          </AppText>
-          <AppText variant="display" className="mt-3">
-            Hi, {context.childDisplayName}
-          </AppText>
-          <AppText color="ink-muted" className="mt-2 max-w-[280px]">
-            Enter your local PIN to unlock this Child profile.
-          </AppText>
-
-          <View className="my-6 items-center">
-            <DirectionCAvatar
-              source={childAvatar(context.childDisplayName)}
-              tone={childAvatarTone(context.childDisplayName)}
-              className="h-40 w-40"
-              fallbackLabel={context.childDisplayName}
-            />
-            <AppText variant="sectionTitle" className="mt-2">
-              {context.childDisplayName}
-            </AppText>
-            <AppText color="ink-muted">{context.householdName}</AppText>
-          </View>
-
-          <AppText variant="sectionTitle">PIN</AppText>
-          <TextInput
-            className="mt-2 min-h-[72px] rounded-control border-2 border-infoSoftStrong bg-surface text-center font-rounded text-[28px] font-black tracking-[12px] text-ink"
-            placeholder="••••"
-            placeholderTextColor="#8D73BC"
-            value={pin}
-            onChangeText={(value) => setPin(normalizePinInput(value))}
-            keyboardType="number-pad"
-            secureTextEntry
-            maxLength={maxLength}
-            autoFocus
-          />
-
-          {errorMessage ? (
-            <AppText color="urgency" className="mt-3">
-              {errorMessage}
-            </AppText>
-          ) : null}
-
-          <ActionButton
-            className="mt-6"
-            label="Unlock profile"
-            loading={checkingPin}
-            onPress={() => void handleUnlock()}
-          />
-          <ActionButton
-            tone="secondary"
-            className="mt-3"
-            label="Use another profile"
-            disabled={checkingPin}
-            onPress={handleSwitchProfile}
-          />
-
-          <View className="mt-7 flex-row items-center justify-center">
-            <DirectionCIcon
-              name="checkShield"
-              color={DirectionC.color.green}
-              size={26}
-            />
+        <TouchableWithoutFeedback accessible={false} onPress={Keyboard.dismiss}>
+          <View className="flex-1 justify-center">
             <AppText
-              variant="caption"
-              color="ink-muted"
-              className="ml-2 flex-1"
+              variant="label"
+              color="ink-faint"
+              className="uppercase tracking-widest"
             >
-              The PIN is checked locally. Active device access is still
-              required.
+              Child profile
             </AppText>
+            <AppText variant="display" className="mt-3">
+              Hi, {context.childDisplayName}
+            </AppText>
+            <AppText color="ink-muted" className="mt-2 max-w-[280px]">
+              Enter your local PIN to unlock this Child profile.
+            </AppText>
+
+            <View className="my-6 items-center">
+              <DirectionCAvatar
+                source={childAvatar(context.childDisplayName)}
+                tone={childAvatarTone(context.childDisplayName)}
+                className="h-40 w-40"
+                fallbackLabel={context.childDisplayName}
+              />
+              <AppText variant="sectionTitle" className="mt-2">
+                {context.childDisplayName}
+              </AppText>
+              <AppText color="ink-muted">{context.householdName}</AppText>
+            </View>
+
+            <AppText variant="sectionTitle">PIN</AppText>
+            <TextInput
+              testID="child-pin-input"
+              className="mt-2 min-h-[72px] rounded-control border-2 border-infoSoftStrong bg-surface text-center font-rounded text-[28px] font-black tracking-[12px] text-ink"
+              placeholder="••••"
+              placeholderTextColor="#8D73BC"
+              value={pin}
+              onChangeText={(value) => setPin(normalizePinInput(value))}
+              keyboardType="number-pad"
+              secureTextEntry
+              maxLength={maxLength}
+              autoFocus
+            />
+
+            {errorMessage ? (
+              <AppText color="urgency" className="mt-3">
+                {errorMessage}
+              </AppText>
+            ) : null}
+
+            <ActionButton
+              testID="child-pin-unlock"
+              className="mt-6"
+              label="Unlock profile"
+              loading={checkingPin}
+              onPress={() => void handleUnlock()}
+            />
+            <ActionButton
+              testID="child-pin-use-another-profile"
+              tone="secondary"
+              className="mt-3"
+              label="Use another profile"
+              disabled={checkingPin}
+              onPress={handleSwitchProfile}
+            />
+
+            <View className="mt-7 flex-row items-center justify-center">
+              <DirectionCIcon
+                name="checkShield"
+                color={DirectionC.color.green}
+                size={26}
+              />
+              <AppText
+                variant="caption"
+                color="ink-muted"
+                className="ml-2 flex-1"
+              >
+                The PIN is checked locally. Active device access is still
+                required.
+              </AppText>
+            </View>
           </View>
-        </View>
+        </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

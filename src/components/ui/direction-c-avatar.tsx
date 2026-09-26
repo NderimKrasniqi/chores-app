@@ -5,7 +5,7 @@ type DirectionCAvatarTone = "alex" | "maya" | "parent";
 
 const toneClass: Record<DirectionCAvatarTone, string> = {
   alex: "bg-[#FBE4D2]",
-  maya: "bg-[#EEE7FA]",
+  maya: "bg-[#FBE4D2]",
   parent: "bg-[#FBE4D2]",
 };
 

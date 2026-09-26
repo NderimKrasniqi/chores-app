@@ -9,7 +9,13 @@ import * as ImagePicker from "expo-image-picker";
 import { File, UploadType } from "expo-file-system";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
-import { Alert, Image, Pressable, View } from "react-native";
+import {
+  Alert,
+  Image,
+  Pressable,
+  View,
+  type ImageSourcePropType,
+} from "react-native";
 
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
@@ -39,6 +45,8 @@ type Props = {
 
   hideSubmitButton?: boolean;
 
+  visualPhotoSource?: ImageSourcePropType;
+
   onControlStateChange?: (state: {
     evidenceUploadIntentId?: Id<"submissionEvidenceUploads">;
     busy: boolean;
@@ -62,6 +70,7 @@ export function ChildSubmissionActions({
   onSubmit,
   footerBeforeSubmit,
   hideSubmitButton = false,
+  visualPhotoSource,
   onControlStateChange,
 }: Props) {
   const generateUploadUrl = useServerConfirmedMutation(
@@ -81,6 +90,7 @@ export function ChildSubmissionActions({
   const [uploading, setUploading] = useState(false);
 
   const busy = disabled || submitting || uploading;
+  const hasPhoto = visualPhotoSource !== undefined || evidence !== null;
 
   useEffect(() => {
     onControlStateChange?.({
@@ -307,8 +317,8 @@ export function ChildSubmissionActions({
     <View>
       <Surface className="p-[18px]">
         <AppText variant="sectionTitle">
-          {evidence ? "Your photo" : "Add a photo"}
-          {!evidence ? (
+          {hasPhoto ? "Your photo" : "Add a photo"}
+          {!hasPhoto ? (
             <AppText variant="sectionTitle" className="font-semibold">
               {" "}
               (optional)
@@ -316,11 +326,11 @@ export function ChildSubmissionActions({
           ) : null}
         </AppText>
 
-        {evidence ? (
+        {hasPhoto ? (
           <View className="mt-3">
             <Image
-              source={{ uri: evidence.previewUri }}
-              className="h-48 w-full rounded-large bg-surfaceMuted"
+              source={visualPhotoSource ?? { uri: evidence?.previewUri ?? "" }}
+              className="h-40 w-full rounded-large bg-surfaceMuted"
               resizeMode="cover"
             />
 
@@ -341,7 +351,7 @@ export function ChildSubmissionActions({
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Remove chore evidence photo"
-                disabled={busy}
+                disabled={busy || visualPhotoSource !== undefined}
                 onPress={() => void removePhoto()}
                 className={`min-h-11 flex-row items-center rounded-control bg-urgencySoft px-3 ${busy ? "opacity-50" : ""}`}
               >

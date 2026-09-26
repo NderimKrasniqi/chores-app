@@ -3,6 +3,7 @@ import { DirectionC } from "@/constants/direction-c";
 import {
   ActionButton,
   AppText,
+  DesignTokens,
   StatusChip,
   Surface,
   TopBar,
@@ -74,6 +75,7 @@ const scheduledNoteArtwork = require("../../../assets/images/direction-c/child-c
 const missedNoteArtwork = require("../../../assets/images/direction-c/child-chore-note-missed.png");
 const redoNoteArtwork = require("../../../assets/images/direction-c/child-chore-note-redo.png");
 const moneyWalletArtwork = require("../../../assets/images/direction-c/money-wallet.png");
+const moneyWalletDisabledArtwork = require("../../../assets/images/direction-c/money-wallet-disabled.png");
 const redoDeadlineArtwork = require("../../../assets/images/direction-c/redo-deadline.png");
 
 function artworkForTitle(title: string) {
@@ -222,27 +224,39 @@ function ChoreArtwork({
   large = false,
   compact = false,
   submission = false,
+  featured = false,
+  waiting = false,
 }: {
   title: string;
   large?: boolean;
   compact?: boolean;
   submission?: boolean;
+  featured?: boolean;
+  waiting?: boolean;
 }) {
   const source = artworkForTitle(title);
   const frameClass = large
-    ? "h-[220px] w-full"
+    ? "h-[204px] w-full"
     : compact
       ? "h-[64px] w-[64px]"
       : submission
         ? "h-[118px] w-[142px]"
-        : "h-[96px] w-[96px]";
+        : featured
+          ? "h-[106px] w-[106px]"
+          : waiting
+            ? "h-[87px] w-[106px]"
+            : "h-[90px] w-[106px]";
   const imageClass = large
-    ? "h-[215px] w-[310px]"
+    ? "h-[199px] w-[326px]"
     : compact
       ? "h-[60px] w-[60px]"
       : submission
         ? "h-[116px] w-[145px]"
-        : "h-[90px] w-[90px]";
+        : featured
+          ? "h-[102px] w-[102px]"
+          : waiting
+            ? "h-[87px] w-[102px]"
+            : "h-[86px] w-[102px]";
 
   return (
     <View
@@ -271,11 +285,13 @@ export function ChildHomeChoreList({
   onInitialOccurrenceHandled,
   visualOccurrences,
   visualRedos,
+  initialVisualSubmissionState,
 }: {
   initialOccurrenceId?: Id<"choreOccurrences"> | null;
   onInitialOccurrenceHandled?: () => void;
   visualOccurrences?: ChildHomeChoreOccurrence[];
   visualRedos?: ChildHomeRedo[];
+  initialVisualSubmissionState?: "empty" | "photo";
 }) {
   const safeAreaInsets = useSafeAreaInsets();
   const queriedOccurrences = useQuery(
@@ -292,12 +308,12 @@ export function ChildHomeChoreList({
   const submitRedo = useServerConfirmedMutation(api.personalChores.submitRedo);
 
   const [selectedId, setSelectedId] = useState<Id<"choreOccurrences"> | null>(
-    null,
+    initialVisualSubmissionState ? (initialOccurrenceId ?? null) : null,
   );
   const [submittingId, setSubmittingId] =
     useState<Id<"choreOccurrences"> | null>(null);
   const [submissionAttempt, setSubmissionAttempt] = useState<1 | 2 | null>(
-    null,
+    initialVisualSubmissionState ? 1 : null,
   );
   const [submissionControlState, setSubmissionControlState] = useState<{
     evidenceUploadIntentId?: Id<"submissionEvidenceUploads">;
@@ -489,7 +505,7 @@ export function ChildHomeChoreList({
     <>
       <ScrollView
         className="flex-1"
-        contentContainerClassName="gap-2 px-1 pb-2"
+        contentContainerClassName="gap-[9px] px-1 pb-2"
         showsVerticalScrollIndicator
       >
         {visibleOccurrences.map((occurrence) => {
@@ -505,12 +521,21 @@ export function ChildHomeChoreList({
               accessibilityRole="button"
               accessibilityLabel={`Open ${occurrence.title}`}
               onPress={() => setSelectedId(occurrence.occurrenceId)}
-              className="min-h-[116px] flex-row items-center rounded-large bg-surface p-2 shadow-md"
+              className={`${occurrence.isUnlockChore ? "min-h-[128px]" : "min-h-[104px]"} flex-row items-center rounded-large bg-surface py-[6px] pl-[11px] pr-[6px]`}
+              style={DesignTokens.shadowStyle.card}
             >
-              <ChoreArtwork title={occurrence.title} />
+              <ChoreArtwork
+                title={occurrence.title}
+                featured={occurrence.isUnlockChore}
+                waiting={waiting}
+              />
 
-              <View className="flex-1 px-3">
-                <AppText variant="cardTitle" numberOfLines={2}>
+              <View className="flex-1 pl-[17px] pr-3">
+                <AppText
+                  variant="cardTitle"
+                  className="text-[19px] leading-[23px]"
+                  numberOfLines={2}
+                >
                   {occurrence.title}
                 </AppText>
 
@@ -591,7 +616,8 @@ export function ChildHomeChoreList({
                   accessibilityRole="button"
                   accessibilityLabel={`Open ${occurrence.title}`}
                   onPress={() => setSelectedId(occurrence.occurrenceId)}
-                  className="min-h-[80px] flex-row items-center rounded-large bg-surface p-2 shadow-md"
+                  className="min-h-[80px] flex-row items-center rounded-large bg-surface p-2"
+                  style={DesignTokens.shadowStyle.card}
                 >
                   <ChoreArtwork title={occurrence.title} compact />
 
@@ -656,7 +682,8 @@ export function ChildHomeChoreList({
             </View>
 
             <ScrollView
-              contentContainerClassName={`px-5 ${selectedOccurrence.canSubmit || (selectedOccurrence.state === "redo_required" && selectedRedo?.canSubmitRedo) ? "pb-32" : "pb-10"}`}
+              className="-mt-4"
+              contentContainerClassName={`-mt-2 px-4 ${selectedOccurrence.canSubmit || (selectedOccurrence.state === "redo_required" && selectedRedo?.canSubmitRedo) ? "pb-32" : "pb-10"}`}
               keyboardShouldPersistTaps="handled"
             >
               <View>
@@ -668,7 +695,10 @@ export function ChildHomeChoreList({
                   accessible={false}
                 />
                 {selectedOccurrence.isUnlockChore ? (
-                  <View className="absolute bottom-3 left-3 flex-row items-center rounded-full bg-surfaceRaised px-3 py-2 shadow-md">
+                  <View
+                    className="absolute bottom-3 left-3 flex-row items-center rounded-full bg-surfaceRaised px-3 py-2"
+                    style={DesignTokens.shadowStyle.floating}
+                  >
                     <DirectionCIcon
                       name="key"
                       color={DirectionC.color.coral}
@@ -681,7 +711,7 @@ export function ChildHomeChoreList({
                 ) : null}
               </View>
 
-              <AppText variant="screenTitle" className="mt-[18px]">
+              <AppText variant="display" className="mt-3">
                 {selectedOccurrence.title}
               </AppText>
 
@@ -868,9 +898,29 @@ export function ChildHomeChoreList({
               ) : null}
 
               {selectedOccurrence.description ? (
-                <Surface className="mt-5 p-[18px]">
+                <Surface
+                  className={
+                    selectedOccurrence.state === "available"
+                      ? "mt-3 min-h-[96px] p-4"
+                      : selectedOccurrence.state === "scheduled"
+                        ? "mt-3 px-3 py-4"
+                        : "mt-3 p-4"
+                  }
+                >
                   <AppText variant="cardTitle">Instructions</AppText>
-                  <AppText className="mt-2">
+                  <AppText
+                    variant="bodySmall"
+                    className={
+                      selectedOccurrence.state === "scheduled"
+                        ? "mt-2 text-[12px] leading-[16px]"
+                        : "mt-2"
+                    }
+                    numberOfLines={1}
+                    adjustsFontSizeToFit={
+                      selectedOccurrence.state !== "scheduled"
+                    }
+                    minimumFontScale={0.8}
+                  >
                     {selectedOccurrence.description}
                   </AppText>
                 </Surface>
@@ -899,7 +949,10 @@ export function ChildHomeChoreList({
                     <AppText
                       variant="bodySmall"
                       color="ink-muted"
-                      className="mt-1"
+                      className="mt-1 flex-1"
+                      numberOfLines={3}
+                      adjustsFontSizeToFit
+                      minimumFontScale={0.8}
                     >
                       Come back after{" "}
                       {formatTime(
@@ -928,7 +981,7 @@ export function ChildHomeChoreList({
                   <View className="ml-4 flex-1">
                     <AppText variant="cardTitle">Sent for review</AppText>
                     <AppText
-                      variant="bodySmall"
+                      variant="caption"
                       color="ink-muted"
                       className="mt-1"
                     >
@@ -943,7 +996,7 @@ export function ChildHomeChoreList({
                 <Surface
                   tone="mint"
                   elevated={false}
-                  className="mt-4 min-h-[112px] flex-row items-center overflow-hidden p-3"
+                  className="mt-3 min-h-[96px] flex-row items-center overflow-hidden p-2"
                 >
                   <View className="relative h-20 w-20">
                     <Image
@@ -965,7 +1018,7 @@ export function ChildHomeChoreList({
                       {selectedOccurrence.valueSek} kr added
                     </AppText>
                     <AppText
-                      variant="bodySmall"
+                      variant="caption"
                       color="ink-muted"
                       className="mt-1"
                     >
@@ -980,12 +1033,11 @@ export function ChildHomeChoreList({
                 <Surface
                   tone="coral"
                   elevated={false}
-                  className="mt-4 min-h-[112px] flex-row items-center overflow-hidden p-3"
+                  className="mt-4 min-h-[96px] flex-row items-center overflow-hidden p-3"
                 >
                   <Image
-                    source={moneyWalletArtwork}
-                    tintColor={DirectionC.color.disabled}
-                    className="h-20 w-20"
+                    source={moneyWalletDisabledArtwork}
+                    className="h-[72px] w-[72px]"
                     contentFit="contain"
                     accessible={false}
                   />
@@ -1007,11 +1059,11 @@ export function ChildHomeChoreList({
                 <Surface
                   tone="coral"
                   elevated={false}
-                  className="mt-4 min-h-[112px] flex-row items-center overflow-hidden p-3"
+                  className="mt-4 min-h-[96px] flex-row items-center overflow-hidden p-3"
                 >
                   <Image
                     source={redoDeadlineArtwork}
-                    className="h-20 w-20"
+                    className="h-[72px] w-[72px]"
                     contentFit="contain"
                     accessible={false}
                   />
@@ -1019,11 +1071,22 @@ export function ChildHomeChoreList({
                     <AppText variant="cardTitle">One redo</AppText>
                     <AppText
                       variant="bodySmall"
-                      color="ink-muted"
                       className="mt-1"
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                      minimumFontScale={0.8}
                     >
-                      Submit your corrected work by the new deadline. There is
-                      no second redo for this chore.
+                      Submit your corrected work by the new deadline.
+                    </AppText>
+                    <AppText
+                      variant="caption"
+                      color="ink-muted"
+                      className="mt-0.5"
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                      minimumFontScale={0.8}
+                    >
+                      There is no second redo for this chore.
                     </AppText>
                   </View>
                 </Surface>
@@ -1033,9 +1096,9 @@ export function ChildHomeChoreList({
                 <Surface
                   tone="lavender"
                   elevated={false}
-                  className="mt-4 min-h-[112px] flex-row items-center overflow-hidden px-0 py-3"
+                  className={`relative mt-3 ${selectedOccurrence.state === "redo_required" ? "min-h-[128px]" : "min-h-[112px]"} overflow-hidden px-0 py-2`}
                 >
-                  <View className="h-24 w-[54px] overflow-hidden">
+                  <View className="absolute bottom-2 left-0 top-2 w-[96px] overflow-hidden">
                     <Image
                       source={extrasArtwork}
                       className="absolute -left-9 h-24 w-[204px]"
@@ -1043,8 +1106,13 @@ export function ChildHomeChoreList({
                       accessible={false}
                     />
                   </View>
-                  <View className="flex-1 px-2">
-                    <AppText variant="cardTitle">
+                  <View className="flex-1 justify-center pl-[96px] pr-[96px]">
+                    <AppText
+                      variant="cardTitle"
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                      minimumFontScale={0.8}
+                    >
                       {selectedOccurrence.state === "approved"
                         ? "Extras are open"
                         : selectedOccurrence.state === "missed" ||
@@ -1054,22 +1122,103 @@ export function ChildHomeChoreList({
                             ? `${selectedOccurrence.valueSek} kr still available`
                             : "Why this chore matters"}
                     </AppText>
-                    <AppText
-                      variant="bodySmall"
-                      color="ink-muted"
-                      className="mt-1"
-                    >
-                      {selectedOccurrence.state === "approved"
-                        ? "This current Unlock Chore was approved. Extras stay open until the next Unlock Chore becomes current."
-                        : selectedOccurrence.state === "missed" ||
-                            selectedOccurrence.state === "failed"
-                          ? "This missed Unlock Chore did not open Extras. Only approval of the current Unlock Chore can open them."
-                          : selectedOccurrence.state === "redo_required"
-                            ? `Parent approval of this redo earns ${selectedOccurrence.valueSek} kr and opens Extras. If it fails, you earn 0 kr with no penalty.`
-                            : `Parent approval opens Extras. Your ${selectedOccurrence.valueSek} kr is added after approval.`}
-                    </AppText>
+                    {selectedOccurrence.state === "approved" ? (
+                      <>
+                        <AppText
+                          variant="bodySmall"
+                          className="mt-1"
+                          numberOfLines={1}
+                          adjustsFontSizeToFit
+                          minimumFontScale={0.8}
+                        >
+                          This current Unlock Chore was approved.
+                        </AppText>
+                        <AppText
+                          variant="caption"
+                          color="ink-muted"
+                          className="mt-0.5"
+                          numberOfLines={2}
+                          adjustsFontSizeToFit
+                          minimumFontScale={0.8}
+                        >
+                          Extras stay open until the next Unlock Chore becomes
+                          current.
+                        </AppText>
+                      </>
+                    ) : selectedOccurrence.state === "missed" ||
+                      selectedOccurrence.state === "failed" ? (
+                      <>
+                        <AppText
+                          variant="bodySmall"
+                          className="mt-1"
+                          numberOfLines={2}
+                          adjustsFontSizeToFit
+                          minimumFontScale={0.8}
+                        >
+                          This missed Unlock Chore did not open Extras.
+                        </AppText>
+                        <AppText
+                          variant="caption"
+                          color="ink-muted"
+                          className="mt-0.5"
+                          numberOfLines={2}
+                          adjustsFontSizeToFit
+                          minimumFontScale={0.8}
+                        >
+                          Only approval of the current Unlock Chore can open
+                          them.
+                        </AppText>
+                      </>
+                    ) : selectedOccurrence.state === "redo_required" ? (
+                      <>
+                        <AppText
+                          variant="bodySmall"
+                          className="mt-1"
+                          numberOfLines={2}
+                          adjustsFontSizeToFit
+                          minimumFontScale={0.8}
+                        >
+                          Parent approval of this redo earns the reward and
+                          opens Extras.
+                        </AppText>
+                        <AppText
+                          variant="caption"
+                          color="ink-muted"
+                          className="mt-0.5"
+                          numberOfLines={2}
+                          adjustsFontSizeToFit
+                          minimumFontScale={0.8}
+                        >
+                          If this Personal Chore redo fails, you earn 0 kr with
+                          no penalty.
+                        </AppText>
+                      </>
+                    ) : (
+                      <>
+                        <AppText
+                          variant="bodySmall"
+                          className="mt-1"
+                          numberOfLines={1}
+                          adjustsFontSizeToFit
+                          minimumFontScale={0.8}
+                        >
+                          Parent approval opens Extras.
+                        </AppText>
+                        <AppText
+                          variant="caption"
+                          color="ink-muted"
+                          className="mt-0.5"
+                          numberOfLines={1}
+                          adjustsFontSizeToFit
+                          minimumFontScale={0.8}
+                        >
+                          Your {selectedOccurrence.valueSek} kr is added after
+                          approval.
+                        </AppText>
+                      </>
+                    )}
                   </View>
-                  <View className="h-24 w-[54px] overflow-hidden">
+                  <View className="absolute bottom-2 right-0 top-2 w-[96px] overflow-hidden">
                     <Image
                       source={extrasArtwork}
                       className="absolute -right-1 h-24 w-[204px]"
@@ -1083,12 +1232,15 @@ export function ChildHomeChoreList({
               {selectedNoteArtwork ? (
                 <Image
                   source={selectedNoteArtwork}
-                  className="mt-1 h-[72px] w-[250px]"
+                  className={`${selectedOccurrence.state === "redo_required" ? "-mt-8" : "-mt-4"} h-[80px] w-[280px]`}
                   contentFit="contain"
                   accessible={false}
                 />
               ) : (
-                <View className="mt-4 -rotate-2 self-start rounded-small bg-rewardSoft px-4 py-2 shadow-md">
+                <View
+                  className="mt-4 -rotate-2 self-start rounded-small bg-rewardSoft px-4 py-2"
+                  style={DesignTokens.shadowStyle.floating}
+                >
                   <AppText className="font-bold italic">
                     {selectedOccurrence.state === "scheduled"
                       ? `See you ${
@@ -1114,7 +1266,7 @@ export function ChildHomeChoreList({
             </ScrollView>
 
             {selectedOccurrence.canSubmit ? (
-              <View className="absolute bottom-0 left-0 right-0 bg-canvas px-5 pb-7 pt-3">
+              <View className="absolute bottom-0 left-0 right-0 bg-canvas px-5 pb-10 pt-3">
                 <ActionButton
                   label="Submit work"
                   trailing={
@@ -1134,7 +1286,7 @@ export function ChildHomeChoreList({
 
             {selectedOccurrence.state === "redo_required" &&
             selectedRedo?.canSubmitRedo ? (
-              <View className="absolute bottom-0 left-0 right-0 bg-canvas px-5 pb-7 pt-3">
+              <View className="absolute bottom-0 left-0 right-0 bg-canvas px-5 pb-10 pt-3">
                 <ActionButton
                   label="Submit redo"
                   trailing={
@@ -1161,12 +1313,17 @@ export function ChildHomeChoreList({
                 setSubmissionAttempt(null);
               }}
             >
-              <SafeAreaView className="flex-1 bg-canvas">
-                <View className="px-3 pt-9">
+              <SafeAreaView
+                edges={["bottom"]}
+                className="flex-1 bg-canvas"
+                style={{ paddingTop: safeAreaInsets.top }}
+              >
+                <View className="px-3">
                   <TopBar
                     title={
                       submissionAttempt === 2 ? "Submit redo" : "Submit work"
                     }
+                    titleStyle={{ fontSize: 22, lineHeight: 27 }}
                     onBack={() => {
                       setSubmissionControlState({ busy: false });
                       setSubmissionAttempt(null);
@@ -1238,7 +1395,7 @@ export function ChildHomeChoreList({
                     </View>
                   </Surface>
 
-                  <AppText variant="display" className="mt-7">
+                  <AppText variant="display" className="mt-5">
                     Ready for review?
                   </AppText>
                   <AppText variant="body" className="mb-5 mt-1 font-semibold">
@@ -1260,6 +1417,11 @@ export function ChildHomeChoreList({
                     }
                     submittingLabel="Submitting…"
                     hideSubmitButton
+                    visualPhotoSource={
+                      initialVisualSubmissionState === "photo"
+                        ? require("../../../assets/images/direction-c/submission-room-sample.png")
+                        : undefined
+                    }
                     onControlStateChange={setSubmissionControlState}
                     footerBeforeSubmit={
                       <Surface

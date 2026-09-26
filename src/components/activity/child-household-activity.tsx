@@ -16,6 +16,7 @@ export function ChildHouseholdActivity({
   viewerChildId: Id<"children">;
   onOpenChores?: () => void;
   visualFixture?: {
+    loading?: boolean;
     items: ApprovalActivityItem[];
     timezone: string;
     initialCelebrationItem?: ApprovalActivityItem;
@@ -25,11 +26,13 @@ export function ChildHouseholdActivity({
     api.householdActivity.listForCurrentChild,
     visualFixture ? "skip" : {},
   );
-  const feed = visualFixture ?? queriedFeed;
+  const feed = visualFixture?.loading
+    ? undefined
+    : (visualFixture ?? queriedFeed);
 
   if (feed === undefined) {
     return (
-      <Surface className="mt-4 p-5">
+      <Surface testID="child-activity-loading" className="mt-4 p-5">
         <AppText variant="cardTitle">Loading activity…</AppText>
         <AppText variant="bodySmall" color="ink-muted" className="mt-1">
           Your household wins will appear here.

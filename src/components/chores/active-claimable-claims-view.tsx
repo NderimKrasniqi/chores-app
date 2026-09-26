@@ -257,7 +257,7 @@ function ClaimDetail({
       contentContainerClassName="px-5 pb-32"
       showsVerticalScrollIndicator={false}
     >
-      <Surface className="p-3">
+      <Surface className="p-3 pb-9">
         <View className="flex-row">
           <Image
             source={artworkForTitle(claim.title)}
@@ -306,7 +306,11 @@ function ClaimDetail({
           <View className="flex-1 flex-row items-center border-l border-line pl-4">
             <DirectionCIcon
               name="clock"
-              color={DirectionC.color.coral}
+              color={
+                cancellationUnavailable || claim.claimState === "redo_required"
+                  ? DirectionC.color.coral
+                  : DirectionC.color.inkMuted
+              }
               size={27}
             />
             <AppText
@@ -326,7 +330,7 @@ function ClaimDetail({
         </View>
       </Surface>
 
-      <AppText variant="sectionTitle" className="mt-6">
+      <AppText variant="sectionTitle" className="mt-7">
         Instructions
       </AppText>
       <AppText className="mt-2">
@@ -337,7 +341,7 @@ function ClaimDetail({
         <Surface
           tone="coral"
           elevated={false}
-          className="mt-6 flex-row items-center p-4"
+          className="mt-7 flex-row items-center p-4"
         >
           <View className="h-14 w-14 items-center justify-center rounded-full bg-urgencySoft">
             <DirectionCIcon
@@ -360,7 +364,7 @@ function ClaimDetail({
         <Surface
           tone="lavender"
           elevated={false}
-          className="mt-6 flex-row items-center p-4"
+          className="mt-7 flex-row items-center p-4"
         >
           <View className="h-14 w-14 items-center justify-center rounded-full bg-infoSoftStrong">
             <DirectionCIcon
@@ -369,11 +373,16 @@ function ClaimDetail({
               size={29}
             />
           </View>
-          <View className="ml-4 flex-1">
-            <AppText variant="cardTitle">Active commitment</AppText>
-            <AppText className="mt-1">
-              {claim.claimedByDisplayName} can claim another Extra when this is
-              resolved.
+          <View className="ml-5 flex-1">
+            <AppText
+              variant="cardTitle"
+              style={{ fontSize: 19, lineHeight: 23 }}
+            >
+              Active commitment
+            </AppText>
+            <AppText className="mt-1" style={{ fontSize: 15, lineHeight: 20 }}>
+              {claim.claimedByDisplayName} can claim another Extra when this
+              {"\n"}is resolved.
             </AppText>
           </View>
         </Surface>
@@ -457,7 +466,7 @@ export function ActiveClaimableClaimsView({
     <View>
       <AppText
         variant="sectionTitle"
-        className={`${homeVariant ? "mt-4" : "mt-5"}`}
+        className={`${homeVariant ? "mt-3" : "mt-5"}`}
       >
         {claims.length === 1 ? "Active commitment" : "Active commitments"}
       </AppText>
@@ -496,18 +505,19 @@ export function ActiveClaimableClaimsView({
       >
         {selectedClaim ? (
           <SafeAreaView
-            edges={["bottom"]}
+            edges={[]}
             className="flex-1 bg-canvas"
-            style={{ paddingTop: safeAreaInsets.top }}
+            style={{ paddingTop: Math.max(0, safeAreaInsets.top - 8) }}
           >
             <View className="px-5">
               <TopBar
                 title="Active claim"
                 onBack={() => setSelectedClaimId(null)}
+                titleStyle={{ fontSize: 20, lineHeight: 24 }}
               />
             </View>
             <ClaimDetail claim={selectedClaim} />
-            <View className="absolute bottom-0 left-0 right-0 bg-canvas px-5 pb-7 pt-3">
+            <View className="absolute bottom-14 left-0 right-0 bg-canvas px-5 pb-7 pt-3">
               <ActionButton
                 label="Cancel claim"
                 tone="destructiveSecondary"
@@ -574,13 +584,14 @@ export function ActiveClaimableClaimsView({
       >
         {unavailableClaim ? (
           <SafeAreaView
-            edges={["bottom"]}
+            edges={[]}
             className="flex-1 bg-canvas"
-            style={{ paddingTop: safeAreaInsets.top }}
+            style={{ paddingTop: Math.max(0, safeAreaInsets.top - 8) }}
           >
             <View className="px-5">
               <TopBar
                 title="Active claim"
+                titleStyle={{ fontSize: 20, lineHeight: 24 }}
                 onBack={() => {
                   setUnavailableClaim(null);
                   setSelectedClaimId(null);

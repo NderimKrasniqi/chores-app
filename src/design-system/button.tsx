@@ -18,6 +18,8 @@ type ActionButtonProps = Omit<ComponentProps<typeof Pressable>, "children"> & {
   leading?: ReactNode;
   trailing?: ReactNode;
   loading?: boolean;
+  labelClassName?: string;
+  labelStyle?: ComponentProps<typeof AppText>["style"];
 };
 
 const toneClass: Record<ButtonTone, string> = {
@@ -35,6 +37,8 @@ export function ActionButton({
   leading,
   trailing,
   loading = false,
+  labelClassName = "",
+  labelStyle,
   disabled,
   className = "",
   ...props
@@ -46,6 +50,7 @@ export function ActionButton({
     <Pressable
       {...props}
       accessibilityRole="button"
+      accessibilityLabel={props.accessibilityLabel ?? label}
       accessibilityState={{ disabled: isDisabled, busy: loading }}
       disabled={isDisabled}
       className={`min-h-control items-center justify-center rounded-control px-5 ${toneClass[tone]} ${isDisabled ? "opacity-50" : ""} ${className}`}
@@ -68,7 +73,8 @@ export function ActionButton({
                     ? "urgency"
                     : "ink"
             }
-            className="text-center"
+            className={`text-center ${labelClassName}`}
+            style={labelStyle}
           >
             {label}
           </AppText>

@@ -8,9 +8,13 @@ import {
   TopBar,
 } from "@/design-system";
 import { AppImage as Image } from "@/components/ui/app-image";
+import { LinearGradient } from "expo-linear-gradient";
 import { useState } from "react";
 import { Modal, Pressable, ScrollView, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
 import type { Id } from "../../../convex/_generated/dataModel";
 import { formatLocalDate } from "@/lib/direction-c/dates";
@@ -160,16 +164,20 @@ function ChoreArtwork({
   large = false,
   detail = false,
   activeClaim = false,
+  gate = false,
+  pool = false,
 }: {
   title: string;
   large?: boolean;
   detail?: boolean;
   activeClaim?: boolean;
+  gate?: boolean;
+  pool?: boolean;
 }) {
   const source = artworkForTitle(title);
   return (
     <View
-      className={`${large ? "h-[245px] w-full" : activeClaim ? "h-[188px] w-[156px]" : detail ? "h-[128px] w-[132px]" : "h-24 w-28"} items-center justify-center overflow-hidden rounded-control bg-[#F7EDDF]`}
+      className={`${large ? "h-[245px] w-full" : activeClaim ? "h-[188px] w-[156px]" : detail ? "h-[128px] w-[132px]" : gate ? "h-[116px] w-[116px]" : pool ? "h-[84px] w-[110px]" : "h-24 w-28"} items-center justify-center overflow-hidden rounded-control bg-[#F7EDDF]`}
     >
       {source ? (
         <Image
@@ -181,7 +189,11 @@ function ChoreArtwork({
                 ? "h-[182px] w-[150px]"
                 : detail
                   ? "h-[122px] w-[126px]"
-                  : "h-[92px] w-[106px]"
+                  : gate
+                    ? "h-[112px] w-[112px]"
+                    : pool
+                      ? "h-[80px] w-[106px]"
+                      : "h-[92px] w-[106px]"
           }
           contentFit="contain"
           accessible={false}
@@ -322,13 +334,21 @@ function ClaimableCard({
   onClaim?: () => void;
 }) {
   return (
-    <Surface className="min-h-[120px] flex-row items-center p-2.5">
-      <ChoreArtwork title={occurrence.title} />
-      <View className="ml-3 flex-1">
-        <AppText variant="cardTitle" numberOfLines={2}>
+    <Surface
+      className={`${claimedBy ? "mt-[5px] min-h-[105px]" : "min-h-[98px]"} flex-row items-center py-[3px] pl-[7px] pr-1`}
+    >
+      <ChoreArtwork title={occurrence.title} pool />
+      <View className="ml-[15px] flex-1">
+        <AppText
+          style={{ fontSize: 16, lineHeight: 20, fontWeight: "800" }}
+          numberOfLines={2}
+        >
           {occurrence.title}
         </AppText>
-        <AppText className="mt-1 text-xl font-black">
+        <AppText
+          className="mt-1"
+          style={{ fontSize: 18, lineHeight: 22, fontWeight: "900" }}
+        >
           {occurrence.valueSek} kr
         </AppText>
         <View className="mt-1 flex-row items-center">
@@ -356,11 +376,14 @@ function ClaimableCard({
           accessibilityLabel={`Claim ${occurrence.title}`}
           disabled={disabled}
           onPress={onClaim}
-          className={`min-h-control min-w-[88px] items-center justify-center rounded-control px-4 ${
+          className={`min-h-[40px] min-w-[94px] items-center justify-center rounded-control px-4 ${
             disabled ? "bg-disabledSurface" : "bg-action"
           }`}
         >
-          <AppText variant="cardTitle" color={disabled ? "ink-faint" : "white"}>
+          <AppText
+            color={disabled ? "ink-faint" : "white"}
+            style={{ fontSize: 17, lineHeight: 20, fontWeight: "600" }}
+          >
             {loading ? "…" : "Claim"}
           </AppText>
         </Pressable>
@@ -378,6 +401,7 @@ export function ClaimableChoresView({
   redos = [],
   onSubmitRedo,
   onOpenChore,
+  initialVisualState,
 }: {
   result: ClaimableChoresViewModel;
   unlockChore?: UnlockChoreSummary;
@@ -400,7 +424,9 @@ export function ClaimableChoresView({
     evidenceUploadIntentId?: Id<"submissionEvidenceUploads">,
   ) => Promise<void>;
   onOpenChore?: (occurrenceId: Id<"choreOccurrences">) => void;
+  initialVisualState?: "active" | "unclaim" | "locked" | "redo";
 }) {
+  const safeAreaInsets = useSafeAreaInsets();
   const { gate, unclaimAllowance, claimableOccurrences, claimedOccurrences } =
     result;
   const [claimingId, setClaimingId] = useState<Id<"choreOccurrences"> | null>(
@@ -413,11 +439,27 @@ export function ClaimableChoresView({
     null,
   );
   const [selectedClaimId, setSelectedClaimId] =
-    useState<Id<"choreClaims"> | null>(null);
+    useState<Id<"choreClaims"> | null>(
+      initialVisualState === "active" ||
+        initialVisualState === "unclaim" ||
+        initialVisualState === "redo"
+        ? (claimedOccurrences.find((occurrence) => occurrence.isMine)
+            ?.claimId ?? null)
+        : null,
+    );
   const [lockedCandidateId, setLockedCandidateId] =
-    useState<Id<"choreOccurrences"> | null>(null);
+    useState<Id<"choreOccurrences"> | null>(
+      initialVisualState === "locked"
+        ? (claimableOccurrences[0]?.occurrenceId ?? null)
+        : null,
+    );
   const [unclaimCandidateId, setUnclaimCandidateId] =
-    useState<Id<"choreClaims"> | null>(null);
+    useState<Id<"choreClaims"> | null>(
+      initialVisualState === "unclaim"
+        ? (claimedOccurrences.find((occurrence) => occurrence.isMine)
+            ?.claimId ?? null)
+        : null,
+    );
   const [submissionAttempt, setSubmissionAttempt] = useState<1 | 2 | null>(
     null,
   );
@@ -538,31 +580,38 @@ export function ClaimableChoresView({
         <Surface
           tone="lavender"
           elevated={false}
-          className="mt-3 flex-row items-center p-4"
+          className="mt-[3px] h-[112px] flex-row items-center px-4 py-1"
         >
-          <View className="h-20 w-20 items-center justify-center">
+          <View className="h-28 w-28 items-center justify-center">
             <Image
               source={extrasLockArtwork}
-              className="h-20 w-20"
+              className="h-36 w-36"
               contentFit="contain"
               accessible={false}
             />
           </View>
-          <View className="ml-2 flex-1">
-            <AppText variant="sectionTitle">Extras are locked</AppText>
+          <View className="ml-[14px] flex-1">
+            <AppText
+              style={{ fontSize: 22, lineHeight: 27, fontWeight: "900" }}
+            >
+              Extras are locked
+            </AppText>
             <AppText className="mt-1">
               Get your current Unlock Chore approved to open Extras.
             </AppText>
           </View>
         </Surface>
 
-        <AppText variant="sectionTitle" className="mt-5">
+        <AppText
+          className="mt-5"
+          style={{ fontSize: 26, lineHeight: 31, fontWeight: "900" }}
+        >
           Your Unlock Chore
         </AppText>
-        <Surface className="mt-2 p-3">
-          <View className="flex-row items-center">
-            <ChoreArtwork title={unlockChore?.title ?? "Unlock chore"} />
-            <View className="ml-3 flex-1">
+        <Surface className="mt-[3px] p-3">
+          <View className="flex-row items-start">
+            <ChoreArtwork title={unlockChore?.title ?? "Unlock chore"} gate />
+            <View className="ml-[9px] flex-1">
               <StatusChip
                 label="Unlock chore"
                 tone="urgent"
@@ -574,26 +623,16 @@ export function ClaimableChoresView({
                   />
                 }
               />
-              <AppText variant="cardTitle" className="mt-2">
+              <AppText
+                className="mt-2"
+                style={{ fontSize: 16, lineHeight: 20, fontWeight: "800" }}
+              >
                 {unlockChore?.title ?? "Current Unlock Chore"}
               </AppText>
               {unlockChore ? (
                 <AppText className="mt-1 text-xl font-black">
                   {unlockChore.valueSek} kr
                 </AppText>
-              ) : null}
-              {unlockChore?.state === "submitted" ? (
-                <StatusChip
-                  label="Waiting for parent"
-                  tone="success"
-                  icon={
-                    <DirectionCIcon
-                      name="waiting"
-                      color={DirectionC.color.greenDeep}
-                      size={14}
-                    />
-                  }
-                />
               ) : null}
               <View className="mt-1 flex-row items-center">
                 <DirectionCIcon
@@ -612,21 +651,62 @@ export function ClaimableChoresView({
                       : "Not approved yet"}
                 </AppText>
               </View>
+              <View className="mt-2">
+                <StatusChip
+                  label={
+                    unlockChore?.state === "submitted"
+                      ? "Waiting for parent"
+                      : "Not submitted"
+                  }
+                  tone="neutral"
+                  icon={
+                    <DirectionCIcon
+                      name={
+                        unlockChore?.state === "submitted"
+                          ? "waiting"
+                          : "document"
+                      }
+                      color={DirectionC.color.inkMuted}
+                      size={14}
+                    />
+                  }
+                />
+              </View>
             </View>
           </View>
           {unlockChore && onOpenChore ? (
-            <ActionButton
-              className="mt-3"
-              label="View chore"
-              trailing={
-                <DirectionCIcon
-                  name="chevron"
-                  color={DirectionC.color.white}
-                  size={22}
-                />
-              }
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="View chore"
+              className="mt-3 h-[52px] overflow-hidden rounded-control"
               onPress={() => onOpenChore(unlockChore.occurrenceId)}
-            />
+            >
+              <LinearGradient
+                colors={["#5B9A89", "#3F7D70"]}
+                start={{ x: 0, y: 0.5 }}
+                end={{ x: 1, y: 0.5 }}
+                style={{
+                  flex: 1,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <AppText
+                  color="white"
+                  style={{ fontSize: 18, lineHeight: 22, fontWeight: "700" }}
+                >
+                  View chore
+                </AppText>
+                <View className="absolute right-4">
+                  <DirectionCIcon
+                    name="chevron"
+                    color={DirectionC.color.white}
+                    size={22}
+                  />
+                </View>
+              </LinearGradient>
+            </Pressable>
           ) : (
             <Surface tone="mint" elevated={false} className="mt-3 p-3">
               <AppText
@@ -642,11 +722,14 @@ export function ClaimableChoresView({
           )}
         </Surface>
 
-        <AppText variant="sectionTitle" className="mt-5">
+        <AppText
+          className="mt-[15px]"
+          style={{ fontSize: 26, lineHeight: 31, fontWeight: "900" }}
+        >
           How Extras open
         </AppText>
         <View className="relative min-h-[224px]">
-          <View className="w-[73%]">
+          <View className="w-[74%]">
             {[
               ["1", "Do the chore", artwork.bedroom],
               ["2", "Submit your work", submitStepArtwork],
@@ -654,7 +737,7 @@ export function ClaimableChoresView({
             ].map(([number, label, source], index) => (
               <Surface
                 key={number as string}
-                className="mt-2 min-h-[66px] flex-row items-center px-2 py-1.5"
+                className={`${index === 0 ? "mt-1" : "mt-[3px]"} min-h-[62px] flex-row items-center px-2 py-1.5`}
               >
                 <View
                   className={`h-10 w-10 items-center justify-center rounded-full ${index === 0 ? "bg-actionSoftStrong" : index === 1 ? "bg-infoSoftStrong" : "bg-urgencySoft"}`}
@@ -685,14 +768,14 @@ export function ClaimableChoresView({
 
           <Image
             source={oneStepNoteArtwork}
-            className="absolute right-0 top-1 h-[132px] w-[104px]"
+            className="absolute -right-[39px] -top-[49px] h-[160px] w-[150px]"
             contentFit="contain"
             accessible={false}
           />
-          <View className="absolute bottom-0 right-0 h-[92px] w-[96px] overflow-hidden">
+          <View className="absolute -right-[32px] bottom-0 h-[201px] w-[111px] overflow-hidden">
             <Image
               source={extrasArtwork}
-              className="absolute -right-1 h-[92px] w-[196px]"
+              className="absolute -right-1 h-[201px] w-[220px]"
               contentFit="contain"
               accessible={false}
             />
@@ -707,19 +790,21 @@ export function ClaimableChoresView({
       <Surface
         tone="mint"
         elevated={false}
-        className="mt-3 flex-row items-center p-4"
+        className="mt-[5px] h-[90px] flex-row items-center px-[6px] py-1"
       >
-        <View className="h-20 w-20 items-center justify-center">
+        <View className="h-[90px] w-[92px] items-center justify-center">
           <Image
             source={extrasOpenLockArtwork}
-            className="h-20 w-20"
+            className="h-28 w-28"
             contentFit="contain"
             accessible={false}
           />
         </View>
         <View className="ml-2 flex-1">
-          <AppText variant="sectionTitle">Extras are open</AppText>
-          <AppText className="mt-1">
+          <AppText style={{ fontSize: 22, lineHeight: 27, fontWeight: "900" }}>
+            Extras are open
+          </AppText>
+          <AppText style={{ fontSize: 14, lineHeight: 20, fontWeight: "500" }}>
             {gate.currentUnlockOccurrence?.title ?? "Your Unlock Chore"} was
             approved.
           </AppText>
@@ -729,17 +814,17 @@ export function ClaimableChoresView({
       <Surface
         tone="lavender"
         elevated={false}
-        className="mt-3 flex-row items-center p-4"
+        className="mt-2 h-[62px] flex-row items-center px-4 py-1"
       >
         <View className="h-12 w-12 items-center justify-center rounded-full bg-infoSoftStrong">
           <DirectionCIcon
-            name="refresh"
+            name="unclaim"
             color={DirectionC.color.ink}
             size={25}
           />
         </View>
         <View className="ml-3 flex-1">
-          <AppText variant="cardTitle">
+          <AppText style={{ fontSize: 16, lineHeight: 20, fontWeight: "800" }}>
             {unclaimAllowance.remainingUnclaims}{" "}
             {unclaimAllowance.remainingUnclaims === 1 ? "unclaim" : "unclaims"}{" "}
             left this week
@@ -805,7 +890,7 @@ export function ClaimableChoresView({
         </>
       ) : null}
 
-      <AppText variant="sectionTitle" className="mt-5">
+      <AppText variant="sectionTitle" className="mt-[11px]">
         Available now
       </AppText>
       {myClaim ? (
@@ -813,7 +898,7 @@ export function ClaimableChoresView({
           Resolve your active claim before claiming another Extra.
         </AppText>
       ) : null}
-      <View className="mt-2 gap-3">
+      <View className="mt-1 gap-1.5">
         {claimableOccurrences.map((occurrence) => (
           <ClaimableCard
             key={occurrence.occurrenceId}
@@ -873,11 +958,18 @@ export function ClaimableChoresView({
         }}
       >
         {selectedClaim ? (
-          <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-canvas">
-            <TopBar
-              title="Active claim"
-              onBack={() => setSelectedClaimId(null)}
-            />
+          <SafeAreaView
+            edges={["bottom"]}
+            className="flex-1 bg-canvas"
+            style={{ paddingTop: safeAreaInsets.top }}
+          >
+            <View className="px-5">
+              <TopBar
+                title="Active claim"
+                titleStyle={{ fontSize: 20, lineHeight: 24 }}
+                onBack={() => setSelectedClaimId(null)}
+              />
+            </View>
             <ScrollView
               contentContainerClassName={`${selectedClaim.claimState === "claimed" || (selectedClaim.claimState === "redo_required" && selectedRedo?.canSubmitRedo) ? "pb-32" : "pb-8"} px-5`}
               showsVerticalScrollIndicator={false}
@@ -1181,7 +1273,7 @@ export function ClaimableChoresView({
                   Running Balance.
                 </AppText>
                 <ActionButton
-                  label="Submit work"
+                  label="Submit for review"
                   trailing={
                     <DirectionCIcon
                       name="chevron"
@@ -1219,15 +1311,19 @@ export function ClaimableChoresView({
               onRequestClose={closeSubmission}
             >
               <SafeAreaView
-                edges={["top", "bottom"]}
+                edges={["bottom"]}
                 className="flex-1 bg-canvas"
+                style={{ paddingTop: safeAreaInsets.top }}
               >
-                <TopBar
-                  title={
-                    submissionAttempt === 2 ? "Submit redo" : "Submit work"
-                  }
-                  onBack={closeSubmission}
-                />
+                <View className="px-5">
+                  <TopBar
+                    title={
+                      submissionAttempt === 2 ? "Submit redo" : "Submit work"
+                    }
+                    titleStyle={{ fontSize: 20, lineHeight: 24 }}
+                    onBack={closeSubmission}
+                  />
+                </View>
                 <ScrollView contentContainerClassName="flex-grow px-5 pb-32">
                   <Surface
                     elevated={false}

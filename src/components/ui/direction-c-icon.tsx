@@ -10,18 +10,38 @@ const iconNames = {
     android: "home",
     web: "home",
   },
+  homeOutline: {
+    ios: "house",
+    android: "home",
+    web: "home",
+  },
   extras: {
     ios: "star.fill",
     android: "star",
     web: "star",
+  },
+  extrasOutline: {
+    ios: "star",
+    android: "star_border",
+    web: "star_border",
   },
   activity: {
     ios: "chart.bar.fill",
     android: "bar_chart",
     web: "bar_chart",
   },
+  activityOutline: {
+    ios: "chart.bar",
+    android: "bar_chart",
+    web: "bar_chart",
+  },
   money: {
     ios: "wallet.bifold.fill",
+    android: "account_balance_wallet",
+    web: "account_balance_wallet",
+  },
+  moneyOutline: {
+    ios: "wallet.bifold",
     android: "account_balance_wallet",
     web: "account_balance_wallet",
   },
@@ -36,7 +56,7 @@ const iconNames = {
     web: "expand_more",
   },
   clock: {
-    ios: "clock.fill",
+    ios: "clock",
     android: "schedule",
     web: "schedule",
   },
@@ -46,7 +66,7 @@ const iconNames = {
     web: "key",
   },
   waiting: {
-    ios: "hourglass",
+    ios: "pause.circle.fill",
     android: "hourglass_top",
     web: "hourglass_top",
   },
@@ -60,13 +80,28 @@ const iconNames = {
     android: "assignment",
     web: "assignment",
   },
+  choresOutline: {
+    ios: "list.clipboard",
+    android: "assignment",
+    web: "assignment",
+  },
   reviews: {
     ios: "checkmark.circle.fill",
     android: "task_alt",
     web: "task_alt",
   },
+  reviewsOutline: {
+    ios: "checkmark.circle",
+    android: "task_alt",
+    web: "task_alt",
+  },
   family: {
     ios: "person.3.fill",
+    android: "groups",
+    web: "groups",
+  },
+  familyOutline: {
+    ios: "person.3",
     android: "groups",
     web: "groups",
   },
@@ -105,6 +140,11 @@ const iconNames = {
     android: "refresh",
     web: "refresh",
   },
+  unclaim: {
+    ios: "arrow.uturn.backward",
+    android: "undo",
+    web: "undo",
+  },
   phone: {
     ios: "iphone",
     android: "smartphone",
@@ -141,7 +181,7 @@ const iconNames = {
     web: "group",
   },
   devices: {
-    ios: "iphone.gen3.radiowaves.left.and.right",
+    ios: "rectangle.portrait.on.rectangle.portrait",
     android: "devices",
     web: "devices",
   },
