@@ -27,18 +27,27 @@ export function Avatar({
   tone,
   className,
   fallbackLabel,
+  size,
 }: {
   /** Kept for call-site compatibility; avatars are letter-based. */
   source?: number | null;
   tone: AvatarTone;
   className: string;
   fallbackLabel?: string;
+  /** Explicit diameter; the letter scales with it. */
+  size?: number;
 }) {
   return (
     <View
       className={`items-center justify-center overflow-hidden rounded-full ${toneClass[tone]} ${className}`}
+      style={size ? { width: size, height: size } : undefined}
     >
-      <Text className="font-display text-[22px] text-night">
+      <Text
+        className="font-display text-[22px] text-night"
+        style={
+          size ? { fontSize: size * 0.46, lineHeight: size * 0.56 } : undefined
+        }
+      >
         {fallbackLabel?.trim().charAt(0).toUpperCase() || "?"}
       </Text>
     </View>

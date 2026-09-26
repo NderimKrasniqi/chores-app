@@ -1,43 +1,72 @@
-import { Icon } from "@/components/ui/icon";
+import * as Haptics from "expo-haptics";
+import { StatusBar } from "expo-status-bar";
+import { useState } from "react";
+import { Pressable, View } from "react-native";
+import Animated, { useAnimatedStyle } from "react-native-reanimated";
+import { SafeAreaView } from "react-native-safe-area-context";
+
+import { Starfield, useLoop } from "@/components/art";
+import { Easings } from "@/components/art/motion";
 import { childAvatarTone, Avatar } from "@/components/ui/avatar";
-import { questTokens as themeColors } from "@/design-system/theme";
-import { ActionButton, AppText } from "@/design-system";
+import { AppText } from "@/design-system";
+import { useTheme } from "@/design-system/theme";
 import {
   getChildPinRequirements,
   verifyLocalChildPin,
   type LocalChildContext,
 } from "@/lib/child-access/local-access";
 import { useAuthRuntime } from "@/providers/auth-runtime-provider";
-import { StatusBar } from "expo-status-bar";
-import { useState } from "react";
-import {
-  Keyboard,
-  KeyboardAvoidingView,
-  Platform,
-  TextInput,
-  TouchableWithoutFeedback,
-  View,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+
+import { StarKeypad, StarSlots } from "./star-keypad";
 
 type ChildPinUnlockScreenProps = {
   context: LocalChildContext;
   onUnlocked: () => void;
 };
 
-const alexAvatar = require("../../../assets/images/direction-c/alex-avatar.png");
-const mayaAvatar = require("../../../assets/images/direction-c/maya-avatar.png");
-
-function childAvatar(displayName: string) {
-  const normalized = displayName.trim().toLowerCase();
-  if (normalized === "maya") return mayaAvatar;
-  if (normalized === "alex") return alexAvatar;
-  return null;
-}
-
-function normalizePinInput(value: string) {
-  const { maxLength } = getChildPinRequirements();
-  return value.replace(/\D/g, "").slice(0, maxLength);
+/** The child's letter-planet with a slowly turning dashed ring. */
+export function AvatarPlanet({
+  name,
+  size = 112,
+}: {
+  name: string;
+  size?: number;
+}) {
+  const { tokens } = useTheme();
+  const spin = useLoop({ duration: 20000, easing: Easings.linear });
+  const ringStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${spin.get() * 360}deg` }],
+  }));
+  const ring = size + 36;
+  return (
+    <View
+      accessible={false}
+      className="items-center justify-center"
+      style={{ width: ring, height: ring }}
+    >
+      <Animated.View
+        style={[
+          {
+            position: "absolute",
+            width: ring,
+            height: ring,
+            borderRadius: ring / 2,
+            borderWidth: 2,
+            borderStyle: "dashed",
+            borderColor: tokens.gold,
+            opacity: 0.6,
+          },
+          ringStyle,
+        ]}
+      />
+      <Avatar
+        tone={childAvatarTone(name)}
+        className="rounded-full"
+        fallbackLabel={name}
+        size={size}
+      />
+    </View>
+  );
 }
 
 export function ChildPinUnlockScreen({
@@ -48,29 +77,32 @@ export function ChildPinUnlockScreen({
   const [pin, setPin] = useState("");
   const [checkingPin, setCheckingPin] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [shake, setShake] = useState(0);
+  const [celebrate, setCelebrate] = useState(0);
   const { minLength, maxLength } = getChildPinRequirements();
 
   async function handleUnlock() {
+    if (pin.length < minLength || checkingPin) return;
     setErrorMessage(null);
-
-    if (pin.length < minLength) {
-      setErrorMessage(`Enter your ${minLength} to ${maxLength} digit PIN.`);
-      return;
-    }
-
     setCheckingPin(true);
 
     try {
       const valid = await verifyLocalChildPin(context.contextId, pin);
-      setPin("");
 
       if (!valid) {
-        setErrorMessage("Incorrect PIN.");
+        setPin("");
+        setShake((n) => n + 1);
+        setErrorMessage("That’s not the code. Try again!");
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         return;
       }
 
-      onUnlocked();
+      setCelebrate((n) => n + 1);
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      // Let the stars pop before the profile opens.
+      setTimeout(onUnlocked, 320);
     } catch (error) {
+      setPin("");
       setErrorMessage(
         error instanceof Error ? error.message : "Could not verify PIN.",
       );
@@ -87,90 +119,71 @@ export function ChildPinUnlockScreen({
 
   return (
     <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-canvas">
-      <StatusBar style="dark" />
-      <KeyboardAvoidingView
-        className="flex-1 px-5"
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
-        <TouchableWithoutFeedback accessible={false} onPress={Keyboard.dismiss}>
-          <View className="flex-1 justify-center">
-            <AppText
-              variant="label"
-              color="ink-faint"
-              className="uppercase tracking-widest"
-            >
-              Child profile
-            </AppText>
-            <AppText variant="display" className="mt-3">
-              Hi, {context.childDisplayName}
-            </AppText>
-            <AppText color="ink-muted" className="mt-2 max-w-[280px]">
-              Enter your local PIN to unlock this Child profile.
-            </AppText>
+      <StatusBar style="light" />
+      <Starfield seed={context.childDisplayName.length + 3} />
+      <View className="flex-1 justify-between px-6 pb-2 pt-6">
+        <View className="items-center">
+          <AvatarPlanet name={context.childDisplayName} />
+          <AppText variant="display" className="mt-3 text-center">
+            Hi, {context.childDisplayName}!
+          </AppText>
+          <AppText
+            color="ink-muted"
+            className="mt-1 text-center font-body-bold"
+          >
+            Type your secret star code
+          </AppText>
 
-            <View className="my-6 items-center">
-              <Avatar
-                source={childAvatar(context.childDisplayName)}
-                tone={childAvatarTone(context.childDisplayName)}
-                className="h-40 w-40"
-                fallbackLabel={context.childDisplayName}
-              />
-              <AppText variant="sectionTitle" className="mt-2">
-                {context.childDisplayName}
-              </AppText>
-              <AppText color="ink-muted">{context.householdName}</AppText>
-            </View>
-
-            <AppText variant="sectionTitle">PIN</AppText>
-            <TextInput
-              testID="child-pin-input"
-              className="mt-2 min-h-[72px] rounded-control border-2 border-infoSoftStrong bg-surface text-center font-rounded text-[28px] font-black tracking-[12px] text-ink"
-              placeholder="••••"
-              placeholderTextColor="#8D73BC"
-              value={pin}
-              onChangeText={(value) => setPin(normalizePinInput(value))}
-              keyboardType="number-pad"
-              secureTextEntry
-              maxLength={maxLength}
-              autoFocus
+          <View className="mt-5">
+            <StarSlots
+              length={pin.length}
+              min={minLength}
+              max={maxLength}
+              shake={shake}
+              celebrate={celebrate}
             />
-
-            {errorMessage ? (
-              <AppText color="urgency" className="mt-3">
-                {errorMessage}
-              </AppText>
-            ) : null}
-
-            <ActionButton
-              testID="child-pin-unlock"
-              className="mt-6"
-              label="Unlock profile"
-              loading={checkingPin}
-              onPress={() => void handleUnlock()}
-            />
-            <ActionButton
-              testID="child-pin-use-another-profile"
-              tone="secondary"
-              className="mt-3"
-              label="Use another profile"
-              disabled={checkingPin}
-              onPress={handleSwitchProfile}
-            />
-
-            <View className="mt-7 flex-row items-center justify-center">
-              <Icon name="checkShield" color={themeColors.action} size={26} />
-              <AppText
-                variant="caption"
-                color="ink-muted"
-                className="ml-2 flex-1"
-              >
-                The PIN is checked locally. Active device access is still
-                required.
-              </AppText>
-            </View>
           </View>
-        </TouchableWithoutFeedback>
-      </KeyboardAvoidingView>
+          <AppText
+            accessibilityLiveRegion="polite"
+            className="mt-3 min-h-[20px] text-center font-body-bold"
+            color="pink"
+          >
+            {errorMessage ?? ""}
+          </AppText>
+        </View>
+
+        <View>
+          <StarKeypad
+            testID="child-pin-input"
+            value={pin}
+            max={maxLength}
+            canSubmit={pin.length >= minLength}
+            busy={checkingPin}
+            submitLabel="Unlock profile"
+            onDigit={(digit) => {
+              setErrorMessage(null);
+              setPin((current) => (current + digit).slice(0, maxLength));
+            }}
+            onDelete={() => setPin((current) => current.slice(0, -1))}
+            onSubmit={() => void handleUnlock()}
+          />
+          <Pressable
+            testID="child-pin-use-another-profile"
+            accessibilityRole="button"
+            disabled={checkingPin}
+            onPress={handleSwitchProfile}
+            className="mt-3 min-h-[44px] items-center justify-center"
+          >
+            <AppText
+              variant="bodySmall"
+              color="ink-muted"
+              className="font-body-bold underline"
+            >
+              Not {context.childDisplayName}? Use another profile
+            </AppText>
+          </Pressable>
+        </View>
+      </View>
     </SafeAreaView>
   );
 }

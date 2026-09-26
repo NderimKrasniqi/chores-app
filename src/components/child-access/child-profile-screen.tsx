@@ -1,62 +1,119 @@
-import { Scene } from "@/components/art";
-import { OnboardingScreen } from "@/components/onboarding/onboarding-screen";
-import { Icon } from "@/components/ui/icon";
-import { childAvatarTone, Avatar } from "@/components/ui/avatar";
-import { questTokens as themeColors } from "@/design-system/theme";
-import { ActionButton, AppText, Surface, TopBar } from "@/design-system";
 import { useState } from "react";
 import { Linking, Modal, Pressable, ScrollView, View } from "react-native";
+import Animated from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Svg, { Circle, Path } from "react-native-svg";
 
-const alexAvatar = require("../../../assets/images/direction-c/alex-avatar.png");
-const mayaAvatar = require("../../../assets/images/direction-c/maya-avatar.png");
+import { PopIn, Starfield } from "@/components/art";
+import { PRESS, pressTransition } from "@/components/art/motion";
+import { OnboardingScreen } from "@/components/onboarding/onboarding-screen";
+import { Icon, type IconName } from "@/components/ui/icon";
+import { ActionButton, AppText } from "@/design-system";
+import { useTheme } from "@/design-system/theme";
 
-function childAvatar(displayName: string) {
-  const normalized = displayName.trim().toLowerCase();
-  if (normalized === "maya") return mayaAvatar;
-  if (normalized === "alex") return alexAvatar;
-  return null;
+import { AvatarPlanet } from "./child-pin-unlock-screen";
+
+/** A round "device linked" stamp pressed onto the passport. */
+function LinkedStamp() {
+  const { tokens } = useTheme();
+  return (
+    <PopIn delay={250}>
+      <View
+        accessible
+        accessibilityLabel="This device is linked"
+        style={{ transform: [{ rotate: "-12deg" }] }}
+        className="h-[78px] w-[78px] items-center justify-center"
+      >
+        <Svg
+          width={78}
+          height={78}
+          viewBox="0 0 78 78"
+          style={{ position: "absolute" }}
+        >
+          <Circle
+            cx={39}
+            cy={39}
+            r={35}
+            fill="none"
+            stroke={tokens.primary}
+            strokeWidth={3}
+          />
+          <Circle
+            cx={39}
+            cy={39}
+            r={29}
+            fill="none"
+            stroke={tokens.primary}
+            strokeWidth={1.5}
+            strokeDasharray="3 3"
+          />
+          <Path
+            d="M28 40l7 7 15-16"
+            fill="none"
+            stroke={tokens.primary}
+            strokeWidth={4}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </Svg>
+        <AppText
+          className="absolute bottom-[9px] font-body-heavy text-[8px] uppercase tracking-[1px]"
+          color="primary"
+        >
+          Linked
+        </AppText>
+      </View>
+    </PopIn>
+  );
 }
 
-function SettingsRow({
+function ShipTile({
+  icon,
   title,
   subtitle,
-  icon,
-  tone,
   onPress,
 }: {
+  icon: IconName;
   title: string;
   subtitle: string;
-  icon: "bell" | "help";
-  tone: "mint" | "lavender";
   onPress: () => void;
 }) {
+  const { tokens } = useTheme();
   return (
-    <Pressable accessibilityRole="button" onPress={onPress} className="mt-2">
-      <Surface className="min-h-[76px] flex-row items-center px-3 py-2">
-        <View
-          className={`h-14 w-14 items-center justify-center rounded-full ${tone === "mint" ? "bg-actionSoftStrong" : "bg-infoSoftStrong"}`}
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${title}. ${subtitle}`}
+      onPress={onPress}
+      className="flex-1"
+    >
+      {({ pressed }) => (
+        <Animated.View
+          className="min-h-[120px] justify-between rounded-large bg-surface p-4"
+          style={[
+            { transform: [{ scale: pressed ? PRESS.scale : 1 }] },
+            pressTransition,
+          ]}
         >
-          <Icon
-            name={icon}
-            color={
-              tone === "mint" ? themeColors.actionPressed : themeColors.ink
-            }
-            size={28}
-          />
-        </View>
-        <View className="ml-3 flex-1">
-          <AppText variant="cardTitle">{title}</AppText>
-          <AppText variant="bodySmall" color="ink-muted" className="mt-1">
-            {subtitle}
-          </AppText>
-        </View>
-        <Icon name="chevron" color={themeColors.ink} size={22} />
-      </Surface>
+          <View className="h-11 w-11 items-center justify-center rounded-full bg-nightRaised">
+            <Icon name={icon} color={tokens.gold} size={22} />
+          </View>
+          <View>
+            <AppText className="font-body-heavy text-[16px]">{title}</AppText>
+            <AppText variant="caption" color="ink-muted" className="mt-0.5">
+              {subtitle}
+            </AppText>
+          </View>
+        </Animated.View>
+      )}
     </Pressable>
   );
 }
 
+/**
+ * The child's quest passport: who they are, which crew (household) they fly
+ * with, a stamp showing this device is linked, and the airlock to lock the
+ * profile and hand the device over.
+ */
 export function ChildProfileScreen({
   childName,
   householdName,
@@ -68,6 +125,7 @@ export function ChildProfileScreen({
   onClose: () => void;
   onLockAndSwitch: () => Promise<void>;
 }) {
+  const { tokens } = useTheme();
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [locking, setLocking] = useState(false);
 
@@ -82,101 +140,110 @@ export function ChildProfileScreen({
 
   return (
     <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-canvas">
-      <TopBar title="Profile" onBack={onClose} />
+      <Starfield seed={childName.length + 23} />
+      <View className="flex-row items-center justify-between px-5 pb-1 pt-3">
+        <AppText variant="screenTitle">Passport</AppText>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Close profile"
+          onPress={onClose}
+          hitSlop={8}
+          className="h-11 w-11 items-center justify-center rounded-full bg-surface"
+        >
+          <Icon name="close" color={tokens.ink} size={18} />
+        </Pressable>
+      </View>
+
       <ScrollView
         contentContainerClassName="px-5 pb-8"
         showsVerticalScrollIndicator={false}
       >
-        <Surface className="mt-2 min-h-[120px] flex-row items-center p-3">
-          <Avatar
-            source={childAvatar(childName)}
-            tone={childAvatarTone(childName)}
-            className="h-28 w-28"
-            fallbackLabel={childName}
+        <View className="mt-3 overflow-hidden rounded-large bg-surface">
+          <View className="flex-row">
+            <View className="h-2 flex-1 bg-pink" />
+            <View className="h-2 flex-1 bg-gold" />
+            <View className="h-2 flex-1 bg-accent" />
+            <View className="h-2 flex-1 bg-primary" />
+          </View>
+          <View className="p-4">
+            <AppText
+              variant="label"
+              color="ink-muted"
+              className="uppercase tracking-[1.6px]"
+            >
+              Quest passport
+            </AppText>
+            <View className="mt-3 flex-row items-center gap-4">
+              <AvatarPlanet name={childName} size={72} />
+              <View className="flex-1">
+                <AppText variant="screenTitle" numberOfLines={1}>
+                  {childName}
+                </AppText>
+                <AppText
+                  variant="bodySmall"
+                  color="ink-muted"
+                  className="mt-0.5 font-body-bold"
+                  numberOfLines={2}
+                >
+                  Crew of {householdName}
+                </AppText>
+              </View>
+            </View>
+            <View className="mt-3 flex-row items-end justify-between">
+              <View className="flex-1 pr-3">
+                <AppText variant="caption" color="ink-muted">
+                  This device
+                </AppText>
+                <AppText className="font-body-heavy text-[15px]">
+                  Active for {childName}
+                </AppText>
+              </View>
+              <LinkedStamp />
+            </View>
+          </View>
+        </View>
+
+        <AppText variant="sectionTitle" className="mt-6">
+          Your ship
+        </AppText>
+        <View className="mt-3 flex-row gap-3">
+          <ShipTile
+            icon="bell"
+            title="Alerts"
+            subtitle="Phone notification settings"
+            onPress={() => void Linking.openSettings()}
           />
-          <View className="ml-4 flex-1">
-            <AppText variant="screenTitle" numberOfLines={1}>
-              {childName}
-            </AppText>
-            <AppText className="mt-1" color="ink-muted">
-              Child profile
-            </AppText>
-          </View>
-        </Surface>
+          <ShipTile
+            icon="help"
+            title="How it works"
+            subtitle="Replay the quest guide"
+            onPress={() => setShowOnboarding(true)}
+          />
+        </View>
 
-        <AppText variant="sectionTitle" className="mt-3">
-          Household
-        </AppText>
-        <Surface
-          tone="lavender"
-          elevated={false}
-          className="mt-2 h-[108px] flex-row items-center overflow-hidden pr-3"
-        >
-          <Scene name="family" size={108} />
-          <View className="ml-3 flex-1">
-            <AppText variant="cardTitle" numberOfLines={1}>
-              {householdName}
-            </AppText>
-            <AppText className="mt-1" color="ink-muted">
-              Current household
-            </AppText>
+        <View className="mt-6 rounded-large border-2 border-dashed border-nightRaised p-4">
+          <View className="flex-row items-center gap-3">
+            <View className="h-11 w-11 items-center justify-center rounded-full bg-nightRaised">
+              <Icon name="lockSwitch" color={tokens.ink} size={22} />
+            </View>
+            <View className="flex-1">
+              <AppText className="font-body-heavy text-[16px]">Airlock</AppText>
+              <AppText variant="caption" color="ink-muted" className="mt-0.5">
+                Lock your profile so someone else can use this device. Your star
+                code opens it again.
+              </AppText>
+            </View>
           </View>
-        </Surface>
-
-        <AppText variant="sectionTitle" className="mt-3">
-          This device
-        </AppText>
-        <Surface className="mt-2 min-h-[80px] flex-row items-center p-3">
-          <View className="h-14 w-14 items-center justify-center rounded-full bg-actionSoftStrong">
-            <Icon
-              name="checkShield"
-              color={themeColors.actionPressed}
-              size={28}
-            />
-          </View>
-          <View className="ml-3 flex-1">
-            <AppText variant="cardTitle">Device access</AppText>
-            <AppText className="mt-1" color="ink-muted">
-              Active for {childName}
-            </AppText>
-          </View>
-        </Surface>
-
-        <AppText variant="sectionTitle" className="mt-3">
-          Help & settings
-        </AppText>
-        <SettingsRow
-          title="Notifications"
-          subtitle="Manage device notification settings"
-          icon="bell"
-          tone="mint"
-          onPress={() => void Linking.openSettings()}
-        />
-        <SettingsRow
-          title="Help & onboarding"
-          subtitle="Review how the app works"
-          icon="help"
-          tone="lavender"
-          onPress={() => setShowOnboarding(true)}
-        />
-
-        <ActionButton
-          testID="child-pin-use-another-profile"
-          className="mt-3 border-ink"
-          label="Lock / switch profile"
-          tone="secondary"
-          loading={locking}
-          leading={<Icon name="lockSwitch" color={themeColors.ink} size={25} />}
-          onPress={() => void lockAndSwitch()}
-        />
-        <AppText
-          variant="bodySmall"
-          color="ink-muted"
-          className="mt-1 text-center"
-        >
-          You’ll need your PIN to open {childName} again.{`\n`}This profile
-          stays saved on this device.
-        </AppText>
+          <ActionButton
+            testID="child-pin-use-another-profile"
+            className="mt-4"
+            label="Lock & switch"
+            tone="secondary"
+            loading={locking}
+            leading={<Icon name="lock" color={tokens.ink} size={18} />}
+            onPress={() => void lockAndSwitch()}
+          />
+        </View>
       </ScrollView>
 
       <Modal

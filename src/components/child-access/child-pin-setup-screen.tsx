@@ -1,7 +1,13 @@
+import * as Haptics from "expo-haptics";
+import { StatusBar } from "expo-status-bar";
+import { useState } from "react";
+import { View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+
+import { LostSatellite, Starfield } from "@/components/art";
 import { Icon } from "@/components/ui/icon";
-import { childAvatarTone, Avatar } from "@/components/ui/avatar";
-import { questTokens as themeColors } from "@/design-system/theme";
-import { ActionButton, AppText, Surface } from "@/design-system";
+import { ActionButton, AppText } from "@/design-system";
+import { useTheme } from "@/design-system/theme";
 import { PARENT_AUTH_STORAGE_PREFIX } from "@/lib/auth/client";
 import {
   getChildPinRequirements,
@@ -10,18 +16,9 @@ import {
   type LocalChildContext,
 } from "@/lib/child-access/local-access";
 import { useAuthRuntime } from "@/providers/auth-runtime-provider";
-import { StatusBar } from "expo-status-bar";
-import { useState } from "react";
-import {
-  Keyboard,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  TextInput,
-  View,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+
+import { AvatarPlanet } from "./child-pin-unlock-screen";
+import { StarKeypad, StarSlots } from "./star-keypad";
 
 type ChildPinSetupScreenProps = {
   householdId: string;
@@ -32,21 +29,10 @@ type ChildPinSetupScreenProps = {
   onComplete: (context: LocalChildContext) => void;
 };
 
-const alexAvatar = require("../../../assets/images/direction-c/alex-avatar.png");
-const mayaAvatar = require("../../../assets/images/direction-c/maya-avatar.png");
-
-function childAvatar(displayName: string) {
-  const normalized = displayName.trim().toLowerCase();
-  if (normalized === "maya") return mayaAvatar;
-  if (normalized === "alex") return alexAvatar;
-  return null;
-}
-
-function normalizePinInput(value: string) {
-  const { maxLength } = getChildPinRequirements();
-  return value.replace(/\D/g, "").slice(0, maxLength);
-}
-
+/**
+ * "Make your secret star code": type it once, then again to confirm. The code
+ * only protects this profile on this device and is never sent anywhere.
+ */
 export function ChildPinSetupScreen({
   householdId,
   householdName,
@@ -55,12 +41,16 @@ export function ChildPinSetupScreen({
   authStoragePrefix,
   onComplete,
 }: ChildPinSetupScreenProps) {
+  const { tokens } = useTheme();
   const { authClient, activateParentStorage } = useAuthRuntime();
+  const [step, setStep] = useState<"create" | "confirm">("create");
   const [pin, setPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
   const [saving, setSaving] = useState(false);
   const [restarting, setRestarting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [shake, setShake] = useState(0);
+  const [celebrate, setCelebrate] = useState(0);
   const { minLength, maxLength } = getChildPinRequirements();
   const isLegacyParentStorage =
     authStoragePrefix === PARENT_AUTH_STORAGE_PREFIX;
@@ -83,27 +73,30 @@ export function ChildPinSetupScreen({
     }
   }
 
-  async function handleSavePin() {
-    setErrorMessage(null);
-
-    if (isLegacyParentStorage) {
-      setErrorMessage(
-        "This Child session must be paired again using its own secure device context.",
-      );
-      return;
-    }
-
+  function handleCreate() {
     if (!isValidChildPin(pin)) {
-      setErrorMessage(`PIN must contain ${minLength} to ${maxLength} digits.`);
+      setErrorMessage(`Use ${minLength} to ${maxLength} numbers.`);
+      setShake((n) => n + 1);
       return;
     }
+    setErrorMessage(null);
+    setConfirmPin("");
+    setStep("confirm");
+  }
 
-    if (pin !== confirmPin) {
-      setErrorMessage("PINs do not match.");
+  async function handleConfirm() {
+    if (confirmPin !== pin) {
+      setShake((n) => n + 1);
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      setErrorMessage("Those didn’t match. Make your code again.");
+      setPin("");
+      setConfirmPin("");
+      setStep("create");
       return;
     }
 
     setSaving(true);
+    setErrorMessage(null);
 
     try {
       const context = await registerLocalChildContext({
@@ -114,9 +107,11 @@ export function ChildPinSetupScreen({
         authStoragePrefix,
         pin,
       });
+      setCelebrate((n) => n + 1);
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setPin("");
       setConfirmPin("");
-      onComplete(context);
+      setTimeout(() => onComplete(context), 320);
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : "Could not save Child PIN.",
@@ -128,37 +123,35 @@ export function ChildPinSetupScreen({
 
   if (isLegacyParentStorage) {
     return (
-      <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-canvas px-5">
-        <StatusBar style="dark" />
-        <View className="flex-1 justify-center">
+      <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-canvas px-6">
+        <StatusBar style="light" />
+        <Starfield seed={31} />
+        <View className="flex-1 items-center justify-center">
+          <LostSatellite size={190} />
           <AppText
             variant="label"
-            color="urgency"
-            className="uppercase tracking-widest"
+            color="pink"
+            className="mt-2 uppercase tracking-[1.4px]"
           >
-            Pairing update required
+            Pairing update needed
           </AppText>
-          <AppText variant="screenTitle" className="mt-3">
+          <AppText variant="screenTitle" className="mt-2 text-center">
             Pair {childDisplayName} again
           </AppText>
-          <AppText color="ink-muted" className="mt-3">
-            This older Child session must be moved into its own secure device
-            profile before a local PIN can be saved.
+          <AppText
+            color="ink-muted"
+            className="mt-2 text-center font-body-bold"
+          >
+            This older profile needs its own secure spot on this device. No code
+            has been saved yet — ask a Parent for a fresh pairing code.
           </AppText>
-          <Surface tone="reward" elevated={false} className="mt-6 p-4">
-            <AppText variant="cardTitle">No PIN has been saved</AppText>
-            <AppText variant="bodySmall" color="ink-muted" className="mt-2">
-              Restart Child setup and pair this profile again using a fresh
-              pairing code.
-            </AppText>
-          </Surface>
           {errorMessage ? (
-            <AppText color="urgency" className="mt-4">
+            <AppText color="pink" className="mt-4 text-center font-body-bold">
               {errorMessage}
             </AppText>
           ) : null}
           <ActionButton
-            className="mt-7"
+            className="mt-7 w-full"
             label="Restart Child setup"
             loading={restarting}
             onPress={() => void handleRestartChildSetup()}
@@ -168,118 +161,87 @@ export function ChildPinSetupScreen({
     );
   }
 
+  const value = step === "create" ? pin : confirmPin;
+
   return (
     <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-canvas">
-      <StatusBar style="dark" />
-      <KeyboardAvoidingView
-        className="flex-1"
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
-        <ScrollView
-          contentContainerClassName="flex-grow px-5 pb-5 pt-7"
-          keyboardDismissMode="on-drag"
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          <Pressable
-            accessibilityLabel="Dismiss keyboard"
-            accessibilityRole="button"
-            onPress={Keyboard.dismiss}
-            testID="child-pin-dismiss-keyboard"
+      <StatusBar style="light" />
+      <Starfield seed={childDisplayName.length + 17} />
+      <View className="flex-1 justify-between px-6 pb-2 pt-4">
+        <View className="items-center">
+          <AvatarPlanet name={childDisplayName} size={88} />
+          <AppText
+            variant="label"
+            color="primary"
+            className="mt-2 uppercase tracking-[1.4px]"
           >
-            <AppText
-              variant="label"
-              color="action"
-              className="uppercase tracking-widest"
-            >
-              Pairing complete
-            </AppText>
-            <AppText variant="display" className="mt-3">
-              Protect {childDisplayName}
-            </AppText>
-            <AppText color="ink-muted" className="mt-2">
-              Create a local PIN for this Child profile. You’ll use it when
-              selecting {childDisplayName} on a shared device.
-            </AppText>
-          </Pressable>
+            {householdName} · paired!
+          </AppText>
+          <AppText variant="screenTitle" className="mt-1 text-center">
+            {step === "create" ? "Make your secret star code" : "Say it again"}
+          </AppText>
+          <AppText
+            color="ink-muted"
+            className="mt-1 text-center font-body-bold"
+          >
+            {step === "create"
+              ? `${minLength} to ${maxLength} numbers only you know`
+              : "Type the same code to lock it in"}
+          </AppText>
 
-          <Surface className="mt-5 flex-row items-center p-3">
-            <Avatar
-              source={childAvatar(childDisplayName)}
-              tone={childAvatarTone(childDisplayName)}
-              className="h-[84px] w-[84px]"
-              fallbackLabel={childDisplayName}
+          <View className="mt-5">
+            <StarSlots
+              key={step}
+              length={value.length}
+              min={minLength}
+              max={maxLength}
+              shake={shake}
+              celebrate={celebrate}
             />
-            <View className="ml-4 flex-1">
-              <AppText variant="sectionTitle">{childDisplayName}</AppText>
-              <AppText color="ink-muted">{householdName}</AppText>
-            </View>
-            <View className="h-12 w-12 items-center justify-center rounded-full bg-actionSoftStrong">
-              <Icon name="check" color={themeColors.action} size={26} />
-            </View>
-          </Surface>
-
-          <AppText variant="sectionTitle" className="mt-6">
-            Create PIN
+          </View>
+          <AppText
+            accessibilityLiveRegion="polite"
+            color="pink"
+            className="mt-3 min-h-[20px] text-center font-body-bold"
+          >
+            {errorMessage ?? ""}
           </AppText>
-          <TextInput
-            testID="child-pin-create"
-            className="mt-2 min-h-[72px] rounded-control border-2 border-infoSoftStrong bg-surface text-center font-rounded text-[28px] font-black tracking-[12px] text-ink"
-            placeholder="••••"
-            placeholderTextColor="#8D73BC"
-            value={pin}
-            onChangeText={(value) => setPin(normalizePinInput(value))}
-            keyboardType="number-pad"
-            secureTextEntry
-            maxLength={maxLength}
+        </View>
+
+        <View>
+          <StarKeypad
+            testID={
+              step === "create" ? "child-pin-create" : "child-pin-confirm"
+            }
+            value={value}
+            max={maxLength}
+            canSubmit={value.length >= minLength}
+            busy={saving}
+            submitLabel={step === "create" ? "Next" : "Save code"}
+            onDigit={(digit) => {
+              setErrorMessage(null);
+              const add = (current: string) =>
+                (current + digit).slice(0, maxLength);
+              if (step === "create") setPin(add);
+              else setConfirmPin(add);
+            }}
+            onDelete={() => {
+              const drop = (current: string) => current.slice(0, -1);
+              if (step === "create") setPin(drop);
+              else setConfirmPin(drop);
+            }}
+            onSubmit={() =>
+              step === "create" ? handleCreate() : void handleConfirm()
+            }
           />
-          <AppText variant="bodySmall" color="ink-muted" className="mt-2">
-            Use {minLength} to {maxLength} digits. This PIN only protects the
-            local profile on this device.
-          </AppText>
-
-          <AppText variant="sectionTitle" className="mt-6">
-            Confirm PIN
-          </AppText>
-          <TextInput
-            testID="child-pin-confirm"
-            className="mt-2 min-h-[72px] rounded-control border-2 border-infoSoftStrong bg-surface text-center font-rounded text-[28px] font-black tracking-[12px] text-ink"
-            placeholder="••••"
-            placeholderTextColor="#8D73BC"
-            value={confirmPin}
-            onPressIn={() => setConfirmPin("")}
-            onChangeText={(value) => setConfirmPin(normalizePinInput(value))}
-            keyboardType="number-pad"
-            secureTextEntry
-            maxLength={maxLength}
-          />
-
-          {errorMessage ? (
-            <AppText color="urgency" className="mt-4">
-              {errorMessage}
-            </AppText>
-          ) : null}
-
-          <ActionButton
-            testID="child-pin-save"
-            className="mt-6"
-            label="Save PIN"
-            loading={saving}
-            onPress={() => void handleSavePin()}
-          />
-
-          <View className="mt-5 flex-row items-center justify-center">
-            <Icon name="checkShield" color={themeColors.action} size={26} />
-            <AppText
-              variant="caption"
-              color="ink-muted"
-              className="ml-2 flex-1"
-            >
-              Your PIN is never stored as typed or sent to the server.
+          <View className="mt-3 flex-row items-center justify-center gap-1.5">
+            <Icon name="checkShield" color={tokens.primary} size={16} />
+            <AppText variant="caption" color="ink-muted">
+              Only stays on this device. Never sent anywhere.
             </AppText>
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+        </View>
+      </View>
     </SafeAreaView>
   );
 }

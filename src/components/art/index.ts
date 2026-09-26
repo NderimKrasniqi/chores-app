@@ -21,3 +21,4 @@ export { RocketTrack } from "./rocket-track";
 export { CoinDrop } from "./coin-drop";
 export { Fireworks, Sunburst } from "./fireworks";
 export { FamilySky, type SkyStar } from "./family-sky";
+export { LostSatellite } from "./lost-satellite";

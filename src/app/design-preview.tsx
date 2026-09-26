@@ -13,6 +13,7 @@ import { ChildNoAccessScreen } from "@/components/child-access/child-no-access-s
 import { ChildJoinScreen } from "@/components/child-access/child-join-screen";
 import { ChildPinSetupScreen } from "@/components/child-access/child-pin-setup-screen";
 import { ChildPinUnlockScreen } from "@/components/child-access/child-pin-unlock-screen";
+import { ChildProfileScreen } from "@/components/child-access/child-profile-screen";
 import { ChildQrScannerScreen } from "@/components/child-access/child-qr-scanner-screen";
 import {
   ActiveClaimableClaimsView,
@@ -739,6 +740,15 @@ function VerificationState({ state }: { state: string }) {
           childDisplayName="Alex"
           authStoragePrefix="visual-alex"
           onComplete={noop}
+        />
+      );
+    case "child-profile":
+      return (
+        <ChildProfileScreen
+          childName="Alex"
+          householdName={household.name}
+          onClose={noop}
+          onLockAndSwitch={async () => {}}
         />
       );
     case "child-pin-unlock":
