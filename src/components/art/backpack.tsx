@@ -121,7 +121,7 @@ function CarriedQuest({
   leaving: boolean;
 }) {
   const reducedMotion = useReducedMotion();
-  const arrive = useEntrance({ duration: 420 });
+  const arrive = useEntrance({ duration: 280 });
   const bob = useLoop({ duration: 3200, reverse: true, rest: 0.5 });
   const lift = useSharedValue(0);
 

@@ -19,7 +19,6 @@ export function ChildHouseholdActivity({
     loading?: boolean;
     items: ApprovalActivityItem[];
     timezone: string;
-    initialCelebrationItem?: ApprovalActivityItem;
   };
 }) {
   const queriedFeed = useQuery(
@@ -48,7 +47,7 @@ export function ChildHouseholdActivity({
       viewerChildId={viewerChildId}
       showHistory
       onOpenChores={onOpenChores}
-      initialCelebrationItem={visualFixture?.initialCelebrationItem}
+      showCelebration={false}
     />
   );
 }

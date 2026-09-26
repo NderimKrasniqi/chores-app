@@ -18,3 +18,5 @@ export { Backpack } from "./backpack";
 export { UnclaimKeys } from "./unclaim-keys";
 export { PiggyPlanet } from "./piggy-planet";
 export { RocketTrack } from "./rocket-track";
+export { CoinDrop } from "./coin-drop";
+export { Fireworks, Sunburst } from "./fireworks";

@@ -16,10 +16,11 @@ const PLANET = 30;
 
 function Rocket({ size }: { size: number }) {
   const { tokens } = useTheme();
-  const flicker = useLoop({ duration: 260, reverse: true, rest: 0.5 });
+  // A slow, soft flicker: this card is seen many times a day.
+  const flicker = useLoop({ duration: 700, reverse: true, rest: 0.5 });
   const flame = useAnimatedStyle(() => ({
-    opacity: interpolate(flicker.get(), [0, 1], [0.6, 1]),
-    transform: [{ scaleX: interpolate(flicker.get(), [0, 1], [0.75, 1.1]) }],
+    opacity: interpolate(flicker.get(), [0, 1], [0.75, 1]),
+    transform: [{ scaleX: interpolate(flicker.get(), [0, 1], [0.9, 1.05]) }],
   }));
   return (
     <View style={{ width: size, height: size }}>
@@ -68,7 +69,8 @@ export function RocketTrack({
 }) {
   const { tokens } = useTheme();
   const [width, setWidth] = useState(0);
-  const arrive = useEntrance({ duration: 900, delay: 150 });
+  // Replays on every visit to Money, so it stays inside the UI budget.
+  const arrive = useEntrance({ duration: 300 });
   const clamped = Math.min(1, Math.max(0, progress));
   // The last stop sits under the payday planet's centre.
   const track = Math.max(0, width - PLANET / 2);

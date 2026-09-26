@@ -1,4 +1,5 @@
 import { BalanceOrb, Starfield } from "@/components/art";
+import { ChildApprovalCelebrations } from "@/components/activity/approval-celebration";
 import { ChildHouseholdActivity } from "@/components/activity/child-household-activity";
 import type { ApprovalActivityItem } from "@/components/activity/approval-activity";
 import { ClaimableChoresCard } from "@/components/chores/claimable-chores-card";
@@ -45,7 +46,11 @@ type ChildHomeScreenProps = {
       loading?: boolean;
       items: ApprovalActivityItem[];
       timezone: string;
-      initialCelebrationItem?: ApprovalActivityItem;
+    };
+    celebration?: {
+      items: ApprovalActivityItem[];
+      watermark?: { at: number; ids: string[] };
+      toast?: ApprovalActivityItem;
     };
   };
 };
@@ -129,6 +134,16 @@ export function ChildHomeScreen({
           <ChildTabBar activeTab={activeTab} onChange={setActiveTab} />
           <View className="bg-surface" style={{ height: insets.bottom }} />
         </View>
+
+        <ChildApprovalCelebrations
+          key={access.childId}
+          viewerChildId={access.childId}
+          visualFixture={
+            visualFixture
+              ? (visualFixture.celebration ?? { items: [] })
+              : undefined
+          }
+        />
 
         <Modal
           visible={profileOpen}
@@ -258,7 +273,6 @@ function ExistingFeatureTab({
     loading?: boolean;
     items: ApprovalActivityItem[];
     timezone: string;
-    initialCelebrationItem?: ApprovalActivityItem;
   };
 }) {
   const extrasResult = useQuery(

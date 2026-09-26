@@ -886,6 +886,42 @@ function VerificationState({ state }: { state: string }) {
           }}
         />
       );
+    case "child-approval-celebration":
+    case "child-approval-celebration-multi":
+    case "child-sibling-win":
+      return (
+        <ChildHomeScreen
+          access={{
+            accessGrantId,
+            householdId,
+            householdName: household.name,
+            childId: alexId,
+            childDisplayName: "Alex",
+            grantedAt: atLocalTime(-7, 12),
+          }}
+          visualFixture={{
+            balanceSek: 145,
+            celebration:
+              state === "child-sibling-win"
+                ? {
+                    items: activityItems,
+                    watermark: {
+                      at: Math.max(...activityItems.map((i) => i.approvedAt)),
+                      ids: activityItems.map((i) => i.activityId),
+                    },
+                    toast: activityItems[0],
+                  }
+                : {
+                    items:
+                      state === "child-approval-celebration"
+                        ? activityItems
+                            .filter((i) => i.childId === alexId)
+                            .slice(0, 1)
+                        : activityItems,
+                  },
+          }}
+        />
+      );
     case "child-activity-celebration":
       return (
         <ChildHomeScreen
@@ -902,8 +938,8 @@ function VerificationState({ state }: { state: string }) {
             activity: {
               items: activityItems,
               timezone: household.timezone,
-              initialCelebrationItem: activityItems[0],
             },
+            celebration: { items: activityItems },
           }}
         />
       );

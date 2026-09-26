@@ -18,6 +18,7 @@ import { Easings } from "@/components/art/motion";
 import { Icon } from "@/components/ui/icon";
 import { AppText, HoldButton, ThemeScope } from "@/design-system";
 import { questTokens as tokens } from "@/design-system/theme";
+import { useHoldCelebrations } from "@/lib/celebration-gate";
 
 import type { Id } from "../../../convex/_generated/dataModel";
 import { ChildSubmissionActions } from "../evidence/child-submission-actions";
@@ -56,6 +57,7 @@ export function ChildQuestCard({
   onClose,
   onSubmit,
 }: Props) {
+  useHoldCelebrations(occurrence !== undefined);
   return (
     <Modal
       visible={occurrence !== undefined}

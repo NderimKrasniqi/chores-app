@@ -221,6 +221,7 @@ export function ApprovalActivitySurface({
   emptyBody = "When someone’s chore is approved, the celebration will show up here.",
   emptyActionLabel = "See your chores",
   initialCelebrationItem,
+  showCelebration = true,
 }: {
   items: ApprovalActivityItem[];
   timezone: string;
@@ -234,6 +235,8 @@ export function ApprovalActivitySurface({
   emptyBody?: string;
   emptyActionLabel?: string;
   initialCelebrationItem?: ApprovalActivityItem;
+  /** The child shell celebrates approvals itself, full screen. */
+  showCelebration?: boolean;
 }) {
   const celebrationImage =
     celebrationStyle === "parent"
@@ -261,6 +264,7 @@ export function ApprovalActivitySurface({
       return;
     }
 
+    if (!showCelebration) return;
     if (!latest || latestKey === seenLatestKey.current) return;
     seenLatestKey.current = latestKey;
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
@@ -269,7 +273,7 @@ export function ApprovalActivitySurface({
       setCelebration(null);
       timeoutRef.current = null;
     }, celebrationVisibilityMs);
-  }, [items]);
+  }, [items, showCelebration]);
 
   useEffect(
     () => () => {

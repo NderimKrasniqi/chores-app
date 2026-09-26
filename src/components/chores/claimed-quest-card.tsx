@@ -23,6 +23,7 @@ import { Easings } from "@/components/art/motion";
 import { Icon } from "@/components/ui/icon";
 import { ActionButton, AppText, HoldButton, ThemeScope } from "@/design-system";
 import { questTokens as tokens } from "@/design-system/theme";
+import { useHoldCelebrations } from "@/lib/celebration-gate";
 
 import type { Id } from "../../../convex/_generated/dataModel";
 import { formatTime, relativeDayLabel } from "../child-access/chore-format";
@@ -71,6 +72,7 @@ function moment(timestamp: number, tz: string) {
  * once it's locked, and sending the work with a deliberate hold.
  */
 export function ClaimedQuestCard(props: Props) {
+  useHoldCelebrations(props.claim !== undefined);
   return (
     <Modal
       visible={props.claim !== undefined}
@@ -428,7 +430,7 @@ function CommitmentStrip({
   tz: string;
 }) {
   const [width, setWidth] = useState(0);
-  const arrive = useEntrance({ duration: 700, delay: 200 });
+  const arrive = useEntrance({ duration: 300 });
   const span = Math.max(1, deadlineAt - claimedAt);
   const clamp = (value: number) => Math.min(1, Math.max(0, value));
   const lockFraction = clamp((lockAt - claimedAt) / span);

@@ -6,11 +6,13 @@ import {
   TreasureChest,
   UnclaimKeys,
 } from "@/components/art";
+import { PRESS, pressTransition } from "@/components/art/motion";
 import { Icon } from "@/components/ui/icon";
 import { questTokens as themeColors } from "@/design-system/theme";
 import { ActionButton, AppText, Surface } from "@/design-system";
 import { useState } from "react";
 import { Modal, Pressable, View } from "react-native";
+import Animated from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import type { Id } from "../../../convex/_generated/dataModel";
@@ -269,22 +271,27 @@ function ClaimableCard({
           pressRetentionOffset={16}
         >
           {({ pressed }) => (
-            <View
+            <Animated.View
               className={`min-h-[44px] min-w-[84px] items-center justify-center rounded-full px-4 ${
                 disabled
                   ? "bg-disabledSurface"
                   : "border-b-[3px] border-primaryShade bg-primary"
               }`}
-              style={{
-                transform: [{ scale: pressed && !disabled ? 0.97 : 1 }],
-              }}
+              style={[
+                {
+                  transform: [
+                    { scale: pressed && !disabled ? PRESS.scale : 1 },
+                  ],
+                },
+                pressTransition,
+              ]}
             >
               <AppText
                 className={`font-display text-[16px] ${disabled ? "text-inkFaint" : "text-night"}`}
               >
                 {loading ? "…" : "Claim"}
               </AppText>
-            </View>
+            </Animated.View>
           )}
         </Pressable>
       ) : null}
@@ -338,9 +345,12 @@ function BackpackSlot({
       className="mt-5"
     >
       {({ pressed }) => (
-        <View
+        <Animated.View
           className="flex-row items-center gap-3 rounded-large bg-surface py-2 pl-2 pr-4"
-          style={{ transform: [{ scale: pressed ? 0.97 : 1 }] }}
+          style={[
+            { transform: [{ scale: pressed ? PRESS.scale : 1 }] },
+            pressTransition,
+          ]}
         >
           <Backpack size={84} title={claim.title} />
           <View className="flex-1">
@@ -380,7 +390,7 @@ function BackpackSlot({
             </AppText>
           </View>
           <Icon name="chevron" color={themeColors.inkMuted} size={20} />
-        </View>
+        </Animated.View>
       )}
     </Pressable>
   );
