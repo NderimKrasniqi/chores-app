@@ -1,21 +1,69 @@
-import { Text, View } from "react-native";
+import { View } from "react-native";
+import Animated, {
+  interpolate,
+  useAnimatedStyle,
+} from "react-native-reanimated";
 
+import { useLoop } from "@/components/art";
+import { AppText } from "@/design-system";
+import { useTheme } from "@/design-system/theme";
 import type { ServerConnectionStatus } from "@/hooks/use-server-confirmed-mutation";
 
 export function getServerConnectionMessage(status: ServerConnectionStatus) {
   switch (status) {
     case "recovering":
-      return "Connection lost — checking whether your last change reached the server. Do not repeat the action.";
+      return "Checking whether your last change went through — don’t repeat it yet.";
 
     case "offline":
-      return "Offline — showing last synced data. Changes are disabled until the server reconnects.";
+      return "You’re offline. Showing the last saved view; changes wait until you’re back.";
 
     case "connecting":
-      return "Connecting to the server — changes are unavailable until connected.";
+      return "Connecting… changes are paused for a moment.";
 
     case "online":
       return null;
   }
+}
+
+/** Three signal bars that pulse one after another while reconnecting. */
+function SignalBars({ color }: { color: string }) {
+  const pulse = useLoop({ duration: 1200, rest: 0.5, essential: true });
+  const bars = [0, 1, 2].map((i) => i);
+  return (
+    <View className="h-4 flex-row items-end gap-0.5" accessible={false}>
+      {bars.map((i) => (
+        <Bar key={i} index={i} progress={pulse} color={color} />
+      ))}
+    </View>
+  );
+}
+
+function Bar({
+  index,
+  progress,
+  color,
+}: {
+  index: number;
+  progress: ReturnType<typeof useLoop>;
+  color: string;
+}) {
+  const style = useAnimatedStyle(() => {
+    const phase = (progress.get() + index / 3) % 1;
+    return { opacity: interpolate(phase, [0, 0.5, 1], [0.25, 1, 0.25]) };
+  });
+  return (
+    <Animated.View
+      style={[
+        {
+          width: 4,
+          height: 6 + index * 4,
+          borderRadius: 2,
+          backgroundColor: color,
+        },
+        style,
+      ]}
+    />
+  );
 }
 
 export function ServerConnectionNotice({
@@ -26,6 +74,7 @@ export function ServerConnectionNotice({
 
   testID?: string;
 }) {
+  const { tokens } = useTheme();
   const message = getServerConnectionMessage(status);
 
   if (!message) {
@@ -35,11 +84,28 @@ export function ServerConnectionNotice({
   return (
     <View
       testID={testID}
-      className="rounded-xl border border-amber-700 bg-amber-950 px-4 py-3"
+      accessibilityRole="alert"
+      accessibilityLiveRegion="polite"
+      className="flex-row items-center gap-3 rounded-full px-4 py-2.5"
+      style={{
+        backgroundColor: tokens.ink,
+        shadowColor: "#000",
+        shadowOpacity: 0.2,
+        shadowRadius: 12,
+        shadowOffset: { width: 0, height: 4 },
+        elevation: 6,
+      }}
     >
-      <Text className="text-sm font-medium leading-5 text-amber-200">
+      <SignalBars
+        color={status === "offline" ? tokens.urgency : tokens.reward}
+      />
+      <AppText
+        variant="caption"
+        className="flex-1"
+        style={{ color: tokens.surface }}
+      >
         {message}
-      </Text>
+      </AppText>
     </View>
   );
 }

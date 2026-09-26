@@ -1,10 +1,10 @@
 import { useServerConfirmedMutation } from "@/hooks/use-server-confirmed-mutation";
 import { Icon } from "@/components/ui/icon";
 import { homeTokens as themeColors } from "@/design-system/theme";
-import { AppText, Surface } from "@/design-system";
+import { AppText } from "@/design-system";
 
 import { useEffect, useState } from "react";
-import { Image, View } from "react-native";
+import { Image, Modal, Pressable, View } from "react-native";
 
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
@@ -68,41 +68,87 @@ export function SubmissionEvidenceViewer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [submissionId]);
 
-  return (
-    <Surface className="mt-3 p-3">
-      <AppText variant="sectionTitle">Photo evidence</AppText>
+  const [zoomed, setZoomed] = useState(false);
 
-      {imageUrl ? (
-        <>
+  return (
+    <View className="mt-5 items-center">
+      <AppText variant="label" color="ink-muted">
+        Snap proof
+      </AppText>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Photo from the child. Tap to enlarge"
+        disabled={!imageUrl}
+        onPress={() => setZoomed(true)}
+        className="mt-2 rounded-[6px] p-2.5 pb-7"
+        style={{
+          backgroundColor: "#FFFFFF",
+          transform: [{ rotate: "-2deg" }],
+          shadowColor: "#2B1B4A",
+          shadowOpacity: 0.15,
+          shadowRadius: 12,
+          shadowOffset: { width: 0, height: 6 },
+          elevation: 4,
+        }}
+      >
+        {imageUrl ? (
           <Image
-            source={{
-              uri: imageUrl,
-            }}
-            className="mt-3 h-40 w-full rounded-large bg-surfaceMuted"
+            source={{ uri: imageUrl }}
+            style={{ width: 220, height: 220, borderRadius: 2 }}
             resizeMode="cover"
           />
-          <View className="mt-2 flex-row items-center">
-            <Icon name="lock" color={themeColors.inkMuted} size={20} />
-            <AppText variant="bodySmall" color="ink-muted" className="ml-2">
-              Private to your household.
+        ) : (
+          <View
+            className="items-center justify-center"
+            style={{
+              width: 220,
+              height: 220,
+              backgroundColor: themeColors.surfaceMuted,
+            }}
+          >
+            <AppText variant="label" color="ink-muted">
+              {loading ? "Developing…" : "Photo unavailable"}
             </AppText>
           </View>
-        </>
-      ) : (
-        <View className="mt-3 h-40 items-center justify-center rounded-large bg-surfaceMuted">
-          <AppText variant="label" color="ink-muted">
-            {loading ? "Loading photo…" : "Photo unavailable"}
-          </AppText>
-        </View>
-      )}
-
+        )}
+      </Pressable>
+      <View className="mt-2 flex-row items-center gap-1.5">
+        <Icon name="lock" color={themeColors.inkMuted} size={14} />
+        <AppText variant="caption" color="ink-muted">
+          Private to your household
+        </AppText>
+      </View>
       {error ? (
-        <Surface tone="coral" elevated={false} className="mt-3 p-3">
-          <AppText variant="bodySmall" color="urgency">
-            {error}
-          </AppText>
-        </Surface>
+        <AppText
+          variant="bodySmall"
+          color="urgency"
+          className="mt-2 text-center"
+        >
+          {error}
+        </AppText>
       ) : null}
-    </Surface>
+
+      <Modal
+        visible={zoomed}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setZoomed(false)}
+      >
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Close photo"
+          onPress={() => setZoomed(false)}
+          className="flex-1 items-center justify-center bg-black/90 p-4"
+        >
+          {imageUrl ? (
+            <Image
+              source={{ uri: imageUrl }}
+              style={{ width: "100%", height: "80%" }}
+              resizeMode="contain"
+            />
+          ) : null}
+        </Pressable>
+      </Modal>
+    </View>
   );
 }
