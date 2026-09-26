@@ -311,17 +311,20 @@ function ParentClaim({
 function ChildClaimFixture({
   state,
 }: {
-  state: "active" | "unclaim" | "locked" | "redo";
+  state: "active" | "submitted" | "unclaim" | "locked" | "redo" | "lock-sheet";
 }) {
-  const deadlineAt = atLocalTime(0, 17, 30);
+  // Relative to now so the unclaim window is always open in the preview.
+  const now = new Date().getTime();
+  const deadlineAt = now + 3 * 3_600_000;
+  const outOfKeys = state === "locked" || state === "lock-sheet";
   const commitment = {
-    lockAt: atLocalTime(0, 15, 30),
-    isTimeLocked: state === "locked",
-    hasUnclaimAllowance: state !== "locked",
-    remainingUnclaims: state === "locked" ? 0 : 1,
-    canUnclaim: state !== "locked" && state !== "redo",
-    isImmediatelyLocked: state === "locked",
-    lockReason: state === "locked" ? ("allowance_exhausted" as const) : null,
+    lockAt: deadlineAt - 2 * 3_600_000,
+    isTimeLocked: false,
+    hasUnclaimAllowance: !outOfKeys,
+    remainingUnclaims: outOfKeys ? 0 : 1,
+    canUnclaim: state === "active" || state === "unclaim",
+    isImmediatelyLocked: state === "lock-sheet",
+    lockReason: outOfKeys ? ("allowance_exhausted" as const) : null,
   };
   const result: ClaimableChoresViewModel = {
     gate: {
@@ -337,8 +340,8 @@ function ChildClaimFixture({
     },
     unclaimAllowance: {
       allowance: 2,
-      usedUnclaims: state === "locked" ? 2 : 1,
-      remainingUnclaims: state === "locked" ? 0 : 1,
+      usedUnclaims: outOfKeys ? 2 : 1,
+      remainingUnclaims: outOfKeys ? 0 : 1,
       payoutWeek: {
         startLocalDate: "2026-09-21",
         endLocalDate: "2026-09-27",
@@ -347,7 +350,7 @@ function ChildClaimFixture({
       },
     },
     claimableOccurrences:
-      state === "locked"
+      state === "lock-sheet"
         ? [
             {
               occurrenceId,
@@ -362,7 +365,7 @@ function ChildClaimFixture({
           ]
         : [],
     claimedOccurrences:
-      state === "locked"
+      state === "lock-sheet"
         ? []
         : [
             {
@@ -370,8 +373,13 @@ function ChildClaimFixture({
               occurrenceId,
               childId: alexId,
               claimedByDisplayName: "Alex",
-              claimState: state === "redo" ? "redo_required" : "claimed",
-              claimedAt: atLocalTime(0, 15),
+              claimState:
+                state === "redo"
+                  ? "redo_required"
+                  : state === "submitted"
+                    ? "submitted"
+                    : "claimed",
+              claimedAt: now - 20 * 60_000,
               title: "Wash the car",
               description:
                 "Wash the outside of the car and put the bucket away.",
@@ -694,8 +702,12 @@ function VerificationState({ state }: { state: string }) {
       return <ChildClaimFixture state="active" />;
     case "child-unclaim-confirmation":
       return <ChildClaimFixture state="unclaim" />;
-    case "child-claim-locked-confirmation":
+    case "child-active-claim-submitted":
+      return <ChildClaimFixture state="submitted" />;
+    case "child-active-claim-locked":
       return <ChildClaimFixture state="locked" />;
+    case "child-claim-locked-confirmation":
+      return <ChildClaimFixture state="lock-sheet" />;
     case "child-claimable-redo":
       return <ChildClaimFixture state="redo" />;
     case "parent-household-start":

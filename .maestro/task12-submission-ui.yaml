@@ -35,7 +35,8 @@ appId: host.exp.Exponent
     direction: UP
     timeout: 10000
 
-- tapOn:
+# Sending is hold-to-complete.
+- longPressOn:
     id: "claimable-submit-maestro-task12-garage-claim"
 
 - assertVisible: "Status: Waiting for parent approval"

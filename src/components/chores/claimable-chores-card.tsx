@@ -1,7 +1,6 @@
 import { useServerConfirmedMutation } from "@/hooks/use-server-confirmed-mutation";
 import { AppText, Surface } from "@/design-system";
 import { useQuery } from "convex/react";
-import { Alert } from "react-native";
 
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
@@ -82,10 +81,6 @@ export function ClaimableChoresCard({
       redos={redos}
       onSubmitRedo={async (claimId, evidenceUploadIntentId) => {
         await submitRedo({ claimId, evidenceUploadIntentId });
-        Alert.alert(
-          "Redo submitted",
-          "Your corrected work was sent back to your parent for review.",
-        );
       }}
     />
   );

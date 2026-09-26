@@ -1,9 +1,6 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useState } from "react";
 import { Modal, Pressable, ScrollView, View } from "react-native";
-import Animated, {
-  interpolate,
-  useAnimatedStyle,
-} from "react-native-reanimated";
+import Animated, { useAnimatedStyle } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import {
@@ -15,11 +12,10 @@ import {
   StarBuddy,
   Starfield,
   TreasureChest,
-  useEntrance,
   useLoop,
 } from "@/components/art";
 import { Easings } from "@/components/art/motion";
-import { Icon, type IconName } from "@/components/ui/icon";
+import { Icon } from "@/components/ui/icon";
 import { AppText, HoldButton, ThemeScope } from "@/design-system";
 import { questTokens as tokens } from "@/design-system/theme";
 
@@ -30,6 +26,13 @@ import type {
   ChildHomeRedo,
 } from "./child-home-chore-list";
 import { formatTime, relativeDayLabel, statusLabel } from "./chore-format";
+import {
+  Chip,
+  FlippingHourglass,
+  Panel,
+  SentOverlay,
+  StatePill,
+} from "./quest-card-parts";
 
 type Props = {
   occurrence: ChildHomeChoreOccurrence | undefined;
@@ -113,7 +116,7 @@ function QuestCardBody({
         >
           <Icon name="close" color={tokens.ink} size={18} />
         </Pressable>
-        <StatePill occurrence={occurrence} />
+        <StatePill state={occurrence.state} />
         <View className="h-11 w-11" />
       </View>
 
@@ -226,54 +229,6 @@ function QuestCardBody({
   );
 }
 
-function StatePill({ occurrence }: { occurrence: ChildHomeChoreOccurrence }) {
-  const map: Record<string, { label: string; className: string }> = {
-    available: { label: "Quest", className: "bg-accent" },
-    redo_required: { label: "Redo", className: "bg-pink" },
-    submitted: { label: "Checking", className: "bg-nightDash" },
-    approved: { label: "Done", className: "bg-primary" },
-    missed: { label: "Missed", className: "bg-nightRaised" },
-    failed: { label: "Missed", className: "bg-nightRaised" },
-    scheduled: { label: "Coming up", className: "bg-gold" },
-  };
-  const state = map[occurrence.state] ?? {
-    label: "Chore",
-    className: "bg-nightRaised",
-  };
-  return (
-    <View className={`rounded-full px-3.5 py-1.5 ${state.className}`}>
-      <AppText className="font-body-heavy text-[13px] uppercase tracking-[1.2px] text-night">
-        {state.label}
-      </AppText>
-    </View>
-  );
-}
-
-function Chip({
-  icon,
-  label,
-  tone,
-}: {
-  icon: IconName;
-  label: string;
-  tone: "gold" | "pink" | "muted";
-}) {
-  const color =
-    tone === "gold"
-      ? tokens.gold
-      : tone === "pink"
-        ? tokens.pink
-        : tokens.inkMuted;
-  return (
-    <View className="flex-row items-center gap-1.5 rounded-full bg-surface px-3 py-2">
-      <Icon name={icon} color={color} size={14} />
-      <AppText className="font-body-heavy text-[14px]" style={{ color }}>
-        {label}
-      </AppText>
-    </View>
-  );
-}
-
 /** The chore picture on a glowing, slowly turning disc. */
 function Hero({ occurrence }: { occurrence: ChildHomeChoreOccurrence }) {
   const spin = useLoop({ duration: 24000, easing: Easings.linear });
@@ -302,15 +257,19 @@ function Hero({ occurrence }: { occurrence: ChildHomeChoreOccurrence }) {
           ]}
         />
         {active ? (
-          <PulseRings
-            size={176}
-            color={
-              occurrence.state === "redo_required" ? tokens.pink : tokens.accent
-            }
-            duration={2600}
-          >
-            <View className="absolute h-[176px] w-[176px] rounded-full bg-surface" />
-          </PulseRings>
+          <View className="absolute">
+            <PulseRings
+              size={176}
+              color={
+                occurrence.state === "redo_required"
+                  ? tokens.pink
+                  : tokens.accent
+              }
+              duration={2600}
+            >
+              <View className="absolute h-[176px] w-[176px] rounded-full bg-surface" />
+            </PulseRings>
+          </View>
         ) : (
           <View className="absolute h-[176px] w-[176px] rounded-full bg-surface" />
         )}
@@ -392,56 +351,6 @@ function StatePanel({
   }
 }
 
-function Panel({
-  art,
-  title,
-  children,
-  tone,
-}: {
-  art: ReactNode;
-  title: string;
-  children: ReactNode;
-  tone?: "pink";
-}) {
-  return (
-    <View
-      className={`flex-row items-center gap-4 rounded-large p-4 ${tone === "pink" ? "bg-urgencySoft" : "bg-surface"}`}
-    >
-      {art}
-      <View className="flex-1">
-        <AppText variant="cardTitle" className="font-display">
-          {title}
-        </AppText>
-        <AppText
-          variant="bodySmall"
-          color="ink-muted"
-          className="mt-1 font-body-bold"
-        >
-          {children}
-        </AppText>
-      </View>
-    </View>
-  );
-}
-
-function FlippingHourglass() {
-  const progress = useLoop({ duration: 3000, easing: Easings.linear });
-  const style = useAnimatedStyle(() => ({
-    transform: [
-      {
-        rotate: `${interpolate(progress.get(), [0, 0.42, 0.58, 1], [0, 0, 180, 180])}deg`,
-      },
-    ],
-  }));
-  return (
-    <View className="h-16 w-16 items-center justify-center rounded-full border-2 border-dashed border-inkMuted bg-nightRaised">
-      <Animated.View style={style}>
-        <Icon name="hourglass" color={tokens.star} size={28} />
-      </Animated.View>
-    </View>
-  );
-}
-
 function UnlockNote({ occurrence }: { occurrence: ChildHomeChoreOccurrence }) {
   const approved = occurrence.state === "approved";
   const missed = occurrence.state === "missed" || occurrence.state === "failed";
@@ -490,46 +399,6 @@ function BuddyNote({ occurrence }: { occurrence: ChildHomeChoreOccurrence }) {
       <View className="mb-6 flex-1 rounded-[20px] rounded-bl-[6px] bg-surface px-4 py-3">
         <AppText className="font-body-heavy text-[15px]">{text}</AppText>
       </View>
-    </View>
-  );
-}
-
-/** After sending: the buddy flies the work off to a Parent, then we close. */
-function SentOverlay({ onDone }: { onDone: () => void }) {
-  const progress = useEntrance({ duration: 900 });
-  const flight = useAnimatedStyle(() => ({
-    transform: [
-      { translateY: interpolate(progress.get(), [0, 1], [60, -30]) },
-      { rotate: `${interpolate(progress.get(), [0, 1], [-8, 6])}deg` },
-    ],
-    opacity: interpolate(progress.get(), [0, 0.2, 1], [0, 1, 1]),
-  }));
-
-  useEffect(() => {
-    const timer = setTimeout(onDone, 1700);
-    return () => clearTimeout(timer);
-  }, [onDone]);
-
-  return (
-    <View
-      accessibilityLiveRegion="polite"
-      accessibilityLabel="Sent to a Parent for review"
-      className="absolute inset-0 items-center justify-center bg-canvas"
-    >
-      <Starfield seed={77} />
-      <Animated.View style={flight} className="items-center">
-        <StarBuddy size={96} mood="hop" />
-        <View
-          className="-mt-2 h-14 w-12 rounded-[5px] bg-white"
-          style={{ transform: [{ rotate: "8deg" }] }}
-        />
-      </Animated.View>
-      <AppText variant="screenTitle" className="mt-8">
-        Sent!
-      </AppText>
-      <AppText color="ink-muted" className="mt-1 font-body-bold">
-        A Parent will check it soon.
-      </AppText>
     </View>
   );
 }

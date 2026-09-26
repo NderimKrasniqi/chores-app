@@ -14,3 +14,5 @@ export { StarBuddy, type BuddyMood } from "./star-buddy";
 export { Starfield } from "./starfield";
 export { TreasureChest } from "./treasure-chest";
 export { LockClunk } from "./lock-clunk";
+export { Backpack } from "./backpack";
+export { UnclaimKeys } from "./unclaim-keys";
