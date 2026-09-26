@@ -9,7 +9,7 @@ import {
 } from "@/hooks/use-server-confirmed-mutation";
 import { useQuery } from "convex/react";
 import * as Haptics from "expo-haptics";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   useAnimatedStyle,
@@ -18,7 +18,13 @@ import Animated, {
 } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 import { useEntrance } from "@/components/art";
-import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  ScrollView,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { api } from "../../../convex/_generated/api";
@@ -272,6 +278,8 @@ export function ParentMoneyContent({
   );
   const markPaid = useServerConfirmedMutation(api.payouts.markPaid);
   const [payingId, setPayingId] = useState<Id<"payouts"> | null>(null);
+  // One payout write at a time: blocks double activation before re-render.
+  const payingRef = useRef(false);
   const [justPaid, setJustPaid] = useState<Id<"payouts">[]>([]);
   const [changingDay, setChangingDay] = useState(false);
   const [working, setWorking] = useState(false);
@@ -307,6 +315,8 @@ export function ParentMoneyContent({
 
   /** Resolves true once the server confirms the payout is marked paid. */
   async function confirmPaid(payoutId: Id<"payouts">) {
+    if (payingRef.current) return false;
+    payingRef.current = true;
     setPayingId(payoutId);
     setError(null);
     try {
@@ -323,6 +333,7 @@ export function ParentMoneyContent({
       );
       return false;
     } finally {
+      payingRef.current = false;
       setPayingId(null);
     }
   }
@@ -645,18 +656,38 @@ function SlideToPay({
   const travel = Math.max(0, width - KNOB - 8);
 
   async function commit() {
-    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     const ok = await onConfirm();
-    if (!ok) x.set(withSpring(0, { duration: 400, dampingRatio: 0.8 }));
+    if (ok) {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } else {
+      x.set(withSpring(0, { duration: 400, dampingRatio: 0.8 }));
+    }
   }
 
+  // Screen readers can't slide, so they confirm in a dialog instead.
+  function confirmAccessibly() {
+    if (busy || disabled) return;
+    Alert.alert(
+      `Mark ${amount} kr paid to ${name}?`,
+      "Only do this after the Swish payment has gone through.",
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Mark paid", onPress: () => void commit() },
+      ],
+    );
+  }
+
+  // Paying must be a deliberate full slide: no flick shortcut, and vertical
+  // scrolls that start on the knob never activate it.
   const pan = Gesture.Pan()
     .enabled(!busy && !disabled && travel > 0)
+    .activeOffsetX([0, 12])
+    .failOffsetY([-10, 10])
     .onUpdate((event) => {
       x.set(Math.min(travel, Math.max(0, event.translationX)));
     })
     .onEnd((event) => {
-      if (x.get() > travel * 0.85 || event.velocityX > 900) {
+      if (x.get() > travel * 0.9) {
         x.set(withSpring(travel, { duration: 250, dampingRatio: 1 }));
         scheduleOnRN(commit);
       } else {
@@ -689,9 +720,7 @@ function SlideToPay({
       accessibilityLabel={`Slide to mark ${amount} kronor paid to ${name} with Swish`}
       accessibilityState={{ busy, disabled }}
       accessibilityActions={[{ name: "activate" }]}
-      onAccessibilityAction={() => {
-        if (!busy && !disabled) void commit();
-      }}
+      onAccessibilityAction={confirmAccessibly}
       onLayout={(event) => setWidth(event.nativeEvent.layout.width)}
       className="h-[60px] justify-center overflow-hidden rounded-full"
       style={{

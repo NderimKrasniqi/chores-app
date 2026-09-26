@@ -4,7 +4,7 @@ import { useTheme } from "@/design-system/theme";
 import { useServerConfirmedMutation } from "@/hooks/use-server-confirmed-mutation";
 import { formatTimestampDateTime } from "@/lib/dates";
 import { useQuery } from "convex/react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Alert, Modal, Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -66,6 +66,15 @@ function tomorrowDate(timezone: string) {
 
 function dateInDays(timezone: string, days: number) {
   if (days === 1) return tomorrowDate(timezone);
+  if (days === 0) {
+    const [year, month, day] = tomorrowDate(timezone).split("-").map(Number);
+    const today = new Date(Date.UTC(year, month - 1, day - 1, 12));
+    return [
+      today.getUTCFullYear(),
+      String(today.getUTCMonth() + 1).padStart(2, "0"),
+      String(today.getUTCDate()).padStart(2, "0"),
+    ].join("-");
+  }
   const [year, month, day] = tomorrowDate(timezone).split("-").map(Number);
   const target = new Date(Date.UTC(year, month - 1, day + days - 1, 12));
   return [
@@ -76,6 +85,7 @@ function dateInDays(timezone: string, days: number) {
 }
 
 function dayChipLabel(value: string, days: number) {
+  if (days === 0) return "Today";
   if (days === 1) return "Tomorrow";
   const [year, month, day] = value.split("-").map(Number);
   return new Intl.DateTimeFormat("en-GB", {
@@ -133,6 +143,8 @@ export function ParentReviewsContent({
   );
 
   const [redoFor, setRedoFor] = useState<DeckItem | null>(null);
+  // One review in flight at a time: blocks same-frame double taps/swipes.
+  const inFlight = useRef(false);
   const [working, setWorking] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -216,6 +228,7 @@ export function ParentReviewsContent({
   }
 
   async function onVerdict(item: DeckItem, verdict: "approve" | "redo") {
+    if (inFlight.current) return false;
     if (visualItems) {
       if (verdict === "redo") {
         setRedoFor(item);
@@ -225,7 +238,14 @@ export function ParentReviewsContent({
       setVisualDone((done) => [...done, item.submissionId]);
       return true;
     }
-    if (verdict === "approve") return approve(item);
+    if (verdict === "approve") {
+      inFlight.current = true;
+      try {
+        return await approve(item);
+      } finally {
+        inFlight.current = false;
+      }
+    }
     // Redo needs a decision first; the card springs back meanwhile.
     if (item.source === "redo") confirmRedoIncomplete(item);
     else setRedoFor(item);
@@ -302,7 +322,7 @@ export function ParentReviewsContent({
         </View>
       ) : null}
 
-      {items.length > 0 ? (
+      {!loading && items.length > 0 ? (
         <View className="mt-5">
           <ReviewDeck
             items={items}
@@ -324,9 +344,11 @@ export function ParentReviewsContent({
       ) : null}
 
       <RedoSheet
+        key={redoFor?.submissionId ?? "none"}
         item={redoFor}
         timezone={householdTimezone}
         working={working}
+        error={redoFor ? error : null}
         onClose={() => setRedoFor(null)}
         onConfirm={(date, time) => {
           if (redoFor) void askForRedo(redoFor, date, time);
@@ -336,19 +358,21 @@ export function ParentReviewsContent({
   );
 }
 
-const DAY_OPTIONS = [1, 2, 3];
-const TIME_OPTIONS = ["16:00", "18:00", "20:00"];
+const DAY_OPTIONS = [0, 1, 2, 3];
+const TIME_OPTIONS = ["14:00", "16:00", "18:00", "20:00"];
 
 function RedoSheet({
   item,
   timezone,
   working,
+  error,
   onClose,
   onConfirm,
 }: {
   item: DeckItem | null;
   timezone: string;
   working: boolean;
+  error: string | null;
   onClose: () => void;
   onConfirm: (date: string, time: string) => void;
 }) {
@@ -400,6 +424,11 @@ function RedoSheet({
               onSelect={setTime}
             />
 
+            {error ? (
+              <AppText variant="bodySmall" color="urgency" className="mt-4">
+                {error}
+              </AppText>
+            ) : null}
             <ActionButton
               className="mt-6"
               tone="destructive"

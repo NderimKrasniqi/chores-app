@@ -319,6 +319,7 @@ export function ParentInviteCard({
               className="mb-2 mt-1"
               tone="quiet"
               label="Keep it"
+              disabled={working}
               onPress={() => setShowRevokeConfirmation(false)}
             />
           </SafeAreaView>

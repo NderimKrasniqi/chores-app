@@ -339,7 +339,7 @@ export function ParentChoresContent({
     }
   }
 
-  function confirmArchive(definition: Definition) {
+  function confirmArchive(definition: Definition, onArchived?: () => void) {
     Alert.alert(
       "Archive chore?",
       `“${definition.title}” will stop generating future chores. Existing history stays unchanged.`,
@@ -351,14 +351,16 @@ export function ParentChoresContent({
           onPress: () =>
             void archiveDefinition({
               choreDefinitionId: definition.choreDefinitionId,
-            }).catch((archiveError) => {
-              Alert.alert(
-                "Could not archive chore",
-                archiveError instanceof Error
-                  ? archiveError.message
-                  : "Please try again.",
-              );
-            }),
+            })
+              .then(() => onArchived?.())
+              .catch((archiveError) => {
+                Alert.alert(
+                  "Could not archive chore",
+                  archiveError instanceof Error
+                    ? archiveError.message
+                    : "Please try again.",
+                );
+              }),
         },
       ],
     );
@@ -719,10 +721,10 @@ export function ParentChoresContent({
                     const definition = definitions?.find(
                       (item) => item.choreDefinitionId === editingId,
                     );
-                    if (definition) {
-                      setShowForm(false);
-                      confirmArchive(definition);
-                    }
+                    // Ask while the sheet is still up; iOS won't present an
+                    // alert on a modal that is already dismissing.
+                    if (definition)
+                      confirmArchive(definition, () => setShowForm(false));
                   }}
                 />
               ) : null}

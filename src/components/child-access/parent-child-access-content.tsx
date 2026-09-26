@@ -480,7 +480,11 @@ function CountdownRing({
       className="mt-4 flex-row items-center gap-3"
       accessible
       accessibilityLabel={
-        expired ? "Code expired" : `Code works for ${minutes} more minutes`
+        expired
+          ? "Code expired"
+          : minutes === 0
+            ? "Code works for less than a minute"
+            : `Code works for ${minutes} more ${minutes === 1 ? "minute" : "minutes"}`
       }
     >
       <View style={{ width: size, height: size }}>

@@ -537,14 +537,14 @@ export function HouseholdSettingsScreen({
       >
         <View className="flex-row flex-wrap gap-2">
           {TIMEZONE_SUGGESTIONS.map((zone) => {
-            const active = zone === household.timezone;
+            const active = zone === timezone.trim();
             return (
               <Pressable
                 key={zone}
                 accessibilityRole="button"
                 accessibilityState={{ selected: active }}
                 disabled={saving !== null}
-                onPress={() => saveTimezone(zone)}
+                onPress={() => setTimezone(zone)}
                 className="min-h-[40px] items-center justify-center rounded-full px-3"
                 style={{
                   backgroundColor: active ? tokens.ink : tokens.surfaceMuted,

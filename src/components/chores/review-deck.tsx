@@ -63,24 +63,25 @@ export function ReviewDeck({
 
   return (
     <View>
-      <View style={{ height: 470 }}>
+      <View>
+        {/* Back cards sit behind; the top card and its buttons flow below. */}
         {items
-          .slice(0, 3)
+          .slice(1, 3)
           .reverse()
-          .map((item, reversedIndex, shown) => {
-            const depth = shown.length - 1 - reversedIndex;
-            return depth === 0 ? (
-              <TopCard
-                key={item.submissionId}
-                item={item}
-                submittedLabel={submittedLabel}
-                busy={busy}
-                onVerdict={onVerdict}
-              />
-            ) : (
-              <BackCard key={item.submissionId} item={item} depth={depth} />
-            );
-          })}
+          .map((item, reversedIndex, shown) => (
+            <BackCard
+              key={item.submissionId}
+              item={item}
+              depth={shown.length - reversedIndex}
+            />
+          ))}
+        <TopCard
+          key={top.submissionId}
+          item={top}
+          submittedLabel={submittedLabel}
+          busy={busy}
+          onVerdict={onVerdict}
+        />
       </View>
     </View>
   );
@@ -157,13 +158,16 @@ function TopCard({
       x.set(event.translationX);
     })
     .onEnd((event) => {
-      const far = Math.abs(event.translationX) > width * SWIPE_DISTANCE;
-      const fast = Math.abs(event.velocityX) > SWIPE_VELOCITY;
-      if (far || fast) {
-        const verdict: Verdict =
-          (fast ? event.velocityX : event.translationX) > 0
-            ? "approve"
-            : "redo";
+      const dx = event.translationX;
+      const far = Math.abs(dx) > width * SWIPE_DISTANCE;
+      // A flick counts only if it has travelled a bit and agrees with the
+      // drag, so the verdict always matches the stamp the parent saw.
+      const flick =
+        Math.abs(dx) > 48 &&
+        Math.abs(event.velocityX) > SWIPE_VELOCITY &&
+        Math.sign(event.velocityX) === Math.sign(dx);
+      if (far || flick) {
+        const verdict: Verdict = dx > 0 ? "approve" : "redo";
         scheduleOnRN(commit, verdict, event.velocityX);
       } else {
         x.set(
@@ -192,7 +196,7 @@ function TopCard({
   }));
 
   return (
-    <View style={{ position: "absolute", left: 0, right: 0, top: 0 }}>
+    <View>
       <GestureDetector gesture={pan}>
         <Animated.View
           style={[{ transformOrigin: "center bottom" }, cardStyle]}
