@@ -113,6 +113,85 @@ export type ClaimableChoresViewModel = {
   }[];
 };
 
+type UnlockGateStatus = {
+  icon: "clock" | "hourglass" | "redo" | "calendar" | "missed" | "lock";
+  tone: "gold" | "inkMuted" | "pink";
+  status: string;
+  /** Button label, or null when there's nothing to do here. */
+  action: string | null;
+  urgent: boolean;
+  note: string | null;
+};
+
+/** What the Unlock Chore needs next, told plainly for each state. */
+function unlockGateStatus(
+  chore: UnlockChoreSummary | undefined,
+  current: ClaimableChoresViewModel["gate"]["currentUnlockOccurrence"],
+): UnlockGateStatus {
+  const state = chore?.state ?? current?.state;
+  switch (state) {
+    case "available":
+      return {
+        icon: "clock",
+        tone: "gold",
+        status: chore
+          ? `Due ${formatDeadlineSentence(chore.deadlineAt, chore.timezone)}`
+          : "Ready to do",
+        action: "Do it now",
+        urgent: true,
+        note: chore ? null : "Open Quests to do this chore.",
+      };
+    case "redo_required":
+      return {
+        icon: "redo",
+        tone: "pink",
+        status: "A Parent asked for a redo",
+        action: "Fix it now",
+        urgent: true,
+        note: null,
+      };
+    case "submitted":
+      return {
+        icon: "hourglass",
+        tone: "inkMuted",
+        status: "A Parent is checking",
+        action: "View chore",
+        urgent: false,
+        note: null,
+      };
+    case "scheduled":
+      return {
+        icon: "calendar",
+        tone: "inkMuted",
+        status: chore
+          ? `Opens ${formatDeadlineSentence(chore.availabilityStartsAt, chore.timezone)}`
+          : "Coming up",
+        action: "View chore",
+        urgent: false,
+        note: null,
+      };
+    case "missed":
+    case "failed":
+      return {
+        icon: "missed",
+        tone: "pink",
+        status: "Missed this time",
+        action: null,
+        urgent: false,
+        note: "The chest stays shut for now. Your next Unlock Chore can open it.",
+      };
+    default:
+      return {
+        icon: "lock",
+        tone: "inkMuted",
+        status: "Not approved yet",
+        action: null,
+        urgent: false,
+        note: "Open Quests to view or submit this chore.",
+      };
+  }
+}
+
 /** Gold coin with the Extra's value. */
 function ValueCoin({ value }: { value: number }) {
   return (
@@ -542,7 +621,7 @@ export function ClaimableChoresView({
   }
 
   if (!gate.canAccessClaimables) {
-    const unlockWaiting = unlockChore?.state === "submitted";
+    const unlock = unlockGateStatus(unlockChore, gate.currentUnlockOccurrence);
     return (
       <View className="pb-6">
         <View className="mt-1 flex-row items-center gap-2 overflow-hidden rounded-large bg-surface p-3 pr-4">
@@ -580,48 +659,48 @@ export function ClaimableChoresView({
               </AppText>
               <View className="mt-1 flex-row items-center gap-1">
                 <Icon
-                  name={unlockWaiting ? "hourglass" : "clock"}
-                  color={unlockWaiting ? themeColors.info : themeColors.gold}
+                  name={unlock.icon}
+                  color={themeColors[unlock.tone]}
                   size={14}
                 />
                 <AppText
                   variant="caption"
-                  color={unlockWaiting ? "ink-muted" : "gold"}
                   className="flex-1"
+                  style={{ color: themeColors[unlock.tone] }}
                 >
-                  {unlockChore
-                    ? unlockWaiting
-                      ? "A Parent is checking"
-                      : `Due ${formatDeadlineSentence(unlockChore.deadlineAt, unlockChore.timezone)}`
-                    : gate.currentUnlockOccurrence?.state === "submitted"
-                      ? "A Parent is checking"
-                      : "Not approved yet"}
+                  {unlock.status}
                 </AppText>
               </View>
             </View>
             {unlockChore ? <ValueCoin value={unlockChore.valueSek} /> : null}
           </View>
-          {unlockChore && onOpenChore ? (
+          {unlockChore && onOpenChore && unlock.action ? (
             <ActionButton
               className="mt-4"
-              label={unlockWaiting ? "View chore" : "Do it now"}
+              label={unlock.action}
+              tone={unlock.urgent ? "primary" : "secondary"}
               onPress={() => onOpenChore(unlockChore.occurrenceId)}
               trailing={
-                <Icon name="chevron" color={themeColors.onPrimary} size={20} />
+                <Icon
+                  name="chevron"
+                  color={
+                    unlock.urgent ? themeColors.onPrimary : themeColors.ink
+                  }
+                  size={20}
+                />
               }
             />
-          ) : (
+          ) : null}
+          {unlock.note ? (
             <View className="mt-3 rounded-control bg-nightRaised p-3">
               <AppText
                 variant="bodySmall"
                 className="text-center font-body-bold"
               >
-                {unlockWaiting
-                  ? "Waiting for Parent approval."
-                  : "Open Quests to view or submit this chore."}
+                {unlock.note}
               </AppText>
             </View>
-          )}
+          ) : null}
         </View>
 
         <AppText variant="sectionTitle" className="mt-6">
