@@ -12,6 +12,7 @@ import { useServerConfirmedMutation } from "@/hooks/use-server-confirmed-mutatio
 import { useQuery } from "convex/react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Alert, Pressable, ScrollView, View } from "react-native";
+import { userErrorMessage } from "@/lib/errors";
 
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
@@ -229,7 +230,7 @@ export function ChildHomeChoreList({
     } catch (error) {
       Alert.alert(
         attemptNumber === 2 ? "Could not submit Redo" : "Could not submit",
-        error instanceof Error ? error.message : "Please try again.",
+        userErrorMessage(error, "Please try again."),
       );
       return false;
     } finally {

@@ -10,6 +10,7 @@ import { ActionButton, AppText } from "@/design-system";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import { View } from "react-native";
+import { userErrorMessage } from "@/lib/errors";
 
 import { ChildJoinScreen } from "./child-join-screen";
 
@@ -93,9 +94,7 @@ export function ChildNoAccessScreen({
         setCleanupState("error");
 
         setErrorMessage(
-          error instanceof Error
-            ? error.message
-            : "Could not remove revoked Child access.",
+          userErrorMessage(error, "Could not remove revoked Child access."),
         );
       }
     }

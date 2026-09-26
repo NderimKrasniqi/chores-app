@@ -3,6 +3,7 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect, useRef, useState } from "react";
 import { AccessibilityInfo, Pressable, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { userErrorMessage } from "@/lib/errors";
 
 import { LostSatellite, Starfield } from "@/components/art";
 import { Icon } from "@/components/ui/icon";
@@ -68,9 +69,7 @@ export function ChildPinSetupScreen({
       activateParentStorage();
     } catch (error) {
       setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "Could not restart child setup.",
+        userErrorMessage(error, "Could not restart child setup."),
       );
     } finally {
       setRestarting(false);
@@ -122,9 +121,7 @@ export function ChildPinSetupScreen({
       // Pop on the filled stars, then move on; cancelled on unmount.
       doneTimer.current = setTimeout(() => onComplete(context), 320);
     } catch (error) {
-      setErrorMessage(
-        error instanceof Error ? error.message : "Could not save Child PIN.",
-      );
+      setErrorMessage(userErrorMessage(error, "Could not save Child PIN."));
     } finally {
       inFlight.current = false;
       setSaving(false);

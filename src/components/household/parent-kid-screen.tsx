@@ -2,6 +2,7 @@ import { useQuery } from "convex/react";
 import { useEffect, useState, type ReactNode } from "react";
 import { AppState, Modal, Pressable, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { userErrorMessage } from "@/lib/errors";
 
 import { ChoreIcon } from "@/components/art";
 import { ActiveClaimableClaimsView } from "@/components/chores/active-claimable-claims-view";
@@ -135,7 +136,7 @@ export function ParentKidScreen({
       await renameChild({ childId: child.childId, displayName: name });
       setRenaming(false);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Could not rename.");
+      setMessage(userErrorMessage(error, "Could not rename."));
     } finally {
       setWorking(false);
     }
@@ -155,7 +156,7 @@ export function ParentKidScreen({
         );
       }
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Could not remove.");
+      setMessage(userErrorMessage(error, "Could not remove."));
     } finally {
       setWorking(false);
     }

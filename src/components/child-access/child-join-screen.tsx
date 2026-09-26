@@ -15,6 +15,7 @@ import Animated, {
   useAnimatedStyle,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { userErrorMessage } from "@/lib/errors";
 
 import { DockingScene, Starfield, useLoop } from "@/components/art";
 import { PRESS, pressTransition } from "@/components/art/motion";
@@ -145,9 +146,7 @@ export function ChildJoinScreen() {
       await redeemManual({ manualCode: code });
       setCode("");
     } catch (error) {
-      setErrorMessage(
-        error instanceof Error ? error.message : "Could not pair this device.",
-      );
+      setErrorMessage(userErrorMessage(error, "Could not pair this device."));
     } finally {
       setRedeeming(false);
     }
@@ -166,9 +165,7 @@ export function ChildJoinScreen() {
 
       activateParentStorage();
     } catch (error) {
-      setErrorMessage(
-        error instanceof Error ? error.message : "Could not exit Child setup.",
-      );
+      setErrorMessage(userErrorMessage(error, "Could not exit Child setup."));
     } finally {
       setSigningOut(false);
     }

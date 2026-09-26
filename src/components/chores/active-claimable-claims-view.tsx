@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Modal, Pressable, View } from "react-native";
 import Animated from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { userErrorMessage } from "@/lib/errors";
 
 import { ChoreIcon } from "@/components/art";
 import { PRESS, pressTransition } from "@/components/art/motion";
@@ -149,10 +150,10 @@ export function ActiveClaimableClaimsView({
       setConfirmingClaimId(null);
       setSelectedClaimId(null);
     } catch (error) {
-      const message =
-        error instanceof Error && error.message
-          ? error.message
-          : "Could not cancel this claim. Please try again.";
+      const message = userErrorMessage(
+        error,
+        "Could not cancel this claim. Please try again.",
+      );
       setConfirmingClaimId(null);
       if (isDeadlineCancellationError(message)) setUnavailableClaim(claim);
       else setActionError(message);

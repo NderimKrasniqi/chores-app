@@ -3,6 +3,7 @@ import { Floating, PopIn } from "@/components/art";
 import { Icon } from "@/components/ui/icon";
 import { questTokens as themeColors } from "@/design-system/theme";
 import { ActionButton, AppText } from "@/design-system";
+import { userErrorMessage } from "@/lib/errors";
 
 import * as ImageManipulator from "expo-image-manipulator";
 import * as ImagePicker from "expo-image-picker";
@@ -200,11 +201,10 @@ export function ChildSubmissionActions({
 
       Alert.alert(
         "Photo not attached",
-        `${
-          error instanceof Error
-            ? error.message
-            : "The photo could not be uploaded."
-        }\n\nYou can try again or submit without a photo.`,
+        `${userErrorMessage(
+          error,
+          "The photo could not be uploaded.",
+        )}\n\nYou can try again or submit without a photo.`,
       );
     } finally {
       setUploading(false);
@@ -290,7 +290,7 @@ export function ChildSubmissionActions({
     } catch (error) {
       Alert.alert(
         "Could not remove photo",
-        error instanceof Error ? error.message : "Please try again.",
+        userErrorMessage(error, "Please try again."),
       );
     } finally {
       setUploading(false);

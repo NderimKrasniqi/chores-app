@@ -13,6 +13,7 @@ import { useAuthRuntime } from "@/providers/auth-runtime-provider";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
+import { userErrorMessage } from "@/lib/errors";
 
 import type { Id } from "../../../convex/_generated/dataModel";
 
@@ -112,9 +113,7 @@ export function ChildAccessGate({ access }: ChildAccessGateProps) {
         }
 
         setErrorMessage(
-          error instanceof Error
-            ? error.message
-            : "Could not load local child access.",
+          userErrorMessage(error, "Could not load local child access."),
         );
       } finally {
         if (!cancelled) {
@@ -141,9 +140,7 @@ export function ChildAccessGate({ access }: ChildAccessGateProps) {
       setUnlocked(true);
     } catch (error) {
       setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "Could not unlock child profile.",
+        userErrorMessage(error, "Could not unlock child profile."),
       );
     }
   }

@@ -7,6 +7,7 @@ import Animated, {
   useAnimatedStyle,
 } from "react-native-reanimated";
 import Svg, { Circle, Path, Rect } from "react-native-svg";
+import { userErrorMessage } from "@/lib/errors";
 
 import { useLoop } from "@/components/art";
 import { Easings, PRESS, pressTransition } from "@/components/art/motion";
@@ -315,7 +316,7 @@ export function ParentFamilyContent({
       setAdding(false);
       setNewName("");
     } catch (error) {
-      setAddError(error instanceof Error ? error.message : "Could not add.");
+      setAddError(userErrorMessage(error, "Could not add."));
     } finally {
       setSaving(false);
     }

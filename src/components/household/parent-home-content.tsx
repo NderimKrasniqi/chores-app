@@ -261,7 +261,11 @@ export function ParentHomeContent({
             onPress={onOpenSwitcher}
             className="mt-0.5 flex-row items-center gap-1"
           >
-            <AppText variant="screenTitle" numberOfLines={1} className="shrink">
+            <AppText
+              variant="screenTitle"
+              numberOfLines={2}
+              style={{ flexShrink: 1 }}
+            >
               {household.name}
             </AppText>
             <Icon name="chevronDown" color={tokens.inkMuted} size={18} />

@@ -18,6 +18,7 @@ import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
+import { userErrorMessage } from "@/lib/errors";
 
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
@@ -112,7 +113,7 @@ export function ChildHomeScreen({
     } catch (error) {
       Alert.alert(
         "Could not lock profile",
-        error instanceof Error ? error.message : "Please try again.",
+        userErrorMessage(error, "Please try again."),
       );
     }
   }

@@ -1099,6 +1099,7 @@ function VerificationState({ state }: { state: string }) {
           onBack={noop}
           onSwitchHousehold={noop}
           onOpenHelp={noop}
+          onJoinedHousehold={noop}
           onSignOut={noop}
           signingOut={false}
         />

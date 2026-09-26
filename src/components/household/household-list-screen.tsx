@@ -3,6 +3,7 @@ import { ParentReviewsContent } from "@/components/chores/parent-reviews-content
 import { OnboardingScreen } from "@/components/onboarding/onboarding-screen";
 import { AppText, Surface } from "@/design-system";
 import { authClient } from "@/lib/auth/client";
+import * as SecureStore from "expo-secure-store";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useMemo, useState } from "react";
 import { onNotificationIntent } from "@/lib/notification-intent";
@@ -11,6 +12,7 @@ import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
+import { userErrorMessage } from "@/lib/errors";
 
 import type { HouseholdSummary } from "./household-types";
 import {
@@ -35,6 +37,9 @@ type HouseholdListScreenProps = {
   parentEmail: string;
   households: HouseholdSummary[];
 };
+
+// Parents in more than one family come back to the one they last opened.
+const SELECTED_HOUSEHOLD_KEY = "parent-selected-household";
 
 type ParentRoute =
   | "main"
@@ -70,6 +75,33 @@ export function HouseholdListScreen({
   const [selectedHouseholdId, setSelectedHouseholdId] = useState<
     HouseholdSummary["householdId"]
   >(households[0].householdId);
+  const [restoredSelection, setRestoredSelection] = useState(
+    households.length < 2,
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    SecureStore.getItemAsync(SELECTED_HOUSEHOLD_KEY)
+      .catch(() => null)
+      .then((stored) => {
+        if (cancelled) return;
+        const match = households.find((item) => item.householdId === stored);
+        if (match) setSelectedHouseholdId(match.householdId);
+        setRestoredSelection(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+    // Restore once on mount; later picks are saved by selectHousehold.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function selectHousehold(householdId: HouseholdSummary["householdId"]) {
+    setSelectedHouseholdId(householdId);
+    void SecureStore.setItemAsync(SELECTED_HOUSEHOLD_KEY, householdId).catch(
+      () => {},
+    );
+  }
   const [signingOut, setSigningOut] = useState(false);
   const [selectedChildId, setSelectedChildId] = useState<
     HouseholdSummary["children"][number]["childId"] | null
@@ -101,12 +133,13 @@ export function HouseholdListScreen({
     try {
       await authClient.signOut();
     } catch (error) {
-      setErrorMessage(
-        error instanceof Error ? error.message : "Could not sign out.",
-      );
+      setErrorMessage(userErrorMessage(error, "Could not sign out."));
       setSigningOut(false);
     }
   }
+
+  // A beat of blank canvas beats flashing the wrong family first.
+  if (!restoredSelection) return <View className="flex-1 bg-canvas" />;
 
   if (route === "account") {
     return (
@@ -118,6 +151,11 @@ export function HouseholdListScreen({
         onBack={() => setRoute("main")}
         onSwitchHousehold={() => setRoute("switcher")}
         onOpenHelp={() => setRoute("help")}
+        onJoinedHousehold={(householdId) => {
+          selectHousehold(householdId);
+          setActiveSection("home");
+          setRoute("main");
+        }}
         onSignOut={() => void handleSignOut()}
         signingOut={signingOut}
       />
@@ -131,7 +169,7 @@ export function HouseholdListScreen({
         currentHouseholdId={household.householdId}
         onBack={() => setRoute("account")}
         onSelect={(householdId) => {
-          setSelectedHouseholdId(householdId);
+          selectHousehold(householdId);
           setRoute("main");
         }}
       />

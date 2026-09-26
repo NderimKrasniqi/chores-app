@@ -7,6 +7,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Circle, Path, Rect } from "react-native-svg";
+import { userErrorMessage } from "@/lib/errors";
 
 import { useLoop } from "@/components/art";
 import { Icon } from "@/components/ui/icon";
@@ -120,9 +121,7 @@ export function ParentInviteCard({
       setFeedback(replacingInvite ? "regenerated" : "generated");
     } catch (error) {
       setInviteError(
-        error instanceof Error
-          ? error.message
-          : "Could not create parent invite.",
+        userErrorMessage(error, "Could not create parent invite."),
       );
     } finally {
       setWorking(false);
@@ -140,9 +139,7 @@ export function ParentInviteCard({
       setShowRevokeConfirmation(false);
     } catch (error) {
       setInviteError(
-        error instanceof Error
-          ? error.message
-          : "Could not revoke parent invite.",
+        userErrorMessage(error, "Could not revoke parent invite."),
       );
     } finally {
       setWorking(false);
@@ -162,11 +159,7 @@ export function ParentInviteCard({
         ].join("\n"),
       });
     } catch (error) {
-      setInviteError(
-        error instanceof Error
-          ? error.message
-          : "Could not share parent invite.",
-      );
+      setInviteError(userErrorMessage(error, "Could not share parent invite."));
     }
   }
 

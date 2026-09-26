@@ -2938,3 +2938,30 @@ export const approvePendingPersonalChore = internalMutation({
     return { approvedTitle: occurrence.title, valueSek: occurrence.valueSek };
   },
 });
+
+/**
+ * Lets a real Parent account join the test household through the normal
+ * invite flow. The caller generates the token locally and passes only its
+ * SHA-256 hash, exactly as `parentInvites.storeGeneratedInvite` stores it.
+ */
+export const createParentInvite = internalMutation({
+  args: {
+    householdId: v.id("households"),
+    expectedParentAuthUserId: v.string(),
+    tokenHash: v.string(),
+  },
+  returns: v.id("parentInvites"),
+  handler: async (ctx, args) => {
+    const fixture = await loadFixtureContext(
+      ctx,
+      args.householdId,
+      args.expectedParentAuthUserId,
+    );
+    return await ctx.db.insert("parentInvites", {
+      householdId: fixture.householdId,
+      tokenHash: args.tokenHash,
+      createdByAuthUserId: args.expectedParentAuthUserId,
+      createdAt: Date.now(),
+    });
+  },
+});

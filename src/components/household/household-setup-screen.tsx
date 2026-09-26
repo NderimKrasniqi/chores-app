@@ -15,6 +15,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Circle, Path, Rect } from "react-native-svg";
+import { userErrorMessage } from "@/lib/errors";
 
 import { PopIn, useLoop } from "@/components/art";
 import { PRESS, pressTransition } from "@/components/art/motion";
@@ -743,9 +744,7 @@ export function HouseholdSetupScreen({
         children: normalizedChildren.map((displayName) => ({ displayName })),
       });
     } catch (error) {
-      setErrorMessage(
-        error instanceof Error ? error.message : "Could not create household.",
-      );
+      setErrorMessage(userErrorMessage(error, "Could not create household."));
     } finally {
       setCreatingHousehold(false);
     }
@@ -761,9 +760,7 @@ export function HouseholdSetupScreen({
       await acceptParentInvite({ token });
       setParentInviteToken("");
     } catch (error) {
-      setErrorMessage(
-        error instanceof Error ? error.message : "Could not join household.",
-      );
+      setErrorMessage(userErrorMessage(error, "Could not join household."));
     } finally {
       setJoiningHousehold(false);
     }
@@ -783,9 +780,7 @@ export function HouseholdSetupScreen({
     try {
       await authClient.signOut();
     } catch (error) {
-      setErrorMessage(
-        error instanceof Error ? error.message : "Could not sign out.",
-      );
+      setErrorMessage(userErrorMessage(error, "Could not sign out."));
       setSigningOut(false);
     }
   }

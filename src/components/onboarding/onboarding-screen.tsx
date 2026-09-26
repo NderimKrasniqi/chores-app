@@ -13,6 +13,7 @@ import { StatusBar } from "expo-status-bar";
 import { useState, type ReactNode } from "react";
 import { Alert, Pressable, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { userErrorMessage } from "@/lib/errors";
 
 type OnboardingScreenProps = {
   onChooseParent: () => void;
@@ -50,7 +51,7 @@ function OnboardingContent({
     } catch (error) {
       Alert.alert(
         "Could not save onboarding",
-        error instanceof Error ? error.message : "Please try again.",
+        userErrorMessage(error, "Please try again."),
       );
     } finally {
       setFinishing(false);

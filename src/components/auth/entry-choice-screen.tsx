@@ -29,6 +29,7 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { userErrorMessage } from "@/lib/errors";
 
 import { api } from "../../../convex/_generated/api";
 
@@ -159,9 +160,7 @@ export function EntryChoiceScreen({ onChooseParent }: EntryChoiceScreenProps) {
         }
 
         setErrorMessage(
-          error instanceof Error
-            ? error.message
-            : "Could not load saved child profiles.",
+          userErrorMessage(error, "Could not load saved child profiles."),
         );
       } finally {
         if (!cancelled) {
@@ -276,9 +275,7 @@ export function EntryChoiceScreen({ onChooseParent }: EntryChoiceScreenProps) {
         }
 
         setErrorMessage(
-          error instanceof Error
-            ? error.message
-            : "Could not remove revoked Child profile.",
+          userErrorMessage(error, "Could not remove revoked Child profile."),
         );
       } finally {
         /*
@@ -379,9 +376,7 @@ export function EntryChoiceScreen({ onChooseParent }: EntryChoiceScreenProps) {
         setSwitchingContextId(null);
 
         setErrorMessage(
-          error instanceof Error
-            ? error.message
-            : "Could not open child profile.",
+          userErrorMessage(error, "Could not open child profile."),
         );
       }
     }
@@ -419,11 +414,7 @@ export function EntryChoiceScreen({ onChooseParent }: EntryChoiceScreenProps) {
     } catch (error) {
       setSwitchingContextId(null);
 
-      setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "Could not open child profile.",
-      );
+      setErrorMessage(userErrorMessage(error, "Could not open child profile."));
     }
   }
 
@@ -450,9 +441,7 @@ export function EntryChoiceScreen({ onChooseParent }: EntryChoiceScreenProps) {
       activateParentStorage();
 
       setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "Could not start child session.",
+        userErrorMessage(error, "Could not start child session."),
       );
     } finally {
       setStartingChildSession(false);

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { AccessibilityInfo, Pressable, View } from "react-native";
 import Animated, { useAnimatedStyle } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { userErrorMessage } from "@/lib/errors";
 
 import { Starfield, useLoop } from "@/components/art";
 import { Easings } from "@/components/art/motion";
@@ -114,9 +115,7 @@ export function ChildPinUnlockScreen({
       openTimer.current = setTimeout(onUnlocked, 320);
     } catch (error) {
       setPin("");
-      setErrorMessage(
-        error instanceof Error ? error.message : "Could not verify PIN.",
-      );
+      setErrorMessage(userErrorMessage(error, "Could not verify PIN."));
     } finally {
       inFlight.current = false;
       setCheckingPin(false);

@@ -14,6 +14,7 @@ import { useState } from "react";
 import { Modal, Pressable, View } from "react-native";
 import Animated from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { userErrorMessage } from "@/lib/errors";
 
 import type { Id } from "../../../convex/_generated/dataModel";
 import { formatLocalDate } from "@/lib/dates";
@@ -262,7 +263,7 @@ function formatDeadlineSentence(timestamp: number, timezone: string) {
 }
 
 function getErrorMessage(error: unknown) {
-  const message = error instanceof Error ? error.message : "";
+  const message = userErrorMessage(error, "");
   // Someone else won the first-come race: say so kindly.
   if (/already been claimed/i.test(message)) {
     return "Too slow — someone else just grabbed that one! Pick another.";
