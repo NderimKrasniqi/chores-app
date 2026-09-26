@@ -1,6 +1,6 @@
 import { useServerConfirmedMutation } from "@/hooks/use-server-confirmed-mutation";
-import { DirectionCIcon } from "@/components/ui/direction-c-icon";
-import { DirectionC } from "@/constants/direction-c";
+import { Icon } from "@/components/ui/icon";
+import { homeTokens as themeColors } from "@/design-system/theme";
 import { AppText, Surface } from "@/design-system";
 
 import { useEffect, useState } from "react";
@@ -82,9 +82,9 @@ export function SubmissionEvidenceViewer({
             resizeMode="cover"
           />
           <View className="mt-2 flex-row items-center">
-            <DirectionCIcon
+            <Icon
               name="lock"
-              color={DirectionC.color.inkMuted}
+              color={themeColors.inkMuted}
               size={20}
             />
             <AppText variant="bodySmall" color="ink-muted" className="ml-2">

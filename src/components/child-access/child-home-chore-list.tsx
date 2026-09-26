@@ -1,5 +1,5 @@
-import { DirectionCIcon } from "@/components/ui/direction-c-icon";
-import { DirectionC } from "@/constants/direction-c";
+import { Icon } from "@/components/ui/icon";
+import { questTokens as themeColors } from "@/design-system/theme";
 import {
   ActionButton,
   AppText,
@@ -20,7 +20,7 @@ import {
 
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
-import { formatTimestampDateTime } from "@/lib/direction-c/dates";
+import { formatTimestampDateTime } from "@/lib/dates";
 import { ChildSubmissionActions } from "../evidence/child-submission-actions";
 
 export type OccurrenceState =
@@ -270,9 +270,9 @@ function ChoreArtwork({
           accessible={false}
         />
       ) : (
-        <DirectionCIcon
+        <Icon
           name="checklist"
-          color={DirectionC.color.greenDeep}
+          color={themeColors.actionPressed}
           size={large ? 52 : 40}
         />
       )}
@@ -544,9 +544,9 @@ export function ChildHomeChoreList({
                     label="Unlock chore"
                     tone="urgent"
                     icon={
-                      <DirectionCIcon
+                      <Icon
                         name="key"
-                        color={DirectionC.color.coral}
+                        color={themeColors.urgency}
                         size={14}
                       />
                     }
@@ -558,14 +558,14 @@ export function ChildHomeChoreList({
                 </AppText>
 
                 <View className="mt-1 flex-row items-center">
-                  <DirectionCIcon
+                  <Icon
                     name={waiting ? "waiting" : "clock"}
                     color={
                       waiting
-                        ? DirectionC.color.disabled
+                        ? themeColors.disabledInk
                         : urgent
-                          ? DirectionC.color.coral
-                          : DirectionC.color.inkMuted
+                          ? themeColors.urgency
+                          : themeColors.inkMuted
                     }
                     size={18}
                   />
@@ -582,9 +582,9 @@ export function ChildHomeChoreList({
                 </View>
               </View>
 
-              <DirectionCIcon
+              <Icon
                 name="chevron"
-                color={DirectionC.color.ink}
+                color={themeColors.ink}
                 size={20}
               />
             </Pressable>
@@ -626,14 +626,14 @@ export function ChildHomeChoreList({
                       {occurrence.title}
                     </AppText>
                     <View className="mt-1 flex-row items-center">
-                      <DirectionCIcon
+                      <Icon
                         name={approved ? "check" : "missed"}
                         color={
                           approved
-                            ? DirectionC.color.greenDeep
+                            ? themeColors.actionPressed
                             : missed
-                              ? DirectionC.color.coral
-                              : DirectionC.color.inkMuted
+                              ? themeColors.urgency
+                              : themeColors.inkMuted
                         }
                         size={16}
                       />
@@ -647,9 +647,9 @@ export function ChildHomeChoreList({
                     </View>
                   </View>
 
-                  <DirectionCIcon
+                  <Icon
                     name="chevron"
-                    color={DirectionC.color.ink}
+                    color={themeColors.ink}
                     size={20}
                   />
                 </Pressable>
@@ -699,9 +699,9 @@ export function ChildHomeChoreList({
                     className="absolute bottom-3 left-3 flex-row items-center rounded-full bg-surfaceRaised px-3 py-2"
                     style={DesignTokens.shadowStyle.floating}
                   >
-                    <DirectionCIcon
+                    <Icon
                       name="key"
-                      color={DirectionC.color.coral}
+                      color={themeColors.urgency}
                       size={20}
                     />
                     <AppText color="urgency" className="ml-1.5 font-black">
@@ -720,9 +720,9 @@ export function ChildHomeChoreList({
                   label={`${selectedOccurrence.valueSek} kr`}
                   tone="urgent"
                   icon={
-                    <DirectionCIcon
+                    <Icon
                       name="tag"
-                      color={DirectionC.color.coral}
+                      color={themeColors.urgency}
                       size={15}
                     />
                   }
@@ -732,9 +732,9 @@ export function ChildHomeChoreList({
                     label={statusLabel(selectedOccurrence, selectedRedo)}
                     tone="urgent"
                     icon={
-                      <DirectionCIcon
+                      <Icon
                         name="clock"
-                        color={DirectionC.color.coral}
+                        color={themeColors.urgency}
                         size={15}
                       />
                     }
@@ -745,9 +745,9 @@ export function ChildHomeChoreList({
                     label="Not submitted"
                     tone="neutral"
                     icon={
-                      <DirectionCIcon
+                      <Icon
                         name="document"
-                        color={DirectionC.color.inkMuted}
+                        color={themeColors.inkMuted}
                         size={15}
                       />
                     }
@@ -758,9 +758,9 @@ export function ChildHomeChoreList({
                     label="Upcoming"
                     tone="info"
                     icon={
-                      <DirectionCIcon
+                      <Icon
                         name="calendar"
-                        color={DirectionC.color.ink}
+                        color={themeColors.ink}
                         size={15}
                       />
                     }
@@ -771,9 +771,9 @@ export function ChildHomeChoreList({
                     label="Waiting for parent"
                     tone="success"
                     icon={
-                      <DirectionCIcon
+                      <Icon
                         name="clock"
-                        color={DirectionC.color.greenDeep}
+                        color={themeColors.actionPressed}
                         size={15}
                       />
                     }
@@ -784,9 +784,9 @@ export function ChildHomeChoreList({
                     label="Approved"
                     tone="success"
                     icon={
-                      <DirectionCIcon
+                      <Icon
                         name="check"
-                        color={DirectionC.color.greenDeep}
+                        color={themeColors.actionPressed}
                         size={15}
                       />
                     }
@@ -798,9 +798,9 @@ export function ChildHomeChoreList({
                     label="Missed"
                     tone="urgent"
                     icon={
-                      <DirectionCIcon
+                      <Icon
                         name="missed"
-                        color={DirectionC.color.coral}
+                        color={themeColors.urgency}
                         size={15}
                       />
                     }
@@ -811,9 +811,9 @@ export function ChildHomeChoreList({
                     label="Redo required"
                     tone="urgent"
                     icon={
-                      <DirectionCIcon
+                      <Icon
                         name="redo"
-                        color={DirectionC.color.coral}
+                        color={themeColors.urgency}
                         size={15}
                       />
                     }
@@ -824,9 +824,9 @@ export function ChildHomeChoreList({
               {selectedOccurrence.state === "scheduled" ? (
                 <View className="mt-3 gap-1.5">
                   <View className="flex-row items-center">
-                    <DirectionCIcon
+                    <Icon
                       name="calendar"
-                      color={DirectionC.color.greenDeep}
+                      color={themeColors.actionPressed}
                       size={18}
                     />
                     <AppText color="action" className="ml-2 font-bold">
@@ -843,9 +843,9 @@ export function ChildHomeChoreList({
                     </AppText>
                   </View>
                   <View className="flex-row items-center">
-                    <DirectionCIcon
+                    <Icon
                       name="clock"
-                      color={DirectionC.color.coral}
+                      color={themeColors.urgency}
                       size={18}
                     />
                     <AppText color="urgency" className="ml-2 font-bold">
@@ -864,7 +864,7 @@ export function ChildHomeChoreList({
                 </View>
               ) : selectedOccurrence.state !== "available" ? (
                 <View className="mt-3 flex-row items-center">
-                  <DirectionCIcon
+                  <Icon
                     name={
                       selectedOccurrence.state === "redo_required"
                         ? "clock"
@@ -874,8 +874,8 @@ export function ChildHomeChoreList({
                       selectedOccurrence.state === "approved" ||
                       selectedOccurrence.state === "missed" ||
                       selectedOccurrence.state === "failed"
-                        ? DirectionC.color.inkMuted
-                        : DirectionC.color.coral
+                        ? themeColors.inkMuted
+                        : themeColors.urgency
                     }
                     size={18}
                   />
@@ -972,9 +972,9 @@ export function ChildHomeChoreList({
                   className="mt-4 flex-row items-center p-[18px]"
                 >
                   <View className="h-12 w-12 items-center justify-center rounded-full bg-actionSoftStrong">
-                    <DirectionCIcon
+                    <Icon
                       name="clock"
-                      color={DirectionC.color.greenDeep}
+                      color={themeColors.actionPressed}
                       size={26}
                     />
                   </View>
@@ -1006,9 +1006,9 @@ export function ChildHomeChoreList({
                       accessible={false}
                     />
                     <View className="absolute bottom-1 right-0 h-8 w-8 items-center justify-center rounded-full bg-action">
-                      <DirectionCIcon
+                      <Icon
                         name="check"
-                        color={DirectionC.color.white}
+                        color={themeColors.onAction}
                         size={18}
                       />
                     </View>
@@ -1270,9 +1270,9 @@ export function ChildHomeChoreList({
                 <ActionButton
                   label="Submit work"
                   trailing={
-                    <DirectionCIcon
+                    <Icon
                       name="chevron"
-                      color={DirectionC.color.white}
+                      color={themeColors.onAction}
                       size={22}
                     />
                   }
@@ -1290,9 +1290,9 @@ export function ChildHomeChoreList({
                 <ActionButton
                   label="Submit redo"
                   trailing={
-                    <DirectionCIcon
+                    <Icon
                       name="chevron"
-                      color={DirectionC.color.white}
+                      color={themeColors.onAction}
                       size={22}
                     />
                   }
@@ -1356,9 +1356,9 @@ export function ChildHomeChoreList({
                             label="Unlock chore"
                             tone="urgent"
                             icon={
-                              <DirectionCIcon
+                              <Icon
                                 name="key"
-                                color={DirectionC.color.coral}
+                                color={themeColors.urgency}
                                 size={14}
                               />
                             }
@@ -1375,9 +1375,9 @@ export function ChildHomeChoreList({
                           label={`${selectedOccurrence.valueSek} kr`}
                           tone="urgent"
                           icon={
-                            <DirectionCIcon
+                            <Icon
                               name="tag"
-                              color={DirectionC.color.coral}
+                              color={themeColors.urgency}
                               size={14}
                             />
                           }
@@ -1437,9 +1437,9 @@ export function ChildHomeChoreList({
                             accessible={false}
                           />
                           <View className="absolute bottom-2 right-0 h-9 w-9 items-center justify-center rounded-full bg-action">
-                            <DirectionCIcon
+                            <Icon
                               name="check"
-                              color={DirectionC.color.white}
+                              color={themeColors.onAction}
                               size={21}
                             />
                           </View>
@@ -1493,9 +1493,9 @@ export function ChildHomeChoreList({
                           : "Submit for review"
                     }
                     trailing={
-                      <DirectionCIcon
+                      <Icon
                         name="chevron"
-                        color={DirectionC.color.white}
+                        color={themeColors.onAction}
                         size={22}
                       />
                     }

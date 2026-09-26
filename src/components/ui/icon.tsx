@@ -292,14 +292,14 @@ const iconNames = {
   },
 } satisfies Record<string, SymbolName>;
 
-export type DirectionCIconName = keyof typeof iconNames;
+export type IconName = keyof typeof iconNames;
 
-export function DirectionCIcon({
+export function Icon({
   name,
   color,
   size = 24,
 }: {
-  name: DirectionCIconName;
+  name: IconName;
   color: string;
   size?: number;
 }) {
@@ -318,7 +318,7 @@ export function DirectionCIcon({
           name={iconNames[name]}
           size={size}
           tintColor={color}
-          weight="semibold"
+          weight="bold"
         />
         <View
           style={{
@@ -349,7 +349,7 @@ export function DirectionCIcon({
       name={iconNames[name]}
       size={size}
       tintColor={color}
-      weight="semibold"
+      weight="bold"
     />
   );
 }

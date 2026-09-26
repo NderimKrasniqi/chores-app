@@ -1,5 +1,5 @@
-import { DirectionCIcon } from "@/components/ui/direction-c-icon";
-import { DirectionC } from "@/constants/direction-c";
+import { Icon } from "@/components/ui/icon";
+import { questTokens as themeColors } from "@/design-system/theme";
 import {
   ActionButton,
   AppText,
@@ -17,7 +17,7 @@ import {
 } from "react-native-safe-area-context";
 
 import type { Id } from "../../../convex/_generated/dataModel";
-import { formatLocalDate } from "@/lib/direction-c/dates";
+import { formatLocalDate } from "@/lib/dates";
 import { ChildSubmissionActions } from "../evidence/child-submission-actions";
 
 type UnlockState =
@@ -199,9 +199,9 @@ function ChoreArtwork({
           accessible={false}
         />
       ) : (
-        <DirectionCIcon
+        <Icon
           name="chores"
-          color={DirectionC.color.greenDeep}
+          color={themeColors.actionPressed}
           size={large ? 70 : 42}
         />
       )}
@@ -225,9 +225,9 @@ function ChoreHero({ title }: { title: string }) {
         />
       ) : (
         <View className="flex-1 items-center justify-center">
-          <DirectionCIcon
+          <Icon
             name="chores"
-            color={DirectionC.color.greenDeep}
+            color={themeColors.actionPressed}
             size={70}
           />
         </View>
@@ -237,9 +237,9 @@ function ChoreHero({ title }: { title: string }) {
           label="Redo required"
           tone="urgent"
           icon={
-            <DirectionCIcon
+            <Icon
               name="redo"
-              color={DirectionC.color.coral}
+              color={themeColors.urgency}
               size={16}
             />
           }
@@ -352,10 +352,10 @@ function ClaimableCard({
           {occurrence.valueSek} kr
         </AppText>
         <View className="mt-1 flex-row items-center">
-          <DirectionCIcon
+          <Icon
             name={claimedBy ? "person" : "clock"}
             color={
-              claimedBy ? DirectionC.color.inkMuted : DirectionC.color.coral
+              claimedBy ? themeColors.inkMuted : themeColors.urgency
             }
             size={17}
           />
@@ -616,9 +616,9 @@ export function ClaimableChoresView({
                 label="Unlock chore"
                 tone="urgent"
                 icon={
-                  <DirectionCIcon
+                  <Icon
                     name="key"
-                    color={DirectionC.color.coral}
+                    color={themeColors.urgency}
                     size={14}
                   />
                 }
@@ -635,9 +635,9 @@ export function ClaimableChoresView({
                 </AppText>
               ) : null}
               <View className="mt-1 flex-row items-center">
-                <DirectionCIcon
+                <Icon
                   name="clock"
-                  color={DirectionC.color.coral}
+                  color={themeColors.urgency}
                   size={17}
                 />
                 <AppText variant="bodySmall" color="urgency" className="ml-1">
@@ -660,13 +660,13 @@ export function ClaimableChoresView({
                   }
                   tone="neutral"
                   icon={
-                    <DirectionCIcon
+                    <Icon
                       name={
                         unlockChore?.state === "submitted"
                           ? "waiting"
                           : "document"
                       }
-                      color={DirectionC.color.inkMuted}
+                      color={themeColors.inkMuted}
                       size={14}
                     />
                   }
@@ -699,9 +699,9 @@ export function ClaimableChoresView({
                   View chore
                 </AppText>
                 <View className="absolute right-4">
-                  <DirectionCIcon
+                  <Icon
                     name="chevron"
-                    color={DirectionC.color.white}
+                    color={themeColors.onAction}
                     size={22}
                   />
                 </View>
@@ -817,9 +817,9 @@ export function ClaimableChoresView({
         className="mt-2 h-[62px] flex-row items-center px-4 py-1"
       >
         <View className="h-12 w-12 items-center justify-center rounded-full bg-infoSoftStrong">
-          <DirectionCIcon
+          <Icon
             name="unclaim"
-            color={DirectionC.color.ink}
+            color={themeColors.ink}
             size={25}
           />
         </View>
@@ -880,9 +880,9 @@ export function ClaimableChoresView({
                   {myClaim.valueSek} kr
                 </AppText>
               </View>
-              <DirectionCIcon
+              <Icon
                 name="chevron"
-                color={DirectionC.color.ink}
+                color={themeColors.ink}
                 size={22}
               />
             </Surface>
@@ -982,9 +982,9 @@ export function ClaimableChoresView({
                   </AppText>
                   <View className="mt-1 flex-row gap-3">
                     <View className="flex-row items-center rounded-control bg-urgencySoft px-3 py-2">
-                      <DirectionCIcon
+                      <Icon
                         name="tag"
-                        color={DirectionC.color.coral}
+                        color={themeColors.urgency}
                         size={22}
                       />
                       <AppText
@@ -996,9 +996,9 @@ export function ClaimableChoresView({
                       </AppText>
                     </View>
                     <View className="flex-1 flex-row items-center rounded-control bg-urgencySoft px-3 py-2">
-                      <DirectionCIcon
+                      <Icon
                         name="clock"
-                        color={DirectionC.color.coral}
+                        color={themeColors.urgency}
                         size={22}
                       />
                       <AppText
@@ -1031,9 +1031,9 @@ export function ClaimableChoresView({
                     className="mt-3 flex-row items-center p-4"
                   >
                     <View className="h-10 w-10 items-center justify-center rounded-full bg-surfaceRaised">
-                      <DirectionCIcon
+                      <Icon
                         name="redo"
-                        color={DirectionC.color.coral}
+                        color={themeColors.urgency}
                         size={30}
                       />
                     </View>
@@ -1052,9 +1052,9 @@ export function ClaimableChoresView({
                     className="mt-3 flex-row items-center p-4"
                   >
                     <View className="h-10 w-10 items-center justify-center rounded-full bg-infoSoftStrong">
-                      <DirectionCIcon
+                      <Icon
                         name="link"
-                        color={DirectionC.color.ink}
+                        color={themeColors.ink}
                         size={30}
                       />
                     </View>
@@ -1075,9 +1075,9 @@ export function ClaimableChoresView({
                       className="mt-2 flex-row items-center p-1.5"
                     >
                       <View className="h-7 w-7 items-center justify-center rounded-full bg-action">
-                        <DirectionCIcon
+                        <Icon
                           name="check"
-                          color={DirectionC.color.white}
+                          color={themeColors.onAction}
                           size={18}
                         />
                       </View>
@@ -1094,9 +1094,9 @@ export function ClaimableChoresView({
                       className="mt-2 flex-row items-center p-1.5"
                     >
                       <View className="h-7 w-7 items-center justify-center rounded-full bg-urgency">
-                        <DirectionCIcon
+                        <Icon
                           name="close"
-                          color={DirectionC.color.white}
+                          color={themeColors.onAction}
                           size={16}
                         />
                       </View>
@@ -1142,9 +1142,9 @@ export function ClaimableChoresView({
                     <View className="mt-4 h-px bg-line" />
                     <View className="mt-4 flex-row">
                       <View className="flex-1 flex-row items-center pr-3">
-                        <DirectionCIcon
+                        <Icon
                           name="clock"
-                          color={DirectionC.color.coral}
+                          color={themeColors.urgency}
                           size={25}
                         />
                         <AppText
@@ -1161,9 +1161,9 @@ export function ClaimableChoresView({
                       </View>
                       {selectedClaim.commitment?.canUnclaim ? (
                         <View className="flex-1 flex-row items-center border-l border-line pl-4">
-                          <DirectionCIcon
+                          <Icon
                             name="refresh"
-                            color={DirectionC.color.ink}
+                            color={themeColors.ink}
                             size={25}
                           />
                           <AppText variant="bodySmall" className="ml-2 flex-1">
@@ -1193,9 +1193,9 @@ export function ClaimableChoresView({
                     className="mt-5 flex-row items-center p-4"
                   >
                     <View className="h-14 w-14 items-center justify-center rounded-full bg-infoSoftStrong">
-                      <DirectionCIcon
+                      <Icon
                         name="link"
-                        color={DirectionC.color.ink}
+                        color={themeColors.ink}
                         size={28}
                       />
                     </View>
@@ -1275,9 +1275,9 @@ export function ClaimableChoresView({
                 <ActionButton
                   label="Submit for review"
                   trailing={
-                    <DirectionCIcon
+                    <Icon
                       name="chevron"
-                      color={DirectionC.color.white}
+                      color={themeColors.onAction}
                       size={22}
                     />
                   }
@@ -1293,9 +1293,9 @@ export function ClaimableChoresView({
                 <ActionButton
                   label="Submit redo"
                   trailing={
-                    <DirectionCIcon
+                    <Icon
                       name="chevron"
-                      color={DirectionC.color.white}
+                      color={themeColors.onAction}
                       size={22}
                     />
                   }
@@ -1338,9 +1338,9 @@ export function ClaimableChoresView({
                         label={`${selectedClaim.valueSek} kr`}
                         tone="urgent"
                         icon={
-                          <DirectionCIcon
+                          <Icon
                             name="tag"
-                            color={DirectionC.color.coral}
+                            color={themeColors.urgency}
                             size={14}
                           />
                         }
@@ -1393,9 +1393,9 @@ export function ClaimableChoresView({
                             accessible={false}
                           />
                           <View className="absolute bottom-2 right-0 h-9 w-9 items-center justify-center rounded-full bg-action">
-                            <DirectionCIcon
+                            <Icon
                               name="check"
-                              color={DirectionC.color.white}
+                              color={themeColors.onAction}
                               size={21}
                             />
                           </View>
@@ -1453,9 +1453,9 @@ export function ClaimableChoresView({
                           : "Submit for review"
                     }
                     trailing={
-                      <DirectionCIcon
+                      <Icon
                         name="chevron"
-                        color={DirectionC.color.white}
+                        color={themeColors.onAction}
                         size={22}
                       />
                     }
@@ -1491,9 +1491,9 @@ export function ClaimableChoresView({
                   >
                     <View className="h-1.5 w-16 self-center rounded-full bg-infoSoftStrong" />
                     <View className="mt-4 h-16 w-16 items-center justify-center self-center rounded-full bg-infoSoftStrong">
-                      <DirectionCIcon
+                      <Icon
                         name="brokenLink"
-                        color={DirectionC.color.ink}
+                        color={themeColors.ink}
                         size={34}
                       />
                     </View>
@@ -1513,9 +1513,9 @@ export function ClaimableChoresView({
                       className="mt-4 flex-row items-center p-4"
                     >
                       <View className="h-12 w-12 items-center justify-center rounded-full bg-infoSoftStrong">
-                        <DirectionCIcon
+                        <Icon
                           name="brokenLink"
-                          color={DirectionC.color.ink}
+                          color={themeColors.ink}
                           size={26}
                         />
                       </View>
@@ -1584,18 +1584,18 @@ export function ClaimableChoresView({
                 Claim {lockedCandidate.title}?
               </AppText>
               <View className="mt-2 flex-row items-center justify-center">
-                <DirectionCIcon
+                <Icon
                   name="money"
-                  color={DirectionC.color.greenDeep}
+                  color={themeColors.actionPressed}
                   size={22}
                 />
                 <AppText variant="cardTitle" color="action" className="ml-2">
                   {lockedCandidate.valueSek} kr
                 </AppText>
                 <View className="mx-4 h-7 w-px bg-line" />
-                <DirectionCIcon
+                <Icon
                   name="clock"
-                  color={DirectionC.color.coral}
+                  color={themeColors.urgency}
                   size={22}
                 />
                 <AppText color="urgency" className="ml-2">
@@ -1611,9 +1611,9 @@ export function ClaimableChoresView({
                 className="mt-4 flex-row items-center p-4"
               >
                 <View className="h-14 w-14 items-center justify-center rounded-full bg-urgencySoft">
-                  <DirectionCIcon
+                  <Icon
                     name="lock"
-                    color={DirectionC.color.coral}
+                    color={themeColors.urgency}
                     size={29}
                   />
                 </View>

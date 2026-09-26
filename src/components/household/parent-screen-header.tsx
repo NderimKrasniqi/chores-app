@@ -1,5 +1,5 @@
 import { AppText } from "@/design-system";
-import { DirectionCAvatar } from "@/components/ui/direction-c-avatar";
+import { Avatar } from "@/components/ui/avatar";
 import { Pressable, View } from "react-native";
 
 const parentAvatar = require("../../../assets/images/direction-c/sam-avatar.png");
@@ -35,7 +35,7 @@ export function ParentScreenHeader({
         onPress={onOpenAccount}
         className="h-[76px] w-[76px]"
       >
-        <DirectionCAvatar
+        <Avatar
           source={parentAvatar}
           tone="parent"
           className="h-full w-full"

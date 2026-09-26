@@ -2,7 +2,7 @@ import type { ComponentProps, ReactNode } from "react";
 import { ActivityIndicator, Pressable, View } from "react-native";
 
 import { AppText } from "./text";
-import { DesignTokens } from "./tokens";
+import { useTheme } from "./theme";
 
 type ButtonTone =
   | "primary"
@@ -22,15 +22,10 @@ type ActionButtonProps = Omit<ComponentProps<typeof Pressable>, "children"> & {
   labelStyle?: ComponentProps<typeof AppText>["style"];
 };
 
-const toneClass: Record<ButtonTone, string> = {
-  primary: "bg-action",
-  soft: "bg-actionSoftStrong",
-  destructive: "bg-urgency",
-  destructiveSecondary: "border-2 border-urgency bg-surfaceRaised",
-  secondary: "border-2 border-infoSoftStrong bg-surfaceRaised",
-  quiet: "bg-transparent",
-};
-
+/**
+ * Chunky Quest Path button. Filled tones sit on a darker "3D" lip that
+ * squashes when pressed.
+ */
 export function ActionButton({
   label,
   tone = "primary",
@@ -41,10 +36,58 @@ export function ActionButton({
   labelStyle,
   disabled,
   className = "",
+  style,
   ...props
 }: ActionButtonProps) {
+  const { mode, tokens } = useTheme();
   const isDisabled = disabled || loading;
-  const lightLabel = tone === "primary" || tone === "destructive";
+
+  // Quest (child) primary is the lime chunky button; home (parent) primary
+  // is deep ink so it reads as a serious action on light surfaces.
+  const palette: Record<
+    ButtonTone,
+    { fill: string; lip: string | null; text: string; border?: string }
+  > = {
+    primary:
+      mode === "quest"
+        ? {
+            fill: tokens.primary,
+            lip: tokens.primaryShade,
+            text: tokens.onPrimary,
+          }
+        : {
+            fill: tokens.action,
+            lip: tokens.actionPressed,
+            text: tokens.primary,
+          },
+    soft:
+      mode === "quest"
+        ? { fill: tokens.nightRaised, lip: tokens.nightTrack, text: tokens.ink }
+        : {
+            fill: tokens.actionSoftStrong,
+            lip: tokens.primaryShade,
+            text: tokens.ink,
+          },
+    destructive: {
+      fill: tokens.urgency,
+      lip: tokens.urgencyPressed,
+      text: tokens.white,
+    },
+    destructiveSecondary: {
+      fill: "transparent",
+      lip: null,
+      text: tokens.urgency,
+      border: tokens.urgency,
+    },
+    secondary: {
+      fill: mode === "quest" ? tokens.surface : tokens.surface,
+      lip: null,
+      text: tokens.ink,
+      border: tokens.infoSoftStrong,
+    },
+    quiet: { fill: "transparent", lip: null, text: tokens.inkMuted },
+  };
+  const colors = palette[tone];
 
   return (
     <Pressable
@@ -53,32 +96,42 @@ export function ActionButton({
       accessibilityLabel={props.accessibilityLabel ?? label}
       accessibilityState={{ disabled: isDisabled, busy: loading }}
       disabled={isDisabled}
-      className={`min-h-control items-center justify-center rounded-control px-5 ${toneClass[tone]} ${isDisabled ? "opacity-50" : ""} ${className}`}
+      className={`${isDisabled ? "opacity-50" : ""} ${className}`}
+      style={style}
     >
-      {loading ? (
-        <ActivityIndicator
-          color={lightLabel ? DesignTokens.color.white : DesignTokens.color.ink}
-        />
-      ) : (
-        <View className="flex-row items-center justify-center gap-2.5">
-          {leading}
-          <AppText
-            variant="cardTitle"
-            color={
-              lightLabel
-                ? "white"
-                : tone === "quiet" || tone === "soft"
-                  ? "action"
-                  : tone === "destructiveSecondary"
-                    ? "urgency"
-                    : "ink"
-            }
-            className={`text-center ${labelClassName}`}
-            style={labelStyle}
-          >
-            {label}
-          </AppText>
-          {trailing}
+      {({ pressed }) => (
+        <View
+          className="min-h-control items-center justify-center rounded-control px-5"
+          style={{
+            backgroundColor: colors.fill,
+            borderWidth: colors.border ? 2 : 0,
+            borderColor: colors.border,
+            borderBottomWidth: colors.lip
+              ? pressed
+                ? 1
+                : 5
+              : colors.border
+                ? 2
+                : 0,
+            borderBottomColor: colors.lip ?? colors.border,
+            transform: [{ translateY: colors.lip && pressed ? 3 : 0 }],
+          }}
+        >
+          {loading ? (
+            <ActivityIndicator color={colors.text} />
+          ) : (
+            <View className="flex-row items-center justify-center gap-2.5">
+              {leading}
+              <AppText
+                variant="cardTitle"
+                className={`text-center font-display ${labelClassName}`}
+                style={[{ color: colors.text }, labelStyle]}
+              >
+                {label}
+              </AppText>
+              {trailing}
+            </View>
+          )}
         </View>
       )}
     </Pressable>

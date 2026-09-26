@@ -1,9 +1,9 @@
-import { DirectionCIcon } from "@/components/ui/direction-c-icon";
+import { Icon } from "@/components/ui/icon";
 import {
   childAvatarTone,
-  DirectionCAvatar,
-} from "@/components/ui/direction-c-avatar";
-import { DirectionC } from "@/constants/direction-c";
+  Avatar,
+} from "@/components/ui/avatar";
+import { homeTokens as themeColors } from "@/design-system/theme";
 import { AppText, Surface } from "@/design-system";
 import { useQuery } from "convex/react";
 import { AppImage as Image } from "@/components/ui/app-image";
@@ -58,7 +58,7 @@ function ChildAccessRow({
   return (
     <Pressable accessibilityRole="button" onPress={onOpen}>
       <Surface className="h-[64px] min-h-[64px] flex-row items-center px-3 py-0">
-        <DirectionCAvatar
+        <Avatar
           source={childAvatar(child.displayName)}
           tone={childAvatarTone(child.displayName)}
           className="h-16 w-16"
@@ -67,12 +67,12 @@ function ChildAccessRow({
         <View className="ml-4 flex-1">
           <AppText variant="cardTitle">{child.displayName}</AppText>
           <View className="mt-1 flex-row items-center">
-            <DirectionCIcon
+            <Icon
               name="phone"
               color={
                 activeCount > 0
-                  ? DirectionC.color.green
-                  : DirectionC.color.disabled
+                  ? themeColors.action
+                  : themeColors.disabledInk
               }
               size={19}
             />
@@ -96,7 +96,7 @@ function ChildAccessRow({
             </AppText>
           </View>
         ) : null}
-        <DirectionCIcon name="chevron" color={DirectionC.color.ink} size={22} />
+        <Icon name="chevron" color={themeColors.ink} size={22} />
       </Surface>
     </Pressable>
   );
@@ -177,7 +177,7 @@ export function ParentFamilyContent({
             className="h-[64px] min-h-[64px] flex-row items-center px-3 py-0"
           >
             {parent.isCurrent ? (
-              <DirectionCAvatar
+              <Avatar
                 source={parentAvatar}
                 tone="parent"
                 className="h-16 w-16"
@@ -205,9 +205,9 @@ export function ParentFamilyContent({
         className="mt-2 min-h-[62px] flex-row items-center rounded-control bg-actionSoft px-3"
       >
         <View className="h-11 w-11 items-center justify-center rounded-full bg-action">
-          <DirectionCIcon
+          <Icon
             name="personPlus"
-            color={DirectionC.color.white}
+            color={themeColors.onAction}
             size={24}
           />
         </View>
@@ -219,7 +219,7 @@ export function ParentFamilyContent({
             Parents share the same controls.
           </AppText>
         </View>
-        <DirectionCIcon name="chevron" color={DirectionC.color.ink} size={22} />
+        <Icon name="chevron" color={themeColors.ink} size={22} />
       </Pressable>
 
       <Modal
@@ -250,9 +250,9 @@ export function ParentFamilyContent({
           <AppText variant="label" color="action">
             Settings
           </AppText>
-          <DirectionCIcon
+          <Icon
             name="chevron"
-            color={DirectionC.color.green}
+            color={themeColors.action}
             size={19}
           />
         </Pressable>
@@ -260,7 +260,7 @@ export function ParentFamilyContent({
 
       <View className="mt-1 flex-row px-2 py-2">
         <View className="flex-1 items-center border-r border-infoSoftStrong px-1">
-          <DirectionCIcon name="globe" color={DirectionC.color.ink} size={22} />
+          <Icon name="globe" color={themeColors.ink} size={22} />
           <AppText variant="caption" color="ink-muted" className="mt-2">
             Timezone
           </AppText>
@@ -269,9 +269,9 @@ export function ParentFamilyContent({
           </AppText>
         </View>
         <View className="flex-1 items-center border-r border-infoSoftStrong px-1">
-          <DirectionCIcon
+          <Icon
             name="calendar"
-            color={DirectionC.color.ink}
+            color={themeColors.ink}
             size={22}
           />
           <AppText variant="caption" color="ink-muted" className="mt-2">
@@ -282,9 +282,9 @@ export function ParentFamilyContent({
           </AppText>
         </View>
         <View className="flex-1 items-center px-1">
-          <DirectionCIcon
+          <Icon
             name="refresh"
-            color={DirectionC.color.ink}
+            color={themeColors.ink}
             size={22}
           />
           <AppText variant="caption" color="ink-muted" className="mt-2">

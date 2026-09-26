@@ -1,9 +1,9 @@
-import { DirectionCIcon } from "@/components/ui/direction-c-icon";
+import { Icon } from "@/components/ui/icon";
 import {
   childAvatarTone,
-  DirectionCAvatar,
-} from "@/components/ui/direction-c-avatar";
-import { DirectionC } from "@/constants/direction-c";
+  Avatar,
+} from "@/components/ui/avatar";
+import { questTokens as themeColors } from "@/design-system/theme";
 import { ActionButton, AppText, Surface } from "@/design-system";
 import { PARENT_AUTH_STORAGE_PREFIX } from "@/lib/auth/client";
 import {
@@ -207,7 +207,7 @@ export function ChildPinSetupScreen({
           </Pressable>
 
           <Surface className="mt-5 flex-row items-center p-3">
-            <DirectionCAvatar
+            <Avatar
               source={childAvatar(childDisplayName)}
               tone={childAvatarTone(childDisplayName)}
               className="h-[84px] w-[84px]"
@@ -218,9 +218,9 @@ export function ChildPinSetupScreen({
               <AppText color="ink-muted">{householdName}</AppText>
             </View>
             <View className="h-12 w-12 items-center justify-center rounded-full bg-actionSoftStrong">
-              <DirectionCIcon
+              <Icon
                 name="check"
-                color={DirectionC.color.green}
+                color={themeColors.action}
                 size={26}
               />
             </View>
@@ -276,9 +276,9 @@ export function ChildPinSetupScreen({
           />
 
           <View className="mt-5 flex-row items-center justify-center">
-            <DirectionCIcon
+            <Icon
               name="checkShield"
-              color={DirectionC.color.green}
+              color={themeColors.action}
               size={26}
             />
             <AppText

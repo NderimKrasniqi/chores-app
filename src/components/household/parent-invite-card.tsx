@@ -1,5 +1,5 @@
-import { DirectionCIcon } from "@/components/ui/direction-c-icon";
-import { DirectionC } from "@/constants/direction-c";
+import { Icon } from "@/components/ui/icon";
+import { homeTokens as themeColors } from "@/design-system/theme";
 import { ActionButton, AppText, Surface, TopBar } from "@/design-system";
 import { useServerConfirmedMutation } from "@/hooks/use-server-confirmed-mutation";
 import { useAction, useQuery } from "convex/react";
@@ -39,13 +39,13 @@ function AuthorityIcon({ compact = false }: { compact?: boolean }) {
     <View
       className={`${compact ? "h-11 w-11" : "h-12 w-12"} relative items-center justify-center rounded-full bg-action`}
     >
-      <DirectionCIcon
+      <Icon
         name="family"
-        color={DirectionC.color.white}
+        color={themeColors.onAction}
         size={compact ? 24 : 28}
       />
       <View className="absolute bottom-[-2px] right-[-2px] h-5 w-5 items-center justify-center rounded-full bg-surfaceRaised">
-        <DirectionCIcon name="check" color={DirectionC.color.green} size={13} />
+        <Icon name="check" color={themeColors.action} size={13} />
       </View>
     </View>
   );
@@ -111,9 +111,9 @@ function InviteActionRow({
         destructive ? "bg-urgencySoft" : "border-2 border-ink bg-surfaceRaised"
       }`}
     >
-      <DirectionCIcon
+      <Icon
         name={icon}
-        color={destructive ? DirectionC.color.coral : DirectionC.color.ink}
+        color={destructive ? themeColors.urgency : themeColors.ink}
         size={29}
       />
       <View className="ml-3 flex-1">
@@ -124,9 +124,9 @@ function InviteActionRow({
           {subtitle}
         </AppText>
       </View>
-      <DirectionCIcon
+      <Icon
         name="chevron"
-        color={destructive ? DirectionC.color.coral : DirectionC.color.ink}
+        color={destructive ? themeColors.urgency : themeColors.ink}
         size={22}
       />
     </Pressable>
@@ -270,9 +270,9 @@ export function ParentInviteCard({
             className="mt-2 flex-row items-center p-3"
           >
             <View className="h-11 w-11 items-center justify-center rounded-full bg-action">
-              <DirectionCIcon
+              <Icon
                 name="brokenLink"
-                color={DirectionC.color.white}
+                color={themeColors.onAction}
                 size={23}
               />
             </View>
@@ -321,9 +321,9 @@ export function ParentInviteCard({
             />
             {feedback !== "revoked" ? (
               <View className="mt-4 flex-row items-center justify-center px-4">
-                <DirectionCIcon
+                <Icon
                   name="checkShield"
-                  color={DirectionC.color.green}
+                  color={themeColors.action}
                   size={21}
                 />
                 <AppText variant="bodySmall" color="ink-muted" className="ml-2">
@@ -340,9 +340,9 @@ export function ParentInviteCard({
               className="mt-2 flex-row items-center p-3"
             >
               <View className="h-11 w-11 items-center justify-center rounded-full bg-action">
-                <DirectionCIcon
+                <Icon
                   name="check"
-                  color={DirectionC.color.white}
+                  color={themeColors.onAction}
                   size={23}
                 />
               </View>
@@ -369,9 +369,9 @@ export function ParentInviteCard({
                 className="mt-3"
                 label="Share invite"
                 leading={
-                  <DirectionCIcon
+                  <Icon
                     name="share"
-                    color={DirectionC.color.white}
+                    color={themeColors.onAction}
                     size={22}
                   />
                 }
@@ -405,9 +405,9 @@ export function ParentInviteCard({
             <Surface tone="lavender" elevated={false} className="mt-2 p-4">
               <View className="flex-row items-center self-start rounded-full bg-actionSoft px-3 py-2">
                 <View className="h-9 w-9 items-center justify-center rounded-full bg-action">
-                  <DirectionCIcon
+                  <Icon
                     name="check"
-                    color={DirectionC.color.white}
+                    color={themeColors.onAction}
                     size={20}
                   />
                 </View>
@@ -486,9 +486,9 @@ export function ParentInviteCard({
           >
             <View className="h-1.5 w-16 self-center rounded-full bg-infoSoftStrong" />
             <View className="mt-4 h-16 w-16 items-center justify-center self-center rounded-full bg-urgencySoft">
-              <DirectionCIcon
+              <Icon
                 name="brokenLink"
-                color={DirectionC.color.coral}
+                color={themeColors.urgency}
                 size={34}
               />
             </View>

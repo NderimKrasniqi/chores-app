@@ -1,7 +1,7 @@
 import { useServerConfirmedMutation } from "@/hooks/use-server-confirmed-mutation";
 import { AppImage } from "@/components/ui/app-image";
-import { DirectionCIcon } from "@/components/ui/direction-c-icon";
-import { DirectionC } from "@/constants/direction-c";
+import { Icon } from "@/components/ui/icon";
+import { questTokens as themeColors } from "@/design-system/theme";
 import { ActionButton, AppText, Surface } from "@/design-system";
 
 import * as ImageManipulator from "expo-image-manipulator";
@@ -337,9 +337,9 @@ export function ChildSubmissionActions({
             <View className="mt-3 flex-row items-center justify-between gap-3">
               <View className="flex-row items-center">
                 <View className="h-9 w-9 items-center justify-center rounded-full bg-action">
-                  <DirectionCIcon
+                  <Icon
                     name="check"
-                    color={DirectionC.color.white}
+                    color={themeColors.onAction}
                     size={20}
                   />
                 </View>
@@ -355,9 +355,9 @@ export function ChildSubmissionActions({
                 onPress={() => void removePhoto()}
                 className={`min-h-11 flex-row items-center rounded-control bg-urgencySoft px-3 ${busy ? "opacity-50" : ""}`}
               >
-                <DirectionCIcon
+                <Icon
                   name="trash"
-                  color={DirectionC.color.coral}
+                  color={themeColors.urgency}
                   size={20}
                 />
                 <AppText color="urgency" className="ml-1.5 font-bold">
@@ -385,9 +385,9 @@ export function ChildSubmissionActions({
                 onPress={() => void takePhoto()}
                 className={`min-h-[54px] flex-1 flex-row items-center justify-center rounded-control bg-actionSoft px-3 ${busy ? "opacity-50" : ""}`}
               >
-                <DirectionCIcon
+                <Icon
                   name="camera"
-                  color={DirectionC.color.greenDeep}
+                  color={themeColors.actionPressed}
                   size={22}
                 />
                 <AppText color="action" className="ml-2 font-black">
@@ -402,9 +402,9 @@ export function ChildSubmissionActions({
                 onPress={() => void choosePhoto()}
                 className={`min-h-[54px] flex-1 flex-row items-center justify-center rounded-control bg-infoSoft px-3 ${busy ? "opacity-50" : ""}`}
               >
-                <DirectionCIcon
+                <Icon
                   name="photo"
-                  color={DirectionC.color.ink}
+                  color={themeColors.ink}
                   size={22}
                 />
                 <AppText className="ml-2 font-black">Choose photo</AppText>
@@ -430,9 +430,9 @@ export function ChildSubmissionActions({
           loading={submitting}
           label={submitting ? submittingLabel : submitLabel}
           trailing={
-            <DirectionCIcon
+            <Icon
               name="chevron"
-              color={DirectionC.color.white}
+              color={themeColors.onAction}
               size={22}
             />
           }

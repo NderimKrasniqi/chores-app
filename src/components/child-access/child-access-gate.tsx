@@ -7,7 +7,7 @@ import {
   consumeTrustedSingleChildAutoOpen,
   setChildExplicitlyLocked,
 } from "@/lib/child-access/unlock-policy";
-import { DirectionC } from "@/constants/direction-c";
+import { questTokens as themeColors } from "@/design-system/theme";
 import { AppText, Surface } from "@/design-system";
 import { useAuthRuntime } from "@/providers/auth-runtime-provider";
 import { StatusBar } from "expo-status-bar";
@@ -153,7 +153,7 @@ export function ChildAccessGate({ access }: ChildAccessGateProps) {
       <View className="flex-1 items-center justify-center bg-canvas px-6">
         <StatusBar style="dark" />
         <View className="h-16 w-16 items-center justify-center rounded-full bg-actionSoft">
-          <ActivityIndicator color={DirectionC.color.green} />
+          <ActivityIndicator color={themeColors.action} />
         </View>
 
         <AppText variant="sectionTitle" className="mt-4 text-center">

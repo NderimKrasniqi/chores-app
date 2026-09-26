@@ -2,7 +2,7 @@ import type { ComponentProps } from "react";
 import { TextInput, View } from "react-native";
 
 import { AppText } from "./text";
-import { DesignTokens } from "./tokens";
+import { useTheme } from "./theme";
 
 type FormFieldProps = ComponentProps<typeof TextInput> & {
   label: string;
@@ -21,6 +21,7 @@ export function FormField({
   className = "",
   ...props
 }: FormFieldProps) {
+  const { tokens } = useTheme();
   const inputSizing = compact
     ? multiline
       ? "min-h-[44px] px-3 py-2 text-left"
@@ -40,9 +41,10 @@ export function FormField({
       <TextInput
         {...props}
         multiline={multiline}
-        placeholderTextColor={DesignTokens.color.inkFaint}
+        placeholderTextColor={tokens.inkFaint}
+        selectionColor={tokens.accent}
         style={[style, compact ? { fontSize: 15, lineHeight: 19 } : undefined]}
-        className={`mt-2 rounded-control border bg-surfaceRaised px-4 font-rounded text-body text-ink ${
+        className={`mt-2 rounded-control border-2 bg-surfaceRaised px-4 font-body-bold text-body text-ink ${
           error ? "border-urgency" : "border-infoSoftStrong"
         } ${inputSizing} ${compact ? "text-[15px] leading-[19px]" : ""} ${className}`}
       />

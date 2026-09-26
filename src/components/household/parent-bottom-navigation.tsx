@@ -1,8 +1,8 @@
 import {
-  DirectionCIcon,
-  type DirectionCIconName,
-} from "@/components/ui/direction-c-icon";
-import { DirectionC } from "@/constants/direction-c";
+  Icon,
+  type IconName,
+} from "@/components/ui/icon";
+import { homeTokens as themeColors } from "@/design-system/theme";
 import { AppText } from "@/design-system";
 import { useQuery } from "convex/react";
 import { Pressable, View } from "react-native";
@@ -15,7 +15,7 @@ export type ParentSection = "home" | "chores" | "reviews" | "money" | "family";
 const items: {
   section: ParentSection;
   label: string;
-  icon: DirectionCIconName;
+  icon: IconName;
 }[] = [
   { section: "home", label: "Home", icon: "home" },
   { section: "chores", label: "Chores", icon: "chores" },
@@ -56,7 +56,7 @@ export function ParentBottomNavigation({
             className="min-h-[46px] flex-1 items-center justify-center"
           >
             <View className="relative h-7 w-10 items-center justify-center">
-              <DirectionCIcon
+              <Icon
                 name={
                   active
                     ? item.icon
@@ -71,7 +71,7 @@ export function ParentBottomNavigation({
                             : "familyOutline"
                 }
                 color={
-                  active ? DirectionC.color.green : DirectionC.color.inkMuted
+                  active ? themeColors.action : themeColors.inkMuted
                 }
                 size={26}
               />

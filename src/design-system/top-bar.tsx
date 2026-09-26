@@ -1,9 +1,9 @@
-import { DirectionCIcon } from "@/components/ui/direction-c-icon";
-import { DirectionC } from "@/constants/direction-c";
+import { Icon } from "@/components/ui/icon";
 import type { ReactNode } from "react";
 import { Pressable, type StyleProp, type TextStyle, View } from "react-native";
 
 import { AppText } from "./text";
+import { useTheme } from "./theme";
 
 export function TopBar({
   title,
@@ -18,6 +18,7 @@ export function TopBar({
   trailing?: ReactNode;
   titleStyle?: StyleProp<TextStyle>;
 }) {
+  const { tokens } = useTheme();
   return (
     <View className="h-14 flex-row items-center justify-between">
       {onBack ? (
@@ -27,7 +28,7 @@ export function TopBar({
           onPress={onBack}
           className="h-11 w-11 items-center justify-center"
         >
-          <DirectionCIcon name="back" color={DirectionC.color.ink} size={24} />
+          <Icon name="back" color={tokens.ink} size={24} />
         </Pressable>
       ) : (
         <View className="h-11 w-11" />

@@ -1,12 +1,12 @@
 import { ChildHouseholdActivity } from "@/components/activity/child-household-activity";
 import type { ApprovalActivityItem } from "@/components/activity/approval-activity";
 import { ClaimableChoresCard } from "@/components/chores/claimable-chores-card";
-import { DirectionCIcon } from "@/components/ui/direction-c-icon";
+import { Icon } from "@/components/ui/icon";
 import {
   childAvatarTone,
-  DirectionCAvatar,
-} from "@/components/ui/direction-c-avatar";
-import { DirectionC } from "@/constants/direction-c";
+  Avatar,
+} from "@/components/ui/avatar";
+import { questTokens as themeColors } from "@/design-system/theme";
 import { AppText, DesignTokens } from "@/design-system";
 import { setChildExplicitlyLocked } from "@/lib/child-access/unlock-policy";
 import { useAuthRuntime } from "@/providers/auth-runtime-provider";
@@ -191,7 +191,7 @@ function HomeTab({
           onPress={onOpenProfile}
           className="relative h-[84px] w-[84px]"
         >
-          <DirectionCAvatar
+          <Avatar
             source={childAvatar(childName)}
             tone={childAvatarTone(childName)}
             className="h-full w-full"
@@ -201,9 +201,9 @@ function HomeTab({
             className="absolute bottom-[-1px] right-[-1px] h-8 w-8 items-center justify-center rounded-full bg-surfaceRaised"
             style={DesignTokens.shadowStyle.card}
           >
-            <DirectionCIcon
+            <Icon
               name="chevronDown"
-              color={DirectionC.color.ink}
+              color={themeColors.ink}
               size={17}
             />
           </View>
@@ -242,9 +242,9 @@ function HomeTab({
             justifyContent: "center",
           }}
         >
-          <DirectionCIcon
+          <Icon
             name="money"
-            color={DirectionC.color.white}
+            color={themeColors.onAction}
             size={34}
           />
         </LinearGradient>
@@ -268,9 +268,9 @@ function HomeTab({
         />
 
         <View className="absolute right-2.5">
-          <DirectionCIcon
+          <Icon
             name="chevron"
-            color={DirectionC.color.ink}
+            color={themeColors.ink}
             size={24}
           />
         </View>
@@ -368,7 +368,7 @@ function ExistingFeatureTab({
             onPress={onOpenProfile}
             className="h-avatar-hero w-avatar-hero"
           >
-            <DirectionCAvatar
+            <Avatar
               source={childAvatar(childName)}
               tone={childAvatarTone(childName)}
               className="h-full w-full"
@@ -393,7 +393,7 @@ function ExistingFeatureTab({
             onPress={onOpenProfile}
             className="h-avatar-hero w-avatar-hero"
           >
-            <DirectionCAvatar
+            <Avatar
               source={childAvatar(childName)}
               tone={childAvatarTone(childName)}
               className="h-full w-full"
@@ -445,7 +445,7 @@ function ChildTabBar({
             onPress={() => onChange(tab.key)}
             className="min-h-[58px] flex-1 items-center justify-center"
           >
-            <DirectionCIcon
+            <Icon
               name={
                 selected
                   ? tab.key
@@ -458,7 +458,7 @@ function ChildTabBar({
                         : "moneyOutline"
               }
               color={
-                selected ? DirectionC.color.green : DirectionC.color.inkMuted
+                selected ? themeColors.action : themeColors.inkMuted
               }
               size={28}
             />

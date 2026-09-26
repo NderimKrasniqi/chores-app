@@ -1,10 +1,10 @@
-import { DirectionCIcon } from "@/components/ui/direction-c-icon";
+import { Icon } from "@/components/ui/icon";
 import {
   childAvatarTone,
-  DirectionCAvatar,
-} from "@/components/ui/direction-c-avatar";
+  Avatar,
+} from "@/components/ui/avatar";
 import { AppImage as Image } from "@/components/ui/app-image";
-import { DirectionC } from "@/constants/direction-c";
+import { homeTokens as themeColors } from "@/design-system/theme";
 import { ActionButton, AppText, Surface, TopBar } from "@/design-system";
 import {
   ServerConfirmationRequiredError,
@@ -31,7 +31,7 @@ import {
   formatLocalDate,
   formatLocalDateRange,
   formatTimestampDateTime,
-} from "@/lib/direction-c/dates";
+} from "@/lib/dates";
 
 const weekdays = [
   "monday",
@@ -106,7 +106,7 @@ function ChildAvatar({
 
   if (source)
     return (
-      <DirectionCAvatar
+      <Avatar
         source={source}
         tone={childAvatarTone(name)}
         className={className}
@@ -155,9 +155,9 @@ export function RecoveryPayoutDetail({
               Period ended {formatShortDate(selected.periodEndLocalDate)}
             </AppText>
             <View className="mt-2 flex-row items-center self-start rounded-full bg-infoSoft px-3 py-1.5">
-              <DirectionCIcon
+              <Icon
                 name="refresh"
-                color={DirectionC.color.inkMuted}
+                color={themeColors.inkMuted}
                 size={16}
               />
               <AppText variant="label"> Status unknown</AppText>
@@ -248,9 +248,9 @@ export function RecoveryPayoutDetail({
           </View>
           {selected.pendingOutcomeCount > 0 ? (
             <View className="mt-3 flex-row items-center rounded-control bg-infoSoftStrong/40 px-3 py-2">
-              <DirectionCIcon
+              <Icon
                 name="info"
-                color={DirectionC.color.inkMuted}
+                color={themeColors.inkMuted}
                 size={21}
               />
               <AppText variant="caption" className="ml-2 flex-1">
@@ -266,7 +266,7 @@ export function RecoveryPayoutDetail({
           elevated={false}
           className="mt-2 flex-row items-center px-3 py-2"
         >
-          <ActivityIndicator color={DirectionC.color.coral} size="large" />
+          <ActivityIndicator color={themeColors.urgency} size="large" />
           <View className="ml-3 flex-1">
             <AppText variant="cardTitle" className="text-[16px]">
               Checking payment status
@@ -283,7 +283,7 @@ export function RecoveryPayoutDetail({
       </ScrollView>
       <View className="px-5 pb-3 pt-2">
         <View className="min-h-control flex-row items-center justify-center rounded-control bg-infoSoftStrong">
-          <ActivityIndicator color={DirectionC.color.inkMuted} />
+          <ActivityIndicator color={themeColors.inkMuted} />
           <AppText variant="cardTitle" color="ink-muted" className="ml-3">
             Checking with server…
           </AppText>
@@ -441,9 +441,9 @@ export function ParentMoneyContent({
               )}
             </AppText>
             <View className="mt-1 flex-row items-center">
-              <DirectionCIcon
+              <Icon
                 name="calendar"
-                color={DirectionC.color.ink}
+                color={themeColors.ink}
                 size={22}
               />
               <AppText variant="bodySmall" className="ml-2">
@@ -470,9 +470,9 @@ export function ParentMoneyContent({
           <AppText variant="bodySmall" color="action" className="font-black">
             Payout day: {formatWeekday(overview.configuredPayoutWeekday)}
           </AppText>
-          <DirectionCIcon
+          <Icon
             name="chevron"
-            color={DirectionC.color.ink}
+            color={themeColors.ink}
             size={20}
           />
         </Pressable>
@@ -511,9 +511,9 @@ export function ParentMoneyContent({
                       {formatShortDate(displayPayout.periodEndLocalDate)}
                     </AppText>
                   </View>
-                  <DirectionCIcon
+                  <Icon
                     name="chevron"
-                    color={DirectionC.color.ink}
+                    color={themeColors.ink}
                     size={22}
                   />
                 </View>
@@ -534,9 +534,9 @@ export function ParentMoneyContent({
                   className={`mt-1 flex-row items-center self-start rounded-full px-2.5 py-1 ${displayPayout.status === "no_payment" ? "bg-infoSoft" : "bg-actionSoft"}`}
                 >
                   {displayPayout.status !== "no_payment" ? (
-                    <DirectionCIcon
+                    <Icon
                       name="check"
-                      color={DirectionC.color.green}
+                      color={themeColors.action}
                       size={13}
                     />
                   ) : null}
@@ -586,9 +586,9 @@ export function ParentMoneyContent({
             </View>
             {displayPayout.pendingOutcomeCount > 0 ? (
               <View className="mt-2 min-h-target flex-row items-center rounded-full bg-infoSoft px-2.5 py-1">
-                <DirectionCIcon
+                <Icon
                   name="info"
-                  color={DirectionC.color.inkMuted}
+                  color={themeColors.inkMuted}
                   size={14}
                 />
                 <AppText
@@ -651,9 +651,9 @@ export function ParentMoneyContent({
                   </AppText>
                 ) : child.latestPayout?.status === "paid" ? (
                   <View className="mt-0.5 flex-row items-center">
-                    <DirectionCIcon
+                    <Icon
                       name="check"
-                      color={DirectionC.color.green}
+                      color={themeColors.action}
                       size={14}
                     />
                     <AppText variant="caption" color="action" className="ml-1">
@@ -695,9 +695,9 @@ export function ParentMoneyContent({
           elevated={false}
           className="mt-2 flex-row items-center px-3 py-2"
         >
-          <DirectionCIcon
+          <Icon
             name="info"
-            color={DirectionC.color.inkMuted}
+            color={themeColors.inkMuted}
             size={22}
           />
           <AppText variant="caption" className="ml-2 flex-1">
@@ -767,9 +767,9 @@ export function ParentMoneyContent({
                       className={`mt-2 flex-row items-center self-start rounded-full px-3 py-1.5 ${selected.status === "paid" ? "bg-actionSoft" : selected.status === "no_payment" ? "bg-infoSoft" : "bg-actionSoft"}`}
                     >
                       {selected.status !== "no_payment" ? (
-                        <DirectionCIcon
+                        <Icon
                           name="check"
-                          color={DirectionC.color.green}
+                          color={themeColors.action}
                           size={16}
                         />
                       ) : null}
@@ -815,15 +815,15 @@ export function ParentMoneyContent({
                       className="mt-5 flex-row items-center p-4"
                     >
                       <View className="h-16 w-16 items-center justify-center">
-                        <DirectionCIcon
+                        <Icon
                           name="money"
-                          color={DirectionC.color.green}
+                          color={themeColors.action}
                           size={42}
                         />
                         <View className="absolute bottom-1 right-0 h-7 w-7 items-center justify-center rounded-full bg-action">
-                          <DirectionCIcon
+                          <Icon
                             name="check"
-                            color={DirectionC.color.white}
+                            color={themeColors.onAction}
                             size={17}
                           />
                         </View>
@@ -907,9 +907,9 @@ export function ParentMoneyContent({
                       </View>
                       {selected.pendingOutcomeCount > 0 ? (
                         <View className="mt-3 flex-row items-center rounded-control bg-infoSoftStrong/40 px-3 py-2">
-                          <DirectionCIcon
+                          <Icon
                             name="info"
-                            color={DirectionC.color.inkMuted}
+                            color={themeColors.inkMuted}
                             size={21}
                           />
                           <AppText variant="caption" className="ml-2 flex-1">
@@ -1026,9 +1026,9 @@ export function ParentMoneyContent({
                       </View>
                       {selected.pendingOutcomeCount > 0 ? (
                         <View className="mt-3 flex-row items-center rounded-control bg-infoSoftStrong/40 px-3 py-2">
-                          <DirectionCIcon
+                          <Icon
                             name="info"
-                            color={DirectionC.color.inkMuted}
+                            color={themeColors.inkMuted}
                             size={21}
                           />
                           <AppText variant="caption" className="ml-2 flex-1">
@@ -1086,15 +1086,15 @@ export function ParentMoneyContent({
                   >
                     <View className="h-1.5 w-20 self-center rounded-full bg-line" />
                     <View className="mt-4 h-20 w-20 items-center justify-center self-center rounded-full bg-actionSoft">
-                      <DirectionCIcon
+                      <Icon
                         name="money"
-                        color={DirectionC.color.green}
+                        color={themeColors.action}
                         size={40}
                       />
                       <View className="absolute bottom-2 right-2 h-7 w-7 items-center justify-center rounded-full bg-action">
-                        <DirectionCIcon
+                        <Icon
                           name="check"
-                          color={DirectionC.color.white}
+                          color={themeColors.onAction}
                           size={17}
                         />
                       </View>
@@ -1118,9 +1118,9 @@ export function ParentMoneyContent({
                       {selected.runningBalanceSek - selected.amountDueSek} kr.
                     </AppText>
                     <View className="mt-4 flex-row items-center justify-center">
-                      <DirectionCIcon
+                      <Icon
                         name="info"
-                        color={DirectionC.color.inkMuted}
+                        color={themeColors.inkMuted}
                         size={22}
                       />
                       <AppText

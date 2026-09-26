@@ -13,11 +13,8 @@ const toneClass: Record<StatusTone, string> = {
   reward: "bg-rewardSoft",
 };
 
-const textColor: Record<
-  StatusTone,
-  "action" | "urgency" | "ink" | "ink-muted"
-> = {
-  success: "action",
+const textColor: Record<StatusTone, "ink" | "urgency" | "ink-muted"> = {
+  success: "ink",
   urgent: "urgency",
   info: "ink",
   neutral: "ink-muted",
@@ -35,7 +32,7 @@ export function StatusChip({
 }) {
   return (
     <View
-      className={`min-h-7 flex-row items-center self-start rounded-full px-2.5 ${toneClass[tone]}`}
+      className={`min-h-7 flex-row items-center self-start rounded-full px-3 ${toneClass[tone]}`}
     >
       {icon}
       <AppText

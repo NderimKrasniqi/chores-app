@@ -14,12 +14,12 @@ import {
   markTrustedSingleChildAutoOpen,
   setChildExplicitlyLocked,
 } from "@/lib/child-access/unlock-policy";
-import { DirectionCIcon } from "@/components/ui/direction-c-icon";
+import { Icon } from "@/components/ui/icon";
 import {
   childAvatarTone,
-  DirectionCAvatar,
-} from "@/components/ui/direction-c-avatar";
-import { DirectionC } from "@/constants/direction-c";
+  Avatar,
+} from "@/components/ui/avatar";
+import { homeTokens as themeColors } from "@/design-system/theme";
 import { AppText, DesignTokens, Surface } from "@/design-system";
 import { useAuthRuntime } from "@/providers/auth-runtime-provider";
 import { useQuery } from "convex/react";
@@ -511,7 +511,7 @@ export function EntryChoiceScreen({ onChooseParent }: EntryChoiceScreenProps) {
       <View className="flex-1 items-center justify-center bg-canvas px-6">
         <StatusBar style="dark" />
         <View className="h-16 w-16 items-center justify-center rounded-full bg-actionSoft">
-          <ActivityIndicator color={DirectionC.color.green} />
+          <ActivityIndicator color={themeColors.action} />
         </View>
         <AppText variant="sectionTitle" className="mt-4 text-center">
           Getting things ready
@@ -579,7 +579,7 @@ export function EntryChoiceScreen({ onChooseParent }: EntryChoiceScreenProps) {
                 style={DesignTokens.shadowStyle.card}
                 onPress={() => handleChooseSavedChild(context)}
               >
-                <DirectionCAvatar
+                <Avatar
                   source={childAvatar(context.childDisplayName)}
                   tone={childAvatarTone(context.childDisplayName)}
                   className="h-[100px] w-[100px]"
@@ -599,9 +599,9 @@ export function EntryChoiceScreen({ onChooseParent }: EntryChoiceScreenProps) {
                     {context.householdName}
                   </AppText>
                 </View>
-                <DirectionCIcon
+                <Icon
                   name="chevron"
-                  color={DirectionC.color.ink}
+                  color={themeColors.ink}
                   size={24}
                 />
               </Pressable>
@@ -623,9 +623,9 @@ export function EntryChoiceScreen({ onChooseParent }: EntryChoiceScreenProps) {
             style={styles.parentChoice}
           >
             <View className="h-[68px] w-[68px] items-center justify-center rounded-full bg-[#E5F8EF]">
-              <DirectionCIcon
+              <Icon
                 name="person"
-                color={DirectionC.color.greenDeep}
+                color={themeColors.actionPressed}
                 size={36}
               />
             </View>
@@ -639,9 +639,9 @@ export function EntryChoiceScreen({ onChooseParent }: EntryChoiceScreenProps) {
                 Sign in or open the Parent account.
               </AppText>
             </View>
-            <DirectionCIcon
+            <Icon
               name="chevron"
-              color={DirectionC.color.ink}
+              color={themeColors.ink}
               size={24}
             />
           </LinearGradient>
@@ -662,9 +662,9 @@ export function EntryChoiceScreen({ onChooseParent }: EntryChoiceScreenProps) {
             style={styles.childChoice}
           >
             <View className="h-16 w-16 items-center justify-center rounded-full bg-infoSoft">
-              <DirectionCIcon
+              <Icon
                 name="devices"
-                color={DirectionC.color.ink}
+                color={themeColors.ink}
                 size={36}
               />
             </View>
@@ -682,9 +682,9 @@ export function EntryChoiceScreen({ onChooseParent }: EntryChoiceScreenProps) {
                 Add another Child profile to this device
               </AppText>
             </View>
-            <DirectionCIcon
+            <Icon
               name="chevron"
-              color={DirectionC.color.ink}
+              color={themeColors.ink}
               size={24}
             />
           </LinearGradient>

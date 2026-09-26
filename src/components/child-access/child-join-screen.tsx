@@ -1,5 +1,5 @@
-import { DirectionCIcon } from "@/components/ui/direction-c-icon";
-import { DirectionC } from "@/constants/direction-c";
+import { Icon } from "@/components/ui/icon";
+import { questTokens as themeColors } from "@/design-system/theme";
 import { ActionButton, AppText, Surface } from "@/design-system";
 import { useAuthRuntime } from "@/providers/auth-runtime-provider";
 import { useAction } from "convex/react";
@@ -156,9 +156,9 @@ export function ChildJoinScreen() {
                 Use this phone’s camera
               </AppText>
             </View>
-            <DirectionCIcon
+            <Icon
               name="chevron"
-              color={DirectionC.color.ink}
+              color={themeColors.ink}
               size={24}
             />
           </Pressable>

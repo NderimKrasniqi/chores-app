@@ -1,9 +1,9 @@
-import { DirectionCIcon } from "@/components/ui/direction-c-icon";
+import { Icon } from "@/components/ui/icon";
 import {
   childAvatarTone,
-  DirectionCAvatar,
-} from "@/components/ui/direction-c-avatar";
-import { DirectionC } from "@/constants/direction-c";
+  Avatar,
+} from "@/components/ui/avatar";
+import { questTokens as themeColors } from "@/design-system/theme";
 import { ActionButton, AppText } from "@/design-system";
 import {
   getChildPinRequirements,
@@ -112,7 +112,7 @@ export function ChildPinUnlockScreen({
             </AppText>
 
             <View className="my-6 items-center">
-              <DirectionCAvatar
+              <Avatar
                 source={childAvatar(context.childDisplayName)}
                 tone={childAvatarTone(context.childDisplayName)}
                 className="h-40 w-40"
@@ -161,9 +161,9 @@ export function ChildPinUnlockScreen({
             />
 
             <View className="mt-7 flex-row items-center justify-center">
-              <DirectionCIcon
+              <Icon
                 name="checkShield"
-                color={DirectionC.color.green}
+                color={themeColors.action}
                 size={26}
               />
               <AppText

@@ -1,9 +1,9 @@
-import { DirectionCIcon } from "@/components/ui/direction-c-icon";
+import { Icon } from "@/components/ui/icon";
 import {
   childAvatarTone,
-  DirectionCAvatar,
-} from "@/components/ui/direction-c-avatar";
-import { DirectionC } from "@/constants/direction-c";
+  Avatar,
+} from "@/components/ui/avatar";
+import { homeTokens as themeColors } from "@/design-system/theme";
 import {
   ActionButton,
   AppText,
@@ -255,16 +255,16 @@ function PersonChoice({
       }`}
     >
       {avatar ? (
-        <DirectionCAvatar
+        <Avatar
           source={avatar}
           tone={childAvatarTone(child.displayName)}
           className="h-7 w-7"
         />
       ) : (
         <View className="h-9 w-9 items-center justify-center rounded-full bg-infoSoft">
-          <DirectionCIcon
+          <Icon
             name="person"
-            color={DirectionC.color.ink}
+            color={themeColors.ink}
             size={24}
           />
         </View>
@@ -286,9 +286,9 @@ function PersonChoice({
         }`}
       >
         {active ? (
-          <DirectionCIcon
+          <Icon
             name="check"
-            color={DirectionC.color.white}
+            color={themeColors.onAction}
             size={14}
           />
         ) : null}
@@ -320,9 +320,9 @@ function EligibilityChoice({
       }`}
     >
       <View className="h-7 w-7 items-center justify-center rounded-full bg-infoSoft">
-        <DirectionCIcon
+        <Icon
           name={selectedChildren ? "person" : "family"}
-          color={active ? DirectionC.color.green : DirectionC.color.ink}
+          color={active ? themeColors.action : themeColors.ink}
           size={20}
         />
       </View>
@@ -343,9 +343,9 @@ function EligibilityChoice({
         }`}
       >
         {active ? (
-          <DirectionCIcon
+          <Icon
             name="check"
-            color={DirectionC.color.white}
+            color={themeColors.onAction}
             size={14}
           />
         ) : null}
@@ -373,7 +373,7 @@ function ScheduleFieldRow({
       className="min-h-[36px] flex-row items-center border-b border-line px-1"
     >
       <View className="h-7 w-7 items-center justify-center rounded-full bg-infoSoft">
-        <DirectionCIcon name={icon} color={DirectionC.color.ink} size={18} />
+        <Icon name={icon} color={themeColors.ink} size={18} />
       </View>
       <AppText
         className="ml-2 flex-1 text-[14px] leading-[18px]"
@@ -390,7 +390,7 @@ function ScheduleFieldRow({
       >
         {displayValue}
       </AppText>
-      <DirectionCIcon name="chevron" color={DirectionC.color.ink} size={20} />
+      <Icon name="chevron" color={themeColors.ink} size={20} />
     </Pressable>
   );
 }
@@ -787,16 +787,16 @@ export function ParentChoresContent({
         className="min-h-[44px] flex-row items-center rounded-control bg-actionSoft px-4"
       >
         <View className="h-12 w-12 items-center justify-center rounded-full bg-action">
-          <DirectionCIcon
+          <Icon
             name="plus"
-            color={DirectionC.color.white}
+            color={themeColors.onAction}
             size={25}
           />
         </View>
         <AppText variant="cardTitle" color="action" className="ml-3 flex-1">
           Add chore
         </AppText>
-        <DirectionCIcon name="chevron" color={DirectionC.color.ink} size={22} />
+        <Icon name="chevron" color={themeColors.ink} size={22} />
       </Pressable>
 
       <View className="mt-4">
@@ -825,9 +825,9 @@ export function ParentChoresContent({
           elevated={false}
           className="mt-3 items-center p-7"
         >
-          <DirectionCIcon
+          <Icon
             name="chores"
-            color={DirectionC.color.inkMuted}
+            color={themeColors.inkMuted}
             size={40}
           />
           <AppText variant="cardTitle" className="mt-3">
@@ -896,9 +896,9 @@ export function ParentChoresContent({
                       onPress={() => openEdit(definition)}
                       className="min-h-target flex-row items-center justify-center rounded-full bg-infoSoft px-2.5"
                     >
-                      <DirectionCIcon
+                      <Icon
                         name="edit"
-                        color={DirectionC.color.ink}
+                        color={themeColors.ink}
                         size={17}
                       />
                       <AppText variant="label" className="ml-1">
@@ -911,16 +911,16 @@ export function ParentChoresContent({
                       onPress={() => confirmArchive(definition)}
                       className="ml-1 min-h-target w-10 items-center justify-center rounded-full bg-infoSoft"
                     >
-                      <DirectionCIcon
+                      <Icon
                         name="more"
-                        color={DirectionC.color.ink}
+                        color={themeColors.ink}
                         size={19}
                       />
                     </Pressable>
                   </View>
                   <View className="mt-1 flex-row items-center">
                     {childAvatar ? (
-                      <DirectionCAvatar
+                      <Avatar
                         source={childAvatar}
                         tone={childAvatarTone(childName ?? "")}
                         className="h-9 w-9"
@@ -934,9 +934,9 @@ export function ParentChoresContent({
                     </AppText>
                     {definition.isUnlockChore ? (
                       <View className="ml-auto flex-row items-center rounded-full bg-actionSoft px-2 py-1">
-                        <DirectionCIcon
+                        <Icon
                           name="key"
-                          color={DirectionC.color.green}
+                          color={themeColors.action}
                           size={13}
                         />
                         <AppText variant="caption" color="action">
@@ -947,9 +947,9 @@ export function ParentChoresContent({
                     ) : null}
                   </View>
                   <View className="mt-1 flex-row items-center">
-                    <DirectionCIcon
+                    <Icon
                       name="repeat"
-                      color={DirectionC.color.inkMuted}
+                      color={themeColors.inkMuted}
                       size={16}
                     />
                     <AppText variant="bodySmall" className="ml-1.5 flex-1">
@@ -977,9 +977,9 @@ export function ParentChoresContent({
         elevated={false}
         className="mt-2 flex-row items-center p-3"
       >
-        <DirectionCIcon
+        <Icon
           name="info"
-          color={DirectionC.color.inkMuted}
+          color={themeColors.inkMuted}
           size={22}
         />
         <AppText variant="bodySmall" color="ink-muted" className="ml-3 flex-1">
@@ -1022,9 +1022,9 @@ export function ParentChoresContent({
                   elevated={false}
                   className="flex-row items-center p-2"
                 >
-                  <DirectionCIcon
+                  <Icon
                     name="info"
-                    color={DirectionC.color.inkMuted}
+                    color={themeColors.inkMuted}
                     size={20}
                   />
                   <View className="ml-3 flex-1">
@@ -1287,9 +1287,9 @@ export function ParentChoresContent({
                     className="mt-3 flex-row items-center p-3"
                   >
                     <View className="h-10 w-10 items-center justify-center rounded-full bg-actionSoftStrong">
-                      <DirectionCIcon
+                      <Icon
                         name="key"
-                        color={DirectionC.color.green}
+                        color={themeColors.action}
                         size={25}
                       />
                     </View>
@@ -1320,9 +1320,9 @@ export function ParentChoresContent({
 
               {kind === "personal" && recurrenceKind !== "one_off" ? (
                 <View className="mt-2 flex-row items-center px-1">
-                  <DirectionCIcon
+                  <Icon
                     name="info"
-                    color={DirectionC.color.inkMuted}
+                    color={themeColors.inkMuted}
                     size={20}
                   />
                   <AppText
@@ -1396,9 +1396,9 @@ export function ParentChoresContent({
                 elevated={false}
                 className="mt-5 flex-row p-4"
               >
-                <DirectionCIcon
+                <Icon
                   name={scheduleEditor === "deadline" ? "clock" : "info"}
-                  color={DirectionC.color.ink}
+                  color={themeColors.ink}
                   size={26}
                 />
                 <AppText variant="bodySmall" className="ml-3 flex-1">

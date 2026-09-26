@@ -1,5 +1,5 @@
-import { DirectionCIcon } from "@/components/ui/direction-c-icon";
-import { DirectionC } from "@/constants/direction-c";
+import { Icon } from "@/components/ui/icon";
+import { homeTokens as themeColors } from "@/design-system/theme";
 import {
   ActionButton,
   AppText,
@@ -131,7 +131,7 @@ function ChoiceCard({
         </AppText>
       </View>
       <View className="absolute right-3 top-1/2 -mt-5 h-10 w-10 items-center justify-center">
-        <DirectionCIcon name="chevron" color={DirectionC.color.ink} size={25} />
+        <Icon name="chevron" color={themeColors.ink} size={25} />
       </View>
     </Pressable>
   );
@@ -205,9 +205,9 @@ function HouseholdStart({
           className="mt-5 flex-row items-center p-4"
         >
           <View className="h-12 w-12 items-center justify-center rounded-full bg-surfaceRaised">
-            <DirectionCIcon
+            <Icon
               name="person"
-              color={DirectionC.color.green}
+              color={themeColors.action}
               size={25}
             />
           </View>
@@ -389,9 +389,9 @@ function CreateHousehold(props: CreateScreenProps) {
               className="mt-3"
               label="Add child"
               leading={
-                <DirectionCIcon
+                <Icon
                   name="plus"
-                  color={DirectionC.color.ink}
+                  color={themeColors.ink}
                   size={24}
                 />
               }
@@ -476,15 +476,15 @@ function JoinHousehold({
             className="mt-5 flex-row items-center p-3"
           >
             <View className="relative h-12 w-12 items-center justify-center rounded-full bg-action">
-              <DirectionCIcon
+              <Icon
                 name="family"
-                color={DirectionC.color.white}
+                color={themeColors.onAction}
                 size={30}
               />
               <View className="absolute bottom-[-2px] right-[-2px] h-5 w-5 items-center justify-center rounded-full bg-surfaceRaised">
-                <DirectionCIcon
+                <Icon
                   name="check"
-                  color={DirectionC.color.green}
+                  color={themeColors.action}
                   size={13}
                 />
               </View>
@@ -538,9 +538,9 @@ function JoinHousehold({
             </Surface>
           ) : (
             <View className="mt-3 flex-row items-center">
-              <DirectionCIcon
+              <Icon
                 name="checkShield"
-                color={DirectionC.color.green}
+                color={themeColors.action}
                 size={24}
               />
               <AppText variant="bodySmall" color="ink-muted" className="ml-3">
@@ -560,7 +560,7 @@ function JoinHousehold({
             className="mt-3"
             label="Create a new household"
             labelStyle={{
-              color: DirectionC.color.ink,
+              color: themeColors.ink,
               fontSize: 17,
               lineHeight: 22,
             }}

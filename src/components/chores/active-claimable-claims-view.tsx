@@ -1,9 +1,9 @@
-import { DirectionCIcon } from "@/components/ui/direction-c-icon";
+import { Icon } from "@/components/ui/icon";
 import {
   childAvatarTone,
-  DirectionCAvatar,
-} from "@/components/ui/direction-c-avatar";
-import { DirectionC } from "@/constants/direction-c";
+  Avatar,
+} from "@/components/ui/avatar";
+import { questTokens as themeColors } from "@/design-system/theme";
 import {
   ActionButton,
   AppText,
@@ -20,7 +20,7 @@ import {
 } from "react-native-safe-area-context";
 
 import type { Id } from "../../../convex/_generated/dataModel";
-import { formatTimestampDateTime } from "@/lib/direction-c/dates";
+import { formatTimestampDateTime } from "@/lib/dates";
 
 type ActiveClaimState = "claimed" | "submitted" | "redo_required";
 
@@ -197,9 +197,9 @@ function ClaimSummary({
             Claimed by {claim.claimedByDisplayName}
           </AppText>
           <View className="mt-2 flex-row items-center">
-            <DirectionCIcon
+            <Icon
               name="clock"
-              color={DirectionC.color.coral}
+              color={themeColors.urgency}
               size={20}
             />
             <AppText color="urgency" className="ml-1.5 flex-1">
@@ -207,7 +207,7 @@ function ClaimSummary({
             </AppText>
           </View>
         </View>
-        <DirectionCIcon name="chevron" color={DirectionC.color.ink} size={22} />
+        <Icon name="chevron" color={themeColors.ink} size={22} />
       </Surface>
     );
   }
@@ -232,7 +232,7 @@ function ClaimSummary({
           {claim.valueSek} kr · {claim.claimedByDisplayName}
         </AppText>
       </View>
-      <DirectionCIcon name="chevron" color={DirectionC.color.ink} size={22} />
+      <Icon name="chevron" color={themeColors.ink} size={22} />
     </Surface>
   );
 }
@@ -278,7 +278,7 @@ function ClaimDetail({
               {claim.valueSek} kr
             </AppText>
             <View className="mt-4 flex-row items-center">
-              <DirectionCAvatar
+              <Avatar
                 source={childAvatar(claim.claimedByDisplayName)}
                 tone={childAvatarTone(claim.claimedByDisplayName)}
                 className="h-11 w-11"
@@ -294,9 +294,9 @@ function ClaimDetail({
         <View className="mt-4 h-px bg-line" />
         <View className="mt-4 flex-row">
           <View className="flex-1 flex-row items-center pr-3">
-            <DirectionCIcon
+            <Icon
               name="calendar"
-              color={DirectionC.color.inkMuted}
+              color={themeColors.inkMuted}
               size={27}
             />
             <AppText variant="bodySmall" className="ml-2 flex-1">
@@ -304,12 +304,12 @@ function ClaimDetail({
             </AppText>
           </View>
           <View className="flex-1 flex-row items-center border-l border-line pl-4">
-            <DirectionCIcon
+            <Icon
               name="clock"
               color={
                 cancellationUnavailable || claim.claimState === "redo_required"
-                  ? DirectionC.color.coral
-                  : DirectionC.color.inkMuted
+                  ? themeColors.urgency
+                  : themeColors.inkMuted
               }
               size={27}
             />
@@ -344,9 +344,9 @@ function ClaimDetail({
           className="mt-7 flex-row items-center p-4"
         >
           <View className="h-14 w-14 items-center justify-center rounded-full bg-urgencySoft">
-            <DirectionCIcon
+            <Icon
               name="clock"
-              color={DirectionC.color.coral}
+              color={themeColors.urgency}
               size={29}
             />
           </View>
@@ -367,9 +367,9 @@ function ClaimDetail({
           className="mt-7 flex-row items-center p-4"
         >
           <View className="h-14 w-14 items-center justify-center rounded-full bg-infoSoftStrong">
-            <DirectionCIcon
+            <Icon
               name="link"
-              color={DirectionC.color.ink}
+              color={themeColors.ink}
               size={29}
             />
           </View>
@@ -532,9 +532,9 @@ export function ActiveClaimableClaimsView({
                 >
                   <View className="h-1.5 w-16 self-center rounded-full bg-infoSoftStrong" />
                   <View className="mt-5 h-16 w-16 items-center justify-center self-center rounded-full bg-urgencySoft">
-                    <DirectionCIcon
+                    <Icon
                       name="brokenLink"
-                      color={DirectionC.color.coral}
+                      color={themeColors.urgency}
                       size={34}
                     />
                   </View>

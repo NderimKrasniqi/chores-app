@@ -1,10 +1,10 @@
-import { DirectionCIcon } from "@/components/ui/direction-c-icon";
+import { Icon } from "@/components/ui/icon";
 import {
   childAvatarTone,
-  DirectionCAvatar,
-} from "@/components/ui/direction-c-avatar";
+  Avatar,
+} from "@/components/ui/avatar";
 import { ActiveClaimableClaimsCard } from "@/components/chores/active-claimable-claims-card";
-import { DirectionC } from "@/constants/direction-c";
+import { homeTokens as themeColors } from "@/design-system/theme";
 import { AppText, Surface } from "@/design-system";
 import { useQuery } from "convex/react";
 import { AppImage as Image } from "@/components/ui/app-image";
@@ -86,7 +86,7 @@ function InitialAvatar({
 
   if (source) {
     return (
-      <DirectionCAvatar
+      <Avatar
         source={source}
         tone={childAvatarTone(name)}
         className={small ? "h-11 w-11" : "h-14 w-14"}
@@ -153,7 +153,7 @@ export function ParentHomeContent({
           onPress={onOpenSwitcher}
           className="h-[76px] w-[76px]"
         >
-          <DirectionCAvatar
+          <Avatar
             source={parentAvatar}
             tone="parent"
             className="h-full w-full"
@@ -209,9 +209,9 @@ export function ParentHomeContent({
               Review work
             </AppText>
             <View className="absolute right-4">
-              <DirectionCIcon
+              <Icon
                 name="chevron"
-                color={DirectionC.color.white}
+                color={themeColors.onAction}
                 size={23}
               />
             </View>
@@ -224,9 +224,9 @@ export function ParentHomeContent({
           className="mt-3 flex-row items-center p-4"
         >
           <View className="h-12 w-12 items-center justify-center rounded-full bg-action">
-            <DirectionCIcon
+            <Icon
               name="check"
-              color={DirectionC.color.white}
+              color={themeColors.onAction}
               size={25}
             />
           </View>
@@ -245,9 +245,9 @@ export function ParentHomeContent({
         className="mt-2 min-h-[44px] flex-row items-center rounded-control bg-actionSoft px-4"
       >
         <View className="h-11 w-11 items-center justify-center rounded-full bg-action">
-          <DirectionCIcon
+          <Icon
             name="plus"
-            color={DirectionC.color.white}
+            color={themeColors.onAction}
             size={25}
           />
         </View>
@@ -255,9 +255,9 @@ export function ParentHomeContent({
           Add chore
         </AppText>
         <View className="ml-auto">
-          <DirectionCIcon
+          <Icon
             name="chevron"
-            color={DirectionC.color.ink}
+            color={themeColors.ink}
             size={22}
           />
         </View>
@@ -313,9 +313,9 @@ export function ParentHomeContent({
                     {childPayout.runningBalanceSek} kr
                   </AppText>
                 ) : null}
-                <DirectionCIcon
+                <Icon
                   name="chevron"
-                  color={DirectionC.color.ink}
+                  color={themeColors.ink}
                   size={22}
                 />
               </Surface>
@@ -346,9 +346,9 @@ export function ParentHomeContent({
                 />
               ) : (
                 <View className="h-16 w-20 items-center justify-center rounded-control bg-rewardSoft">
-                  <DirectionCIcon
+                  <Icon
                     name="star"
-                    color={DirectionC.color.yellow}
+                    color={themeColors.reward}
                     size={32}
                   />
                 </View>
@@ -365,9 +365,9 @@ export function ParentHomeContent({
                     : "Approved chores will appear here."}
                 </AppText>
               </View>
-              <DirectionCIcon
+              <Icon
                 name="chevron"
-                color={DirectionC.color.ink}
+                color={themeColors.ink}
                 size={22}
               />
             </Surface>

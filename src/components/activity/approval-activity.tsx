@@ -1,5 +1,5 @@
-import { DirectionCIcon } from "@/components/ui/direction-c-icon";
-import { DirectionC } from "@/constants/direction-c";
+import { Icon } from "@/components/ui/icon";
+import { questTokens as themeColors } from "@/design-system/theme";
 import { ActionButton, AppText, Surface } from "@/design-system";
 import { AppImage as Image } from "@/components/ui/app-image";
 import type { ReactNode } from "react";
@@ -155,9 +155,9 @@ function ActivityCard({
           />
         ) : (
           <View className="h-[90px] w-[90px] items-center justify-center rounded-control bg-rewardSoft">
-            <DirectionCIcon
+            <Icon
               name={item.choreKind === "claimable" ? "star" : "chores"}
-              color={DirectionC.color.greenDeep}
+              color={themeColors.actionPressed}
               size={42}
             />
           </View>
@@ -409,9 +409,9 @@ export function ApprovalActivitySurface({
             }}
           >
             <View className="h-[52px] w-[52px] items-center justify-center rounded-full">
-              <DirectionCIcon
+              <Icon
                 name="info"
-                color={DirectionC.color.ink}
+                color={themeColors.ink}
                 size={30}
               />
             </View>
@@ -471,7 +471,7 @@ export function ApprovalActivitySurface({
                   className={`mt-10 h-[60px] ${celebrationStyle === "parent" ? "w-[90%]" : "w-[77%]"} rounded-full`}
                   labelStyle={
                     celebrationStyle === "parent"
-                      ? { color: DirectionC.color.ink }
+                      ? { color: themeColors.ink }
                       : undefined
                   }
                   style={{

@@ -1,11 +1,11 @@
-import { DirectionCIcon } from "@/components/ui/direction-c-icon";
-import { DirectionCAvatar } from "@/components/ui/direction-c-avatar";
+import { Icon } from "@/components/ui/icon";
+import { Avatar } from "@/components/ui/avatar";
 import { ParentHouseholdActivity } from "@/components/activity/parent-household-activity";
 import {
   ParentChildAccessContent,
   type ParentChildAccessVisualFixture,
 } from "@/components/child-access/parent-child-access-content";
-import { DirectionC } from "@/constants/direction-c";
+import { homeTokens as themeColors } from "@/design-system/theme";
 import {
   ActionButton,
   AppText,
@@ -106,10 +106,10 @@ function SettingRow({
       <View
         className={`h-14 w-14 items-center justify-center rounded-full ${tone === "mint" ? "bg-actionSoftStrong" : "bg-infoSoft"}`}
       >
-        <DirectionCIcon
+        <Icon
           name={icon}
           color={
-            tone === "mint" ? DirectionC.color.greenDeep : DirectionC.color.ink
+            tone === "mint" ? themeColors.actionPressed : themeColors.ink
           }
           size={24}
         />
@@ -120,9 +120,9 @@ function SettingRow({
       <AppText variant="label">{value}</AppText>
       {onPress ? (
         <View className="ml-2">
-          <DirectionCIcon
+          <Icon
             name="chevron"
-            color={DirectionC.color.ink}
+            color={themeColors.ink}
             size={20}
           />
         </View>
@@ -225,7 +225,7 @@ export function ParentAccountScreen({
         showsVerticalScrollIndicator={false}
       >
         <Surface className="mt-3 flex-row items-center p-3">
-          <DirectionCAvatar
+          <Avatar
             source={parentAvatar}
             tone="parent"
             className="h-28 w-28"
@@ -272,9 +272,9 @@ export function ParentAccountScreen({
           <Pressable accessibilityRole="button" onPress={onSwitchHousehold}>
             <Surface className="mt-2 h-[76px] flex-row items-center p-3">
               <View className="h-14 w-14 items-center justify-center rounded-full bg-actionSoft">
-                <DirectionCIcon
+                <Icon
                   name="family"
-                  color={DirectionC.color.green}
+                  color={themeColors.action}
                   size={26}
                 />
               </View>
@@ -296,9 +296,9 @@ export function ParentAccountScreen({
                   Choose another household you belong to
                 </AppText>
               </View>
-              <DirectionCIcon
+              <Icon
                 name="chevron"
-                color={DirectionC.color.ink}
+                color={themeColors.ink}
                 size={22}
               />
             </Surface>
@@ -314,9 +314,9 @@ export function ParentAccountScreen({
         >
           <Surface className="mt-2 h-[72px] flex-row items-center p-3">
             <View className="h-14 w-14 items-center justify-center rounded-full bg-actionSoft">
-              <DirectionCIcon
+              <Icon
                 name="bell"
-                color={DirectionC.color.green}
+                color={themeColors.action}
                 size={25}
               />
             </View>
@@ -336,9 +336,9 @@ export function ParentAccountScreen({
                 Manage device notification settings
               </AppText>
             </View>
-            <DirectionCIcon
+            <Icon
               name="chevron"
-              color={DirectionC.color.ink}
+              color={themeColors.ink}
               size={22}
             />
           </Surface>
@@ -346,9 +346,9 @@ export function ParentAccountScreen({
         <Pressable accessibilityRole="button" onPress={onOpenHelp}>
           <Surface className="mt-3 h-[72px] flex-row items-center p-3">
             <View className="h-14 w-14 items-center justify-center rounded-full bg-infoSoft">
-              <DirectionCIcon
+              <Icon
                 name="help"
-                color={DirectionC.color.info}
+                color={themeColors.info}
                 size={26}
               />
             </View>
@@ -368,9 +368,9 @@ export function ParentAccountScreen({
                 Review how the app works
               </AppText>
             </View>
-            <DirectionCIcon
+            <Icon
               name="chevron"
-              color={DirectionC.color.ink}
+              color={themeColors.ink}
               size={22}
             />
           </Surface>
@@ -483,9 +483,9 @@ export function HouseholdSwitcherScreen({
                     {current ? (
                       <View className="mt-2 flex-row items-center">
                         <View className="h-8 w-8 items-center justify-center rounded-full bg-action">
-                          <DirectionCIcon
+                          <Icon
                             name="check"
-                            color={DirectionC.color.white}
+                            color={themeColors.onAction}
                             size={18}
                           />
                         </View>
@@ -502,9 +502,9 @@ export function HouseholdSwitcherScreen({
                   </View>
                   {!current ? (
                     <View className="absolute right-3 top-1/2 -mt-5 h-10 w-10 items-center justify-center">
-                      <DirectionCIcon
+                      <Icon
                         name="chevron"
-                        color={DirectionC.color.ink}
+                        color={themeColors.ink}
                         size={23}
                       />
                     </View>
@@ -523,16 +523,16 @@ export function HouseholdSwitcherScreen({
           <View className="h-16 w-16 items-center justify-center rounded-full bg-infoSoft">
             <View className="relative h-12 w-16">
               <View className="absolute left-0 top-1">
-                <DirectionCIcon
+                <Icon
                   name="home"
-                  color={DirectionC.color.green}
+                  color={themeColors.action}
                   size={38}
                 />
               </View>
               <View className="absolute left-5 top-0">
-                <DirectionCIcon
+                <Icon
                   name="home"
-                  color={DirectionC.color.info}
+                  color={themeColors.info}
                   size={38}
                 />
               </View>
@@ -725,9 +725,9 @@ export function HouseholdSettingsScreen({
             elevated={false}
             className="mt-5 flex-row p-4"
           >
-            <DirectionCIcon
+            <Icon
               name="clock"
-              color={DirectionC.color.ink}
+              color={themeColors.ink}
               size={28}
             />
             <AppText
@@ -763,9 +763,9 @@ export function HouseholdSettingsScreen({
 
           <View className="mt-8 h-px bg-line" />
           <View className="mt-6 flex-row items-center px-2">
-            <DirectionCIcon
+            <Icon
               name="family"
-              color={DirectionC.color.green}
+              color={themeColors.action}
               size={30}
             />
             <AppText
@@ -819,9 +819,9 @@ export function HouseholdSettingsScreen({
                   elevated={false}
                   className="mt-5 flex-row p-4"
                 >
-                  <DirectionCIcon
+                  <Icon
                     name="clock"
-                    color={DirectionC.color.ink}
+                    color={themeColors.ink}
                     size={26}
                   />
                   <AppText variant="bodySmall" className="ml-3 flex-1">
@@ -859,9 +859,9 @@ export function HouseholdSettingsScreen({
                   elevated={false}
                   className="mt-5 flex-row p-4"
                 >
-                  <DirectionCIcon
+                  <Icon
                     name="calendar"
-                    color={DirectionC.color.ink}
+                    color={themeColors.ink}
                     size={26}
                   />
                   <AppText variant="bodySmall" className="ml-3 flex-1">
@@ -886,9 +886,9 @@ export function HouseholdSettingsScreen({
                   elevated={false}
                   className="mt-5 flex-row p-4"
                 >
-                  <DirectionCIcon
+                  <Icon
                     name="refresh"
-                    color={DirectionC.color.ink}
+                    color={themeColors.ink}
                     size={26}
                   />
                   <AppText variant="bodySmall" className="ml-3 flex-1">

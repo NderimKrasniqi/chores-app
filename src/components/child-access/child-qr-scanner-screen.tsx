@@ -1,5 +1,5 @@
 import { ActionButton, AppText, Surface } from "@/design-system";
-import { DirectionC } from "@/constants/direction-c";
+import { questTokens as themeColors } from "@/design-system/theme";
 import { AppImage as Image } from "@/components/ui/app-image";
 import { PairingQrCode } from "@/components/ui/pairing-qr-code";
 import { useAction } from "convex/react";
@@ -58,7 +58,7 @@ export function ChildQrScannerScreen({ onCancel }: ChildQrScannerScreenProps) {
       <View className="flex-1 items-center justify-center bg-canvas px-6">
         <StatusBar style="dark" />
         <View className="h-16 w-16 items-center justify-center rounded-full bg-actionSoft">
-          <ActivityIndicator color={DirectionC.color.green} />
+          <ActivityIndicator color={themeColors.action} />
         </View>
         <AppText variant="sectionTitle" className="mt-4 text-center">
           Getting scanner ready
@@ -205,7 +205,7 @@ export function ChildQrScannerScreen({ onCancel }: ChildQrScannerScreenProps) {
 
       {redeeming ? (
         <View className="mt-4 flex-row items-center justify-center">
-          <ActivityIndicator color={DirectionC.color.green} />
+          <ActivityIndicator color={themeColors.action} />
           <AppText color="ink-muted" className="ml-3">
             Pairing device…
           </AppText>

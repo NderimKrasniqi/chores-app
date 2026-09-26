@@ -1,10 +1,10 @@
 import { OnboardingScreen } from "@/components/onboarding/onboarding-screen";
-import { DirectionCIcon } from "@/components/ui/direction-c-icon";
+import { Icon } from "@/components/ui/icon";
 import {
   childAvatarTone,
-  DirectionCAvatar,
-} from "@/components/ui/direction-c-avatar";
-import { DirectionC } from "@/constants/direction-c";
+  Avatar,
+} from "@/components/ui/avatar";
+import { questTokens as themeColors } from "@/design-system/theme";
 import { ActionButton, AppText, Surface, TopBar } from "@/design-system";
 import { AppImage as Image } from "@/components/ui/app-image";
 import { useState } from "react";
@@ -41,12 +41,12 @@ function SettingsRow({
         <View
           className={`h-14 w-14 items-center justify-center rounded-full ${tone === "mint" ? "bg-actionSoftStrong" : "bg-infoSoftStrong"}`}
         >
-          <DirectionCIcon
+          <Icon
             name={icon}
             color={
               tone === "mint"
-                ? DirectionC.color.greenDeep
-                : DirectionC.color.ink
+                ? themeColors.actionPressed
+                : themeColors.ink
             }
             size={28}
           />
@@ -57,7 +57,7 @@ function SettingsRow({
             {subtitle}
           </AppText>
         </View>
-        <DirectionCIcon name="chevron" color={DirectionC.color.ink} size={22} />
+        <Icon name="chevron" color={themeColors.ink} size={22} />
       </Surface>
     </Pressable>
   );
@@ -94,7 +94,7 @@ export function ChildProfileScreen({
         showsVerticalScrollIndicator={false}
       >
         <Surface className="mt-2 min-h-[120px] flex-row items-center p-3">
-          <DirectionCAvatar
+          <Avatar
             source={childAvatar(childName)}
             tone={childAvatarTone(childName)}
             className="h-28 w-28"
@@ -138,9 +138,9 @@ export function ChildProfileScreen({
         </AppText>
         <Surface className="mt-2 min-h-[80px] flex-row items-center p-3">
           <View className="h-14 w-14 items-center justify-center rounded-full bg-actionSoftStrong">
-            <DirectionCIcon
+            <Icon
               name="checkShield"
-              color={DirectionC.color.greenDeep}
+              color={themeColors.actionPressed}
               size={28}
             />
           </View>
@@ -177,9 +177,9 @@ export function ChildProfileScreen({
           tone="secondary"
           loading={locking}
           leading={
-            <DirectionCIcon
+            <Icon
               name="lockSwitch"
-              color={DirectionC.color.ink}
+              color={themeColors.ink}
               size={25}
             />
           }

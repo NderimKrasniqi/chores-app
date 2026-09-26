@@ -5,7 +5,7 @@ import { ChildNoAccessScreen } from "@/components/child-access/child-no-access-s
 import { HouseholdListScreen } from "@/components/household/household-list-screen";
 import { HouseholdSetupScreen } from "@/components/household/household-setup-screen";
 import { OnboardingScreen } from "@/components/onboarding/onboarding-screen";
-import { DirectionC } from "@/constants/direction-c";
+import { homeTokens as themeColors } from "@/design-system/theme";
 import { AppText } from "@/design-system";
 import { authClient } from "@/lib/auth/client";
 import { hasCompletedOnboarding } from "@/lib/onboarding";
@@ -29,7 +29,7 @@ function LoadingScreen({ message }: { message: string }) {
     <View className="flex-1 items-center justify-center bg-canvas px-6">
       <StatusBar style="dark" />
       <View className="h-16 w-16 items-center justify-center rounded-full bg-actionSoft">
-        <ActivityIndicator color={DirectionC.color.green} />
+        <ActivityIndicator color={themeColors.action} />
       </View>
 
       <AppText variant="sectionTitle" className="mt-4 text-center">

@@ -6,7 +6,7 @@ import { forgetLocalChildGrant } from "@/lib/child-access/grant-status";
 import { setChildExplicitlyLocked } from "@/lib/child-access/unlock-policy";
 import { useAuthRuntime } from "@/providers/auth-runtime-provider";
 import { AppImage as Image } from "@/components/ui/app-image";
-import { DirectionC } from "@/constants/direction-c";
+import { questTokens as themeColors } from "@/design-system/theme";
 import { ActionButton, AppText } from "@/design-system";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
@@ -174,7 +174,7 @@ export function ChildNoAccessScreen({
     <View className="flex-1 items-center justify-center bg-canvas px-6">
       <StatusBar style="dark" />
       <View className="h-16 w-16 items-center justify-center rounded-full bg-actionSoft">
-        <ActivityIndicator color={DirectionC.color.green} />
+        <ActivityIndicator color={themeColors.action} />
       </View>
 
       <AppText variant="sectionTitle" className="mt-4 text-center">

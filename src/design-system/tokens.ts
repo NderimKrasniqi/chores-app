@@ -1,42 +1,44 @@
-import rawTokens from "../../design/system/tokens.json";
-import { Platform } from "react-native";
+import palettes from "./theme/palettes";
 
+const palette = palettes.PALETTES[palettes.ACTIVE_PALETTE];
+
+/** Theme-independent layout, radius, and motion tokens. Colours live in ./theme. */
 export const DesignTokens = {
-  ...rawTokens,
-  fontFamily: {
-    rounded: Platform.select({
-      ios: "ui-rounded",
-      android: "sans-serif",
-      default: "system-ui",
-    }),
-    regular: Platform.select({
-      ios: "system-ui",
-      android: "sans-serif",
-      default: "system-ui",
-    }),
+  radius: { small: 14, control: 18, card: 24, large: 28, sheet: 34, pill: 999 },
+  size: {
+    minimumTarget: 44,
+    control: 54,
+    bottomNavigation: 86,
+    compactAvatar: 48,
+    heroAvatar: 76,
+    compactArtwork: 96,
   },
+  motion: { quick: 140, standard: 220, celebration: 420 },
   shadowStyle: {
     card: {
-      shadowColor: rawTokens.shadow.card.color,
-      shadowOpacity: rawTokens.shadow.card.opacity,
-      shadowRadius: rawTokens.shadow.card.radius,
-      shadowOffset: {
-        width: rawTokens.shadow.card.offsetX,
-        height: rawTokens.shadow.card.offsetY,
-      },
-      elevation: rawTokens.shadow.card.elevation,
+      shadowColor: palette.bg,
+      shadowOpacity: 0.1,
+      shadowRadius: 16,
+      shadowOffset: { width: 0, height: 6 },
+      elevation: 4,
     },
     floating: {
-      shadowColor: rawTokens.shadow.floating.color,
-      shadowOpacity: rawTokens.shadow.floating.opacity,
-      shadowRadius: rawTokens.shadow.floating.radius,
-      shadowOffset: {
-        width: rawTokens.shadow.floating.offsetX,
-        height: rawTokens.shadow.floating.offsetY,
-      },
-      elevation: rawTokens.shadow.floating.elevation,
+      shadowColor: palette.bg,
+      shadowOpacity: 0.18,
+      shadowRadius: 24,
+      shadowOffset: { width: 0, height: 12 },
+      elevation: 8,
     },
   },
 } as const;
 
-export type TypographyToken = keyof typeof DesignTokens.typography;
+export type TypographyToken =
+  | "display"
+  | "screenTitle"
+  | "sectionTitle"
+  | "cardTitle"
+  | "amount"
+  | "body"
+  | "bodySmall"
+  | "label"
+  | "caption";

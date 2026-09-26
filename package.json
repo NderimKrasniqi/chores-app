@@ -6,6 +6,8 @@
     "@better-auth/expo": "~1.6.15",
     "@convex-dev/better-auth": "^0.12.5",
     "@date-fns/tz": "^1.5.0",
+    "@expo-google-fonts/fredoka": "^0.4.1",
+    "@expo-google-fonts/nunito": "^0.4.2",
     "@expo/ui": "~57.0.16",
     "better-auth": "~1.6.15",
     "convex": "^1.45.0",

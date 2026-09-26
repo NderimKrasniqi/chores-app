@@ -1,10 +1,10 @@
-import { DirectionCIcon } from "@/components/ui/direction-c-icon";
+import { Icon } from "@/components/ui/icon";
 import {
   childAvatarTone,
-  DirectionCAvatar,
-} from "@/components/ui/direction-c-avatar";
+  Avatar,
+} from "@/components/ui/avatar";
 import { AppImage as Image } from "@/components/ui/app-image";
-import { DirectionC } from "@/constants/direction-c";
+import { questTokens as themeColors } from "@/design-system/theme";
 import { AppText, StatusChip, Surface } from "@/design-system";
 import { useQuery } from "convex/react";
 import { useState } from "react";
@@ -12,9 +12,9 @@ import { View } from "react-native";
 
 import { api } from "../../../convex/_generated/api";
 import {
-  formatLocalDate as formatDirectionCDate,
+  formatLocalDate as formatShortLocalDate,
   formatLocalDateRange,
-} from "@/lib/direction-c/dates";
+} from "@/lib/dates";
 
 const alexAvatar = require("../../../assets/images/direction-c/alex-avatar.png");
 const mayaAvatar = require("../../../assets/images/direction-c/maya-avatar.png");
@@ -34,7 +34,7 @@ function formatWeekday(day: string) {
 }
 
 function formatLocalDate(localDate: string) {
-  return formatDirectionCDate(localDate);
+  return formatShortLocalDate(localDate);
 }
 
 function formatPeriod(startLocalDate: string, endLocalDate: string) {
@@ -124,9 +124,9 @@ export function ChildMoneyContent() {
             )}
           </AppText>
           <View className="mt-2 flex-row items-center">
-            <DirectionCIcon
+            <Icon
               name="calendar"
-              color={DirectionC.color.ink}
+              color={themeColors.ink}
               size={18}
             />
             <AppText variant="bodySmall" className="ml-1.5">
@@ -153,7 +153,7 @@ export function ChildMoneyContent() {
         {latest ? (
           <>
             <View className="flex-row items-center">
-              <DirectionCAvatar
+              <Avatar
                 source={childAvatar(child.displayName)}
                 tone={childAvatarTone(child.displayName)}
                 className="h-20 w-20"
@@ -194,16 +194,16 @@ export function ChildMoneyContent() {
                         <View
                           className={`h-6 w-6 items-center justify-center rounded-full ${latest.balanceAtCloseSek < 0 ? "bg-urgency" : "bg-info"}`}
                         >
-                          <DirectionCIcon
+                          <Icon
                             name="minus"
-                            color={DirectionC.color.white}
+                            color={themeColors.onAction}
                             size={14}
                           />
                         </View>
                       ) : (
-                        <DirectionCIcon
+                        <Icon
                           name={latest.status === "pending" ? "clock" : "check"}
-                          color={DirectionC.color.greenDeep}
+                          color={themeColors.actionPressed}
                           size={15}
                         />
                       )
@@ -266,9 +266,9 @@ export function ChildMoneyContent() {
                     elevated={false}
                     className="mt-1 flex-row items-center p-1"
                   >
-                    <DirectionCIcon
+                    <Icon
                       name="info"
-                      color={DirectionC.color.ink}
+                      color={themeColors.ink}
                       size={21}
                     />
                     <AppText
@@ -300,9 +300,9 @@ export function ChildMoneyContent() {
                     elevated={false}
                     className="mt-1 flex-row items-center p-3"
                   >
-                    <DirectionCIcon
+                    <Icon
                       name="info"
-                      color={DirectionC.color.ink}
+                      color={themeColors.ink}
                       size={21}
                     />
                     <AppText variant="bodySmall" className="ml-2 flex-1">
@@ -353,9 +353,9 @@ export function ChildMoneyContent() {
             <View
               className={`${negative ? "h-5 w-5" : compactGuide ? "h-6 w-6" : "h-7 w-7"} items-center justify-center rounded-full bg-action`}
             >
-              <DirectionCIcon
+              <Icon
                 name="plus"
-                color={DirectionC.color.white}
+                color={themeColors.onAction}
                 size={negative ? 13 : compactGuide ? 15 : 17}
               />
             </View>
@@ -376,9 +376,9 @@ export function ChildMoneyContent() {
             <View
               className={`${negative ? "h-5 w-5" : compactGuide ? "h-6 w-6" : "h-7 w-7"} items-center justify-center rounded-full bg-urgency`}
             >
-              <DirectionCIcon
+              <Icon
                 name="minus"
-                color={DirectionC.color.white}
+                color={themeColors.onAction}
                 size={negative ? 13 : compactGuide ? 15 : 17}
               />
             </View>

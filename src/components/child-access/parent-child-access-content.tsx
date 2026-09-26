@@ -1,9 +1,9 @@
-import { DirectionCIcon } from "@/components/ui/direction-c-icon";
+import { Icon } from "@/components/ui/icon";
 import {
   childAvatarTone,
-  DirectionCAvatar,
-} from "@/components/ui/direction-c-avatar";
-import { DirectionC } from "@/constants/direction-c";
+  Avatar,
+} from "@/components/ui/avatar";
+import { homeTokens as themeColors } from "@/design-system/theme";
 import { ActionButton, AppText, DesignTokens, Surface } from "@/design-system";
 import { useServerConfirmedMutation } from "@/hooks/use-server-confirmed-mutation";
 import { useAction, useQuery } from "convex/react";
@@ -18,7 +18,7 @@ import {
 
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
-import { formatTimestampDateTime } from "@/lib/direction-c/dates";
+import { formatTimestampDateTime } from "@/lib/dates";
 
 const devicePairingArtwork = require("../../../assets/images/direction-c/child-device-pairing.png");
 const expiredPairingArtwork = require("../../../assets/images/direction-c/child-pairing-expired.png");
@@ -102,9 +102,9 @@ function ConfirmationSheet({
           <View className="mx-auto h-1.5 w-16 rounded-full bg-infoSoftStrong" />
           <View className="mt-3 items-center">
             <View className="h-16 w-16 items-center justify-center rounded-full bg-urgencySoft">
-              <DirectionCIcon
+              <Icon
                 name={icon}
-                color={DirectionC.color.coral}
+                color={themeColors.urgency}
                 size={32}
               />
             </View>
@@ -281,7 +281,7 @@ export function ParentChildAccessContent({
   return (
     <View>
       <View className="flex-row items-center">
-        <DirectionCAvatar
+        <Avatar
           source={childAvatar(childDisplayName)}
           tone={childAvatarTone(childDisplayName)}
           className="h-24 w-24"
@@ -375,9 +375,9 @@ export function ParentChildAccessContent({
             className="mt-7"
             label="Create pairing code"
             leading={
-              <DirectionCIcon
+              <Icon
                 name="qrCode"
-                color={DirectionC.color.greenDeep}
+                color={themeColors.actionPressed}
                 size={22}
               />
             }
@@ -411,9 +411,9 @@ export function ParentChildAccessContent({
             />
             <View className="mt-3 rounded-full bg-urgencySoft px-4 py-2">
               <View className="flex-row items-center">
-                <DirectionCIcon
+                <Icon
                   name="clock"
-                  color={DirectionC.color.coral}
+                  color={themeColors.urgency}
                   size={17}
                 />
                 <AppText variant="label" color="urgency" className="ml-2">
@@ -435,9 +435,9 @@ export function ParentChildAccessContent({
               className="mt-4 w-full bg-[#3f1dc9]"
               label="Generate new code"
               leading={
-                <DirectionCIcon
+                <Icon
                   name="refresh"
-                  color={DirectionC.color.white}
+                  color={themeColors.onAction}
                   size={22}
                 />
               }
@@ -461,9 +461,9 @@ export function ParentChildAccessContent({
             {generationCount > 1 ? (
               <View className="mb-3 w-full flex-row items-center justify-center rounded-full bg-actionSoft px-4 py-2.5">
                 <View className="h-8 w-8 items-center justify-center rounded-full bg-action">
-                  <DirectionCIcon
+                  <Icon
                     name="check"
-                    color={DirectionC.color.white}
+                    color={themeColors.onAction}
                     size={18}
                   />
                 </View>
@@ -480,15 +480,15 @@ export function ParentChildAccessContent({
                 value={generated.qrToken}
                 size={generationCount > 1 ? 116 : 124}
                 quietZone={4}
-                backgroundColor={DirectionC.color.white}
+                backgroundColor={themeColors.onAction}
                 color="#000000"
               />
             </View>
             <View className="mt-2 rounded-full bg-urgencySoft px-4 py-2">
               <View className="flex-row items-center">
-                <DirectionCIcon
+                <Icon
                   name="clock"
-                  color={DirectionC.color.coral}
+                  color={themeColors.urgency}
                   size={17}
                 />
                 <AppText variant="caption" color="urgency" className="ml-2">
@@ -524,9 +524,9 @@ export function ParentChildAccessContent({
                 onPress={() => void shareCode()}
                 className="h-12 w-12 items-center justify-center"
               >
-                <DirectionCIcon
+                <Icon
                   name="share"
-                  color={DirectionC.color.green}
+                  color={themeColors.action}
                   size={25}
                 />
               </Pressable>
@@ -536,9 +536,9 @@ export function ParentChildAccessContent({
               className={`${generationCount > 1 ? "mt-3" : "mt-8"} w-full`}
               label="Generate another code"
               leading={
-                <DirectionCIcon
+                <Icon
                   name="refresh"
-                  color={DirectionC.color.ink}
+                  color={themeColors.ink}
                   size={22}
                 />
               }
@@ -551,9 +551,9 @@ export function ParentChildAccessContent({
               className="mt-2 min-h-control w-full flex-row items-center rounded-control bg-urgencySoft px-4"
             >
               <View className="h-12 w-12 items-center justify-center rounded-full bg-urgency">
-                <DirectionCIcon
+                <Icon
                   name="brokenLink"
-                  color={DirectionC.color.white}
+                  color={themeColors.onAction}
                   size={25}
                 />
               </View>
@@ -565,9 +565,9 @@ export function ParentChildAccessContent({
                   Stops this code from being used
                 </AppText>
               </View>
-              <DirectionCIcon
+              <Icon
                 name="chevron"
-                color={DirectionC.color.coral}
+                color={themeColors.urgency}
                 size={21}
               />
             </Pressable>
@@ -607,9 +607,9 @@ export function ParentChildAccessContent({
                 : "h-[60px] w-[60px] bg-infoSoft"
             }`}
           >
-            <DirectionCIcon
+            <Icon
               name={revokedDevices.length > 0 ? "deviceOff" : "phone"}
-              color={DirectionC.color.inkMuted}
+              color={themeColors.inkMuted}
               size={revokedDevices.length > 0 ? 32 : 36}
             />
           </View>
@@ -641,9 +641,9 @@ export function ParentChildAccessContent({
               className="flex-row items-center p-2"
             >
               <View className="h-8 w-8 items-center justify-center rounded-full bg-infoSoftStrong">
-                <DirectionCIcon
+                <Icon
                   name="phone"
-                  color={DirectionC.color.ink}
+                  color={themeColors.ink}
                   size={20}
                 />
               </View>
@@ -691,17 +691,17 @@ export function ParentChildAccessContent({
             onPress={() => setShowRevoked((current) => !current)}
             className="min-h-control flex-row items-center rounded-control bg-infoSoft px-4"
           >
-            <DirectionCIcon
+            <Icon
               name="clock"
-              color={DirectionC.color.inkMuted}
+              color={themeColors.inkMuted}
               size={22}
             />
             <AppText variant="label" className="ml-3 flex-1">
               Revoked devices ({revokedDevices.length})
             </AppText>
-            <DirectionCIcon
+            <Icon
               name="chevron"
-              color={DirectionC.color.ink}
+              color={themeColors.ink}
               size={20}
             />
           </Pressable>

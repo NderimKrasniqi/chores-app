@@ -1,6 +1,6 @@
-import { DirectionCIcon } from "@/components/ui/direction-c-icon";
+import { Icon } from "@/components/ui/icon";
 import { AppImage as Image } from "@/components/ui/app-image";
-import { DirectionC } from "@/constants/direction-c";
+import { homeTokens as themeColors } from "@/design-system/theme";
 import { ActionButton, AppText, DesignTokens, Surface } from "@/design-system";
 import { markOnboardingComplete } from "@/lib/onboarding";
 import { StatusBar } from "expo-status-bar";
@@ -63,7 +63,7 @@ export function OnboardingScreen({
           onPress={() => setPage((current) => Math.max(0, current - 1))}
           className={`h-11 w-11 items-center justify-center ${page === 0 ? "opacity-0" : ""}`}
         >
-          <DirectionCIcon name="back" color={DirectionC.color.ink} size={24} />
+          <Icon name="back" color={themeColors.ink} size={24} />
         </Pressable>
 
         <View
@@ -111,9 +111,9 @@ export function OnboardingScreen({
             label="Continue"
             onPress={() => setPage((current) => Math.min(3, current + 1))}
             trailing={
-              <DirectionCIcon
+              <Icon
                 name="chevron"
-                color={DirectionC.color.white}
+                color={themeColors.onAction}
                 size={22}
               />
             }
@@ -256,9 +256,9 @@ function RealRewardsPage() {
         className="mt-6 flex-row items-center p-4"
       >
         <View className="h-16 w-16 items-center justify-center rounded-full bg-action">
-          <DirectionCIcon
+          <Icon
             name="money"
-            color={DirectionC.color.white}
+            color={themeColors.onAction}
             size={30}
           />
         </View>
@@ -266,7 +266,7 @@ function RealRewardsPage() {
           <AppText variant="bodySmall">Your balance</AppText>
           <AppText variant="amount">240 kr</AppText>
         </View>
-        <DirectionCIcon name="chevron" color={DirectionC.color.ink} size={22} />
+        <Icon name="chevron" color={themeColors.ink} size={22} />
       </Surface>
 
       <View className="mt-6 flex-1 items-center justify-center">
@@ -291,7 +291,7 @@ function RealRewardsPage() {
             An approved Unlock Chore opens Extras.
           </AppText>
         </View>
-        <DirectionCIcon name="chevron" color={DirectionC.color.ink} size={22} />
+        <Icon name="chevron" color={themeColors.ink} size={22} />
       </Surface>
     </View>
   );
@@ -338,9 +338,9 @@ function ChooseRolePage({
               Set chores, review work, and manage payouts.
             </AppText>
           </View>
-          <DirectionCIcon
+          <Icon
             name="chevron"
-            color={DirectionC.color.ink}
+            color={themeColors.ink}
             size={22}
           />
         </Pressable>
@@ -364,9 +364,9 @@ function ChooseRolePage({
               See chores, submit work, and track earnings.
             </AppText>
           </View>
-          <DirectionCIcon
+          <Icon
             name="chevron"
-            color={DirectionC.color.ink}
+            color={themeColors.ink}
             size={22}
           />
         </Pressable>

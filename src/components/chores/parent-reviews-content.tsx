@@ -1,10 +1,10 @@
 import { SubmissionEvidenceViewer } from "@/components/evidence/submission-evidence-viewer";
-import { DirectionCIcon } from "@/components/ui/direction-c-icon";
+import { Icon } from "@/components/ui/icon";
 import {
   childAvatarTone,
-  DirectionCAvatar,
-} from "@/components/ui/direction-c-avatar";
-import { DirectionC } from "@/constants/direction-c";
+  Avatar,
+} from "@/components/ui/avatar";
+import { homeTokens as themeColors } from "@/design-system/theme";
 import { ActionButton, AppText, Surface, TopBar } from "@/design-system";
 import { useServerConfirmedMutation } from "@/hooks/use-server-confirmed-mutation";
 import { useQuery } from "convex/react";
@@ -29,7 +29,7 @@ import type { Id } from "../../../convex/_generated/dataModel";
 import {
   formatLocalDate,
   formatTimestampDateTime,
-} from "@/lib/direction-c/dates";
+} from "@/lib/dates";
 
 type ReviewSource = "personal" | "claimable" | "redo";
 type ReviewItem = {
@@ -338,9 +338,9 @@ export function ParentReviewsContent({
           </View>
         ) : (
           <View className="h-16 w-16 items-center justify-center rounded-full bg-action">
-            <DirectionCIcon
+            <Icon
               name="check"
-              color={DirectionC.color.white}
+              color={themeColors.onAction}
               size={31}
             />
           </View>
@@ -411,9 +411,9 @@ export function ParentReviewsContent({
                         </AppText>
                         {item.isUnlockChore ? (
                           <View className="flex-row items-center rounded-full bg-actionSoft px-2 py-1">
-                            <DirectionCIcon
+                            <Icon
                               name="key"
-                              color={DirectionC.color.green}
+                              color={themeColors.action}
                               size={13}
                             />
                             <AppText variant="caption" color="action">
@@ -424,9 +424,9 @@ export function ParentReviewsContent({
                         ) : null}
                         {item.hasEvidence ? (
                           <View className="flex-row items-center rounded-full bg-infoSoft px-2 py-1">
-                            <DirectionCIcon
+                            <Icon
                               name="camera"
-                              color={DirectionC.color.ink}
+                              color={themeColors.ink}
                               size={13}
                             />
                             <AppText variant="caption"> Photo</AppText>
@@ -444,7 +444,7 @@ export function ParentReviewsContent({
                   </View>
                   <View className="mt-1 flex-row items-center">
                     {avatarForName(item.childDisplayName) ? (
-                      <DirectionCAvatar
+                      <Avatar
                         source={avatarForName(item.childDisplayName)}
                         tone={childAvatarTone(item.childDisplayName)}
                         className="h-7 w-7"
@@ -460,9 +460,9 @@ export function ParentReviewsContent({
                       {item.childDisplayName}
                     </AppText>
                     <View className="ml-3 flex-row items-center">
-                      <DirectionCIcon
+                      <Icon
                         name="calendar"
-                        color={DirectionC.color.inkMuted}
+                        color={themeColors.inkMuted}
                         size={18}
                       />
                       <AppText variant="bodySmall" className="ml-1">
@@ -471,9 +471,9 @@ export function ParentReviewsContent({
                     </View>
                   </View>
                 </View>
-                <DirectionCIcon
+                <Icon
                   name="chevron"
-                  color={DirectionC.color.ink}
+                  color={themeColors.ink}
                   size={22}
                 />
               </Surface>
@@ -486,9 +486,9 @@ export function ParentReviewsContent({
           elevated={false}
           className="mt-3 items-center p-8"
         >
-          <DirectionCIcon
+          <Icon
             name="reviews"
-            color={DirectionC.color.green}
+            color={themeColors.action}
             size={44}
           />
           <AppText variant="cardTitle" className="mt-3">
@@ -510,9 +510,9 @@ export function ParentReviewsContent({
           elevated={false}
           className="flex-row items-center p-3"
         >
-          <DirectionCIcon
+          <Icon
             name="info"
-            color={DirectionC.color.inkMuted}
+            color={themeColors.inkMuted}
             size={23}
           />
           <AppText variant="bodySmall" className="ml-3 flex-1">
@@ -550,7 +550,7 @@ export function ParentReviewsContent({
               <Surface className="mt-2 p-3">
                 <View className="flex-row items-center">
                   {avatarForName(selected.childDisplayName) ? (
-                    <DirectionCAvatar
+                    <Avatar
                       source={avatarForName(selected.childDisplayName)!}
                       tone={childAvatarTone(selected.childDisplayName)}
                       className={
@@ -592,9 +592,9 @@ export function ParentReviewsContent({
                     </AppText>
                     <View className="mt-2 flex-row gap-2">
                       <View className="flex-row items-center rounded-control bg-urgencySoft px-3 py-2">
-                        <DirectionCIcon
+                        <Icon
                           name="tag"
-                          color={DirectionC.color.coral}
+                          color={themeColors.urgency}
                           size={17}
                         />
                         <AppText
@@ -607,9 +607,9 @@ export function ParentReviewsContent({
                       </View>
                       {selected.isUnlockChore && !settingRedo ? (
                         <View className="flex-row items-center rounded-control bg-actionSoft px-3 py-2">
-                          <DirectionCIcon
+                          <Icon
                             name="key"
-                            color={DirectionC.color.green}
+                            color={themeColors.action}
                             size={17}
                           />
                           <AppText variant="label" color="action">
@@ -626,9 +626,9 @@ export function ParentReviewsContent({
                     <View className="mt-4 h-px bg-line" />
                     <View className="mt-4 flex-row">
                       <View className="flex-1 flex-row items-center">
-                        <DirectionCIcon
+                        <Icon
                           name="calendar"
-                          color={DirectionC.color.inkMuted}
+                          color={themeColors.inkMuted}
                           size={23}
                         />
                         <AppText variant="bodySmall" className="ml-2">
@@ -638,9 +638,9 @@ export function ParentReviewsContent({
                       </View>
                       {selected.deadlineAt || selected.redoDeadlineAt ? (
                         <View className="flex-1 flex-row items-center">
-                          <DirectionCIcon
+                          <Icon
                             name="clock"
-                            color={DirectionC.color.inkMuted}
+                            color={themeColors.inkMuted}
                             size={23}
                           />
                           <AppText variant="bodySmall" className="ml-2">
@@ -689,9 +689,9 @@ export function ParentReviewsContent({
                   </AppText>
                   <Surface className="mt-3 px-4 py-3">
                     <View className="flex-row items-center">
-                      <DirectionCIcon
+                      <Icon
                         name="calendar"
-                        color={DirectionC.color.inkMuted}
+                        color={themeColors.inkMuted}
                         size={30}
                       />
                       <View className="ml-4 flex-1">
@@ -713,18 +713,18 @@ export function ParentReviewsContent({
                           }
                         />
                       </View>
-                      <DirectionCIcon
+                      <Icon
                         name="chevron"
-                        color={DirectionC.color.inkMuted}
+                        color={themeColors.inkMuted}
                         size={21}
                       />
                     </View>
                   </Surface>
                   <Surface className="mt-3 px-4 py-3">
                     <View className="flex-row items-center">
-                      <DirectionCIcon
+                      <Icon
                         name="clock"
-                        color={DirectionC.color.inkMuted}
+                        color={themeColors.inkMuted}
                         size={30}
                       />
                       <View className="ml-4 flex-1">
@@ -742,17 +742,17 @@ export function ParentReviewsContent({
                           value={redoTime}
                         />
                       </View>
-                      <DirectionCIcon
+                      <Icon
                         name="chevron"
-                        color={DirectionC.color.inkMuted}
+                        color={themeColors.inkMuted}
                         size={21}
                       />
                     </View>
                   </Surface>
                   <View className="mt-3 flex-row items-center">
-                    <DirectionCIcon
+                    <Icon
                       name="globe"
-                      color={DirectionC.color.inkMuted}
+                      color={themeColors.inkMuted}
                       size={21}
                     />
                     <AppText
@@ -775,9 +775,9 @@ export function ParentReviewsContent({
                     elevated={false}
                     className="mt-4 flex-row p-4"
                   >
-                    <DirectionCIcon
+                    <Icon
                       name="info"
-                      color={DirectionC.color.ink}
+                      color={themeColors.ink}
                       size={23}
                     />
                     <AppText
@@ -808,9 +808,9 @@ export function ParentReviewsContent({
                     />
                   ) : null}
                   <View className="mt-4 flex-row items-center justify-center">
-                    <DirectionCIcon
+                    <Icon
                       name="check"
-                      color={DirectionC.color.green}
+                      color={themeColors.action}
                       size={23}
                     />
                     <AppText className="ml-2">
@@ -847,9 +847,9 @@ export function ParentReviewsContent({
                     tone="destructive"
                     label="Reject & require Redo"
                     trailing={
-                      <DirectionCIcon
+                      <Icon
                         name="check"
-                        color={DirectionC.color.white}
+                        color={themeColors.onAction}
                         size={20}
                       />
                     }
@@ -863,9 +863,9 @@ export function ParentReviewsContent({
                     className="min-h-[44px]"
                     label={`Approve ${selected.valueSek} kr`}
                     trailing={
-                      <DirectionCIcon
+                      <Icon
                         name="check"
-                        color={DirectionC.color.white}
+                        color={themeColors.onAction}
                         size={20}
                       />
                     }
@@ -897,9 +897,9 @@ export function ParentReviewsContent({
                       </AppText>
                     ) : null}
                     <View className="absolute right-4">
-                      <DirectionCIcon
+                      <Icon
                         name="chevron"
-                        color={DirectionC.color.coral}
+                        color={themeColors.urgency}
                         size={19}
                       />
                     </View>
