@@ -175,6 +175,27 @@ const activityItems: ApprovalActivityItem[] = [
   },
 ];
 
+const familyWeekItems: ApprovalActivityItem[] = [
+  ...activityItems,
+  ...(
+    [
+      ["Maya", mayaId, "Water the plants", "personal", 10, -1, 17, 5],
+      ["Alex", alexId, "Clean your room", "personal", 30, -2, 16, 30],
+      ["Maya", mayaId, "Wash the car", "claimable", 50, -2, 12, 15],
+      ["Maya", mayaId, "Fold laundry", "personal", 20, -3, 18, 40],
+      ["Alex", alexId, "Take out recycling", "claimable", 15, -4, 9, 0],
+    ] as const
+  ).map(([name, childId, title, kind, value, day, hour, minute], i) => ({
+    activityId: `visual-week-${i}` as Id<"choreReviews">,
+    childId,
+    childDisplayName: name,
+    choreTitle: title,
+    choreKind: kind,
+    valueSek: value,
+    approvedAt: atLocalTime(day, hour, minute),
+  })),
+];
+
 const personalForm: ParentChoresVisualForm = {
   kind: "personal",
   title: "Clean your room",
@@ -862,6 +883,27 @@ function VerificationState({ state }: { state: string }) {
           }}
           insetTop={Math.max(0, insets.top - 12)}
           onBack={noop}
+        />
+      );
+    case "child-activity":
+    case "child-activity-empty":
+      return (
+        <ChildHomeScreen
+          access={{
+            accessGrantId,
+            householdId,
+            householdName: household.name,
+            childId: alexId,
+            childDisplayName: "Alex",
+            grantedAt: atLocalTime(-7, 12),
+          }}
+          visualFixture={{
+            initialTab: "activity",
+            activity: {
+              items: state === "child-activity" ? familyWeekItems : [],
+              timezone: household.timezone,
+            },
+          }}
         />
       );
     case "child-activity-loading":

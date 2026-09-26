@@ -1,12 +1,13 @@
 import { useQuery } from "convex/react";
-import { AppText, Surface } from "@/design-system";
+import { View } from "react-native";
+
+import { FamilySky } from "@/components/art";
+import { AppText } from "@/design-system";
 
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
-import {
-  ApprovalActivitySurface,
-  type ApprovalActivityItem,
-} from "./approval-activity";
+import type { ApprovalActivityItem } from "./approval-activity";
+import { ChildActivityFeed } from "./child-activity-feed";
 
 export function ChildHouseholdActivity({
   viewerChildId,
@@ -31,23 +32,21 @@ export function ChildHouseholdActivity({
 
   if (feed === undefined) {
     return (
-      <Surface testID="child-activity-loading" className="mt-4 p-5">
-        <AppText variant="cardTitle">Loading activity…</AppText>
-        <AppText variant="bodySmall" color="ink-muted" className="mt-1">
-          Your household wins will appear here.
+      <View testID="child-activity-loading" className="pb-6">
+        <FamilySky stars={[]} owners={[]} />
+        <AppText color="ink-muted" className="mt-3 text-center font-body-bold">
+          Looking up at the family sky…
         </AppText>
-      </Surface>
+      </View>
     );
   }
 
   return (
-    <ApprovalActivitySurface
+    <ChildActivityFeed
       items={feed.items}
       timezone={feed.timezone}
       viewerChildId={viewerChildId}
-      showHistory
       onOpenChores={onOpenChores}
-      showCelebration={false}
     />
   );
 }

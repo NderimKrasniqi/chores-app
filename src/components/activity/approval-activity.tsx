@@ -69,7 +69,7 @@ function actorName(item: ApprovalActivityItem, viewerChildId?: Id<"children">) {
   return viewerChildId === item.childId ? "You" : item.childDisplayName;
 }
 
-function localDateKey(timestamp: number, timezone: string) {
+export function localDateKey(timestamp: number, timezone: string) {
   try {
     return new Intl.DateTimeFormat("en-CA", {
       timeZone: timezone,
@@ -82,7 +82,7 @@ function localDateKey(timestamp: number, timezone: string) {
   }
 }
 
-function formatApprovedAt(timestamp: number, timezone: string) {
+export function formatApprovedAt(timestamp: number, timezone: string) {
   try {
     const isToday =
       localDateKey(timestamp, timezone) === localDateKey(Date.now(), timezone);
