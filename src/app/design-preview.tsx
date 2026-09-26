@@ -27,6 +27,7 @@ import {
   ParentChoresContent,
   type ParentChoresVisualForm,
 } from "@/components/chores/parent-chores-content";
+import { ParentReviewsContent } from "@/components/chores/parent-reviews-content";
 import { ParentBottomNavigation } from "@/components/household/parent-bottom-navigation";
 import { ParentFamilyContent } from "@/components/household/parent-family-content";
 import { ParentInviteCard } from "@/components/household/parent-invite-card";
@@ -859,6 +860,66 @@ function VerificationState({ state }: { state: string }) {
       return <ChildClaimFixture state="lock-sheet" />;
     case "child-claimable-redo":
       return <ChildClaimFixture state="redo" />;
+    case "parent-reviews-deck":
+    case "parent-reviews-empty":
+      return (
+        <SafeAreaView edges={["top"]} className="flex-1 bg-canvas">
+          <ScrollView className="flex-1 px-5">
+            <AppText variant="screenTitle" className="mt-4">
+              Reviews
+            </AppText>
+            <View className="mt-4">
+              <ParentReviewsContent
+                householdId={householdId}
+                householdTimezone={household.timezone}
+                visualItems={
+                  state === "parent-reviews-empty"
+                    ? []
+                    : [
+                        {
+                          submissionId:
+                            "visual-sub-1" as Id<"choreSubmissions">,
+                          source: "personal",
+                          kind: "personal",
+                          childDisplayName: "Alex",
+                          title: "Clean your room",
+                          description: "Bed made, clothes away, floor clear.",
+                          valueSek: 30,
+                          submittedAt: atLocalTime(0, 16, 40),
+                          isUnlockChore: true,
+                          hasEvidence: false,
+                        },
+                        {
+                          submissionId:
+                            "visual-sub-2" as Id<"choreSubmissions">,
+                          source: "claimable",
+                          kind: "claimable",
+                          childDisplayName: "Maya",
+                          title: "Wash the car",
+                          valueSek: 50,
+                          submittedAt: atLocalTime(0, 17, 5),
+                          isUnlockChore: false,
+                          hasEvidence: false,
+                        },
+                        {
+                          submissionId:
+                            "visual-sub-3" as Id<"choreSubmissions">,
+                          source: "redo",
+                          kind: "personal",
+                          childDisplayName: "Maya",
+                          title: "Fold laundry",
+                          valueSek: 20,
+                          submittedAt: atLocalTime(0, 17, 30),
+                          isUnlockChore: false,
+                          hasEvidence: false,
+                        },
+                      ]
+                }
+              />
+            </View>
+          </ScrollView>
+        </SafeAreaView>
+      );
     case "parent-household-start":
       return <HouseholdSetupScreen visualFixture={{ mode: "start" }} />;
     case "parent-create-household":

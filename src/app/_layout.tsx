@@ -14,6 +14,7 @@ import {
   useFonts,
 } from "@expo-google-fonts/nunito";
 import { DefaultTheme, Slot, ThemeProvider } from "expo-router";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import * as SplashScreen from "expo-splash-screen";
 
 import { AnimatedSplashOverlay } from "@/components/animated-icon";
@@ -50,17 +51,19 @@ export default function RootLayout() {
   }
 
   return (
-    <AuthRuntimeProvider>
-      <ConvexClientProvider>
-        <ThemeProvider value={navigationTheme}>
-          <ThemeScope mode="home">
-            <PushRegistrationBridge />
-            <ServerConnectionBanner />
-            <AnimatedSplashOverlay />
-            <Slot />
-          </ThemeScope>
-        </ThemeProvider>
-      </ConvexClientProvider>
-    </AuthRuntimeProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <AuthRuntimeProvider>
+        <ConvexClientProvider>
+          <ThemeProvider value={navigationTheme}>
+            <ThemeScope mode="home">
+              <PushRegistrationBridge />
+              <ServerConnectionBanner />
+              <AnimatedSplashOverlay />
+              <Slot />
+            </ThemeScope>
+          </ThemeProvider>
+        </ConvexClientProvider>
+      </AuthRuntimeProvider>
+    </GestureHandlerRootView>
   );
 }
