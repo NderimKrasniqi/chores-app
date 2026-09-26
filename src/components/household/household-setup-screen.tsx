@@ -1,33 +1,30 @@
-import { Scene } from "@/components/art";
-import { Icon } from "@/components/ui/icon";
-import { homeTokens as themeColors } from "@/design-system/theme";
-import {
-  ActionButton,
-  AppText,
-  DesignTokens,
-  FormField,
-  Surface,
-  TopBar,
-} from "@/design-system";
-import { useServerConfirmedMutation } from "@/hooks/use-server-confirmed-mutation";
-import { authClient } from "@/lib/auth/client";
 import { useAction } from "convex/react";
-import { AppImage as Image } from "@/components/ui/app-image";
 import { StatusBar } from "expo-status-bar";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
   ScrollView,
+  TextInput,
   View,
 } from "react-native";
+import Animated, {
+  interpolate,
+  useAnimatedStyle,
+} from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Svg, { Circle, Path, Rect } from "react-native-svg";
+
+import { PopIn, useLoop } from "@/components/art";
+import { PRESS, pressTransition } from "@/components/art/motion";
+import { Icon, type IconName } from "@/components/ui/icon";
+import { ActionButton, AppText } from "@/design-system";
+import { useTheme } from "@/design-system/theme";
+import { useServerConfirmedMutation } from "@/hooks/use-server-confirmed-mutation";
+import { authClient } from "@/lib/auth/client";
 
 import { api } from "../../../convex/_generated/api";
-
-const createArtwork = require("../../../assets/images/direction-c/household-create.png");
-const joinArtwork = require("../../../assets/images/direction-c/household-invitation.png");
 
 const PAYOUT_WEEKDAYS = [
   "monday",
@@ -96,44 +93,226 @@ function getInviteError(message: string) {
   return copy[kind];
 }
 
-function ChoiceCard({
+/**
+ * The household as a little house that grows as it's set up: a window lights
+ * up for each kid added, with their initial in it. Smoke drifts from the
+ * chimney once it has a name.
+ */
+function HomeBuild({ name, kids }: { name: string; kids: string[] }) {
+  const { tokens } = useTheme();
+  const smoke = useLoop({ duration: 2600, rest: 0.4 });
+  const smokeStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(smoke.get(), [0, 0.2, 1], [0, 0.6, 0]),
+    transform: [
+      { translateY: interpolate(smoke.get(), [0, 1], [0, -26]) },
+      { scale: interpolate(smoke.get(), [0, 1], [0.6, 1.3]) },
+    ],
+  }));
+  const windows = kids.slice(0, 4);
+  const width = 220;
+  return (
+    <View className="items-center" accessible={false}>
+      <View style={{ width, height: 170 }}>
+        {name.trim() ? (
+          <Animated.View
+            style={[
+              {
+                position: "absolute",
+                left: 146,
+                top: 18,
+                width: 18,
+                height: 18,
+                borderRadius: 9,
+                backgroundColor: tokens.line,
+              },
+              smokeStyle,
+            ]}
+          />
+        ) : null}
+        <Svg width={width} height={170}>
+          <Rect
+            x={140}
+            y={34}
+            width={18}
+            height={30}
+            rx={3}
+            fill={tokens.inkMuted}
+          />
+          <Path d="M24 88 L110 22 L196 88 Z" fill={tokens.urgency} />
+          <Rect
+            x={38}
+            y={84}
+            width={144}
+            height={80}
+            rx={10}
+            fill={tokens.surface}
+          />
+          <Rect
+            x={96}
+            y={120}
+            width={28}
+            height={44}
+            rx={6}
+            fill={tokens.reward}
+          />
+          <Circle cx={118} cy={143} r={2.5} fill={tokens.ink} />
+        </Svg>
+        {Array.from({ length: 4 }, (_, i) => {
+          const kid = windows[i]?.trim();
+          const x = [50, 140, 50, 140][i];
+          const y = [94, 94, 128, 128][i];
+          if (i >= 2 && windows.length <= 2) return null;
+          return (
+            <View
+              key={i}
+              style={{
+                position: "absolute",
+                left: x,
+                top: y,
+                width: 30,
+                height: 28,
+                borderRadius: 6,
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: kid ? tokens.reward : tokens.surfaceMuted,
+              }}
+            >
+              {kid ? (
+                <PopIn key={kid.charAt(0)}>
+                  <AppText variant="label">
+                    {kid.charAt(0).toUpperCase()}
+                  </AppText>
+                </PopIn>
+              ) : null}
+            </View>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+function BigChoice({
+  icon,
   title,
-  description,
-  imageSource,
-  tone,
+  body,
+  primary,
   onPress,
 }: {
+  icon: IconName;
   title: string;
-  description: string;
-  imageSource: number;
-  tone: "mint" | "lavender";
+  body: string;
+  primary?: boolean;
   onPress: () => void;
 }) {
+  const { tokens } = useTheme();
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityLabel={`${title}. ${body}`}
       onPress={onPress}
-      className={`min-h-[152px] overflow-hidden rounded-large p-5 ${
-        tone === "mint" ? "bg-actionSoft" : "bg-infoSoft"
-      }`}
-      style={DesignTokens.shadowStyle.card}
     >
-      <Image
-        source={imageSource}
-        className="absolute -bottom-3 -left-3 h-[155px] w-[175px]"
-        contentFit="contain"
-        accessible={false}
-      />
-      <View className="ml-[48%] flex-1 justify-center pr-6">
-        <AppText variant="sectionTitle">{title}</AppText>
-        <AppText variant="bodySmall" className="mt-2">
-          {description}
-        </AppText>
-      </View>
-      <View className="absolute right-3 top-1/2 -mt-5 h-10 w-10 items-center justify-center">
-        <Icon name="chevron" color={themeColors.ink} size={25} />
-      </View>
+      {({ pressed }) => (
+        <Animated.View
+          className="min-h-[84px] flex-row items-center gap-4 rounded-[24px] px-5 py-4"
+          style={[
+            {
+              backgroundColor: primary ? tokens.ink : tokens.surface,
+              transform: [{ scale: pressed ? PRESS.scale : 1 }],
+            },
+            pressTransition,
+          ]}
+        >
+          <View
+            className="h-12 w-12 items-center justify-center rounded-full"
+            style={{
+              backgroundColor: primary ? tokens.action : tokens.actionSoft,
+            }}
+          >
+            <Icon
+              name={icon}
+              color={primary ? tokens.onAction : tokens.action}
+              size={22}
+            />
+          </View>
+          <View className="flex-1">
+            <AppText
+              variant="cardTitle"
+              style={{ color: primary ? tokens.surface : tokens.ink }}
+            >
+              {title}
+            </AppText>
+            <AppText
+              variant="caption"
+              style={{ color: primary ? tokens.inkFaint : tokens.inkMuted }}
+            >
+              {body}
+            </AppText>
+          </View>
+          <Icon
+            name="chevron"
+            color={primary ? tokens.surface : tokens.inkMuted}
+            size={18}
+          />
+        </Animated.View>
+      )}
     </Pressable>
+  );
+}
+
+function ErrorNote({ message }: { message: string | null }) {
+  const { tokens } = useTheme();
+  if (!message) return null;
+  return (
+    <View
+      className="mt-4 rounded-[18px] px-4 py-3"
+      style={{ backgroundColor: tokens.urgencySoft }}
+    >
+      <AppText variant="bodySmall" color="urgency">
+        {message}
+      </AppText>
+    </View>
+  );
+}
+
+function Frame({
+  onBack,
+  children,
+}: {
+  onBack?: () => void;
+  children: ReactNode;
+}) {
+  const { tokens } = useTheme();
+  return (
+    <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-canvas">
+      <StatusBar style="dark" />
+      <KeyboardAvoidingView
+        className="flex-1"
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+        {onBack ? (
+          <View className="px-5 pt-2">
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Back"
+              onPress={onBack}
+              hitSlop={8}
+              className="h-11 w-11 items-center justify-center rounded-full"
+              style={{ backgroundColor: tokens.surface }}
+            >
+              <Icon name="back" color={tokens.ink} size={20} />
+            </Pressable>
+          </View>
+        ) : null}
+        <ScrollView
+          contentContainerClassName="flex-grow px-5 pb-10"
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {children}
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
@@ -151,76 +330,40 @@ function HouseholdStart({
   errorMessage: string | null;
 }) {
   return (
-    <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-canvas">
-      <StatusBar style="dark" />
-      <ScrollView
-        contentContainerClassName="px-5 pb-8"
-        showsVerticalScrollIndicator={false}
-      >
-        <View className="mt-2 flex-row justify-end">
-          <Pressable
-            accessibilityRole="button"
-            disabled={signingOut}
-            onPress={onSignOut}
-            className="min-h-target justify-center px-2"
-          >
-            <AppText>{signingOut ? "Signing out…" : "Sign out"}</AppText>
-          </Pressable>
-        </View>
-
-        <AppText
-          variant="label"
-          color="ink-faint"
-          className="mt-4 uppercase tracking-widest"
-        >
-          Household setup
+    <Frame>
+      <View className="flex-1 justify-center pt-6">
+        <HomeBuild name="" kids={[]} />
+        <AppText variant="display" className="mt-4 text-center">
+          Let’s set up home
         </AppText>
-        <AppText variant="display" className="mt-3">
-          Set up your family
+        <AppText color="ink-muted" className="mt-2 text-center">
+          Start a new household, or join one another parent already made.
         </AppText>
-        <AppText className="mt-2 max-w-[340px]">
-          Create a new household or join one using a Parent invite.
-        </AppText>
-
-        <View className="mt-7 gap-4">
-          <ChoiceCard
-            title="Create a household"
-            description="Start a new family space, add children, and choose the weekly settings."
-            imageSource={createArtwork}
-            tone="mint"
+        <View className="mt-8 gap-3">
+          <BigChoice
+            primary
+            icon="home"
+            title="Start a household"
+            body="Add your kids and set payday"
             onPress={onCreate}
           />
-          <ChoiceCard
-            title="Join a household"
-            description="Use a Parent invite from someone already in the household."
-            imageSource={joinArtwork}
-            tone="lavender"
+          <BigChoice
+            icon="personPlus"
+            title="Join with an invite"
+            body="Another parent sent you a code"
             onPress={onJoin}
           />
         </View>
-
-        <Surface
-          tone="muted"
-          elevated={false}
-          className="mt-5 flex-row items-center p-4"
-        >
-          <View className="h-12 w-12 items-center justify-center rounded-full bg-surfaceRaised">
-            <Icon name="person" color={themeColors.action} size={25} />
-          </View>
-          <AppText className="ml-4 flex-1">
-            Every Parent in a household has the same controls.
-          </AppText>
-        </Surface>
-
-        {errorMessage ? (
-          <Surface tone="coral" elevated={false} className="mt-4 p-3">
-            <AppText variant="bodySmall" color="urgency">
-              {errorMessage}
-            </AppText>
-          </Surface>
-        ) : null}
-      </ScrollView>
-    </SafeAreaView>
+        <ErrorNote message={errorMessage} />
+        <ActionButton
+          className="mt-6"
+          tone="quiet"
+          label={signingOut ? "Signing out…" : "Sign out"}
+          disabled={signingOut}
+          onPress={onSignOut}
+        />
+      </View>
+    </Frame>
   );
 }
 
@@ -244,164 +387,208 @@ type CreateScreenProps = {
 };
 
 function CreateHousehold(props: CreateScreenProps) {
+  const { tokens } = useTheme();
+  const allowance = Number(props.weeklyUnclaimAllowance) || 0;
   return (
-    <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-canvas">
-      <StatusBar style="dark" />
-      <KeyboardAvoidingView
-        className="flex-1"
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
-        <View className="px-5">
-          <TopBar title="Create household" onBack={props.onBack} />
-        </View>
+    <Frame onBack={props.onBack}>
+      <HomeBuild name={props.householdName} kids={props.children} />
 
-        <ScrollView
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="on-drag"
-          showsVerticalScrollIndicator={false}
-          contentContainerClassName="px-5 pb-5"
-        >
-          <Surface
-            tone="mint"
-            elevated={false}
-            className="h-[90px] overflow-hidden px-4"
-          >
-            <Scene name="house" size={108} />
-            <AppText variant="cardTitle" className="ml-[43%] mt-5">
-              Choose the defaults for your family.
-            </AppText>
-          </Surface>
+      <AppText variant="label" color="ink-muted" className="mt-4">
+        Household name
+      </AppText>
+      <TextInput
+        accessibilityLabel="Household name"
+        value={props.householdName}
+        onChangeText={props.setHouseholdName}
+        placeholder="The Krasniqi Family"
+        placeholderTextColor={tokens.inkFaint}
+        className="mt-2 min-h-[54px] rounded-[16px] px-4 font-body-heavy text-ink"
+        style={{ backgroundColor: tokens.surface, fontSize: 18 }}
+      />
 
-          <AppText variant="sectionTitle" className="mt-3">
-            Household
-          </AppText>
-          <Surface className="mt-1 gap-3 p-3">
-            <FormField
-              testID="household-setup-name"
-              label="Household name"
-              placeholder="Krasniqi Family"
-              value={props.householdName}
-              onChangeText={props.setHouseholdName}
-              autoCapitalize="words"
-              className="min-h-target py-2"
-            />
-            <FormField
-              testID="household-setup-timezone"
-              label="Household timezone"
-              helper="Use an IANA timezone such as Europe/Stockholm."
-              placeholder="Europe/Stockholm"
-              value={props.timezone}
-              onChangeText={props.setTimezone}
-              autoCapitalize="none"
-              autoCorrect={false}
-              className="min-h-target py-2"
-            />
-          </Surface>
-
-          <AppText variant="sectionTitle" className="mt-3">
-            Weekly settings
-          </AppText>
-          <Surface className="mt-1 p-3">
-            <AppText variant="label">Payout weekday</AppText>
-            <View className="mt-2 flex-row overflow-hidden rounded-control bg-infoSoft">
-              {PAYOUT_WEEKDAYS.map((day) => {
-                const selected = props.payoutWeekday === day;
-                return (
-                  <Pressable
-                    key={day}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected }}
-                    onPress={() => props.setPayoutWeekday(day)}
-                    className={`min-h-target flex-1 items-center justify-center rounded-control ${
-                      selected ? "bg-action" : "bg-transparent"
-                    }`}
-                  >
-                    <AppText
-                      variant="bodySmall"
-                      color={selected ? "white" : "ink"}
-                      className="font-bold"
-                    >
-                      {SHORT_WEEKDAYS[day]}
-                    </AppText>
-                  </Pressable>
-                );
-              })}
-            </View>
-            <View className="mt-3">
-              <FormField
-                testID="household-setup-allowance"
-                label="Weekly unclaim allowance"
-                helper="The same allowance applies to every child each payout week."
-                placeholder="Enter a whole number"
-                value={props.weeklyUnclaimAllowance}
-                onChangeText={props.setWeeklyUnclaimAllowance}
-                keyboardType="number-pad"
-                className="min-h-target py-2"
-              />
-            </View>
-          </Surface>
-
-          <AppText variant="sectionTitle" className="mt-3">
-            Children
-          </AppText>
-          <Surface className="mt-1 p-3">
-            <View className="gap-3">
-              {props.children.map((child, index) => (
-                <View key={index}>
-                  <FormField
-                    testID={`household-setup-child-${index}`}
-                    label={
-                      props.children.length === 1
-                        ? "Child name"
-                        : `Child ${index + 1} name`
-                    }
-                    placeholder="Alex"
-                    value={child}
-                    onChangeText={(value) => props.updateChild(index, value)}
-                    autoCapitalize="words"
-                    className="min-h-target py-2"
-                  />
-                  {props.children.length > 1 ? (
-                    <Pressable
-                      accessibilityRole="button"
-                      onPress={() => props.removeChild(index)}
-                      className="min-h-target justify-center self-end px-1"
-                    >
-                      <AppText variant="bodySmall" color="urgency">
-                        Remove child
-                      </AppText>
-                    </Pressable>
-                  ) : null}
-                </View>
-              ))}
-            </View>
-            <ActionButton
-              tone="secondary"
-              className="mt-3"
-              label="Add child"
-              leading={<Icon name="plus" color={themeColors.ink} size={24} />}
-              onPress={props.addChild}
-            />
-          </Surface>
-
-          {props.errorMessage ? (
-            <Surface tone="coral" elevated={false} className="mt-4 p-3">
-              <AppText variant="bodySmall" color="urgency">
-                {props.errorMessage}
+      <AppText variant="label" color="ink-muted" className="mt-6">
+        Kids
+      </AppText>
+      <View className="mt-2 gap-2">
+        {props.children.map((child, index) => (
+          <View key={index} className="flex-row items-center gap-2">
+            <View
+              className="h-11 w-11 items-center justify-center rounded-full"
+              style={{
+                backgroundColor: child.trim()
+                  ? tokens.reward
+                  : tokens.surfaceMuted,
+              }}
+            >
+              <AppText variant="label">
+                {child.trim().charAt(0).toUpperCase() || index + 1}
               </AppText>
-            </Surface>
-          ) : null}
-        </ScrollView>
+            </View>
+            <TextInput
+              accessibilityLabel={`Kid ${index + 1} name`}
+              value={child}
+              onChangeText={(value) => props.updateChild(index, value)}
+              placeholder="First name"
+              placeholderTextColor={tokens.inkFaint}
+              className="min-h-[48px] flex-1 rounded-[14px] px-3 font-body-heavy text-ink"
+              style={{ backgroundColor: tokens.surface }}
+            />
+            {props.children.length > 1 ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`Remove kid ${index + 1}`}
+                onPress={() => props.removeChild(index)}
+                hitSlop={8}
+                className="h-11 w-11 items-center justify-center"
+              >
+                <Icon name="close" color={tokens.inkMuted} size={18} />
+              </Pressable>
+            ) : null}
+          </View>
+        ))}
+        <Pressable
+          accessibilityRole="button"
+          onPress={props.addChild}
+          className="min-h-[48px] flex-row items-center gap-2 rounded-[14px] border-2 border-dashed border-line px-3"
+        >
+          <Icon name="plus" color={tokens.action} size={18} />
+          <AppText variant="label" color="action">
+            Add another kid
+          </AppText>
+        </Pressable>
+      </View>
 
-        <View className="border-t border-line bg-surfaceRaised px-5 pt-3">
-          <ActionButton
-            label="Create household"
-            loading={props.creatingHousehold}
-            onPress={props.onCreate}
-          />
+      <AppText variant="label" color="ink-muted" className="mt-6">
+        Payday
+      </AppText>
+      <View className="mt-2 flex-row flex-wrap gap-2">
+        {PAYOUT_WEEKDAYS.map((day) => {
+          const active = props.payoutWeekday === day;
+          return (
+            <Pressable
+              key={day}
+              accessibilityRole="button"
+              accessibilityLabel={day}
+              accessibilityState={{ selected: active }}
+              onPress={() => props.setPayoutWeekday(day)}
+              className="h-11 w-11 items-center justify-center rounded-full"
+              style={{ backgroundColor: active ? tokens.ink : tokens.surface }}
+            >
+              <AppText
+                variant="caption"
+                style={{ color: active ? tokens.surface : tokens.ink }}
+              >
+                {SHORT_WEEKDAYS[day]}
+              </AppText>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      <AppText variant="label" color="ink-muted" className="mt-6">
+        Unclaim keys per week
+      </AppText>
+      <View
+        className="mt-2 flex-row items-center gap-4 rounded-[18px] px-4 py-3"
+        style={{ backgroundColor: tokens.surface }}
+      >
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="One fewer"
+          disabled={allowance === 0}
+          onPress={() =>
+            props.setWeeklyUnclaimAllowance(String(Math.max(0, allowance - 1)))
+          }
+          className="h-10 w-10 items-center justify-center rounded-full"
+          style={{ backgroundColor: tokens.surfaceMuted }}
+        >
+          <Icon name="minus" color={tokens.ink} size={16} />
+        </Pressable>
+        <View className="flex-1 flex-row items-center justify-center gap-1">
+          {Array.from({ length: Math.min(allowance, 6) }, (_, i) => (
+            <Icon key={i} name="key" color={tokens.reward} size={18} />
+          ))}
+          <AppText variant="cardTitle" className="ml-1">
+            {allowance}
+          </AppText>
         </View>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="One more"
+          onPress={() => props.setWeeklyUnclaimAllowance(String(allowance + 1))}
+          className="h-10 w-10 items-center justify-center rounded-full"
+          style={{ backgroundColor: tokens.surfaceMuted }}
+        >
+          <Icon name="plus" color={tokens.ink} size={16} />
+        </Pressable>
+      </View>
+      <AppText variant="caption" color="ink-muted" className="mt-1">
+        How many bonus quests a kid may drop each week.
+      </AppText>
+
+      <AppText variant="label" color="ink-muted" className="mt-6">
+        Time zone
+      </AppText>
+      <TextInput
+        accessibilityLabel="Time zone"
+        value={props.timezone}
+        onChangeText={props.setTimezone}
+        autoCapitalize="none"
+        autoCorrect={false}
+        className="mt-2 min-h-[48px] rounded-[14px] px-3 font-body-heavy text-ink"
+        style={{ backgroundColor: tokens.surface }}
+      />
+
+      <ErrorNote message={props.errorMessage} />
+      <ActionButton
+        className="mt-8"
+        label="Create household"
+        loading={props.creatingHousehold}
+        onPress={props.onCreate}
+      />
+    </Frame>
+  );
+}
+
+/** An envelope with the invite, flap bobbing gently. */
+function InviteEnvelope() {
+  const { tokens } = useTheme();
+  const bob = useLoop({ duration: 3000, reverse: true, rest: 0.5 });
+  const style = useAnimatedStyle(() => ({
+    transform: [
+      { translateY: interpolate(bob.get(), [0, 1], [-4, 4]) },
+      { rotate: `${interpolate(bob.get(), [0, 1], [-3, 3])}deg` },
+    ],
+  }));
+  return (
+    <Animated.View style={[{ alignSelf: "center" }, style]} accessible={false}>
+      <Svg width={170} height={120}>
+        <Rect
+          x={10}
+          y={20}
+          width={150}
+          height={96}
+          rx={12}
+          fill={tokens.surface}
+        />
+        <Path
+          d="M10 30 L85 78 L160 30"
+          fill="none"
+          stroke={tokens.line}
+          strokeWidth={4}
+          strokeLinejoin="round"
+        />
+        <Circle cx={85} cy={78} r={14} fill={tokens.urgency} />
+        <Path
+          d="M79 78 l4 4 8 -9"
+          fill="none"
+          stroke={tokens.surface}
+          strokeWidth={3}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </Svg>
+    </Animated.View>
   );
 }
 
@@ -422,121 +609,57 @@ function JoinHousehold({
   joiningHousehold: boolean;
   onJoin: () => void;
 }) {
-  const error = errorMessage ? getInviteError(errorMessage) : null;
-
+  const { tokens } = useTheme();
+  const inviteError = errorMessage ? getInviteError(errorMessage) : null;
   return (
-    <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-canvas">
-      <StatusBar style="dark" />
-      <KeyboardAvoidingView
-        className="flex-1"
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
-        <View className="px-5">
-          <TopBar
-            title="Household setup"
-            onBack={onBack}
-            titleStyle={{ fontSize: 22, lineHeight: 27 }}
-          />
-        </View>
-        <ScrollView
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="on-drag"
-          showsVerticalScrollIndicator={false}
-          contentContainerClassName="px-5 pb-8"
-        >
-          <Scene name="mail" size={190} />
-          <AppText variant="display">Join a household</AppText>
-          <AppText className="mt-2">
-            Paste the Parent invite shared with you.
-          </AppText>
-
-          <Surface
-            tone="mint"
-            elevated={false}
-            className="mt-5 flex-row items-center p-3"
+    <Frame onBack={onBack}>
+      <View className="pt-4">
+        <InviteEnvelope />
+        <AppText variant="display" className="mt-4 text-center">
+          Join a household
+        </AppText>
+        <AppText color="ink-muted" className="mt-2 text-center">
+          Paste the invite another parent sent you. You’ll share the same
+          controls.
+        </AppText>
+        <TextInput
+          accessibilityLabel="Invite code"
+          value={token}
+          onChangeText={setToken}
+          placeholder="Paste invite"
+          placeholderTextColor={tokens.inkFaint}
+          autoCapitalize="none"
+          autoCorrect={false}
+          className="mt-6 min-h-[56px] rounded-[16px] px-4 font-body-heavy text-ink"
+          style={{ backgroundColor: tokens.surface }}
+        />
+        {inviteError ? (
+          <View
+            className="mt-4 rounded-[18px] px-4 py-3"
+            style={{ backgroundColor: tokens.urgencySoft }}
           >
-            <View className="relative h-12 w-12 items-center justify-center rounded-full bg-action">
-              <Icon name="family" color={themeColors.onAction} size={30} />
-              <View className="absolute bottom-[-2px] right-[-2px] h-5 w-5 items-center justify-center rounded-full bg-surfaceRaised">
-                <Icon name="check" color={themeColors.action} size={13} />
-              </View>
-            </View>
-            <View className="ml-4 flex-1">
-              <AppText variant="cardTitle" color="action">
-                Equal parent authority
-              </AppText>
-              <AppText color="ink-muted" className="mt-1">
-                You’ll have the same household controls as every other parent.
-              </AppText>
-            </View>
-          </Surface>
-
-          <View className="mt-5">
-            <FormField
-              label="Parent invite code"
-              placeholder="Paste invite code"
-              value={token}
-              onChangeText={setToken}
-              autoCapitalize="none"
-              autoCorrect={false}
-              error={error ? " " : undefined}
-              className={
-                error
-                  ? "min-h-[66px] bg-surfaceRaised"
-                  : "min-h-[66px] bg-[#F9F4FF]"
-              }
-            />
+            <AppText variant="label" color="urgency">
+              {inviteError.title}
+            </AppText>
+            <AppText variant="caption" color="urgency" className="mt-0.5">
+              {inviteError.detail}
+            </AppText>
           </View>
-
-          {error ? (
-            <Surface
-              tone="coral"
-              elevated={false}
-              className="mt-2 flex-row items-center p-4"
-            >
-              <View className="h-10 w-10 items-center justify-center rounded-full bg-urgency">
-                <AppText variant="cardTitle" color="white">
-                  !
-                </AppText>
-              </View>
-              <View className="ml-3 flex-1">
-                <AppText variant="label" color="urgency">
-                  {error.title}
-                </AppText>
-                <AppText variant="bodySmall" color="urgency" className="mt-0.5">
-                  {error.detail}
-                </AppText>
-              </View>
-            </Surface>
-          ) : (
-            <View className="mt-3 flex-row items-center">
-              <Icon name="checkShield" color={themeColors.action} size={24} />
-              <AppText variant="bodySmall" color="ink-muted" className="ml-3">
-                An invite can be used once.
-              </AppText>
-            </View>
-          )}
-
-          <ActionButton
-            className="mt-4"
-            label="Join household"
-            loading={joiningHousehold}
-            onPress={onJoin}
-          />
-          <ActionButton
-            tone="quiet"
-            className="mt-3"
-            label="Create a new household"
-            labelStyle={{
-              color: themeColors.ink,
-              fontSize: 17,
-              lineHeight: 22,
-            }}
-            onPress={onCreate}
-          />
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+        ) : null}
+        <ActionButton
+          className="mt-6"
+          label="Join household"
+          loading={joiningHousehold}
+          onPress={onJoin}
+        />
+        <ActionButton
+          className="mt-2"
+          tone="quiet"
+          label="Start a new household instead"
+          onPress={onCreate}
+        />
+      </View>
+    </Frame>
   );
 }
 
