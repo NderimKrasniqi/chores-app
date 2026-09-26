@@ -1,7 +1,3 @@
-import { Scene } from "@/components/art";
-import { ActionButton, AppText, Surface } from "@/design-system";
-import { questTokens as themeColors } from "@/design-system/theme";
-import { PairingQrCode } from "@/components/ui/pairing-qr-code";
 import { useAction } from "convex/react";
 import {
   CameraView,
@@ -10,9 +6,20 @@ import {
 } from "expo-camera";
 import * as Device from "expo-device";
 import { StatusBar } from "expo-status-bar";
-import { useState } from "react";
-import { ActivityIndicator, View } from "react-native";
+import { useState, type ReactNode } from "react";
+import { ActivityIndicator, Pressable, View } from "react-native";
+import Animated, {
+  interpolate,
+  useAnimatedStyle,
+} from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+import { DockingScene, Starfield, useLoop } from "@/components/art";
+import { Easings } from "@/components/art/motion";
+import { Icon } from "@/components/ui/icon";
+import { PairingQrCode } from "@/components/ui/pairing-qr-code";
+import { ActionButton, AppText } from "@/design-system";
+import { useTheme } from "@/design-system/theme";
 
 import { api } from "../../../convex/_generated/api";
 
@@ -20,7 +27,101 @@ type ChildQrScannerScreenProps = {
   onCancel: () => void;
 };
 
+const WINDOW = 250;
+
+/** Corner brackets that breathe, and a beam sweeping down the porthole. */
+function PortholeOverlay() {
+  const { tokens } = useTheme();
+  const sweep = useLoop({
+    duration: 2200,
+    reverse: true,
+    easing: Easings.inOut,
+    rest: 0.5,
+  });
+  const breathe = useLoop({ duration: 1800, reverse: true, rest: 1 });
+  const beamStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateY: interpolate(sweep.get(), [0, 1], [18, WINDOW - 22]) },
+    ],
+  }));
+  const cornerStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(breathe.get(), [0, 1], [0.55, 1]),
+    transform: [{ scale: interpolate(breathe.get(), [0, 1], [0.97, 1]) }],
+  }));
+  const corner = "absolute h-8 w-8 border-accent";
+  return (
+    <View
+      pointerEvents="none"
+      className="absolute inset-0 items-center justify-center"
+    >
+      <View style={{ width: WINDOW, height: WINDOW }}>
+        <Animated.View
+          style={[{ position: "absolute", inset: 0 }, cornerStyle]}
+        >
+          <View
+            className={`${corner} left-0 top-0 rounded-tl-[18px] border-l-[5px] border-t-[5px]`}
+          />
+          <View
+            className={`${corner} right-0 top-0 rounded-tr-[18px] border-r-[5px] border-t-[5px]`}
+          />
+          <View
+            className={`${corner} bottom-0 left-0 rounded-bl-[18px] border-b-[5px] border-l-[5px]`}
+          />
+          <View
+            className={`${corner} bottom-0 right-0 rounded-br-[18px] border-b-[5px] border-r-[5px]`}
+          />
+        </Animated.View>
+        <Animated.View
+          style={[
+            {
+              position: "absolute",
+              left: 14,
+              right: 14,
+              top: 0,
+              height: 4,
+              borderRadius: 2,
+              backgroundColor: tokens.accent,
+              shadowColor: tokens.accent,
+              shadowOpacity: 0.9,
+              shadowRadius: 10,
+            },
+            beamStyle,
+          ]}
+        />
+      </View>
+    </View>
+  );
+}
+
+function PermissionState({
+  title,
+  body,
+  children,
+}: {
+  title: string;
+  body: string;
+  children: ReactNode;
+}) {
+  return (
+    <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-canvas px-6">
+      <StatusBar style="light" />
+      <Starfield seed={61} />
+      <View className="flex-1 items-center justify-center">
+        <DockingScene width={300} height={160} />
+        <AppText variant="screenTitle" className="mt-4 text-center">
+          {title}
+        </AppText>
+        <AppText color="ink-muted" className="mt-2 text-center font-body-bold">
+          {body}
+        </AppText>
+        <View className="mt-7 w-full gap-3">{children}</View>
+      </View>
+    </SafeAreaView>
+  );
+}
+
 export function ChildQrScannerScreen({ onCancel }: ChildQrScannerScreenProps) {
+  const { tokens } = useTheme();
   const [permission, requestPermission] = useCameraPermissions();
   const redeemQr = useAction(api.childPairing.redeemQr);
   const [scanned, setScanned] = useState(false);
@@ -54,15 +155,10 @@ export function ChildQrScannerScreen({ onCancel }: ChildQrScannerScreenProps) {
   if (!permission) {
     return (
       <View className="flex-1 items-center justify-center bg-canvas px-6">
-        <StatusBar style="dark" />
-        <View className="h-16 w-16 items-center justify-center rounded-full bg-actionSoft">
-          <ActivityIndicator color={themeColors.action} />
-        </View>
-        <AppText variant="sectionTitle" className="mt-4 text-center">
-          Getting scanner ready
-        </AppText>
-        <AppText color="ink-muted" className="mt-1 text-center">
-          Checking camera permission…
+        <StatusBar style="light" />
+        <ActivityIndicator color={tokens.accent} />
+        <AppText color="ink-muted" className="mt-3 font-body-bold">
+          Warming up the scanner…
         </AppText>
       </View>
     );
@@ -70,158 +166,94 @@ export function ChildQrScannerScreen({ onCancel }: ChildQrScannerScreenProps) {
 
   if (!permission.granted) {
     return (
-      <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-canvas px-5">
-        <StatusBar style="dark" />
-        <View className="flex-1 justify-center">
-          <AppText
-            variant="label"
-            color="ink-faint"
-            className="uppercase tracking-widest"
-          >
-            QR pairing
-          </AppText>
-          <AppText variant="screenTitle" className="mt-3">
-            Camera access
-          </AppText>
-          <AppText color="ink-muted" className="mt-3">
-            Camera access is used only to scan the Child pairing QR code shown
-            on the Parent device.
-          </AppText>
-
-          {!permission.canAskAgain ? (
-            <Surface tone="reward" elevated={false} className="mt-6 p-4">
-              <AppText variant="cardTitle">
-                Camera permission is disabled
-              </AppText>
-              <AppText variant="bodySmall" color="ink-muted" className="mt-2">
-                You can still pair this Child using the manual code.
-              </AppText>
-            </Surface>
-          ) : null}
-
-          {permission.canAskAgain ? (
-            <ActionButton
-              className="mt-8"
-              label="Allow camera"
-              onPress={() => void requestPermission()}
-            />
-          ) : null}
+      <PermissionState
+        title="Open the porthole?"
+        body={
+          permission.canAskAgain
+            ? "The camera is only used to scan your Parent’s pairing code."
+            : "Camera access is off for this app. You can still type the code instead."
+        }
+      >
+        {permission.canAskAgain ? (
           <ActionButton
-            tone="secondary"
-            className="mt-4"
-            label="Use manual code"
-            onPress={onCancel}
+            label="Allow camera"
+            onPress={() => void requestPermission()}
           />
-        </View>
-      </SafeAreaView>
+        ) : null}
+        <ActionButton
+          tone="secondary"
+          label="Type the code instead"
+          onPress={onCancel}
+        />
+      </PermissionState>
     );
   }
 
   return (
     <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-canvas px-5">
-      <StatusBar style="dark" />
-      <AppText
-        variant="label"
-        color="ink-faint"
-        className="mt-5 uppercase tracking-widest"
-      >
-        Child setup
-      </AppText>
+      <StatusBar style="light" />
+      <View className="flex-row items-center justify-between pt-2">
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Back to typing the code"
+          onPress={onCancel}
+          disabled={redeeming}
+          hitSlop={8}
+          className="h-11 w-11 items-center justify-center rounded-full bg-surface"
+        >
+          <Icon name="close" color={tokens.ink} size={18} />
+        </Pressable>
+      </View>
       <AppText variant="screenTitle" className="mt-3">
-        Scan pairing QR
+        Point at their code
       </AppText>
-      <AppText color="ink-muted" className="mt-2">
-        Point this phone at the QR code shown on the Parent’s device.
+      <AppText color="ink-muted" className="mt-1 font-body-bold">
+        Fit the code on your Parent’s phone inside the porthole.
       </AppText>
 
-      <View className="mt-5 flex-1 overflow-hidden rounded-large bg-ink">
-        <View className="flex-1">
-          <Scene name="phone-qr" size={150} />
-          {!Device.isDevice ? (
-            <View
-              pointerEvents="none"
-              style={{
-                position: "absolute",
-                left: "40%",
-                top: "32%",
-                width: 70,
-                height: 150,
-                borderRadius: 8,
-                backgroundColor: "#D5E1ED",
-                alignItems: "center",
-                justifyContent: "center",
-                opacity: 0.78,
-                transform: [{ rotate: "-3deg" }],
-              }}
-            >
+      <View className="mt-5 flex-1 overflow-hidden rounded-[36px] border-4 border-nightRaised bg-night">
+        {Device.isDevice ? (
+          <CameraView
+            className="flex-1"
+            facing="back"
+            barcodeScannerSettings={{ barcodeTypes: ["qr"] }}
+            onBarcodeScanned={scanned ? undefined : handleBarcodeScanned}
+          />
+        ) : (
+          // The simulator has no camera: show a sample code in the window.
+          <View className="flex-1 items-center justify-center">
+            <View className="rounded-[14px] bg-star p-3">
               <PairingQrCode
                 value="visual-scanner-preview"
-                size={46}
+                size={150}
                 quietZone={1}
-                color="#3A4C55"
-                backgroundColor="#D5E1ED"
+                color={tokens.night}
+                backgroundColor={tokens.star}
               />
             </View>
-          ) : null}
-          {Device.isDevice ? (
-            <CameraView
-              className="flex-1"
-              facing="back"
-              barcodeScannerSettings={{ barcodeTypes: ["qr"] }}
-              onBarcodeScanned={scanned ? undefined : handleBarcodeScanned}
-            />
-          ) : null}
-        </View>
-
-        <View
-          pointerEvents="none"
-          className="absolute inset-0 items-center justify-center"
-        >
-          <View className="relative h-56 w-56">
-            <View className="bg-white/25 absolute inset-y-5 left-0 w-px" />
-            <View className="bg-white/25 absolute inset-y-5 right-0 w-px" />
-            <View className="bg-white/25 absolute inset-x-5 top-0 h-px" />
-            <View className="bg-white/25 absolute inset-x-5 bottom-0 h-px" />
-
-            <View className="absolute left-0 top-0 h-5 w-5 rounded-tl-lg border-l-[5px] border-t-[5px] border-white" />
-            <View className="absolute right-0 top-0 h-5 w-5 rounded-tr-lg border-r-[5px] border-t-[5px] border-white" />
-            <View className="absolute bottom-0 left-0 h-5 w-5 rounded-bl-lg border-b-[5px] border-l-[5px] border-white" />
-            <View className="absolute bottom-0 right-0 h-5 w-5 rounded-br-lg border-b-[5px] border-r-[5px] border-white" />
-
-            <View className="absolute inset-x-0 top-1/2 h-1 -translate-y-1/2 rounded-full bg-action" />
           </View>
-          <AppText color="white" className="absolute bottom-8 text-center">
-            Fit the code inside the frame
-          </AppText>
-        </View>
+        )}
+        <PortholeOverlay />
       </View>
 
-      {redeeming ? (
-        <View className="mt-4 flex-row items-center justify-center">
-          <ActivityIndicator color={themeColors.action} />
-          <AppText color="ink-muted" className="ml-3">
-            Pairing device…
+      <View className="min-h-[64px] items-center justify-center">
+        {redeeming ? (
+          <View className="flex-row items-center">
+            <ActivityIndicator color={tokens.accent} />
+            <AppText color="ink-muted" className="ml-3 font-body-bold">
+              Docking…
+            </AppText>
+          </View>
+        ) : errorMessage ? (
+          <AppText
+            accessibilityLiveRegion="polite"
+            color="pink"
+            className="text-center font-body-bold"
+          >
+            {errorMessage}
           </AppText>
-        </View>
-      ) : null}
-
-      {errorMessage ? (
-        <AppText
-          variant="bodySmall"
-          color="urgency"
-          className="mt-3 text-center"
-        >
-          {errorMessage}
-        </AppText>
-      ) : null}
-
-      <ActionButton
-        tone="secondary"
-        className="mb-1 mt-5"
-        label="Enter manual code instead"
-        disabled={redeeming}
-        onPress={onCancel}
-      />
+        ) : null}
+      </View>
     </SafeAreaView>
   );
 }

@@ -1,5 +1,5 @@
 import * as Haptics from "expo-haptics";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Pressable, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
@@ -42,9 +42,12 @@ export function StarSlots({
   const offset = useSharedValue(0);
   const pop = useSharedValue(1);
   const count = Math.min(max, Math.max(min, length + (length < max ? 1 : 0)));
+  // Only react to changes after mount, never replay an old shake/pop.
+  const [mountedShake] = useState(shake);
+  const [mountedCelebrate] = useState(celebrate);
 
   useEffect(() => {
-    if (shake === 0 || reducedMotion) return;
+    if (shake === mountedShake || reducedMotion) return;
     offset.set(
       withSequence(
         withTiming(-10, { duration: 50 }),
@@ -54,17 +57,17 @@ export function StarSlots({
         withTiming(0, { duration: 50 }),
       ),
     );
-  }, [offset, reducedMotion, shake]);
+  }, [mountedShake, offset, reducedMotion, shake]);
 
   useEffect(() => {
-    if (celebrate === 0 || reducedMotion) return;
+    if (celebrate === mountedCelebrate || reducedMotion) return;
     pop.set(
       withSequence(
         withTiming(1.15, { duration: 140, easing: Easings.out }),
         withSpring(1, { duration: 400, dampingRatio: 0.6 }),
       ),
     );
-  }, [celebrate, pop, reducedMotion]);
+  }, [celebrate, mountedCelebrate, pop, reducedMotion]);
 
   const rowStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: offset.get() }, { scale: pop.get() }],
@@ -201,6 +204,7 @@ export function StarKeypad({
           {row.map((digit) => (
             <Key
               key={digit}
+              testID={testID ? `${testID}-key-${digit}` : undefined}
               label={digit}
               accessibilityLabel={digit}
               disabled={busy || full}
@@ -219,6 +223,7 @@ export function StarKeypad({
           <Icon name="back" color={tokens.ink} size={24} />
         </Key>
         <Key
+          testID={testID ? `${testID}-key-0` : undefined}
           label="0"
           accessibilityLabel="0"
           disabled={busy || full}

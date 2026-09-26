@@ -1,7 +1,7 @@
 import * as Haptics from "expo-haptics";
 import { StatusBar } from "expo-status-bar";
-import { useState } from "react";
-import { Pressable, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { AccessibilityInfo, Pressable, View } from "react-native";
 import Animated, { useAnimatedStyle } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -76,13 +76,20 @@ export function ChildPinUnlockScreen({
   const { activateParentStorage } = useAuthRuntime();
   const [pin, setPin] = useState("");
   const [checkingPin, setCheckingPin] = useState(false);
+  // Once unlocked, everything stays disabled until the profile opens.
+  const [unlocked, setUnlocked] = useState(false);
+  const inFlight = useRef(false);
+  const openTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  useEffect(() => () => clearTimeout(openTimer.current), []);
+  const busy = checkingPin || unlocked;
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [shake, setShake] = useState(0);
   const [celebrate, setCelebrate] = useState(0);
   const { minLength, maxLength } = getChildPinRequirements();
 
   async function handleUnlock() {
-    if (pin.length < minLength || checkingPin) return;
+    if (pin.length < minLength || inFlight.current || unlocked) return;
+    inFlight.current = true;
     setErrorMessage(null);
     setCheckingPin(true);
 
@@ -93,20 +100,25 @@ export function ChildPinUnlockScreen({
         setPin("");
         setShake((n) => n + 1);
         setErrorMessage("That’s not the code. Try again!");
+        AccessibilityInfo.announceForAccessibility(
+          "That’s not the code. Try again.",
+        );
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         return;
       }
 
+      setUnlocked(true);
       setCelebrate((n) => n + 1);
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      // Let the stars pop before the profile opens.
-      setTimeout(onUnlocked, 320);
+      // Let the stars pop before the profile opens; cancelled on unmount.
+      openTimer.current = setTimeout(onUnlocked, 320);
     } catch (error) {
       setPin("");
       setErrorMessage(
         error instanceof Error ? error.message : "Could not verify PIN.",
       );
     } finally {
+      inFlight.current = false;
       setCheckingPin(false);
     }
   }
@@ -158,7 +170,7 @@ export function ChildPinUnlockScreen({
             value={pin}
             max={maxLength}
             canSubmit={pin.length >= minLength}
-            busy={checkingPin}
+            busy={busy}
             submitLabel="Unlock profile"
             onDigit={(digit) => {
               setErrorMessage(null);
@@ -170,7 +182,7 @@ export function ChildPinUnlockScreen({
           <Pressable
             testID="child-pin-use-another-profile"
             accessibilityRole="button"
-            disabled={checkingPin}
+            disabled={busy}
             onPress={handleSwitchProfile}
             className="mt-3 min-h-[44px] items-center justify-center"
           >

@@ -1,4 +1,4 @@
-import { Scene } from "@/components/art";
+import { LostSatellite, Starfield } from "@/components/art";
 import {
   getLocalChildContextByStoragePrefix,
   removeLocalChildContext,
@@ -6,11 +6,10 @@ import {
 import { forgetLocalChildGrant } from "@/lib/child-access/grant-status";
 import { setChildExplicitlyLocked } from "@/lib/child-access/unlock-policy";
 import { useAuthRuntime } from "@/providers/auth-runtime-provider";
-import { questTokens as themeColors } from "@/design-system/theme";
 import { ActionButton, AppText } from "@/design-system";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, View } from "react-native";
+import { View } from "react-native";
 
 import { ChildJoinScreen } from "./child-join-screen";
 
@@ -120,44 +119,40 @@ export function ChildNoAccessScreen({
 
   if (cleanupState === "error") {
     return (
-      <View className="flex-1 items-center justify-center bg-canvas px-5">
-        <View className="h-64 w-64 items-center justify-center rounded-full bg-[#FFE9E2]">
-          <Scene name="broken-link" size={240} />
-        </View>
+      <View className="flex-1 items-center justify-center bg-canvas px-6">
+        <StatusBar style="light" />
+        <Starfield seed={71} />
+        <LostSatellite size={210} />
         <AppText
           variant="label"
-          color="urgency"
-          className="mt-7 uppercase tracking-widest"
+          color="pink"
+          className="mt-2 uppercase tracking-[1.4px]"
         >
-          Access update
+          Lost signal
         </AppText>
-        <AppText variant="display" className="mt-3 text-center">
-          Could not clear Child access
+        <AppText variant="screenTitle" className="mt-2 text-center">
+          This device lost its link
         </AppText>
-        <AppText color="ink-muted" className="mt-4 text-center">
-          This device couldn’t finish removing the revoked Child profile. No
-          Child access is available until cleanup succeeds.
+        <AppText color="ink-muted" className="mt-2 text-center font-body-bold">
+          A Parent turned off this device’s access, but clearing it didn’t
+          finish. Nothing opens until it does.
         </AppText>
         {errorMessage ? (
-          <AppText
-            variant="caption"
-            color="urgency"
-            className="mt-3 text-center"
-          >
+          <AppText variant="caption" color="pink" className="mt-3 text-center">
             {errorMessage}
           </AppText>
         ) : null}
         <ActionButton
-          className="mt-8 w-full"
-          label="Retry cleanup"
+          className="mt-7 w-full"
+          label="Try again"
           onPress={() => setCleanupAttempt((current) => current + 1)}
         />
         <AppText
-          variant="bodySmall"
+          variant="caption"
           color="ink-muted"
-          className="mt-6 text-center"
+          className="mt-4 text-center"
         >
-          Keep this app open while access is updated.
+          Keep the app open while it finishes.
         </AppText>
       </View>
     );
@@ -165,18 +160,16 @@ export function ChildNoAccessScreen({
 
   return (
     <View className="flex-1 items-center justify-center bg-canvas px-6">
-      <StatusBar style="dark" />
-      <View className="h-16 w-16 items-center justify-center rounded-full bg-actionSoft">
-        <ActivityIndicator color={themeColors.action} />
-      </View>
-
-      <AppText variant="sectionTitle" className="mt-4 text-center">
-        Getting access ready
+      <StatusBar style="light" />
+      <Starfield seed={71} />
+      <LostSatellite size={170} />
+      <AppText variant="sectionTitle" className="mt-3 text-center">
+        Tuning in…
       </AppText>
-      <AppText color="ink-muted" className="mt-1 text-center">
+      <AppText color="ink-muted" className="mt-1 text-center font-body-bold">
         {cleanupState === "cleaning"
-          ? "Removing revoked Child access…"
-          : "Checking Child access…"}
+          ? "Clearing this device’s old access…"
+          : "Checking this device’s access…"}
       </AppText>
     </View>
   );

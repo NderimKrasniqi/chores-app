@@ -1,7 +1,7 @@
 import * as Haptics from "expo-haptics";
 import { StatusBar } from "expo-status-bar";
-import { useState } from "react";
-import { View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { AccessibilityInfo, Pressable, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { LostSatellite, Starfield } from "@/components/art";
@@ -47,6 +47,10 @@ export function ChildPinSetupScreen({
   const [pin, setPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
   const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const inFlight = useRef(false);
+  const doneTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  useEffect(() => () => clearTimeout(doneTimer.current), []);
   const [restarting, setRestarting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [shake, setShake] = useState(0);
@@ -85,16 +89,21 @@ export function ChildPinSetupScreen({
   }
 
   async function handleConfirm() {
+    if (inFlight.current || saved) return;
     if (confirmPin !== pin) {
       setShake((n) => n + 1);
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       setErrorMessage("Those didn’t match. Make your code again.");
+      AccessibilityInfo.announceForAccessibility(
+        "Those didn’t match. Make your code again.",
+      );
       setPin("");
       setConfirmPin("");
       setStep("create");
       return;
     }
 
+    inFlight.current = true;
     setSaving(true);
     setErrorMessage(null);
 
@@ -107,16 +116,17 @@ export function ChildPinSetupScreen({
         authStoragePrefix,
         pin,
       });
+      setSaved(true);
       setCelebrate((n) => n + 1);
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      setPin("");
-      setConfirmPin("");
-      setTimeout(() => onComplete(context), 320);
+      // Pop on the filled stars, then move on; cancelled on unmount.
+      doneTimer.current = setTimeout(() => onComplete(context), 320);
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : "Could not save Child PIN.",
       );
     } finally {
+      inFlight.current = false;
       setSaving(false);
     }
   }
@@ -191,7 +201,6 @@ export function ChildPinSetupScreen({
 
           <View className="mt-5">
             <StarSlots
-              key={step}
               length={value.length}
               min={minLength}
               max={maxLength}
@@ -216,7 +225,7 @@ export function ChildPinSetupScreen({
             value={value}
             max={maxLength}
             canSubmit={value.length >= minLength}
-            busy={saving}
+            busy={saving || saved}
             submitLabel={step === "create" ? "Next" : "Save code"}
             onDigit={(digit) => {
               setErrorMessage(null);
@@ -234,6 +243,26 @@ export function ChildPinSetupScreen({
               step === "create" ? handleCreate() : void handleConfirm()
             }
           />
+          {step === "confirm" && !saved ? (
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => {
+                setErrorMessage(null);
+                setPin("");
+                setConfirmPin("");
+                setStep("create");
+              }}
+              className="mt-2 min-h-[44px] items-center justify-center"
+            >
+              <AppText
+                variant="bodySmall"
+                color="ink-muted"
+                className="font-body-bold underline"
+              >
+                Start over
+              </AppText>
+            </Pressable>
+          ) : null}
           <View className="mt-3 flex-row items-center justify-center gap-1.5">
             <Icon name="checkShield" color={tokens.primary} size={16} />
             <AppText variant="caption" color="ink-muted">
