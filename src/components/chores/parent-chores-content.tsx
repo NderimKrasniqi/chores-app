@@ -163,6 +163,7 @@ export function ParentChoresContent({
     visualForm?.kind ?? "personal",
   );
   const [showForm, setShowForm] = useState(Boolean(visualForm));
+  const [showFinished, setShowFinished] = useState(false);
   const [editingId, setEditingId] = useState<Id<"choreDefinitions"> | null>(
     visualForm?.editingId ?? null,
   );
@@ -380,6 +381,16 @@ export function ParentChoresContent({
 
   const visibleDefinitions =
     definitions?.filter((definition) => definition.kind === listKind) ?? [];
+  // A one-off whose last day has passed is history, not something to plan.
+  const today = isoDateInDays(0, timezone);
+  const isFinishedOneOff = (definition: Definition) =>
+    definition.recurrence.kind === "one_off" &&
+    addDays(definition.recurrence.scheduledDate, definition.deadlineDayOffset) <
+      today;
+  const currentDefinitions = visibleDefinitions.filter(
+    (definition) => !isFinishedOneOff(definition),
+  );
+  const finishedDefinitions = visibleDefinitions.filter(isFinishedOneOff);
 
   function applyTemplate(template: ChoreTemplate) {
     setTitle(template.title);
@@ -439,7 +450,7 @@ export function ParentChoresContent({
             </AppText>
           </View>
         ) : (
-          visibleDefinitions.map((definition) => (
+          currentDefinitions.map((definition) => (
             <ChoreRow
               key={definition.choreDefinitionId}
               definition={definition}
@@ -452,7 +463,52 @@ export function ParentChoresContent({
             />
           ))
         )}
+        {definitions !== undefined &&
+        visibleDefinitions.length > 0 &&
+        currentDefinitions.length === 0 ? (
+          <AppText color="ink-muted" className="mt-1 text-center">
+            {listKind === "personal"
+              ? "Nothing coming up. Add a chore above."
+              : "No Extras on offer right now. Add one above."}
+          </AppText>
+        ) : null}
       </View>
+
+      {finishedDefinitions.length > 0 ? (
+        <View className="mt-6">
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ expanded: showFinished }}
+            onPress={() => setShowFinished((value) => !value)}
+            className="min-h-[44px] flex-row items-center justify-between"
+          >
+            <AppText variant="label" color="ink-muted">
+              Finished one-offs · {finishedDefinitions.length}
+            </AppText>
+            <Icon
+              name={showFinished ? "chevronDown" : "chevron"}
+              color={themeColors.inkMuted}
+              size={16}
+            />
+          </Pressable>
+          {showFinished ? (
+            <View className="mt-2 gap-2.5" style={{ opacity: 0.6 }}>
+              {finishedDefinitions.map((definition) => (
+                <ChoreRow
+                  key={definition.choreDefinitionId}
+                  definition={definition}
+                  childName={
+                    children.find(
+                      (child) => child.childId === definition.personalChildId,
+                    )?.displayName
+                  }
+                  onPress={() => openEdit(definition)}
+                />
+              ))}
+            </View>
+          ) : null}
+        </View>
+      ) : null}
 
       <Modal
         visible={showForm}
@@ -860,7 +916,7 @@ function ChoreRow({
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${definition.title}, ${definition.valueSek} kronor. ${recurrenceLabel(definition.recurrence)}. Edit`}
+      accessibilityLabel={`${definition.title}, ${definition.valueSek} kronor. ${recurrenceLabel(definition.recurrence)}, ${dueLabel(definition)}. Edit`}
       onPress={onPress}
     >
       {({ pressed }) => (
@@ -880,7 +936,7 @@ function ChoreRow({
               {[
                 childName,
                 recurrenceLabel(definition.recurrence),
-                `due ${definition.deadlineLocalTime}`,
+                dueLabel(definition),
               ]
                 .filter(Boolean)
                 .join(" · ")}
@@ -1084,6 +1140,20 @@ function SmallInput({
 }
 
 /** YYYY-MM-DD `days` from today in the household's time zone. */
+// "Next day" deadlines must say so, or a Saturday chore reads as due Saturday.
+function dueLabel(definition: Definition) {
+  const offset = definition.deadlineDayOffset;
+  if (offset === 0) return `due ${definition.deadlineLocalTime}`;
+  if (offset === 1) return `due next day ${definition.deadlineLocalTime}`;
+  return `due ${offset} days later ${definition.deadlineLocalTime}`;
+}
+
+function addDays(isoDate: string, days: number) {
+  const [y, m, d] = isoDate.split("-").map(Number);
+  const date = new Date(Date.UTC(y, m - 1, d + days, 12));
+  return date.toISOString().slice(0, 10);
+}
+
 function isoDateInDays(days: number, timezone?: string) {
   let today: string;
   try {
