@@ -86,7 +86,7 @@ export function ChildPinUnlockScreen({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [shake, setShake] = useState(0);
   const [celebrate, setCelebrate] = useState(0);
-  const { minLength, maxLength } = getChildPinRequirements();
+  const { minLength, maxLength } = getChildPinRequirements(context);
 
   async function handleUnlock() {
     if (pin.length < minLength || inFlight.current || unlocked) return;

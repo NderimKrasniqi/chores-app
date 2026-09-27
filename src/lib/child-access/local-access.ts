@@ -8,8 +8,11 @@ import {
 
 const CHILD_CONTEXT_REGISTRY_KEY = "choresapp.child-context-registry.v1";
 
-const PIN_MIN_LENGTH = 4;
-const PIN_MAX_LENGTH = 8;
+/** New star codes are exactly this long. */
+const PIN_LENGTH = 4;
+/* Codes saved before the fixed length stay valid at 4–8 digits. */
+const LEGACY_PIN_MIN_LENGTH = 4;
+const LEGACY_PIN_MAX_LENGTH = 8;
 
 export type LocalChildContext = {
   contextId: string;
@@ -32,6 +35,9 @@ export type LocalChildContext = {
    */
   pinSalt: string;
   pinVerifier: string;
+
+  /** Digits in the star code; absent on codes saved before it was fixed. */
+  pinLength?: number;
 
   createdAt: number;
   updatedAt: number;
@@ -59,18 +65,31 @@ function normalizePin(pin: string) {
   return pin.trim();
 }
 
+/** A new star code: exactly PIN_LENGTH digits. */
 export function isValidChildPin(pin: string) {
-  const normalized = normalizePin(pin);
-
-  return new RegExp(`^\\d{${PIN_MIN_LENGTH},${PIN_MAX_LENGTH}}$`).test(
-    normalized,
-  );
+  return new RegExp(`^\\d{${PIN_LENGTH}}$`).test(normalizePin(pin));
 }
 
-export function getChildPinRequirements() {
+function isAcceptableExistingPin(pin: string) {
+  return new RegExp(
+    `^\\d{${LEGACY_PIN_MIN_LENGTH},${LEGACY_PIN_MAX_LENGTH}}$`,
+  ).test(normalizePin(pin));
+}
+
+/**
+ * Setting a code (no context): exactly PIN_LENGTH. Unlocking: the saved
+ * code's own length, or 4–8 for a code saved before lengths were stored.
+ */
+export function getChildPinRequirements(
+  context?: Pick<LocalChildContext, "pinLength">,
+) {
+  if (!context) return { minLength: PIN_LENGTH, maxLength: PIN_LENGTH };
+  if (context.pinLength) {
+    return { minLength: context.pinLength, maxLength: context.pinLength };
+  }
   return {
-    minLength: PIN_MIN_LENGTH,
-    maxLength: PIN_MAX_LENGTH,
+    minLength: LEGACY_PIN_MIN_LENGTH,
+    maxLength: LEGACY_PIN_MAX_LENGTH,
   };
 }
 
@@ -203,9 +222,7 @@ export async function registerLocalChildContext({
   const normalizedPin = normalizePin(pin);
 
   if (!isValidChildPin(normalizedPin)) {
-    throw new Error(
-      `PIN must contain ${PIN_MIN_LENGTH} to ${PIN_MAX_LENGTH} digits.`,
-    );
+    throw new Error(`PIN must contain ${PIN_LENGTH} digits.`);
   }
 
   const normalizedStoragePrefix = authStoragePrefix.trim();
@@ -249,6 +266,7 @@ export async function registerLocalChildContext({
 
     pinSalt,
     pinVerifier,
+    pinLength: normalizedPin.length,
 
     createdAt: existing?.createdAt ?? now,
 
@@ -280,7 +298,7 @@ export async function registerLocalChildContext({
 export async function verifyLocalChildPin(contextId: string, pin: string) {
   const normalizedPin = normalizePin(pin);
 
-  if (!isValidChildPin(normalizedPin)) {
+  if (!isAcceptableExistingPin(normalizedPin)) {
     return false;
   }
 
@@ -310,9 +328,7 @@ export async function changeLocalChildPin(
   }
 
   if (!isValidChildPin(newPin)) {
-    throw new Error(
-      `New PIN must contain ${PIN_MIN_LENGTH} to ${PIN_MAX_LENGTH} digits.`,
-    );
+    throw new Error(`New PIN must contain ${PIN_LENGTH} digits.`);
   }
 
   const contexts = await readRegistry();
@@ -333,6 +349,7 @@ export async function changeLocalChildPin(
     ...context,
     pinSalt,
     pinVerifier,
+    pinLength: normalizePin(newPin).length,
     updatedAt: Date.now(),
   };
 

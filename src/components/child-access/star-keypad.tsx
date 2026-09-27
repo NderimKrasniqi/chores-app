@@ -22,7 +22,8 @@ const STAR =
 /**
  * The secret star code: one slot per digit, lighting gold as digits go in.
  * `shake` bumps on a wrong code (slots shudder); `celebrate` bumps on a right
- * one (slots pop). Slots grow with the code up to `max`.
+ * one (slots pop). With `min === max` the slots are fixed; otherwise they
+ * grow with the code up to `max` (older codes saved at 4–8 digits).
  */
 export function StarSlots({
   length,
@@ -76,7 +77,11 @@ export function StarSlots({
   return (
     <Animated.View
       accessible
-      accessibilityLabel={`${length} of at least ${min} digits entered`}
+      accessibilityLabel={
+        min === max
+          ? `${length} of ${max} digits entered`
+          : `${length} of at least ${min} digits entered`
+      }
       className="flex-row items-center justify-center gap-2.5"
       style={rowStyle}
     >

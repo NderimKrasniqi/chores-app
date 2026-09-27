@@ -78,7 +78,7 @@ export function ChildPinSetupScreen({
 
   function handleCreate() {
     if (!isValidChildPin(pin)) {
-      setErrorMessage(`Use ${minLength} to ${maxLength} numbers.`);
+      setErrorMessage(`Use ${maxLength} numbers.`);
       setShake((n) => n + 1);
       return;
     }
@@ -192,7 +192,7 @@ export function ChildPinSetupScreen({
             className="mt-1 text-center font-body-bold"
           >
             {step === "create"
-              ? `${minLength} to ${maxLength} numbers only you know`
+              ? `${maxLength} numbers only you know`
               : "Type the same code to lock it in"}
           </AppText>
 
