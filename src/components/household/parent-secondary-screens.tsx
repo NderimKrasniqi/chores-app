@@ -528,9 +528,16 @@ function RuleCard({
           <Icon name={icon} color={tokens.action} size={20} />
         </View>
         <View className="flex-1">
-          <AppText variant="cardTitle">{title}</AppText>
+          <View className="flex-row items-center justify-between gap-2">
+            <AppText variant="cardTitle">{title}</AppText>
+            {saving ? (
+              <AppText variant="caption" color="ink-muted">
+                Saving…
+              </AppText>
+            ) : null}
+          </View>
           <AppText variant="caption" color="ink-muted">
-            {saving ? "Saving…" : body}
+            {body}
           </AppText>
         </View>
       </View>

@@ -273,7 +273,10 @@ function RuleToken({
 }) {
   const { tokens } = useTheme();
   return (
-    <View className="flex-1 items-center rounded-[20px] bg-surface px-2 py-3">
+    <View
+      pointerEvents="none"
+      className="flex-1 items-center rounded-[20px] bg-surface px-2 py-3"
+    >
       <Icon name={icon} color={tokens.action} size={20} />
       <AppText variant="caption" color="ink-muted" className="mt-1.5">
         {label}
