@@ -140,12 +140,14 @@ export function ChildActivityFeed({
         </View>
       ) : null}
 
-      <View className="mt-3 flex-row items-center gap-2">
-        <Icon name="lock" color={tokens.inkMuted} size={13} />
-        <AppText variant="caption" color="ink-muted" className="flex-1">
-          Chore rewards are shared. Everyone’s balance stays private.
-        </AppText>
-      </View>
+      {viewerChildId ? (
+        <View className="mt-3 flex-row items-center gap-2">
+          <Icon name="lock" color={tokens.inkMuted} size={13} />
+          <AppText variant="caption" color="ink-muted" className="flex-1">
+            Chore rewards are shared. Everyone’s balance stays private.
+          </AppText>
+        </View>
+      ) : null}
 
       {items.length === 0 ? (
         <View
