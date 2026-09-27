@@ -33,6 +33,12 @@ Running log of the end-to-end workflow pass (J-01 … J-13) on iPhone 17 Pro
       it”) while they're its only Parent and nothing has happened in it.
 - [ ] New Maestro flows for the Quest Path screens (the old ones are gone).
 
+- [ ] “Opening child profile…” spins forever when the server can't be
+      reached (seen after a simulator restart: WebSocket TLS error). Show the
+      offline pill / a “can't connect — try again” state after ~10 s.
+- [ ] Maestro: flows written in .maestro/ (uncommitted) but the iOS driver
+      won't start on these simulators; it also froze the 17e once.
+
 ## UI/UX pass (27 Sep)
 
 - Money: compact piggy-bank card (tail wag, coins drop in since last visit,
