@@ -266,6 +266,7 @@ function ParentFamilyScreen() {
           title="Family"
           subtitle="People, access, and household."
           onOpenAccount={noop}
+          parentName="Sam"
           compact
         />
         <ParentFamilyContent

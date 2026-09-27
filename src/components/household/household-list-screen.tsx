@@ -1,3 +1,4 @@
+import { useQuery } from "convex/react";
 import { ParentChoresContent } from "@/components/chores/parent-chores-content";
 import { ParentReviewsContent } from "@/components/chores/parent-reviews-content";
 import { OnboardingScreen } from "@/components/onboarding/onboarding-screen";
@@ -13,6 +14,7 @@ import {
 } from "react-native-safe-area-context";
 import { userErrorMessage } from "@/lib/errors";
 
+import { api } from "../../../convex/_generated/api";
 import type { HouseholdSummary } from "./household-types";
 import {
   ParentBottomNavigation,
@@ -91,6 +93,8 @@ export function HouseholdListScreen({
       setSigningOut(false);
     }
   }
+
+  const liveSubtitle = useLiveSubtitle(activeSection, household);
 
   if (route === "account") {
     return (
@@ -204,8 +208,9 @@ export function HouseholdListScreen({
           <View>
             <ParentScreenHeader
               title={sectionCopy[activeSection].title}
-              subtitle={sectionCopy[activeSection].subtitle}
+              subtitle={liveSubtitle ?? sectionCopy[activeSection].subtitle}
               onOpenAccount={() => setRoute("account")}
+              parentName={parentName}
             />
 
             {activeSection === "chores" ? (
@@ -268,4 +273,81 @@ export function HouseholdListScreen({
       </View>
     </SafeAreaView>
   );
+}
+
+const WEEKDAYS = [
+  "sunday",
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+  "saturday",
+] as const;
+
+function daysUntilPayday(household: HouseholdSummary) {
+  let today: string;
+  try {
+    today = new Intl.DateTimeFormat("en-GB", {
+      timeZone: household.timezone,
+      weekday: "long",
+    })
+      .format(new Date())
+      .toLowerCase();
+  } catch {
+    today = WEEKDAYS[new Date().getDay()];
+  }
+  const from = WEEKDAYS.indexOf(today as (typeof WEEKDAYS)[number]);
+  const to = WEEKDAYS.indexOf(household.payoutWeekday);
+  return (to - from + 7) % 7;
+}
+
+/**
+ * A live line under each tab's title instead of a generic description.
+ * The queries are the same ones the tab content subscribes to, so Convex
+ * shares them; tabs that aren't showing skip them.
+ */
+function useLiveSubtitle(
+  section: ParentSection,
+  household: HouseholdSummary,
+): string | null {
+  const definitions = useQuery(
+    api.choreDefinitions.listActiveForHousehold,
+    section === "chores" ? { householdId: household.householdId } : "skip",
+  );
+  const reviewArgs =
+    section === "reviews" ? { householdId: household.householdId } : "skip";
+  const personal = useQuery(api.personalChoreReviews.listPending, reviewArgs);
+  const claimable = useQuery(api.claimableChoreReviews.listPending, reviewArgs);
+  const redos = useQuery(api.redoChoreReviews.listPending, reviewArgs);
+
+  switch (section) {
+    case "chores": {
+      if (!definitions) return null;
+      const chores = definitions.filter((d) => d.kind === "personal").length;
+      const extras = definitions.length - chores;
+      return `${chores} ${chores === 1 ? "chore" : "chores"} · ${extras} ${extras === 1 ? "Extra" : "Extras"} on offer`;
+    }
+    case "reviews": {
+      if (!personal || !claimable || !redos) return null;
+      const count = personal.length + claimable.length + redos.length;
+      return count === 0 ? "All caught up" : `${count} to check`;
+    }
+    case "money": {
+      const days = daysUntilPayday(household);
+      const day =
+        household.payoutWeekday.charAt(0).toUpperCase() +
+        household.payoutWeekday.slice(1);
+      return days === 0
+        ? `Payday today (${day})`
+        : `Payday ${day} · in ${days} ${days === 1 ? "day" : "days"}`;
+    }
+    case "family": {
+      const kids = household.children.length;
+      const parents = household.parents.length;
+      return `${kids} ${kids === 1 ? "kid" : "kids"} · ${parents} ${parents === 1 ? "parent" : "parents"}`;
+    }
+    default:
+      return null;
+  }
 }
