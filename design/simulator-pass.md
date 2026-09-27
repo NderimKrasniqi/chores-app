@@ -17,7 +17,7 @@ Running log of the end-to-end workflow pass (J-01 … J-13) on iPhone 17 Pro
       screen is called “Link a phone”.
 - [x] “Getting your profile ready” loading screen shows a dark status bar on
       the dark background.
-- [ ] Parent Home crew balances briefly show “•••” while reloading.
+- [x] Parent Home crew balances briefly show “•••” while reloading.
 - [x] A decorative sparkle can sit on top of footer text on the entry screen.
 
 - [ ] Dev only: a hot reload while a Child is signed in can show “Pair Alex
@@ -33,7 +33,7 @@ Running log of the end-to-end workflow pass (J-01 … J-13) on iPhone 17 Pro
       it”) while they're its only Parent and nothing has happened in it.
 - [ ] New Maestro flows for the Quest Path screens (the old ones are gone).
 
-- [ ] “Opening child profile…” spins forever when the server can't be
+- [x] “Opening child profile…” spins forever when the server can't be
       reached (seen after a simulator restart: WebSocket TLS error). Show the
       offline pill / a “can't connect — try again” state after ~10 s.
 - [ ] Maestro: flows written in .maestro/ (uncommitted) but the iOS driver
