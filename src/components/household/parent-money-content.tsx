@@ -373,6 +373,7 @@ export function ParentMoneyContent({
         start={overview.currentPeriod.startLocalDate}
         end={overview.currentPeriod.endLocalDate}
         payday={overview.configuredPayoutWeekday}
+        today={localToday(overview.currentPeriod.timezone)}
         onChange={() => setChangingDay((value) => !value)}
       />
       {changingDay ? (
@@ -555,15 +556,31 @@ export function ParentMoneyContent({
 }
 
 /** The payout week as a row of days with payday circled. */
+function localToday(timezone: string) {
+  try {
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone: timezone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(new Date());
+  } catch {
+    return new Date().toISOString().slice(0, 10);
+  }
+}
+
 function WeekStrip({
   start,
   end,
   payday,
+  today,
   onChange,
 }: {
   start: string;
   end: string;
   payday: string;
+  /** Household-local YYYY-MM-DD. */
+  today: string;
   onChange: () => void;
 }) {
   const [y, m, d] = start.split("-").map(Number);
@@ -585,8 +602,12 @@ function WeekStrip({
         timeZone: "UTC",
       }),
       day: date.getUTCDate(),
+      iso: date.toISOString().slice(0, 10),
     };
   });
+  // The week opens on the last payday and closes on the next one; only the
+  // coming payday is the one to look forward to.
+  const paydayIndex = days.findLastIndex((day) => day.weekday === payday);
   return (
     <View className="rounded-[26px] bg-surface p-4">
       <View className="flex-row items-center justify-between">
@@ -609,8 +630,9 @@ function WeekStrip({
         </Pressable>
       </View>
       <View className="mt-4 flex-row justify-between">
-        {days.map((day) => {
-          const isPayday = day.weekday === payday;
+        {days.map((day, index) => {
+          const isPayday = index === paydayIndex;
+          const isToday = day.iso === today;
           return (
             <View key={day.key} className="items-center">
               <AppText variant="caption" color="ink-muted">
@@ -622,7 +644,16 @@ function WeekStrip({
                   backgroundColor: isPayday
                     ? themeColors.reward
                     : "transparent",
+                  borderWidth: isToday && !isPayday ? 2 : 0,
+                  borderColor: themeColors.ink,
                 }}
+                accessibilityLabel={
+                  isToday
+                    ? `Today, ${day.day}`
+                    : isPayday
+                      ? `Payday, ${day.day}`
+                      : undefined
+                }
               >
                 <AppText variant="label">{day.day}</AppText>
               </View>
