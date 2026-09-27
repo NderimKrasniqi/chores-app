@@ -33,6 +33,19 @@ Running log of the end-to-end workflow pass (J-01 … J-13) on iPhone 17 Pro
       it”) while they're its only Parent and nothing has happened in it.
 - [ ] New Maestro flows for the Quest Path screens (the old ones are gone).
 
+## UI/UX pass (27 Sep)
+
+- Money: compact piggy-bank card (tail wag, coins drop in since last visit,
+  count-up, rain cloud below zero); “Piggy bank” everywhere.
+- Child Family: a shelf of 7 star jars (this week's wins by day and kid).
+- Parent Family: tried a big doll's house — too big; now a slim house banner
+  above the rows.
+- Parent tabs: your avatar opens the account; live subtitles.
+- Parent Money: each kid shows this week's net and a dot per day.
+- Extras: big open-chest moment only on the first look after an unlock.
+- Kid page: last-7-days strip.
+- “kr” always after the number, on one line.
+
 ## Fixed
 - Reviewer pass: text overrides keep their line-height ratio; sheets don't
   stack a home-indicator gap on the keyboard; device labels capped before
