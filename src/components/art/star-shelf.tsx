@@ -133,7 +133,6 @@ export const StarShelf = memo(function StarShelf({
   );
 });
 
-
 function Jar({
   isToday,
   tokens,

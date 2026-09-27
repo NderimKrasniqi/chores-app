@@ -272,10 +272,10 @@ function RealRewardsPage() {
       <View className="flex-1 items-center justify-center">
         <BalanceOrb size={130}>
           <AppText className="font-display text-[40px] leading-[44px] text-night">
-            240
-          </AppText>
-          <AppText className="font-body-heavy text-[14px] text-night">
-            kr
+            240{" "}
+            <AppText className="font-body-heavy text-[14px] text-night">
+              kr
+            </AppText>
           </AppText>
         </BalanceOrb>
         <AppText variant="label" color="ink-muted" className="mt-3">

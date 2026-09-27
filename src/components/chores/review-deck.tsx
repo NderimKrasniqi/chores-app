@@ -247,7 +247,7 @@ function TopCard({
         />
         <ActionButton
           className="flex-1"
-          label={`Approve +${item.valueSek}`}
+          label={`Approve +${item.valueSek} kr`}
           leading={<Icon name="check" color={tokens.onAction} size={18} />}
           loading={busy}
           disabled={committing}
@@ -312,10 +312,10 @@ function CardFace({
         <ChoreIcon title={item.title} size={104} animated={!compact} />
         <View className="absolute right-4 top-4 h-14 w-14 items-center justify-center rounded-full border-b-4 border-goldShade bg-gold">
           <AppText className="font-display text-[17px] leading-[19px] text-night">
-            +{item.valueSek}
-          </AppText>
-          <AppText className="font-body-heavy text-[10px] leading-[12px] text-night">
-            kr
+            +{item.valueSek}{" "}
+            <AppText className="font-body-heavy text-[10px] leading-[12px] text-night">
+              kr
+            </AppText>
           </AppText>
         </View>
       </View>

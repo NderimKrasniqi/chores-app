@@ -223,10 +223,10 @@ function Node({ stop, showBuddy }: { stop: QuestStop; showBuddy: boolean }) {
               {stop.reward !== undefined ? (
                 <>
                   <AppText className="font-display text-[24px] leading-[26px] text-night">
-                    +{stop.reward}
-                  </AppText>
-                  <AppText className="font-body-heavy text-[12px] leading-[14px] text-night">
-                    kr
+                    +{stop.reward}{" "}
+                    <AppText className="font-body-heavy text-[12px] leading-[14px] text-night">
+                      kr
+                    </AppText>
                   </AppText>
                 </>
               ) : (
@@ -256,8 +256,12 @@ function Node({ stop, showBuddy }: { stop: QuestStop; showBuddy: boolean }) {
           ]}
         >
           {stop.reward !== undefined ? (
-            <AppText className="font-display text-[18px] text-ink">
+            <AppText className="font-display text-[17px] text-ink">
               +{stop.reward}
+              <AppText className="font-body-heavy text-[10px] text-ink">
+                {" "}
+                kr
+              </AppText>
             </AppText>
           ) : (
             <Icon name="star" color={tokens.inkMuted} size={24} />

@@ -241,7 +241,7 @@ function HomeTab({
 
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={`Running balance ${balanceSek ?? "loading"} kronor. Open money.`}
+            accessibilityLabel={`Piggy bank: ${balanceSek ?? "loading"} kronor. Open money.`}
             onPress={onOpenMoney}
             className="mt-4 flex-row items-center gap-4 rounded-large bg-surface px-4 py-3"
             testID="task14-running-balance-card"
@@ -251,16 +251,13 @@ function HomeTab({
                 className="font-display text-[30px] leading-[33px] text-night"
                 testID="task14-running-balance-value"
               >
-                {balanceSek === undefined ? "…" : balanceSek}
-              </AppText>
-              <AppText className="font-body-heavy text-[13px] leading-[15px] text-night">
-                kr
+                {balanceSek === undefined ? "…" : balanceSek}{" "}
+                <AppText className="font-body-heavy text-[13px] leading-[15px] text-night">
+                  kr
+                </AppText>
               </AppText>
             </BalanceOrb>
             <View className="flex-1">
-              <AppText variant="label" color="ink-muted">
-                Running balance
-              </AppText>
               <AppText className="font-display-medium text-[20px] leading-[25px]">
                 Your piggy bank
               </AppText>

@@ -302,10 +302,10 @@ export function ParentHomeContent({
                 </View>
                 <View className="items-end">
                   <AppText variant="amount">
-                    {money ? money.runningBalanceSek : "…"}
-                  </AppText>
-                  <AppText variant="caption" color="ink-muted">
-                    kr
+                    {money ? money.runningBalanceSek : "…"}{" "}
+                    <AppText variant="caption" color="ink-muted">
+                      kr
+                    </AppText>
                   </AppText>
                 </View>
               </View>

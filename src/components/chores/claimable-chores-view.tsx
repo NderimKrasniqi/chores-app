@@ -198,10 +198,10 @@ function ValueCoin({ value }: { value: number }) {
   return (
     <View className="h-14 w-14 items-center justify-center rounded-full border-b-4 border-goldShade bg-gold">
       <AppText className="font-display text-[18px] leading-[20px] text-night">
-        {value}
-      </AppText>
-      <AppText className="font-body-heavy text-[10px] leading-[12px] text-night">
-        kr
+        {value}{" "}
+        <AppText className="font-body-heavy text-[10px] leading-[12px] text-night">
+          kr
+        </AppText>
       </AppText>
     </View>
   );

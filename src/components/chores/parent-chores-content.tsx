@@ -1079,17 +1079,17 @@ function CoinStepper({
       >
         <Icon name="minus" color={tokens.ink} size={20} />
       </Pressable>
-      <View className="h-24 w-24 items-center justify-center rounded-full border-b-[6px] border-goldShade bg-gold">
+      <View className="h-24 w-24 flex-row items-center justify-center gap-0.5 rounded-full border-b-[6px] border-goldShade bg-gold">
         <TextInput
           accessibilityLabel="Reward in kronor"
           value={value}
           onChangeText={(text) => onChange(text.replace(/\D/g, "").slice(0, 4))}
           keyboardType="number-pad"
           placeholder="0"
-          className="min-w-[60px] text-center font-display text-night"
+          className="min-w-[40px] text-center font-display text-night"
           style={{ fontSize: 30 }}
         />
-        <AppText variant="caption" className="-mt-1 text-night">
+        <AppText variant="label" className="text-night">
           kr
         </AppText>
       </View>

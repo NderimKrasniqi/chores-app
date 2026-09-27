@@ -403,10 +403,10 @@ function Hero({
         </Floating>
         <View className="absolute bottom-1 right-1 h-11 w-11 items-center justify-center rounded-full border-b-4 border-goldShade bg-gold">
           <AppText className="font-display text-[15px] leading-[17px] text-night">
-            {value}
-          </AppText>
-          <AppText className="font-body-heavy text-[9px] leading-[10px] text-night">
-            kr
+            {value}{" "}
+            <AppText className="font-body-heavy text-[9px] leading-[10px] text-night">
+              kr
+            </AppText>
           </AppText>
         </View>
       </View>

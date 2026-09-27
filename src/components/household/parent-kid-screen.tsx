@@ -198,6 +198,10 @@ export function ParentKidScreen({
         </View>
       </View>
 
+      {overview ? (
+        <WeekStrip chores={overview.chores} timezone={timezone} now={now} />
+      ) : null}
+
       {myClaims.length > 0 ? (
         <ActiveClaimableClaimsView
           claims={myClaims}
@@ -415,5 +419,130 @@ function Sheet({
         </Pressable>
       </Pressable>
     </Modal>
+  );
+}
+
+const DAY_MS = 86_400_000;
+
+/**
+ * The last seven days at a glance: one mark per chore — a filled check when
+ * approved, a ring while still to do or being checked, a cross when missed.
+ */
+function WeekStrip({
+  chores,
+  timezone,
+  now,
+}: {
+  chores: {
+    occurrenceId: string;
+    scheduledLocalDate: string;
+    state: ChoreState;
+  }[];
+  timezone: string;
+  now: number;
+}) {
+  const { tokens } = useTheme();
+  let today: string;
+  try {
+    today = new Intl.DateTimeFormat("en-CA", {
+      timeZone: timezone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(new Date(now));
+  } catch {
+    today = new Date(now).toISOString().slice(0, 10);
+  }
+  const [y, m, d] = today.split("-").map(Number);
+  const base = Date.UTC(y, m - 1, d, 12);
+  const days = Array.from({ length: 7 }, (_, i) => {
+    const date = new Date(base - (6 - i) * DAY_MS);
+    const key = date.toISOString().slice(0, 10);
+    return {
+      key,
+      label: date.toLocaleDateString("en-GB", {
+        weekday: "narrow",
+        timeZone: "UTC",
+      }),
+      isToday: i === 6,
+      marks: chores
+        .filter(
+          (chore) =>
+            chore.scheduledLocalDate === key && chore.state !== "cancelled",
+        )
+        .map((chore) => chore.state),
+    };
+  });
+  const done = days
+    .flatMap((day) => day.marks)
+    .filter((s) => s === "approved").length;
+  const total = days.flatMap((day) => day.marks).length;
+
+  return (
+    <View
+      accessible
+      accessibilityLabel={`Last 7 days: ${done} of ${total} chores approved`}
+      className="mt-3 rounded-[22px] px-4 py-3"
+      style={{ backgroundColor: tokens.surface }}
+    >
+      <View className="flex-row items-baseline justify-between">
+        <AppText variant="label">Last 7 days</AppText>
+        <AppText variant="caption" color="ink-muted">
+          {done} of {total} done
+        </AppText>
+      </View>
+      <View className="mt-2 flex-row justify-between">
+        {days.map((day) => (
+          <View key={day.key} className="w-9 items-center">
+            <View className="min-h-[34px] items-center justify-end gap-1">
+              {day.marks.slice(0, 3).map((state, index) => (
+                <Mark key={index} state={state} tokens={tokens} />
+              ))}
+            </View>
+            <AppText
+              variant="caption"
+              className="mt-1"
+              style={{
+                color: day.isToday ? tokens.ink : tokens.inkMuted,
+                fontWeight: day.isToday ? "800" : undefined,
+              }}
+            >
+              {day.label}
+            </AppText>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+function Mark({
+  state,
+  tokens,
+}: {
+  state: ChoreState;
+  tokens: ReturnType<typeof useTheme>["tokens"];
+}) {
+  if (state === "approved") {
+    return (
+      <View
+        className="h-3 w-3 items-center justify-center rounded-full"
+        style={{ backgroundColor: tokens.action }}
+      />
+    );
+  }
+  if (state === "missed" || state === "failed") {
+    return (
+      <View
+        className="h-3 w-3 rounded-full"
+        style={{ backgroundColor: tokens.urgency, opacity: 0.8 }}
+      />
+    );
+  }
+  return (
+    <View
+      className="h-3 w-3 rounded-full"
+      style={{ borderWidth: 2, borderColor: tokens.inkMuted }}
+    />
   );
 }
