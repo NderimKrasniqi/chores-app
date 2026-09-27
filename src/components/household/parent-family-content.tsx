@@ -1,11 +1,15 @@
 import { useQuery } from "convex/react";
 import { useState, type ReactNode } from "react";
 import { Modal, Pressable, TextInput, View } from "react-native";
-import Animated from "react-native-reanimated";
+import Animated, {
+  interpolate,
+  useAnimatedStyle,
+} from "react-native-reanimated";
+import Svg, { Path, Rect } from "react-native-svg";
 import { userErrorMessage } from "@/lib/errors";
 
-import { FamilyHouse } from "@/components/art";
-import { PRESS, pressTransition } from "@/components/art/motion";
+import { useLoop } from "@/components/art";
+import { Easings, PRESS, pressTransition } from "@/components/art/motion";
 import { childAvatarTone, Avatar } from "@/components/ui/avatar";
 import { Icon, type IconName } from "@/components/ui/icon";
 import { ActionButton, AppText, SheetBody } from "@/design-system";
@@ -23,6 +27,94 @@ function shortTimezone(timezone: string) {
 
 function formatWeekday(day: string) {
   return day.charAt(0).toUpperCase() + day.slice(1);
+}
+
+/**
+ * A slim header: a small house with a smoking chimney, the family name and
+ * who's in it. Just enough warmth; the rows below do the work.
+ */
+function FamilyBanner({
+  name,
+  kids,
+  parents,
+}: {
+  name: string;
+  kids: number;
+  parents: number;
+}) {
+  const { tokens } = useTheme();
+  const smoke = useLoop({ duration: 2800, easing: Easings.linear, rest: 0.3 });
+  const puff = (offset: number) => {
+    "worklet";
+    const t = (smoke.get() + offset) % 1;
+    return {
+      opacity: interpolate(t, [0, 0.2, 1], [0, 0.7, 0]),
+      transform: [
+        { translateX: 36 + t * 6 },
+        { translateY: 6 - t * 18 },
+        { scale: 0.5 + t * 0.7 },
+      ],
+    };
+  };
+  const a = useAnimatedStyle(() => puff(0));
+  const b = useAnimatedStyle(() => puff(0.5));
+  return (
+    <View
+      accessible
+      accessibilityLabel={`${name}: ${kids} ${kids === 1 ? "kid" : "kids"}, ${parents} ${parents === 1 ? "parent" : "parents"}`}
+      className="mt-1 flex-row items-center gap-3 rounded-[22px] bg-surface px-4 py-3"
+    >
+      <View style={{ width: 52, height: 52 }}>
+        {[a, b].map((style, i) => (
+          <Animated.View
+            key={i}
+            style={[
+              {
+                position: "absolute",
+                left: 0,
+                top: 0,
+                width: 8,
+                height: 8,
+                borderRadius: 4,
+                backgroundColor: tokens.line,
+              },
+              style,
+            ]}
+          />
+        ))}
+        <Svg width={52} height={52} viewBox="0 0 52 52">
+          <Rect x={34} y={8} width={7} height={14} rx={1.5} fill={tokens.ink} />
+          <Path
+            d="M4 26 L26 8 L48 26 Z"
+            fill={tokens.urgency}
+            stroke={tokens.ink}
+            strokeWidth={3}
+            strokeLinejoin="round"
+          />
+          <Rect
+            x={10}
+            y={25}
+            width={32}
+            height={22}
+            rx={4}
+            fill={tokens.reward}
+            stroke={tokens.ink}
+            strokeWidth={3}
+          />
+          <Rect x={22} y={34} width={8} height={13} rx={2} fill={tokens.ink} />
+        </Svg>
+      </View>
+      <View className="flex-1">
+        <AppText variant="cardTitle" numberOfLines={1}>
+          {name}
+        </AppText>
+        <AppText variant="caption" color="ink-muted">
+          {kids} {kids === 1 ? "kid" : "kids"} · {parents}{" "}
+          {parents === 1 ? "parent" : "parents"}
+        </AppText>
+      </View>
+    </View>
+  );
 }
 
 function Row({
@@ -192,27 +284,13 @@ export function ParentFamilyContent({
 
   return (
     <View className="pb-8">
-      <FamilyHouse
-        householdName={household.name}
-        parents={household.parents.map((parent) => ({
-          id: parent.membershipId,
-          name: parent.displayName,
-          isCurrent: parent.isCurrent,
-        }))}
-        kids={household.children.map((child) => ({
-          id: child.childId,
-          name: child.displayName,
-          linkedPhones: linkedPhonesFor(child.childId),
-        }))}
-        onOpenKid={(id) => onOpenChildAccess(id as Id<"children">)}
-        onAddKid={() => {
-          setAddError(null);
-          setAdding(true);
-        }}
-        onInviteParent={() => setShowInvite(true)}
+      <FamilyBanner
+        name={household.name}
+        kids={household.children.length}
+        parents={household.parents.length}
       />
 
-      <AppText variant="sectionTitle" className="mt-6">
+      <AppText variant="sectionTitle" className="mt-5">
         Kids
       </AppText>
       <View className="mt-3 gap-2.5">
@@ -224,6 +302,66 @@ export function ParentFamilyContent({
             linkedPhones={linkedPhonesFor(child.childId)}
           />
         ))}
+        <Row
+          onPress={() => {
+            setAddError(null);
+            setAdding(true);
+          }}
+          accessibilityLabel="Add a kid"
+        >
+          <View
+            className="h-11 w-11 items-center justify-center rounded-full"
+            style={{ backgroundColor: tokens.actionSoft }}
+          >
+            <Icon name="plus" color={tokens.action} size={20} />
+          </View>
+          <AppText variant="cardTitle" color="action" className="flex-1">
+            Add a kid
+          </AppText>
+        </Row>
+      </View>
+
+      <AppText variant="sectionTitle" className="mt-6">
+        Parents
+      </AppText>
+      <View className="mt-3 gap-2.5">
+        {household.parents.map((parent) => (
+          <Row
+            key={parent.membershipId}
+            accessibilityLabel={`${parent.displayName}${parent.isCurrent ? ", you" : ""}. Same controls as every parent.`}
+          >
+            <Avatar
+              tone="parent"
+              className="rounded-full"
+              fallbackLabel={parent.displayName}
+              size={44}
+            />
+            <View className="flex-1">
+              <AppText variant="cardTitle">
+                {parent.displayName}
+                {parent.isCurrent ? " (you)" : ""}
+              </AppText>
+              <AppText variant="caption" color="ink-muted">
+                Same controls as every parent
+              </AppText>
+            </View>
+          </Row>
+        ))}
+        <Row
+          onPress={() => setShowInvite(true)}
+          accessibilityLabel="Invite another parent"
+        >
+          <View
+            className="h-11 w-11 items-center justify-center rounded-full"
+            style={{ backgroundColor: tokens.actionSoft }}
+          >
+            <Icon name="personPlus" color={tokens.action} size={20} />
+          </View>
+          <AppText variant="cardTitle" color="action" className="flex-1">
+            Invite another parent
+          </AppText>
+          <Icon name="chevron" color={tokens.inkMuted} size={20} />
+        </Row>
       </View>
 
       <View className="mt-6 flex-row items-baseline justify-between">

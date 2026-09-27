@@ -51,7 +51,7 @@ const sectionCopy: Record<
     subtitle: "Check completed work before it earns.",
   },
   money: { title: "Money", subtitle: "Track balances and settle weekly." },
-  family: { title: "Family", subtitle: "People, access, and household." },
+  family: { title: "Family", subtitle: "People, phones and house rules." },
 };
 
 export function HouseholdListScreen({
@@ -341,11 +341,6 @@ function useLiveSubtitle(
       return days === 0
         ? `Payday today (${day})`
         : `Payday ${day} · in ${days} ${days === 1 ? "day" : "days"}`;
-    }
-    case "family": {
-      const kids = household.children.length;
-      const parents = household.parents.length;
-      return `${kids} ${kids === 1 ? "kid" : "kids"} · ${parents} ${parents === 1 ? "parent" : "parents"}`;
     }
     default:
       return null;

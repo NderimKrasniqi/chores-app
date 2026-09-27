@@ -264,7 +264,7 @@ function ParentFamilyScreen() {
       >
         <ParentScreenHeader
           title="Family"
-          subtitle="People, access, and household."
+          subtitle="People, phones and house rules."
           onOpenAccount={noop}
           parentName="Sam"
           compact
