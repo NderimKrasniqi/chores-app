@@ -1,6 +1,7 @@
 import { ConvexError, v } from "convex/values";
 
-import { mutation, query } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
+import { mutation, query, type QueryCtx } from "./_generated/server";
 import { requireCurrentParentForHousehold } from "./lib/auth/parentAuthorization";
 import { requireCurrentChildAccess } from "./lib/auth/childAuthorization";
 import {
@@ -234,6 +235,9 @@ export const getOverview = query({
         pendingPayouts: v.array(payoutProjectionValidator),
 
         latestPayout: v.union(payoutProjectionValidator, v.null()),
+
+        /** Net kr per household-local day of the current payout week. */
+        thisPeriodDailySek: v.array(v.number()),
       }),
     ),
   }),
@@ -273,10 +277,62 @@ export const getOverview = query({
         payoutWeekday: currentPeriod.payoutWeekday,
       },
 
-      children: resultChildren,
+      children: await Promise.all(
+        resultChildren.map(async (child) => ({
+          ...child,
+          thisPeriodDailySek: await dailyNetForPeriod(
+            ctx,
+            child.childId,
+            currentPeriod,
+          ),
+        })),
+      ),
     };
   },
 });
+
+/** One net amount per local day from the period's start to its end. */
+async function dailyNetForPeriod(
+  ctx: QueryCtx,
+  childId: Id<"children">,
+  period: {
+    startAt: number;
+    endAt: number;
+    startLocalDate: string;
+    endLocalDate: string;
+    timezone: string;
+  },
+) {
+  const dayNumber = (localDate: string) => {
+    const [y, m, d] = localDate.split("-").map(Number);
+    return Date.UTC(y, m - 1, d) / 86_400_000;
+  };
+  const first = dayNumber(period.startLocalDate);
+  const days = Math.max(1, dayNumber(period.endLocalDate) - first);
+  const totals = Array.from({ length: Math.min(days, 8) }, () => 0);
+
+  const entries = await ctx.db
+    .query("ledgerEntries")
+    .withIndex("by_child_created_at", (q) =>
+      q
+        .eq("childId", childId)
+        .gte("createdAt", period.startAt)
+        .lt("createdAt", period.endAt),
+    )
+    .take(THIS_PERIOD_ENTRY_LIMIT);
+
+  const format = new Intl.DateTimeFormat("en-CA", {
+    timeZone: period.timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  for (const entry of entries) {
+    const index = dayNumber(format.format(new Date(entry.createdAt))) - first;
+    if (index >= 0 && index < totals.length) totals[index] += entry.amountSek;
+  }
+  return totals;
+}
 
 export const markPaid = mutation({
   args: {

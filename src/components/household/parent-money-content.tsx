@@ -361,10 +361,6 @@ export function ParentMoneyContent({
         : [],
     )
     .sort((left, right) => (right.paidAt ?? 0) - (left.paidAt ?? 0));
-  const maxBalance = Math.max(
-    1,
-    ...overview.children.map((child) => Math.abs(child.runningBalanceSek)),
-  );
   const timezone = overview.currentPeriod.timezone;
 
   return (
@@ -490,36 +486,54 @@ export function ParentMoneyContent({
       <View className="mt-3 gap-2.5">
         {overview.children.map((child) => {
           const negative = child.runningBalanceSek < 0;
-          const fraction = Math.abs(child.runningBalanceSek) / maxBalance;
+          const days = child.thisPeriodDailySek ?? [];
+          const week = days.reduce((sum, value) => sum + value, 0);
           return (
             <View
               key={child.childId}
               accessible
-              accessibilityLabel={`${child.displayName}: ${child.runningBalanceSek} kronor`}
+              accessibilityLabel={`${child.displayName}: ${child.runningBalanceSek} kronor. ${week >= 0 ? "Plus" : "Minus"} ${Math.abs(week)} kronor this week.`}
               className="rounded-[22px] bg-surface p-4"
             >
               <View className="flex-row items-center gap-3">
                 <ChildAvatar name={child.displayName} className="h-10 w-10" />
-                <AppText variant="cardTitle" className="flex-1">
-                  {child.displayName}
-                </AppText>
-                <AppText
-                  variant="cardTitle"
-                  color={negative ? "urgency" : "ink"}
-                >
-                  {child.runningBalanceSek} kr
-                </AppText>
-              </View>
-              <View className="mt-3 h-2.5 overflow-hidden rounded-full bg-surfaceMuted">
-                <View
-                  className="h-full rounded-full"
-                  style={{
-                    width: `${Math.max(4, fraction * 100)}%`,
-                    backgroundColor: negative
-                      ? themeColors.urgency
-                      : themeColors.reward,
-                  }}
-                />
+                <View className="flex-1">
+                  <AppText variant="cardTitle">{child.displayName}</AppText>
+                  <View className="mt-1 flex-row items-center gap-1">
+                    {days.map((value, index) => (
+                      <View
+                        key={index}
+                        className="h-2 w-2 rounded-full"
+                        style={{
+                          backgroundColor:
+                            value > 0
+                              ? themeColors.action
+                              : value < 0
+                                ? themeColors.urgency
+                                : themeColors.surfaceMuted,
+                        }}
+                      />
+                    ))}
+                  </View>
+                </View>
+                <View className="items-end">
+                  <AppText
+                    variant="cardTitle"
+                    color={negative ? "urgency" : "ink"}
+                  >
+                    {child.runningBalanceSek} kr
+                  </AppText>
+                  <AppText
+                    variant="caption"
+                    color={
+                      week < 0 ? "urgency" : week > 0 ? "action" : "ink-muted"
+                    }
+                  >
+                    {week === 0
+                      ? "nothing yet this week"
+                      : `${week > 0 ? "+" : "−"}${Math.abs(week)} kr this week`}
+                  </AppText>
+                </View>
               </View>
             </View>
           );
