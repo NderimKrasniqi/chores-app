@@ -96,6 +96,9 @@ export function HouseholdListScreen({
   }
 
   const liveSubtitle = useLiveSubtitle(activeSection, household);
+  // Kept subscribed across tabs so Home's crew balances show instantly
+  // instead of "…" each time the parent comes back to it.
+  useQuery(api.payouts.getOverview, { householdId: household.householdId });
 
   if (route === "account") {
     return (

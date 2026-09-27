@@ -18,6 +18,7 @@ import { Icon } from "@/components/ui/icon";
 import { childAvatarTone, Avatar } from "@/components/ui/avatar";
 import { Scene, StarBuddy, Starfield } from "@/components/art";
 import {
+  ActionButton,
   AppText,
   Surface,
   ThemeScope,
@@ -454,6 +455,18 @@ export function EntryChoiceScreen({ onChooseParent }: EntryChoiceScreenProps) {
    * gets a full-screen spinner.
    */
   if (loadingContexts || updatingAccess || switchingContextId !== null) {
+    if (switchingContextId !== null) {
+      return (
+        <OpeningProfile
+          key={switchingContextId}
+          onBack={() => {
+            activateParentStorage();
+            setSwitchingContextId(null);
+          }}
+        />
+      );
+    }
+
     let message = "Loading profiles…";
 
     if (updatingAccess) {
@@ -627,6 +640,46 @@ export function EntryChoiceScreen({ onChooseParent }: EntryChoiceScreenProps) {
           </AppText>
         </ScrollView>
       </SafeAreaView>
+    </ThemeScope>
+  );
+}
+
+const SLOW_OPEN_MS = 10_000;
+
+/**
+ * Opening a saved child profile needs the server. If it's taking long (no
+ * connection), say so and offer a way back instead of spinning forever; it
+ * keeps trying in the background and opens by itself once connected.
+ */
+function OpeningProfile({ onBack }: { onBack: () => void }) {
+  const [slow, setSlow] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setSlow(true), SLOW_OPEN_MS);
+    return () => clearTimeout(timer);
+  }, []);
+  return (
+    <ThemeScope mode="quest">
+      <View className="flex-1 items-center justify-center bg-canvas px-6">
+        <StatusBar style="light" />
+        <Starfield seed={31} />
+        <StarBuddy size={84} mood={slow ? "sleepy" : "hop"} />
+        <AppText variant="sectionTitle" className="mt-6 text-center">
+          {slow ? "Can’t reach the server" : "Getting things ready"}
+        </AppText>
+        <AppText color="ink-muted" className="mt-1 text-center font-body-bold">
+          {slow
+            ? "Check the Wi-Fi. We’ll keep trying and open your profile as soon as we’re connected."
+            : "Opening child profile…"}
+        </AppText>
+        {slow ? (
+          <ActionButton
+            className="mt-6 w-full"
+            tone="quiet"
+            label="Back"
+            onPress={onBack}
+          />
+        ) : null}
+      </View>
     </ThemeScope>
   );
 }
