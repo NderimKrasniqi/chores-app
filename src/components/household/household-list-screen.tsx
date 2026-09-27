@@ -292,11 +292,6 @@ function useLiveSubtitle(
     api.choreDefinitions.listActiveForHousehold,
     section === "chores" ? { householdId: household.householdId } : "skip",
   );
-  const reviewArgs =
-    section === "reviews" ? { householdId: household.householdId } : "skip";
-  const personal = useQuery(api.personalChoreReviews.listPending, reviewArgs);
-  const claimable = useQuery(api.claimableChoreReviews.listPending, reviewArgs);
-  const redos = useQuery(api.redoChoreReviews.listPending, reviewArgs);
   const money = useQuery(
     api.payouts.getOverview,
     section === "money" ? { householdId: household.householdId } : "skip",
@@ -308,11 +303,6 @@ function useLiveSubtitle(
       const chores = definitions.filter((d) => d.kind === "personal").length;
       const extras = definitions.length - chores;
       return `${chores} ${chores === 1 ? "chore" : "chores"} · ${extras} ${extras === 1 ? "Extra" : "Extras"} on offer`;
-    }
-    case "reviews": {
-      if (!personal || !claimable || !redos) return null;
-      const count = personal.length + claimable.length + redos.length;
-      return count === 0 ? "All caught up" : `${count} to check`;
     }
     case "money": {
       if (!money) return null;
