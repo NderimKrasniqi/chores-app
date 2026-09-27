@@ -357,7 +357,9 @@ export function ParentHomeContent({
             </View>
           ) : (
             <AppText color="ink-muted">
-              Approved chores show up here as wins.
+              {activity === undefined
+                ? "…"
+                : "Approved chores show up here as wins."}
             </AppText>
           )}
         </Tile>
