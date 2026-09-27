@@ -1,5 +1,12 @@
 import { useState, type ReactNode } from "react";
-import { Linking, Pressable, ScrollView, TextInput, View } from "react-native";
+import {
+  Linking,
+  Modal,
+  Pressable,
+  ScrollView,
+  TextInput,
+  View,
+} from "react-native";
 import Animated from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { userErrorMessage } from "@/lib/errors";
@@ -12,7 +19,7 @@ import {
 import { PRESS, pressTransition } from "@/components/art/motion";
 import { Avatar } from "@/components/ui/avatar";
 import { Icon, type IconName } from "@/components/ui/icon";
-import { ActionButton, AppText } from "@/design-system";
+import { ActionButton, AppText, SheetBody } from "@/design-system";
 import { useTheme } from "@/design-system/theme";
 import { useServerConfirmedMutation } from "@/hooks/use-server-confirmed-mutation";
 
@@ -183,6 +190,118 @@ export function ParentActivityScreen({
   );
 }
 
+const DELETE_BLOCKED_COPY = {
+  other_parents: "Another parent is in this household, so it stays.",
+  has_history:
+    "Chores have already been done here, so this family’s history stays.",
+  linked_phones: "Unlink the kids’ phones first, then try again.",
+} as const;
+
+/**
+ * Undo a household made by mistake — say, before joining a partner's. Only
+ * for a sole Parent, and the server refuses once anything has happened.
+ */
+function DeleteHousehold({ household }: { household: HouseholdSummary }) {
+  const { tokens } = useTheme();
+  const deleteHousehold = useServerConfirmedMutation(
+    api.households.deleteEmptyHousehold,
+  );
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [blocked, setBlocked] = useState(false);
+
+  async function confirm() {
+    setBusy(true);
+    setMessage(null);
+    try {
+      const result = await deleteHousehold({
+        householdId: household.householdId,
+      });
+      if (result.status === "blocked") {
+        setBlocked(true);
+        setMessage(DELETE_BLOCKED_COPY[result.reason]);
+      }
+      // On success the household list empties and the app shows setup.
+    } catch (error) {
+      setMessage(userErrorMessage(error, "Couldn’t delete the household."));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <>
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => {
+          setMessage(null);
+          setBlocked(false);
+          setOpen(true);
+        }}
+        className="mt-6 min-h-[44px] items-center justify-center"
+      >
+        <AppText variant="bodySmall" color="ink-muted">
+          Made this household by mistake?{" "}
+          <AppText
+            variant="bodySmall"
+            color="urgency"
+            className="font-body-heavy"
+          >
+            Delete it
+          </AppText>
+        </AppText>
+      </Pressable>
+      <Modal
+        transparent
+        animationType="slide"
+        visible={open}
+        onRequestClose={() => !busy && setOpen(false)}
+      >
+        <Pressable
+          accessible={false}
+          onPress={() => !busy && setOpen(false)}
+          className="flex-1 justify-end bg-scrim"
+        >
+          <Pressable accessible={false} onPress={() => {}}>
+            <SheetBody
+              className="rounded-t-sheet px-5 pt-5"
+              style={{ backgroundColor: tokens.canvas }}
+            >
+              <AppText variant="sectionTitle">Delete {household.name}?</AppText>
+              <AppText color="ink-muted" className="mt-2">
+                Its kids, chores and settings are removed for good. Do this if
+                you want to join another parent’s household instead. It only
+                works while nothing has happened here yet.
+              </AppText>
+              {message ? (
+                <AppText variant="bodySmall" color="urgency" className="mt-3">
+                  {message}
+                </AppText>
+              ) : null}
+              <ActionButton
+                className="mt-5"
+                tone="destructive"
+                label="Delete household"
+                loading={busy}
+                disabled={blocked}
+                onPress={() => void confirm()}
+              />
+              <ActionButton
+                className="mt-1"
+                tone="quiet"
+                label="Keep it"
+                disabled={busy}
+                onPress={() => setOpen(false)}
+              />
+            </SheetBody>
+          </Pressable>
+        </Pressable>
+      </Modal>
+    </>
+  );
+}
+
 export function ParentAccountScreen({
   parentName,
   parentEmail,
@@ -271,6 +390,10 @@ export function ParentAccountScreen({
         loading={signingOut}
         onPress={onSignOut}
       />
+
+      {household.parents.length === 1 ? (
+        <DeleteHousehold household={household} />
+      ) : null}
     </ScreenFrame>
   );
 }

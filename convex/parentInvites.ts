@@ -304,7 +304,7 @@ export const consumeInvite = internalMutation({
 
     if (otherMembership) {
       throw new ConvexError(
-        "You already belong to a household. A Parent can only be in one.",
+        "You already have a household. If you made it by mistake and it’s still empty, delete it from You → “Delete it”, then use this invite.",
       );
     }
 

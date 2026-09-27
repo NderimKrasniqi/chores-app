@@ -9,7 +9,11 @@ export const reconcile = internalMutation({
   },
 
   returns: v.object({
-    status: v.union(v.literal("not_due"), v.literal("closed")),
+    status: v.union(
+      v.literal("not_due"),
+      v.literal("closed"),
+      v.literal("not_found"),
+    ),
 
     payoutPeriodId: v.id("payoutPeriods"),
 
@@ -17,6 +21,16 @@ export const reconcile = internalMutation({
   }),
 
   handler: async (ctx, args) => {
+    // The household may have been deleted (deleteEmptyHousehold) since this
+    // boundary was scheduled: nothing to close.
+    const period = await ctx.db.get(args.payoutPeriodId);
+    if (!period || !(await ctx.db.get(period.householdId))) {
+      return {
+        status: "not_found" as const,
+        payoutPeriodId: args.payoutPeriodId,
+        nextPayoutPeriodId: null,
+      };
+    }
     return await closePayoutPeriod(ctx, args.payoutPeriodId);
   },
 });

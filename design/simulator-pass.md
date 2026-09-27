@@ -29,10 +29,8 @@ Running log of the end-to-end workflow pass (J-01 … J-13) on iPhone 17 Pro
 - [x] Phones header art: the house has “arms” and the arrows float; redraw.
 - [x] Parent Activity, notification primer (via preview), house-rule tiles.
 
-- [ ] **Decision:** a Parent who creates a household by mistake can't then
-      accept a partner's invite (one household each, and there's no leave or
-      delete). Options: let a Parent who is alone in a household with no
-      history delete it, or add a “Leave household” for non-last Parents.
+- [x] A Parent who made a household by mistake can delete it (You → “Delete
+      it”) while they're its only Parent and nothing has happened in it.
 - [ ] New Maestro flows for the Quest Path screens (the old ones are gone).
 
 ## Fixed

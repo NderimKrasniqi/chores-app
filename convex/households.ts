@@ -560,3 +560,152 @@ export const archiveChild = mutation({
     return { status: "archived" as const };
   },
 });
+
+const EMPTY_HOUSEHOLD_ROW_LIMIT = 1000;
+
+/**
+ * Lets a Parent undo a household made by mistake, so they can join their
+ * partner's instead (a Parent belongs to exactly one household). Only while
+ * nothing has happened in it: they are its only Parent, and there are no
+ * submissions, claims, coins, payouts or linked phones. Otherwise it is a
+ * real family's history and stays.
+ */
+export const deleteEmptyHousehold = mutation({
+  args: {
+    householdId: v.id("households"),
+  },
+  returns: v.union(
+    v.object({ status: v.literal("deleted") }),
+    v.object({
+      status: v.literal("blocked"),
+      reason: v.union(
+        v.literal("other_parents"),
+        v.literal("has_history"),
+        v.literal("linked_phones"),
+      ),
+    }),
+  ),
+  handler: async (ctx, args) => {
+    const { membership } = await requireCurrentParentForHousehold(
+      ctx,
+      args.householdId,
+    );
+    const householdId = args.householdId;
+
+    const parents = await ctx.db
+      .query("householdMembers")
+      .withIndex("by_household", (q) => q.eq("householdId", householdId))
+      .take(2);
+    if (parents.length > 1) {
+      return { status: "blocked" as const, reason: "other_parents" as const };
+    }
+
+    const [submission, claim, ledger, payout] = await Promise.all([
+      ctx.db
+        .query("choreSubmissions")
+        .withIndex("by_household_submitted_at", (q) =>
+          q.eq("householdId", householdId),
+        )
+        .first(),
+      ctx.db
+        .query("choreClaims")
+        .withIndex("by_household_claimed_at", (q) =>
+          q.eq("householdId", householdId),
+        )
+        .first(),
+      ctx.db
+        .query("ledgerEntries")
+        .withIndex("by_household_created_at", (q) =>
+          q.eq("householdId", householdId),
+        )
+        .first(),
+      ctx.db
+        .query("payouts")
+        .withIndex("by_household_created_at", (q) =>
+          q.eq("householdId", householdId),
+        )
+        .first(),
+    ]);
+    if (submission || claim || ledger || payout) {
+      return { status: "blocked" as const, reason: "has_history" as const };
+    }
+
+    const householdChildren = await ctx.db
+      .query("children")
+      .withIndex("by_household", (q) => q.eq("householdId", householdId))
+      .take(EMPTY_HOUSEHOLD_ROW_LIMIT);
+    const uploads = await Promise.all(
+      householdChildren.map((child) =>
+        ctx.db
+          .query("submissionEvidenceUploads")
+          .withIndex("by_child_created_at", (q) => q.eq("childId", child._id))
+          .first(),
+      ),
+    );
+    if (uploads.some((upload) => upload !== null)) {
+      return { status: "blocked" as const, reason: "has_history" as const };
+    }
+
+    const grants = await ctx.db
+      .query("childDeviceAccessGrants")
+      .withIndex("by_household", (q) => q.eq("householdId", householdId))
+      .take(EMPTY_HOUSEHOLD_ROW_LIMIT);
+    if (grants.some((grant) => grant.revokedAt === undefined)) {
+      return { status: "blocked" as const, reason: "linked_phones" as const };
+    }
+
+    const rows = await Promise.all([
+      ctx.db
+        .query("choreOccurrences")
+        .withIndex("by_household", (q) => q.eq("householdId", householdId))
+        .take(EMPTY_HOUSEHOLD_ROW_LIMIT),
+      ctx.db
+        .query("choreDefinitions")
+        .withIndex("by_household", (q) => q.eq("householdId", householdId))
+        .take(EMPTY_HOUSEHOLD_ROW_LIMIT),
+      ctx.db
+        .query("notificationEvents")
+        .withIndex("by_household_created_at", (q) =>
+          q.eq("householdId", householdId),
+        )
+        .take(EMPTY_HOUSEHOLD_ROW_LIMIT),
+      ctx.db
+        .query("payoutPeriods")
+        .withIndex("by_household_start_at", (q) =>
+          q.eq("householdId", householdId),
+        )
+        .take(EMPTY_HOUSEHOLD_ROW_LIMIT),
+      ctx.db
+        .query("childFinancialBalances")
+        .withIndex("by_household", (q) => q.eq("householdId", householdId))
+        .take(EMPTY_HOUSEHOLD_ROW_LIMIT),
+      ctx.db
+        .query("childPairingCredentials")
+        .withIndex("by_household", (q) => q.eq("householdId", householdId))
+        .take(EMPTY_HOUSEHOLD_ROW_LIMIT),
+      ctx.db
+        .query("parentInvites")
+        .withIndex("by_household", (q) => q.eq("householdId", householdId))
+        .take(EMPTY_HOUSEHOLD_ROW_LIMIT),
+    ]);
+    const all = [...grants, ...rows.flat(), ...householdChildren];
+    if (
+      [grants, householdChildren, ...rows].some(
+        (list) => list.length === EMPTY_HOUSEHOLD_ROW_LIMIT,
+      )
+    ) {
+      throw new ConvexError(
+        "This household is too big to remove here. Contact support.",
+      );
+    }
+
+    // Scheduled lifecycle, payout and notification jobs treat missing rows
+    // as no-ops.
+    for (const row of all) {
+      await ctx.db.delete(row._id);
+    }
+    await ctx.db.delete(membership._id);
+    await ctx.db.delete(householdId);
+    return { status: "deleted" as const };
+  },
+});
