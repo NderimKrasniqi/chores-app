@@ -1,11 +1,12 @@
+import * as SecureStore from "expo-secure-store";
 import { useEffect, useMemo, useState } from "react";
 import { AppState, View } from "react-native";
 
 import {
   ChoreIcon,
-  FamilySky,
   StarBuddy,
-  type SkyStar,
+  StarShelf,
+  type ShelfDay,
 } from "@/components/art";
 import { Icon } from "@/components/ui/icon";
 import { ActionButton, AppText } from "@/design-system";
@@ -20,9 +21,68 @@ import {
 
 type Owner = { id: string; name: string; color: string; wins: number };
 
+/** One approved chore in the last week, without its value. */
+export type WeekStar = {
+  activityId: string;
+  childId: string;
+  childDisplayName: string;
+  approvedAt: number;
+};
+
+const DAY_MS = 86_400_000;
+
+/** The last 7 household-local dates, oldest first, ending today. */
+function lastSevenDays(now: number, timezone: string) {
+  const today = localDateKey(now, timezone);
+  const [y, m, d] = today.split("-").map(Number);
+  const base = Date.UTC(y, m - 1, d, 12);
+  return Array.from({ length: 7 }, (_, i) => {
+    const date = new Date(base - (6 - i) * DAY_MS);
+    return {
+      key: date.toISOString().slice(0, 10),
+      label: date.toLocaleDateString("en-GB", {
+        weekday: "narrow",
+        timeZone: "UTC",
+      }),
+      isToday: i === 6,
+    };
+  });
+}
+
 /**
- * The Family tab as a shared night sky: each approved chore lights a star in
- * its owner's colour, and below it a log of who did what for how much.
+ * Newest approval this device has already shown on the shelf, so only
+ * stars added since then fall in. `null` = first visit: baseline only.
+ */
+function useShelfSeen(seenKey: string | undefined, newest: number) {
+  const [seen, setSeen] = useState<number | null | undefined>(
+    seenKey ? undefined : null,
+  );
+  useEffect(() => {
+    if (!seenKey) return;
+    let cancelled = false;
+    SecureStore.getItemAsync(`shelf-seen.${seenKey}`)
+      .then((raw) => (raw && Number.isFinite(Number(raw)) ? Number(raw) : null))
+      .catch(() => null)
+      .then((value) => {
+        if (!cancelled) setSeen(value);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [seenKey]);
+  useEffect(() => {
+    if (!seenKey || seen === undefined || newest === 0) return;
+    SecureStore.setItemAsync(
+      `shelf-seen.${seenKey}`,
+      String(Math.max(newest, seen ?? 0)),
+    ).catch(() => {});
+  }, [newest, seen, seenKey]);
+  return seen;
+}
+
+/**
+ * The Family tab: a shelf of this week's jars — each approved chore drops a
+ * star in its owner's colour — and below it a log of who did what for how much.
  * Chore values are shared; balances never appear here.
  */
 export function ChildActivityFeed({
@@ -30,12 +90,18 @@ export function ChildActivityFeed({
   timezone,
   viewerChildId,
   onOpenChores,
-  emptyTitle = "The sky is dark tonight",
-  emptyBody = "Your first approved quest lights the first star.",
+  emptyTitle = "The jars are empty",
+  emptyBody = "Your first approved quest drops the first star in.",
   emptyActionLabel = "See your quests",
+  weekStars,
+  seenKey,
 }: {
   items: ApprovalActivityItem[];
   timezone: string;
+  /** The last week's approvals for the shelf; defaults to `items`. */
+  weekStars?: WeekStar[];
+  /** Per-viewer key for "new since last visit" stars; omit for no drops. */
+  seenKey?: string;
   /** The signed-in child, shown as "You"; omit for the Parent view. */
   viewerChildId?: Id<"children">;
   onOpenChores?: () => void;
@@ -44,6 +110,18 @@ export function ChildActivityFeed({
   emptyActionLabel?: string;
 }) {
   const { tokens } = useTheme();
+  const week: WeekStar[] = useMemo(
+    () =>
+      weekStars ??
+      items.map((item) => ({
+        activityId: item.activityId,
+        childId: item.childId,
+        childDisplayName: item.childDisplayName,
+        approvedAt: item.approvedAt,
+      })),
+    [items, weekStars],
+  );
+
   const owners = useMemo<Owner[]>(() => {
     const colors = [
       tokens.accent,
@@ -54,12 +132,14 @@ export function ChildActivityFeed({
       tokens.star,
     ];
     const byId = new Map<string, { name: string; wins: number }>();
-    for (const item of items) {
-      const current = byId.get(item.childId);
-      byId.set(item.childId, {
-        name: item.childDisplayName,
-        wins: (current?.wins ?? 0) + 1,
-      });
+    for (const item of [...week, ...items]) {
+      if (!byId.has(item.childId)) {
+        byId.set(item.childId, { name: item.childDisplayName, wins: 0 });
+      }
+    }
+    for (const star of week) {
+      const owner = byId.get(star.childId);
+      if (owner) owner.wins += 1;
     }
     return [...byId.entries()]
       .sort(([aId, a], [bId, b]) =>
@@ -75,24 +155,10 @@ export function ChildActivityFeed({
         color: colors[i % colors.length],
         wins: owner.wins,
       }));
-  }, [items, tokens, viewerChildId]);
+  }, [items, tokens, viewerChildId, week]);
 
   const colorFor = (childId: string) =>
     owners.find((owner) => owner.id === childId)?.color ?? tokens.star;
-
-  const stars = useMemo<SkyStar[]>(
-    () =>
-      items.map((item) => ({
-        id: item.activityId,
-        ownerId: item.childId,
-        approvedAt: item.approvedAt,
-        valueSek: item.valueSek,
-        color:
-          owners.find((owner) => owner.id === item.childId)?.color ??
-          tokens.star,
-      })),
-    [items, owners, tokens],
-  );
 
   // "Today" moves on at midnight and when the app comes back to the front.
   const [now, setNow] = useState(() => Date.now());
@@ -115,9 +181,23 @@ export function ChildActivityFeed({
     (item) => localDateKey(item.approvedAt, timezone) !== todayKey,
   );
 
+  const newest = week.reduce((max, star) => Math.max(max, star.approvedAt), 0);
+  const seen = useShelfSeen(seenKey, newest);
+  const days: ShelfDay[] = lastSevenDays(now, timezone).map((day) => ({
+    ...day,
+    stars: week
+      .filter((star) => localDateKey(star.approvedAt, timezone) === day.key)
+      .sort((a, b) => a.approvedAt - b.approvedAt)
+      .map((star) => ({
+        id: star.activityId,
+        color: colorFor(star.childId),
+        isNew: typeof seen === "number" && star.approvedAt > seen,
+      })),
+  }));
+
   return (
     <View className="pb-6">
-      <FamilySky stars={stars} owners={owners.map((owner) => owner.id)} />
+      <StarShelf days={days} />
 
       {owners.length > 0 ? (
         <View className="mt-3 flex-row flex-wrap gap-2">
@@ -125,7 +205,7 @@ export function ChildActivityFeed({
             <View
               key={owner.id}
               accessible
-              accessibilityLabel={`${owner.name}: ${owner.wins} ${owner.wins === 1 ? "win" : "wins"}`}
+              accessibilityLabel={`${owner.name}: ${owner.wins} ${owner.wins === 1 ? "win" : "wins"} this week`}
               className="flex-row items-center gap-1.5 rounded-full bg-surface px-3 py-1.5"
             >
               <Icon name="star" color={owner.color} size={14} />

@@ -1,6 +1,7 @@
 import { useQuery } from "convex/react";
 import { AppText, Surface } from "@/design-system";
 import type { ReactNode } from "react";
+import { useMinuteNow } from "@/lib/use-minute-now";
 
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
@@ -30,6 +31,11 @@ export function ParentHouseholdActivity({
   const feed = useQuery(api.householdActivity.listForParent, {
     householdId,
   });
+  const now = useMinuteNow();
+  const week = useQuery(
+    api.householdActivity.weekForParent,
+    showHistory ? { householdId, now } : "skip",
+  );
 
   if (feed === undefined) {
     return (
@@ -53,9 +59,11 @@ export function ParentHouseholdActivity({
           <ChildActivityFeed
             items={feed.items}
             timezone={feed.timezone}
+            weekStars={week?.stars}
+            seenKey={`parent.${householdId}`}
             onOpenChores={onAddChore}
             emptyTitle="No family wins yet"
-            emptyBody="Every approved chore lights a star here."
+            emptyBody="Every approved chore drops a star in today’s jar."
             emptyActionLabel="Add a chore"
           />
         </View>

@@ -1,13 +1,21 @@
 import { useQuery } from "convex/react";
 import { View } from "react-native";
 
-import { FamilySky } from "@/components/art";
+import { StarShelf } from "@/components/art";
+import { useMinuteNow } from "@/lib/use-minute-now";
 import { AppText } from "@/design-system";
 
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import type { ApprovalActivityItem } from "./approval-activity";
 import { ChildActivityFeed } from "./child-activity-feed";
+
+const EMPTY_WEEK = ["M", "T", "W", "T", "F", "S", "S"].map((label, i) => ({
+  key: String(i),
+  label,
+  isToday: i === 6,
+  stars: [],
+}));
 
 export function ChildHouseholdActivity({
   viewerChildId,
@@ -26,6 +34,11 @@ export function ChildHouseholdActivity({
     api.householdActivity.listForCurrentChild,
     visualFixture ? "skip" : {},
   );
+  const now = useMinuteNow();
+  const week = useQuery(
+    api.householdActivity.weekForCurrentChild,
+    visualFixture ? "skip" : { now },
+  );
   const feed = visualFixture?.loading
     ? undefined
     : (visualFixture ?? queriedFeed);
@@ -33,9 +46,9 @@ export function ChildHouseholdActivity({
   if (feed === undefined) {
     return (
       <View testID="child-activity-loading" className="pb-6">
-        <FamilySky stars={[]} owners={[]} />
+        <StarShelf days={EMPTY_WEEK} />
         <AppText color="ink-muted" className="mt-3 text-center font-body-bold">
-          Looking up at the family sky…
+          Counting the family’s stars…
         </AppText>
       </View>
     );
@@ -47,6 +60,8 @@ export function ChildHouseholdActivity({
       timezone={feed.timezone}
       viewerChildId={viewerChildId}
       onOpenChores={onOpenChores}
+      weekStars={week?.stars}
+      seenKey={visualFixture ? undefined : `child.${viewerChildId}`}
     />
   );
 }

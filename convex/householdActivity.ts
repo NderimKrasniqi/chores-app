@@ -76,3 +76,83 @@ export const listForParent = query({
     };
   },
 });
+
+/*
+ * The last week of wins for the Family "star shelf": one entry per approved
+ * chore, no values. `now` comes from the client (rounded to the minute) so
+ * the query stays cacheable; the client groups by household-local day.
+ */
+const WEEK_MS = 8 * 24 * 60 * 60 * 1000;
+const WEEK_STAR_LIMIT = 250;
+
+const weekStarsValidator = v.object({
+  timezone: v.string(),
+
+  stars: v.array(
+    v.object({
+      activityId: v.id("choreReviews"),
+
+      childId: v.id("children"),
+
+      childDisplayName: v.string(),
+
+      approvedAt: v.number(),
+    }),
+  ),
+});
+
+async function weekStars(
+  ctx: Parameters<typeof listHouseholdApprovalActivity>[0],
+  householdId: Parameters<typeof listHouseholdApprovalActivity>[1],
+  now: number,
+) {
+  const items = await listHouseholdApprovalActivity(ctx, householdId, {
+    since: now - WEEK_MS,
+    limit: WEEK_STAR_LIMIT,
+    scanLimit: WEEK_STAR_LIMIT + 50,
+  });
+  return items.map((item) => ({
+    activityId: item.activityId,
+    childId: item.childId,
+    childDisplayName: item.childDisplayName,
+    approvedAt: item.approvedAt,
+  }));
+}
+
+export const weekForCurrentChild = query({
+  args: { now: v.number() },
+
+  returns: weekStarsValidator,
+
+  handler: async (ctx, args) => {
+    const { household } = await requireCurrentChildAccess(ctx);
+
+    return {
+      timezone: household.timezone,
+
+      stars: await weekStars(ctx, household._id, args.now),
+    };
+  },
+});
+
+export const weekForParent = query({
+  args: { householdId: v.id("households"), now: v.number() },
+
+  returns: weekStarsValidator,
+
+  handler: async (ctx, args) => {
+    await requireCurrentParentForHousehold(ctx, args.householdId);
+
+    const household = await ctx.db.get(args.householdId);
+
+    if (!household) {
+      throw new ConvexError("Household not found.");
+    }
+
+    return {
+      timezone: household.timezone,
+
+      stars: await weekStars(ctx, household._id, args.now),
+    };
+  },
+});

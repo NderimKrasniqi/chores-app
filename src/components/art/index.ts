@@ -20,7 +20,7 @@ export { PiggyBank } from "./piggy-bank";
 export { RocketTrack } from "./rocket-track";
 export { CoinDrop } from "./coin-drop";
 export { Fireworks, Sunburst } from "./fireworks";
-export { FamilySky, type SkyStar } from "./family-sky";
 export { LostSatellite } from "./lost-satellite";
 export { DockingScene } from "./docking";
 export { PhoneLinkScene } from "./phone-link";
+export { StarShelf, type ShelfDay, type ShelfStar } from "./star-shelf";

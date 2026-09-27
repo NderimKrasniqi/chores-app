@@ -32,14 +32,24 @@ const REVIEW_SCAN_LIMIT = 100;
 export async function listHouseholdApprovalActivity(
   ctx: QueryCtx | MutationCtx,
   householdId: Id<"households">,
+  options: {
+    /** Only approvals at or after this time. */
+    since?: number;
+    limit?: number;
+    scanLimit?: number;
+  } = {},
 ) {
+  const limit = options.limit ?? ACTIVITY_LIMIT;
+  const since = options.since;
   const reviews = await ctx.db
     .query("choreReviews")
     .withIndex("by_household_reviewed_at", (q) =>
-      q.eq("householdId", householdId),
+      since === undefined
+        ? q.eq("householdId", householdId)
+        : q.eq("householdId", householdId).gte("reviewedAt", since),
     )
     .order("desc")
-    .take(REVIEW_SCAN_LIMIT);
+    .take(options.scanLimit ?? REVIEW_SCAN_LIMIT);
 
   const items: ApprovalActivityItem[] = [];
 
@@ -105,7 +115,7 @@ export async function listHouseholdApprovalActivity(
       approvedAt: review.reviewedAt,
     });
 
-    if (items.length >= ACTIVITY_LIMIT) {
+    if (items.length >= limit) {
       break;
     }
   }
