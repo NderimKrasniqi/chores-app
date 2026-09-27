@@ -459,9 +459,19 @@ export function EntryChoiceScreen({ onChooseParent }: EntryChoiceScreenProps) {
       return (
         <OpeningProfile
           key={switchingContextId}
+          name={
+            localChildContexts?.find(
+              (context) => context.contextId === switchingContextId,
+            )?.childDisplayName ?? "this profile"
+          }
           onBack={() => {
             activateParentStorage();
             setSwitchingContextId(null);
+          }}
+          onPairAgain={() => {
+            activateParentStorage();
+            setSwitchingContextId(null);
+            void handleAddChild();
           }}
         />
       );
@@ -647,11 +657,20 @@ export function EntryChoiceScreen({ onChooseParent }: EntryChoiceScreenProps) {
 const SLOW_OPEN_MS = 10_000;
 
 /**
- * Opening a saved child profile needs the server. If it's taking long (no
- * connection), say so and offer a way back instead of spinning forever; it
- * keeps trying in the background and opens by itself once connected.
+ * Opening a saved child profile switches to that child's login on this
+ * phone. If nothing arrives in time, either the phone is offline or that
+ * login is gone (expired or cleared) — we can't tell which, so say both and
+ * offer the way out for each. It keeps trying in the background.
  */
-function OpeningProfile({ onBack }: { onBack: () => void }) {
+function OpeningProfile({
+  name,
+  onBack,
+  onPairAgain,
+}: {
+  name: string;
+  onBack: () => void;
+  onPairAgain: () => void;
+}) {
   const [slow, setSlow] = useState(false);
   useEffect(() => {
     const timer = setTimeout(() => setSlow(true), SLOW_OPEN_MS);
@@ -664,20 +683,27 @@ function OpeningProfile({ onBack }: { onBack: () => void }) {
         <Starfield seed={31} />
         <StarBuddy size={84} mood={slow ? "sleepy" : "hop"} />
         <AppText variant="sectionTitle" className="mt-6 text-center">
-          {slow ? "Can’t reach the server" : "Getting things ready"}
+          {slow ? `Can’t open ${name}` : "Getting things ready"}
         </AppText>
         <AppText color="ink-muted" className="mt-1 text-center font-body-bold">
           {slow
-            ? "Check the Wi-Fi. We’ll keep trying and open your profile as soon as we’re connected."
+            ? "Check the Wi-Fi. If it’s on, this phone may need pairing again — ask a Parent for a new code."
             : "Opening child profile…"}
         </AppText>
         {slow ? (
-          <ActionButton
-            className="mt-6 w-full"
-            tone="quiet"
-            label="Back"
-            onPress={onBack}
-          />
+          <>
+            <ActionButton
+              className="mt-6 w-full"
+              label="Pair again"
+              onPress={onPairAgain}
+            />
+            <ActionButton
+              className="mt-1 w-full"
+              tone="quiet"
+              label="Back"
+              onPress={onBack}
+            />
+          </>
         ) : null}
       </View>
     </ThemeScope>
