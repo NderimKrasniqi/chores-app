@@ -10,7 +10,8 @@ import { PRESS, pressTransition } from "@/components/art/motion";
 import { Icon } from "@/components/ui/icon";
 import { questTokens as themeColors } from "@/design-system/theme";
 import { ActionButton, AppText, Surface, SheetBody } from "@/design-system";
-import { useState } from "react";
+import * as SecureStore from "expo-secure-store";
+import { useEffect, useState } from "react";
 import { Modal, Pressable, View } from "react-native";
 import Animated from "react-native-reanimated";
 import { userErrorMessage } from "@/lib/errors";
@@ -478,6 +479,31 @@ function BackpackSlot({
   );
 }
 
+/**
+ * True only on the first look at the open chest after a given unlock, so
+ * the big rays-and-coins card is a moment, not wallpaper. Later visits (and
+ * a failed read) get the calm strip.
+ */
+function useFirstSighting(key: string | undefined) {
+  const [first, setFirst] = useState(false);
+  useEffect(() => {
+    if (!key) return;
+    let cancelled = false;
+    const storageKey = `chest-seen.${key}`;
+    SecureStore.getItemAsync(storageKey)
+      .then((seen) => {
+        if (cancelled || seen) return;
+        setFirst(true);
+        return SecureStore.setItemAsync(storageKey, "1");
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [key]);
+  return first;
+}
+
 export function ClaimableChoresView({
   result,
   unlockChore,
@@ -515,6 +541,11 @@ export function ClaimableChoresView({
 }) {
   const { gate, unclaimAllowance, claimableOccurrences, claimedOccurrences } =
     result;
+  const chestFirstSighting = useFirstSighting(
+    gate.canAccessClaimables
+      ? (gate.currentUnlockOccurrence?.occurrenceId ?? "no-unlock-chore")
+      : undefined,
+  );
   const [claimingId, setClaimingId] = useState<Id<"choreOccurrences"> | null>(
     null,
   );
@@ -749,30 +780,45 @@ export function ClaimableChoresView({
 
   return (
     <View className="pb-6">
-      <View className="mt-1 flex-row items-center gap-1 overflow-hidden rounded-large bg-surface py-2 pl-1 pr-4">
-        <TreasureChest state="open" size={150} />
-        <View className="flex-1">
-          <AppText
-            variant="label"
-            color="gold"
-            className="uppercase tracking-[1.2px]"
-          >
-            Chest open
-          </AppText>
-          <AppText variant="sectionTitle" className="mt-0.5">
-            Extras unlocked!
-          </AppText>
-          <AppText
-            variant="bodySmall"
-            color="ink-muted"
-            className="mt-1 font-body-bold"
-          >
-            A Parent approved{" "}
-            {gate.currentUnlockOccurrence?.title ?? "your Unlock Chore"}. Claim
-            one Extra at a time — open until your next Unlock Chore starts.
-          </AppText>
+      {chestFirstSighting ? (
+        <View className="mt-1 flex-row items-center gap-1 overflow-hidden rounded-large bg-surface py-2 pl-1 pr-4">
+          <TreasureChest state="open" size={150} />
+          <View className="flex-1">
+            <AppText
+              variant="label"
+              color="gold"
+              className="uppercase tracking-[1.2px]"
+            >
+              Chest open
+            </AppText>
+            <AppText variant="sectionTitle" className="mt-0.5">
+              Extras unlocked!
+            </AppText>
+            <AppText
+              variant="bodySmall"
+              color="ink-muted"
+              className="mt-1 font-body-bold"
+            >
+              A Parent approved{" "}
+              {gate.currentUnlockOccurrence?.title ?? "your Unlock Chore"}.
+              Claim one Extra at a time — open until your next Unlock Chore
+              starts.
+            </AppText>
+          </View>
         </View>
-      </View>
+      ) : (
+        <View className="mt-1 flex-row items-center gap-2 rounded-large bg-surface py-1.5 pl-1 pr-4">
+          <TreasureChest state="open" size={64} quiet />
+          <View className="flex-1">
+            <AppText variant="label" color="gold">
+              Chest open
+            </AppText>
+            <AppText variant="caption" color="ink-muted">
+              Until your next Unlock Chore starts
+            </AppText>
+          </View>
+        </View>
+      )}
 
       <View className="mt-3 flex-row items-center gap-2.5 self-start rounded-full bg-surface py-2 pl-3 pr-3.5">
         <UnclaimKeys

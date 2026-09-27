@@ -144,9 +144,12 @@ function PoppingCoin({
 export function TreasureChest({
   size = 120,
   state,
+  quiet = false,
 }: {
   size?: number;
   state: "locked" | "open";
+  /** Open but calm: no rays or popping coins (the chest has been seen). */
+  quiet?: boolean;
 }) {
   const { tokens } = useTheme();
   const jiggle = useLoop({ duration: 2800, easing: Easings.linear });
@@ -174,10 +177,12 @@ export function TreasureChest({
       accessible={false}
       style={{ width: size, height: size }}
     >
-      {state === "open" ? <Rays size={size} color={tokens.gold} /> : null}
+      {state === "open" && !quiet ? (
+        <Rays size={size} color={tokens.gold} />
+      ) : null}
       <Glow size={size} color={tokens.gold} />
 
-      {state === "open" ? (
+      {state === "open" && !quiet ? (
         <View
           style={{
             position: "absolute",
