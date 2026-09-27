@@ -1,15 +1,7 @@
 import { useState, type ReactNode } from "react";
-import {
-  Linking,
-  Modal,
-  Pressable,
-  ScrollView,
-  TextInput,
-  View,
-} from "react-native";
+import { Linking, Pressable, ScrollView, TextInput, View } from "react-native";
 import Animated from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Svg, { Path, Rect } from "react-native-svg";
 
 import { ParentHouseholdActivity } from "@/components/activity/parent-household-activity";
 import {
@@ -22,8 +14,6 @@ import { Icon, type IconName } from "@/components/ui/icon";
 import { ActionButton, AppText } from "@/design-system";
 import { useTheme } from "@/design-system/theme";
 import { useServerConfirmedMutation } from "@/hooks/use-server-confirmed-mutation";
-import { userErrorMessage } from "@/lib/errors";
-import { useAction } from "convex/react";
 
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
@@ -139,17 +129,6 @@ export function ActionRow({
 }
 
 /** A little house, tinted per household so they're easy to tell apart. */
-function HouseMark({ color, size = 52 }: { color: string; size?: number }) {
-  const { tokens } = useTheme();
-  return (
-    <Svg width={size} height={size} viewBox="0 0 52 52">
-      <Rect width={52} height={52} rx={16} fill={`${color}26`} />
-      <Path d="M12 26 L26 13 L40 26 Z" fill={color} />
-      <Rect x={16} y={25} width={20} height={15} rx={3} fill={tokens.surface} />
-      <Rect x={23} y={31} width={6} height={9} rx={1.5} fill={color} />
-    </Svg>
-  );
-}
 
 export function ParentChildAccessScreen({
   householdId,
@@ -201,27 +180,20 @@ export function ParentAccountScreen({
   parentName,
   parentEmail,
   household,
-  canSwitchHousehold,
   onBack,
-  onSwitchHousehold,
   onOpenHelp,
-  onJoinedHousehold,
   onSignOut,
   signingOut,
 }: {
   parentName: string;
   parentEmail: string;
   household: HouseholdSummary;
-  canSwitchHousehold: boolean;
   onBack: () => void;
-  onSwitchHousehold: () => void;
   onOpenHelp: () => void;
-  onJoinedHousehold: (householdId: Id<"households">) => void;
   onSignOut: () => void;
   signingOut: boolean;
 }) {
   const { tokens } = useTheme();
-  const [joining, setJoining] = useState(false);
   return (
     <ScreenFrame title="You" onBack={onBack}>
       <View
@@ -271,20 +243,6 @@ export function ParentAccountScreen({
       </View>
 
       <View className="mt-6 gap-2.5">
-        {canSwitchHousehold ? (
-          <ActionRow
-            icon="housePair"
-            title="Switch household"
-            subtitle="You’re in more than one family"
-            onPress={onSwitchHousehold}
-          />
-        ) : null}
-        <ActionRow
-          icon="housePair"
-          title="Join another household"
-          subtitle="Use an invite from another Parent"
-          onPress={() => setJoining(true)}
-        />
         <ActionRow
           icon="bell"
           title="Notifications"
@@ -306,159 +264,6 @@ export function ParentAccountScreen({
         loading={signingOut}
         onPress={onSignOut}
       />
-
-      <JoinHouseholdSheet
-        visible={joining}
-        onClose={() => setJoining(false)}
-        onJoined={(householdId) => {
-          setJoining(false);
-          onJoinedHousehold(householdId);
-        }}
-      />
-    </ScreenFrame>
-  );
-}
-
-function JoinHouseholdSheet({
-  visible,
-  onClose,
-  onJoined,
-}: {
-  visible: boolean;
-  onClose: () => void;
-  onJoined: (householdId: Id<"households">) => void;
-}) {
-  const { tokens } = useTheme();
-  const acceptInvite = useAction(api.parentInvites.accept);
-  const [token, setToken] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-
-  async function join() {
-    setBusy(true);
-    setMessage(null);
-    try {
-      const result = await acceptInvite({ token: token.trim() });
-      setToken("");
-      onJoined(result.householdId);
-    } catch (error) {
-      setMessage(userErrorMessage(error, "Couldn’t join with that invite."));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <Modal
-      transparent
-      animationType="slide"
-      visible={visible}
-      onRequestClose={() => !busy && onClose()}
-    >
-      <Pressable
-        accessible={false}
-        onPress={() => !busy && onClose()}
-        className="flex-1 justify-end bg-scrim"
-      >
-        <Pressable accessible={false} onPress={() => {}}>
-          <SafeAreaView
-            edges={["bottom"]}
-            className="rounded-t-sheet px-5 pb-2 pt-5"
-            style={{ backgroundColor: tokens.canvas }}
-          >
-            <AppText variant="sectionTitle">Join another household</AppText>
-            <AppText color="ink-muted" className="mt-2">
-              Paste the invite another Parent shared with you. You’ll get the
-              same say as them in that family.
-            </AppText>
-            <TextInput
-              accessibilityLabel="Invite"
-              value={token}
-              onChangeText={setToken}
-              autoFocus
-              autoCapitalize="none"
-              autoCorrect={false}
-              placeholder="Paste invite"
-              placeholderTextColor={tokens.inkFaint}
-              className="mt-4 min-h-[52px] rounded-[16px] px-4 font-body-bold text-ink"
-              style={{ backgroundColor: tokens.surfaceMuted }}
-            />
-            {message ? (
-              <AppText variant="bodySmall" color="urgency" className="mt-3">
-                {message}
-              </AppText>
-            ) : null}
-            <ActionButton
-              className="mt-5"
-              label="Join"
-              loading={busy}
-              disabled={!token.trim()}
-              onPress={() => void join()}
-            />
-          </SafeAreaView>
-        </Pressable>
-      </Pressable>
-    </Modal>
-  );
-}
-
-export function HouseholdSwitcherScreen({
-  households,
-  currentHouseholdId,
-  onBack,
-  onSelect,
-}: {
-  households: HouseholdSummary[];
-  currentHouseholdId: HouseholdSummary["householdId"];
-  onBack: () => void;
-  onSelect: (householdId: HouseholdSummary["householdId"]) => void;
-}) {
-  const { tokens } = useTheme();
-  const colors = [tokens.action, tokens.urgency, tokens.info, tokens.reward];
-  return (
-    <ScreenFrame title="Your households" onBack={onBack}>
-      <View className="mt-2 gap-2.5">
-        {households.map((household, index) => {
-          const current = household.householdId === currentHouseholdId;
-          return (
-            <Pressable
-              key={household.householdId}
-              accessibilityRole="button"
-              accessibilityState={{ selected: current }}
-              accessibilityLabel={`${household.name}, ${household.children.length} kids${current ? ", current" : ""}`}
-              onPress={() => onSelect(household.householdId)}
-            >
-              {({ pressed }) => (
-                <Animated.View
-                  className="flex-row items-center gap-4 rounded-[22px] p-4"
-                  style={[
-                    {
-                      backgroundColor: tokens.surface,
-                      borderWidth: 2,
-                      borderColor: current ? tokens.action : "transparent",
-                      transform: [{ scale: pressed ? PRESS.scale : 1 }],
-                    },
-                    pressTransition,
-                  ]}
-                >
-                  <HouseMark color={colors[index % colors.length]} />
-                  <View className="flex-1">
-                    <AppText variant="cardTitle">{household.name}</AppText>
-                    <AppText variant="caption" color="ink-muted">
-                      {household.children
-                        .map((child) => child.displayName)
-                        .join(", ") || "No kids yet"}
-                    </AppText>
-                  </View>
-                  {current ? (
-                    <Icon name="check" color={tokens.action} size={20} />
-                  ) : null}
-                </Animated.View>
-              )}
-            </Pressable>
-          );
-        })}
-      </View>
     </ScreenFrame>
   );
 }

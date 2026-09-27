@@ -19,7 +19,7 @@ Parents need a structured way to manage household responsibilities and allowance
 
 ### J-01 — Set up a household
 
-Parents create a household and child profiles; additional parents join with equal authority, and children access their profiles without requiring email accounts.
+Parents create a household and child profiles; additional parents join with equal authority, and children access their profiles without requiring email accounts. A Parent belongs to exactly one household: they either create one or join one by invite, never both.
 
 ### J-02 — Configure chores
 

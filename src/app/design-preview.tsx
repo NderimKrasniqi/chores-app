@@ -35,7 +35,6 @@ import { ParentScreenHeader } from "@/components/household/parent-screen-header"
 import { RecoveryPayoutDetail } from "@/components/household/parent-money-content";
 import {
   HouseholdSettingsScreen,
-  HouseholdSwitcherScreen,
   ParentAccountScreen,
   ParentChildAccessScreen,
 } from "@/components/household/parent-secondary-screens";
@@ -54,7 +53,6 @@ import {
 import type { Id } from "../../convex/_generated/dataModel";
 
 const householdId = "visual-household" as Id<"households">;
-const secondHouseholdId = "visual-grandma-house" as Id<"households">;
 const alexId = "visual-alex" as Id<"children">;
 const mayaId = "visual-maya" as Id<"children">;
 const membershipId = "visual-membership" as Id<"householdMembers">;
@@ -80,22 +78,6 @@ const household: HouseholdSummary = {
     { childId: alexId, displayName: "Alex" },
     { childId: mayaId, displayName: "Maya" },
   ],
-};
-
-const grandmasHouse: HouseholdSummary = {
-  householdId: secondHouseholdId,
-  name: "Grandma’s House",
-  timezone: "Europe/Stockholm",
-  payoutWeekday: "sunday",
-  weeklyUnclaimAllowance: 1,
-  parents: [
-    {
-      membershipId: "visual-grandma-membership" as Id<"householdMembers">,
-      displayName: "Sam",
-      isCurrent: true,
-    },
-  ],
-  children: [{ childId: mayaId, displayName: "Maya" }],
 };
 
 function atLocalTime(dayOffset: number, hour: number, minute = 0) {
@@ -1080,26 +1062,14 @@ function VerificationState({ state }: { state: string }) {
       return <ParentFamilyScreen />;
     case "parent-household-settings":
       return <HouseholdSettingsScreen household={household} onBack={noop} />;
-    case "parent-household-switcher":
-      return (
-        <HouseholdSwitcherScreen
-          households={[household, grandmasHouse]}
-          currentHouseholdId={householdId}
-          onBack={noop}
-          onSelect={noop}
-        />
-      );
     case "parent-account":
       return (
         <ParentAccountScreen
           parentName="Sam"
           parentEmail="sam@example.com"
           household={household}
-          canSwitchHousehold
           onBack={noop}
-          onSwitchHousehold={noop}
           onOpenHelp={noop}
-          onJoinedHousehold={noop}
           onSignOut={noop}
           signingOut={false}
         />

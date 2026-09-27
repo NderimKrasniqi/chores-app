@@ -294,6 +294,20 @@ export const consumeInvite = internalMutation({
       throw new ConvexError("You are already a parent in this household.");
     }
 
+    // A Parent belongs to exactly one household.
+    const otherMembership = await ctx.db
+      .query("householdMembers")
+      .withIndex("by_auth_user", (q) =>
+        q.eq("authUserId", args.actorAuthUserId),
+      )
+      .first();
+
+    if (otherMembership) {
+      throw new ConvexError(
+        "You already belong to a household. A Parent can only be in one.",
+      );
+    }
+
     const membershipId = await ctx.db.insert("householdMembers", {
       householdId: invite.householdId,
       authUserId: args.actorAuthUserId,

@@ -2965,3 +2965,28 @@ export const createParentInvite = internalMutation({
     });
   },
 });
+
+/**
+ * Dev cleanup for the one-household rule: removes a single Parent
+ * membership row. Refuses to leave a household with no Parent.
+ */
+export const removeParentMembership = internalMutation({
+  args: { membershipId: v.id("householdMembers") },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    assertDevelopmentOnly();
+    const membership = await ctx.db.get(args.membershipId);
+    if (!membership) return null;
+    const parents = await ctx.db
+      .query("householdMembers")
+      .withIndex("by_household", (q) =>
+        q.eq("householdId", membership.householdId),
+      )
+      .take(2);
+    if (parents.length < 2) {
+      throw new ConvexError("That household would be left without a Parent.");
+    }
+    await ctx.db.delete(args.membershipId);
+    return null;
+  },
+});

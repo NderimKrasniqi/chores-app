@@ -3,9 +3,8 @@ import { ParentReviewsContent } from "@/components/chores/parent-reviews-content
 import { OnboardingScreen } from "@/components/onboarding/onboarding-screen";
 import { AppText, Surface } from "@/design-system";
 import { authClient } from "@/lib/auth/client";
-import * as SecureStore from "expo-secure-store";
 import { StatusBar } from "expo-status-bar";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { onNotificationIntent } from "@/lib/notification-intent";
 import { ScrollView, View } from "react-native";
 import {
@@ -26,7 +25,6 @@ import { ParentKidScreen } from "./parent-kid-screen";
 import { ParentScreenHeader } from "./parent-screen-header";
 import {
   HouseholdSettingsScreen,
-  HouseholdSwitcherScreen,
   ParentActivityScreen,
   ParentAccountScreen,
   ParentChildAccessScreen,
@@ -38,18 +36,8 @@ type HouseholdListScreenProps = {
   households: HouseholdSummary[];
 };
 
-// Parents in more than one family come back to the one they last opened.
-const SELECTED_HOUSEHOLD_KEY = "parent-selected-household";
-
 type ParentRoute =
-  | "main"
-  | "account"
-  | "switcher"
-  | "settings"
-  | "activity"
-  | "childAccess"
-  | "kid"
-  | "help";
+  "main" | "account" | "settings" | "activity" | "childAccess" | "kid" | "help";
 
 const sectionCopy: Record<
   Exclude<ParentSection, "home">,
@@ -72,36 +60,6 @@ export function HouseholdListScreen({
   const insets = useSafeAreaInsets();
   const [activeSection, setActiveSection] = useState<ParentSection>("home");
   const [route, setRoute] = useState<ParentRoute>("main");
-  const [selectedHouseholdId, setSelectedHouseholdId] = useState<
-    HouseholdSummary["householdId"]
-  >(households[0].householdId);
-  const [restoredSelection, setRestoredSelection] = useState(
-    households.length < 2,
-  );
-
-  useEffect(() => {
-    let cancelled = false;
-    SecureStore.getItemAsync(SELECTED_HOUSEHOLD_KEY)
-      .catch(() => null)
-      .then((stored) => {
-        if (cancelled) return;
-        const match = households.find((item) => item.householdId === stored);
-        if (match) setSelectedHouseholdId(match.householdId);
-        setRestoredSelection(true);
-      });
-    return () => {
-      cancelled = true;
-    };
-    // Restore once on mount; later picks are saved by selectHousehold.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  function selectHousehold(householdId: HouseholdSummary["householdId"]) {
-    setSelectedHouseholdId(householdId);
-    void SecureStore.setItemAsync(SELECTED_HOUSEHOLD_KEY, householdId).catch(
-      () => {},
-    );
-  }
   const [signingOut, setSigningOut] = useState(false);
   const [selectedChildId, setSelectedChildId] = useState<
     HouseholdSummary["children"][number]["childId"] | null
@@ -120,12 +78,8 @@ export function HouseholdListScreen({
     [],
   );
 
-  const household = useMemo(
-    () =>
-      households.find((item) => item.householdId === selectedHouseholdId) ??
-      households[0],
-    [households, selectedHouseholdId],
-  );
+  // A Parent belongs to exactly one household.
+  const household = households[0];
 
   async function handleSignOut() {
     setErrorMessage(null);
@@ -138,40 +92,16 @@ export function HouseholdListScreen({
     }
   }
 
-  // A beat of blank canvas beats flashing the wrong family first.
-  if (!restoredSelection) return <View className="flex-1 bg-canvas" />;
-
   if (route === "account") {
     return (
       <ParentAccountScreen
         parentName={parentName}
         parentEmail={parentEmail}
         household={household}
-        canSwitchHousehold={households.length > 1}
         onBack={() => setRoute("main")}
-        onSwitchHousehold={() => setRoute("switcher")}
         onOpenHelp={() => setRoute("help")}
-        onJoinedHousehold={(householdId) => {
-          selectHousehold(householdId);
-          setActiveSection("home");
-          setRoute("main");
-        }}
         onSignOut={() => void handleSignOut()}
         signingOut={signingOut}
-      />
-    );
-  }
-
-  if (route === "switcher") {
-    return (
-      <HouseholdSwitcherScreen
-        households={households}
-        currentHouseholdId={household.householdId}
-        onBack={() => setRoute("account")}
-        onSelect={(householdId) => {
-          selectHousehold(householdId);
-          setRoute("main");
-        }}
       />
     );
   }

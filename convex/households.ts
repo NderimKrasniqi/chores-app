@@ -48,6 +48,16 @@ export const create = mutation({
   handler: async (ctx, args) => {
     const authUser = await requireCurrentParentAuthUser(ctx);
 
+    // A Parent belongs to exactly one household.
+    const existingMembership = await ctx.db
+      .query("householdMembers")
+      .withIndex("by_auth_user", (q) => q.eq("authUserId", authUser._id))
+      .first();
+
+    if (existingMembership) {
+      throw new ConvexError("You already have a household.");
+    }
+
     const householdName = args.name.trim();
 
     if (!householdName) {
