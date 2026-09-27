@@ -13,6 +13,7 @@ import Animated, {
   useAnimatedStyle,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { currentDeviceLabel } from "@/lib/child-access/device-label";
 import { userErrorMessage } from "@/lib/errors";
 
 import { DockingScene, Starfield, useLoop } from "@/components/art";
@@ -140,7 +141,7 @@ export function ChildQrScannerScreen({ onCancel }: ChildQrScannerScreenProps) {
     setErrorMessage(null);
 
     try {
-      await redeemQr({ qrToken });
+      await redeemQr({ qrToken, deviceLabel: currentDeviceLabel() });
     } catch (error) {
       setErrorMessage(
         userErrorMessage(error, "Could not redeem this QR pairing code."),

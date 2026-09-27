@@ -178,9 +178,16 @@ export const create = action({
   },
 });
 
+/** Trimmed, printable, at most 40 characters; anything else is dropped. */
+function cleanDeviceLabel(label: string | undefined) {
+  const cleaned = label?.replace(/[^\p{L}\p{N} ’'.,()-]/gu, "").trim();
+  return cleaned ? cleaned.slice(0, 40) : undefined;
+}
+
 export const redeemQr = action({
   args: {
     qrToken: v.string(),
+    deviceLabel: v.optional(v.string()),
   },
 
   returns: v.object({
@@ -215,6 +222,7 @@ export const redeemQr = action({
       {
         qrTokenHash,
         actorAuthUserId: authUser._id,
+        deviceLabel: cleanDeviceLabel(args.deviceLabel),
       },
     );
 
@@ -225,6 +233,7 @@ export const redeemQr = action({
 export const redeemManual = action({
   args: {
     manualCode: v.string(),
+    deviceLabel: v.optional(v.string()),
   },
 
   returns: v.object({
@@ -255,6 +264,7 @@ export const redeemManual = action({
       {
         manualCodeHash,
         actorAuthUserId: authUser._id,
+        deviceLabel: cleanDeviceLabel(args.deviceLabel),
       },
     );
 
@@ -464,6 +474,7 @@ export const consumeQrCredential = internalMutation({
   args: {
     qrTokenHash: v.string(),
     actorAuthUserId: v.string(),
+    deviceLabel: v.optional(v.string()),
   },
 
   returns: v.object({
@@ -545,6 +556,8 @@ export const consumeQrCredential = internalMutation({
 
       pairingCredentialId: credential._id,
 
+      ...(args.deviceLabel ? { deviceLabel: args.deviceLabel } : {}),
+
       createdAt: now,
     });
 
@@ -565,6 +578,7 @@ export const consumeManualCredential = internalMutation({
   args: {
     manualCodeHash: v.string(),
     actorAuthUserId: v.string(),
+    deviceLabel: v.optional(v.string()),
   },
 
   returns: v.union(
@@ -709,6 +723,8 @@ export const consumeManualCredential = internalMutation({
           authUserId: args.actorAuthUserId,
 
           pairingCredentialId: credential._id,
+
+          ...(args.deviceLabel ? { deviceLabel: args.deviceLabel } : {}),
 
           createdAt: now,
         });

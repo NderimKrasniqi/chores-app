@@ -15,6 +15,7 @@ import Animated, {
   useAnimatedStyle,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { currentDeviceLabel } from "@/lib/child-access/device-label";
 import { userErrorMessage } from "@/lib/errors";
 
 import { DockingScene, Starfield, useLoop } from "@/components/art";
@@ -143,7 +144,10 @@ export function ChildJoinScreen() {
     setRedeeming(true);
 
     try {
-      await redeemManual({ manualCode: code });
+      await redeemManual({
+        manualCode: code,
+        deviceLabel: currentDeviceLabel(),
+      });
       setCode("");
     } catch (error) {
       setErrorMessage(userErrorMessage(error, "Could not pair this device."));
@@ -209,7 +213,7 @@ export function ChildJoinScreen() {
             color="ink-muted"
             className="mt-1.5 text-center font-body-bold"
           >
-            Ask a Parent to open “Add a child” on their phone.
+            Ask a Parent to tap your name, then “Phones”, on their phone.
           </AppText>
 
           <Pressable

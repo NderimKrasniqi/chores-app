@@ -56,6 +56,10 @@ export const childAccessTables = {
 
     pairingCredentialId: v.id("childPairingCredentials"),
 
+    // What the phone calls itself ("iPhone 17e"), so Parents can tell
+    // linked phones apart. Client-supplied and display-only.
+    deviceLabel: v.optional(v.string()),
+
     createdAt: v.number(),
 
     revokedAt: v.optional(v.number()),

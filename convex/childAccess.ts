@@ -222,6 +222,8 @@ export const listDevicesForChild = query({
     v.object({
       accessGrantId: v.id("childDeviceAccessGrants"),
 
+      deviceLabel: v.optional(v.string()),
+
       createdAt: v.number(),
 
       revokedAt: v.optional(v.number()),
@@ -248,6 +250,8 @@ export const listDevicesForChild = query({
       .sort((a, b) => b.createdAt - a.createdAt)
       .map((grant) => ({
         accessGrantId: grant._id,
+
+        deviceLabel: grant.deviceLabel,
 
         createdAt: grant.createdAt,
 

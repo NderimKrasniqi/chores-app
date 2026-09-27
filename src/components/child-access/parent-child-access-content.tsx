@@ -1,4 +1,4 @@
-import { DockingScene } from "@/components/art";
+import { PhoneLinkScene } from "@/components/art";
 import Svg, { Circle } from "react-native-svg";
 import { Icon } from "@/components/ui/icon";
 import { homeTokens as themeColors } from "@/design-system/theme";
@@ -24,6 +24,7 @@ export type GeneratedCredential = {
 
 export type ParentChildAccessVisualDevice = {
   accessGrantId: Id<"childDeviceAccessGrants">;
+  deviceLabel?: string;
   createdAt: number;
   isActive: boolean;
   revokedAt?: number;
@@ -246,7 +247,7 @@ export function ParentChildAccessContent({
     <View className="pb-6">
       {!generated ? (
         <View className="items-center">
-          <DockingScene width={320} height={170} />
+          <PhoneLinkScene width={320} height={170} name={childDisplayName} />
           <AppText variant="sectionTitle" className="mt-2 text-center">
             Link {childDisplayName}’s phone
           </AppText>
@@ -359,14 +360,16 @@ export function ParentChildAccessContent({
                 <Icon name="phone" color={themeColors.action} size={20} />
               </View>
               <View className="flex-1">
-                <AppText variant="cardTitle">Phone {index + 1}</AppText>
+                <AppText variant="cardTitle" numberOfLines={1}>
+                  {device.deviceLabel ?? `Phone ${index + 1}`}
+                </AppText>
                 <AppText variant="caption" color="ink-muted">
                   Linked {formatDateTime(device.createdAt, timezone)}
                 </AppText>
               </View>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={`Unlink phone ${index + 1}`}
+                accessibilityLabel={`Unlink ${device.deviceLabel ?? `phone ${index + 1}`}`}
                 onPress={() => setConfirmDeviceId(device.accessGrantId)}
                 hitSlop={8}
                 className="min-h-[40px] justify-center px-2"
@@ -400,6 +403,7 @@ export function ParentChildAccessContent({
                   color="ink-muted"
                   className="mt-1"
                 >
+                  {device.deviceLabel ? `${device.deviceLabel} · ` : ""}
                   Unlinked{" "}
                   {device.revokedAt
                     ? formatDateTime(device.revokedAt, timezone)
