@@ -527,7 +527,7 @@ function Mark({
     return (
       <View
         className="h-3 w-3 items-center justify-center rounded-full"
-        style={{ backgroundColor: tokens.action }}
+        style={{ backgroundColor: tokens.primaryShade }}
       />
     );
   }

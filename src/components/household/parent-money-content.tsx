@@ -507,7 +507,7 @@ export function ParentMoneyContent({
                         style={{
                           backgroundColor:
                             value > 0
-                              ? themeColors.action
+                              ? themeColors.primaryShade
                               : value < 0
                                 ? themeColors.urgency
                                 : themeColors.surfaceMuted,

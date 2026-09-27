@@ -349,9 +349,9 @@ export function ParentHomeContent({
                   {latestWin.childDisplayName} · approved
                 </AppText>
               </View>
-              <View className="h-11 w-11 items-center justify-center rounded-full border-b-[3px] border-goldShade bg-gold">
+              <View className="min-h-[36px] items-center justify-center rounded-full border-b-[3px] border-goldShade bg-gold px-3">
                 <AppText variant="label" className="text-night">
-                  +{latestWin.valueSek}
+                  +{latestWin.valueSek} kr
                 </AppText>
               </View>
             </View>

@@ -348,9 +348,9 @@ function LogRow({
           {kind} · {formatApprovedAt(item.approvedAt, timezone)}
         </AppText>
       </View>
-      <View className="h-11 w-11 items-center justify-center rounded-full border-b-[3px] border-goldShade bg-gold">
+      <View className="min-h-[36px] items-center justify-center rounded-full border-b-[3px] border-goldShade bg-gold px-3">
         <AppText className="font-display text-[14px] leading-[16px] text-night">
-          +{item.valueSek}
+          +{item.valueSek} kr
         </AppText>
       </View>
     </View>
