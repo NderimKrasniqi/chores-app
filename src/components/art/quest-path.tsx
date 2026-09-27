@@ -9,6 +9,7 @@ import Animated, {
 import Svg, { Path } from "react-native-svg";
 
 import { Icon } from "@/components/ui/icon";
+import { amountFontSize } from "@/lib/amount-size";
 import { AppText } from "@/design-system/text";
 import { useTheme } from "@/design-system/theme";
 
@@ -222,7 +223,11 @@ function Node({ stop, showBuddy }: { stop: QuestStop; showBuddy: boolean }) {
             >
               {stop.reward !== undefined ? (
                 <>
-                  <AppText className="font-display text-[24px] leading-[26px] text-night">
+                  <AppText
+                    numberOfLines={1}
+                    className="font-display text-night"
+                    style={{ fontSize: amountFontSize(stop.reward, 24, 3) }}
+                  >
                     +{stop.reward}{" "}
                     <AppText className="font-body-heavy text-[12px] leading-[14px] text-night">
                       kr

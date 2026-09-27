@@ -1,3 +1,4 @@
+import { amountFontSize } from "@/lib/amount-size";
 import * as Haptics from "expo-haptics";
 import { useEffect, useRef, useState } from "react";
 import { Modal, Pressable, ScrollView, View } from "react-native";
@@ -402,7 +403,11 @@ function Hero({
           <ChoreIcon title={title} size={84} />
         </Floating>
         <View className="absolute bottom-1 right-1 h-11 w-11 items-center justify-center rounded-full border-b-4 border-goldShade bg-gold">
-          <AppText className="font-display text-[15px] leading-[17px] text-night">
+          <AppText
+            numberOfLines={1}
+            className="font-display text-night"
+            style={{ fontSize: amountFontSize(value, 15, 2) }}
+          >
             {value}{" "}
             <AppText className="font-body-heavy text-[9px] leading-[10px] text-night">
               kr

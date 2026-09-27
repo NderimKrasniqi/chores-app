@@ -1,3 +1,4 @@
+import { amountFontSize } from "@/lib/amount-size";
 import * as Haptics from "expo-haptics";
 import { useState } from "react";
 import { useWindowDimensions, View } from "react-native";
@@ -311,7 +312,11 @@ function CardFace({
       >
         <ChoreIcon title={item.title} size={104} animated={!compact} />
         <View className="absolute right-4 top-4 h-14 w-14 items-center justify-center rounded-full border-b-4 border-goldShade bg-gold">
-          <AppText className="font-display text-[17px] leading-[19px] text-night">
+          <AppText
+            numberOfLines={1}
+            className="font-display text-night"
+            style={{ fontSize: amountFontSize(item.valueSek, 17, 3) }}
+          >
             +{item.valueSek}{" "}
             <AppText className="font-body-heavy text-[10px] leading-[12px] text-night">
               kr

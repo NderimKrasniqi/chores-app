@@ -80,9 +80,10 @@ function seenKey(childId: string) {
 }
 
 /**
- * Coins that arrived since the last visit drop into the pig, and the number
- * counts from the old balance to the new one. A first visit (or a failed
- * read) only records a baseline, so nothing replays.
+ * What changed since the child last opened Money, decided once when the tab
+ * opens (a snapshot): how many coins to drop and where the number counts
+ * from. Anything that arrives while the tab is open just updates quietly.
+ * A first visit or a failed read celebrates nothing.
  */
 function useSinceLastVisit(
   childId: string | undefined,
@@ -92,6 +93,10 @@ function useSinceLastVisit(
   const [seen, setSeen] = useState<MoneySeen | null | undefined>(
     childId ? undefined : null,
   );
+  const [snapshot, setSnapshot] = useState<{
+    from: number;
+    drops: number;
+  } | null>(null);
 
   useEffect(() => {
     if (!childId) return;
@@ -114,6 +119,23 @@ function useSinceLastVisit(
     };
   }, [childId]);
 
+  // Freeze the comparison the first time we know both sides.
+  if (seen !== undefined && snapshot === null) {
+    setSnapshot(
+      seen
+        ? {
+            from: seen.balance,
+            drops: Math.min(
+              3,
+              entries.filter(
+                (entry) => entry.createdAt > seen.at && entry.amountSek > 0,
+              ).length,
+            ),
+          }
+        : { from: balance, drops: 0 },
+    );
+  }
+
   const newest = entries.reduce(
     (max, entry) => Math.max(max, entry.createdAt),
     0,
@@ -126,38 +148,43 @@ function useSinceLastVisit(
     );
   }, [balance, childId, newest, seen]);
 
-  if (!seen) return { ready: seen === null, from: balance, drops: 0 };
-  const drops = entries.filter(
-    (entry) => entry.createdAt > seen.at && entry.amountSek > 0,
-  ).length;
-  return { ready: true, from: seen.balance, drops };
+  return snapshot
+    ? { ready: true, from: snapshot.from, drops: snapshot.drops }
+    : { ready: false, from: balance, drops: 0 };
 }
 
-/** Counts from `from` to `to` once; still under reduced motion. */
-function useCountUp(from: number, to: number, active: boolean) {
+/**
+ * Counts once from `from` to the balance when the tab opens. The starting
+ * value is set in the same render the count begins, so there's no flash of
+ * the new number first; later changes jump straight to the new value.
+ */
+function useCountUp(from: number, to: number, ready: boolean) {
   const reducedMotion = useReducedMotion();
-  const animate = active && !reducedMotion && from !== to;
-  const [value, setValue] = useState(animate ? from : to);
-  const [target, setTarget] = useState(to);
-  if (target !== to) {
-    setTarget(to);
-    if (!animate) setValue(to);
+  const [started, setStarted] = useState(false);
+  const [value, setValue] = useState(to);
+  const animate = ready && !reducedMotion && from !== to && !started;
+  if (animate) {
+    setStarted(true);
+    setValue(from);
   }
+  const target = started ? to : null;
   useEffect(() => {
-    if (!animate) return;
+    if (target === null) return;
     let frame = 0;
     const start = Date.now();
-    const duration = 700;
+    const begin = value;
     const tick = () => {
-      const t = Math.min(1, (Date.now() - start) / duration);
+      const t = Math.min(1, (Date.now() - start) / 700);
       const eased = 1 - Math.pow(1 - t, 3);
-      setValue(Math.round(from + (to - from) * eased));
+      setValue(Math.round(begin + (target - begin) * eased));
       if (t < 1) frame = requestAnimationFrame(tick);
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [animate, from, to]);
-  return animate ? value : to;
+    // Only (re)start when the target changes; `value` is the start point.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [target]);
+  return started ? value : to;
 }
 
 export function ChildMoneyContent({ childId }: { childId?: string }) {
@@ -219,13 +246,19 @@ export function ChildMoneyView({
       <View
         className="mt-1 flex-row items-center gap-4 rounded-large bg-surface p-4"
         accessible
-        accessibilityLabel={`Piggy bank: ${balance} kr`}
+        accessibilityLabel={`Piggy bank: ${balance} kr. ${
+          negative
+            ? `Earn ${Math.abs(balance)} kr to get back to 0.`
+            : since.drops > 0
+              ? `${since.drops} new ${since.drops === 1 ? "coin" : "coins"} since last time.`
+              : ""
+        }`}
       >
         <PiggyBank
           size={96}
           negative={negative}
-          drops={since.ready ? since.drops : 0}
-          dropKey={`${since.ready}-${since.drops}`}
+          drops={since.drops}
+          dropKey={since.ready ? "open" : "loading"}
         />
         <View className="flex-1">
           <AppText
@@ -241,7 +274,7 @@ export function ChildMoneyView({
             numberOfLines={1}
             testID="task14-running-balance-value"
           >
-            {shown} kr
+            {since.ready ? `${shown} kr` : " "}
           </AppText>
           <AppText
             variant="caption"

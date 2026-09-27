@@ -1,3 +1,4 @@
+import { amountFontSize } from "@/lib/amount-size";
 import {
   Backpack,
   ChoreIcon,
@@ -197,7 +198,11 @@ function unlockGateStatus(
 function ValueCoin({ value }: { value: number }) {
   return (
     <View className="h-14 w-14 items-center justify-center rounded-full border-b-4 border-goldShade bg-gold">
-      <AppText className="font-display text-[18px] leading-[20px] text-night">
+      <AppText
+        numberOfLines={1}
+        className="font-display text-night"
+        style={{ fontSize: amountFontSize(value, 18, 3) }}
+      >
         {value}{" "}
         <AppText className="font-body-heavy text-[10px] leading-[12px] text-night">
           kr
@@ -485,23 +490,27 @@ function BackpackSlot({
  * a failed read) get the calm strip.
  */
 function useFirstSighting(key: string | undefined) {
-  const [first, setFirst] = useState(false);
+  // undefined = still reading; per key so a new unlock starts fresh.
+  const [result, setResult] = useState<{ key: string; first: boolean }>();
   useEffect(() => {
     if (!key) return;
     let cancelled = false;
     const storageKey = `chest-seen.${key}`;
     SecureStore.getItemAsync(storageKey)
       .then((seen) => {
-        if (cancelled || seen) return;
-        setFirst(true);
-        return SecureStore.setItemAsync(storageKey, "1");
+        if (cancelled) return;
+        setResult({ key, first: !seen });
+        if (!seen) return SecureStore.setItemAsync(storageKey, "1");
       })
-      .catch(() => {});
+      .catch(() => {
+        if (!cancelled) setResult({ key, first: false });
+      });
     return () => {
       cancelled = true;
     };
   }, [key]);
-  return first;
+  if (!key) return false;
+  return result?.key === key ? result.first : undefined;
 }
 
 export function ClaimableChoresView({
@@ -543,7 +552,7 @@ export function ClaimableChoresView({
     result;
   const chestFirstSighting = useFirstSighting(
     gate.canAccessClaimables
-      ? (gate.currentUnlockOccurrence?.occurrenceId ?? "no-unlock-chore")
+      ? gate.currentUnlockOccurrence?.occurrenceId
       : undefined,
   );
   const [claimingId, setClaimingId] = useState<Id<"choreOccurrences"> | null>(
@@ -780,7 +789,9 @@ export function ClaimableChoresView({
 
   return (
     <View className="pb-6">
-      {chestFirstSighting ? (
+      {chestFirstSighting === undefined ? (
+        <View className="mt-1 h-[76px]" />
+      ) : chestFirstSighting ? (
         <View className="mt-1 flex-row items-center gap-1 overflow-hidden rounded-large bg-surface py-2 pl-1 pr-4">
           <TreasureChest state="open" size={150} />
           <View className="flex-1">

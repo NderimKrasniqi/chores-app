@@ -2,7 +2,7 @@ import { useQuery } from "convex/react";
 import { View } from "react-native";
 
 import { StarShelf } from "@/components/art";
-import { useMinuteNow } from "@/lib/use-minute-now";
+import { useHourNow, useStickyValue } from "@/lib/use-hour-now";
 import { AppText } from "@/design-system";
 
 import { api } from "../../../convex/_generated/api";
@@ -34,11 +34,12 @@ export function ChildHouseholdActivity({
     api.householdActivity.listForCurrentChild,
     visualFixture ? "skip" : {},
   );
-  const now = useMinuteNow();
-  const week = useQuery(
+  const now = useHourNow();
+  const liveWeek = useQuery(
     api.householdActivity.weekForCurrentChild,
     visualFixture ? "skip" : { now },
   );
+  const week = useStickyValue(liveWeek);
   const feed = visualFixture?.loading
     ? undefined
     : (visualFixture ?? queriedFeed);

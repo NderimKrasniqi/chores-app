@@ -1,3 +1,4 @@
+import { amountFontSize } from "@/lib/amount-size";
 import { BalanceOrb, Starfield } from "@/components/art";
 import { ChildApprovalCelebrations } from "@/components/activity/approval-celebration";
 import { ChildHouseholdActivity } from "@/components/activity/child-household-activity";
@@ -248,7 +249,9 @@ function HomeTab({
           >
             <BalanceOrb size={92}>
               <AppText
-                className="font-display text-[30px] leading-[33px] text-night"
+                numberOfLines={1}
+                className="font-display text-night"
+                style={{ fontSize: amountFontSize(balanceSek ?? 0, 30, 3) }}
                 testID="task14-running-balance-value"
               >
                 {balanceSek === undefined ? "…" : balanceSek}{" "}

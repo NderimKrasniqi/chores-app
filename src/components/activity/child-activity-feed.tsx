@@ -71,7 +71,8 @@ function useShelfSeen(seenKey: string | undefined, newest: number) {
     };
   }, [seenKey]);
   useEffect(() => {
-    if (!seenKey || seen === undefined || newest === 0) return;
+    if (!seenKey || seen === undefined) return;
+    // Always write, even "0", so the very first star counts as new later.
     SecureStore.setItemAsync(
       `shelf-seen.${seenKey}`,
       String(Math.max(newest, seen ?? 0)),
@@ -183,9 +184,12 @@ export function ChildActivityFeed({
 
   const newest = week.reduce((max, star) => Math.max(max, star.approvedAt), 0);
   const seen = useShelfSeen(seenKey, newest);
+  // Hold stars back until we know what was seen, so new ones mount as new
+  // (and drop) instead of appearing and then silently becoming "new".
+  const seenKnown = !seenKey || seen !== undefined;
   const days: ShelfDay[] = lastSevenDays(now, timezone).map((day) => ({
     ...day,
-    stars: week
+    stars: (seenKnown ? week : [])
       .filter((star) => localDateKey(star.approvedAt, timezone) === day.key)
       .sort((a, b) => a.approvedAt - b.approvedAt)
       .map((star) => ({

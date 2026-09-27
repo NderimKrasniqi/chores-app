@@ -1,7 +1,7 @@
 import { useQuery } from "convex/react";
 import { AppText, Surface } from "@/design-system";
 import type { ReactNode } from "react";
-import { useMinuteNow } from "@/lib/use-minute-now";
+import { useHourNow, useStickyValue } from "@/lib/use-hour-now";
 
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
@@ -31,11 +31,12 @@ export function ParentHouseholdActivity({
   const feed = useQuery(api.householdActivity.listForParent, {
     householdId,
   });
-  const now = useMinuteNow();
-  const week = useQuery(
+  const now = useHourNow();
+  const liveWeek = useQuery(
     api.householdActivity.weekForParent,
     showHistory ? { householdId, now } : "skip",
   );
+  const week = useStickyValue(liveWeek);
 
   if (feed === undefined) {
     return (

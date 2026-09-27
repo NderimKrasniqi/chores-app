@@ -285,6 +285,7 @@ export const listActiveDeviceCountsForHousehold = query({
     const grants = await ctx.db
       .query("childDeviceAccessGrants")
       .withIndex("by_household", (q) => q.eq("householdId", args.householdId))
+      .order("desc")
       .take(500);
 
     const counts = new Map<Id<"children">, number>();

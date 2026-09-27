@@ -1,6 +1,7 @@
 import { ConvexError, v } from "convex/values";
 
 import type { Id } from "./_generated/dataModel";
+import { getLocalDateForInstant } from "./lib/scheduling/householdTime";
 import { mutation, query, type QueryCtx } from "./_generated/server";
 import { requireCurrentParentForHousehold } from "./lib/auth/parentAuthorization";
 import { requireCurrentChildAccess } from "./lib/auth/childAuthorization";
@@ -321,14 +322,10 @@ async function dailyNetForPeriod(
     )
     .take(THIS_PERIOD_ENTRY_LIMIT);
 
-  const format = new Intl.DateTimeFormat("en-CA", {
-    timeZone: period.timezone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
   for (const entry of entries) {
-    const index = dayNumber(format.format(new Date(entry.createdAt))) - first;
+    const index =
+      dayNumber(getLocalDateForInstant(entry.createdAt, period.timezone)) -
+      first;
     if (index >= 0 && index < totals.length) totals[index] += entry.amountSek;
   }
   return totals;

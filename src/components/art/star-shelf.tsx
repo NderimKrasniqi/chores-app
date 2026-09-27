@@ -74,14 +74,14 @@ export const StarShelf = memo(function StarShelf({
     >
       <View className="flex-row items-end justify-between px-1">
         {days.map((day) => {
-          const visible = day.stars.slice(0, JAR_CAPACITY);
+          const visible = day.stars.slice(-JAR_CAPACITY);
           const overflow = day.stars.length - visible.length;
           return (
             <View key={day.key} className="items-center">
               <Jar isToday={day.isToday} tokens={tokens}>
                 {visible.map((star, i) => (
                   <JarStar
-                    key={star.id}
+                    key={`${star.id}-${star.isNew ? "new" : "seen"}`}
                     index={i}
                     color={star.color}
                     outline={tokens.night}
@@ -133,6 +133,30 @@ export const StarShelf = memo(function StarShelf({
   );
 });
 
+function TodayGlow({ color }: { color: string }) {
+  const breathe = useLoop({ duration: 2400, reverse: true, rest: 0.6 });
+  const glowStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(breathe.get(), [0, 1], [0.25, 0.7]),
+  }));
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={[
+        {
+          position: "absolute",
+          left: -4,
+          right: -4,
+          top: 4,
+          bottom: -4,
+          borderRadius: 14,
+          backgroundColor: color,
+        },
+        glowStyle,
+      ]}
+    />
+  );
+}
+
 function Jar({
   isToday,
   tokens,
@@ -142,29 +166,9 @@ function Jar({
   tokens: ReturnType<typeof useTheme>["tokens"];
   children: ReactNode;
 }) {
-  const breathe = useLoop({ duration: 2400, reverse: true, rest: 0.6 });
-  const glowStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(breathe.get(), [0, 1], [0.25, 0.7]),
-  }));
   return (
     <View style={{ width: JAR_W, height: JAR_H + 10 }}>
-      {isToday ? (
-        <Animated.View
-          pointerEvents="none"
-          style={[
-            {
-              position: "absolute",
-              left: -4,
-              right: -4,
-              top: 4,
-              bottom: -4,
-              borderRadius: 14,
-              backgroundColor: tokens.gold,
-            },
-            glowStyle,
-          ]}
-        />
-      ) : null}
+      {isToday ? <TodayGlow color={tokens.gold} /> : null}
       <Svg
         width={JAR_W}
         height={JAR_H + 10}

@@ -12,6 +12,7 @@ import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
+import { formatLocalDate } from "@/lib/dates";
 import { userErrorMessage } from "@/lib/errors";
 
 import { api } from "../../../convex/_generated/api";
@@ -275,33 +276,6 @@ export function HouseholdListScreen({
   );
 }
 
-const WEEKDAYS = [
-  "sunday",
-  "monday",
-  "tuesday",
-  "wednesday",
-  "thursday",
-  "friday",
-  "saturday",
-] as const;
-
-function daysUntilPayday(household: HouseholdSummary) {
-  let today: string;
-  try {
-    today = new Intl.DateTimeFormat("en-GB", {
-      timeZone: household.timezone,
-      weekday: "long",
-    })
-      .format(new Date())
-      .toLowerCase();
-  } catch {
-    today = WEEKDAYS[new Date().getDay()];
-  }
-  const from = WEEKDAYS.indexOf(today as (typeof WEEKDAYS)[number]);
-  const to = WEEKDAYS.indexOf(household.payoutWeekday);
-  return (to - from + 7) % 7;
-}
-
 /**
  * A live line under each tab's title instead of a generic description.
  * The queries are the same ones the tab content subscribes to, so Convex
@@ -320,6 +294,10 @@ function useLiveSubtitle(
   const personal = useQuery(api.personalChoreReviews.listPending, reviewArgs);
   const claimable = useQuery(api.claimableChoreReviews.listPending, reviewArgs);
   const redos = useQuery(api.redoChoreReviews.listPending, reviewArgs);
+  const money = useQuery(
+    api.payouts.getOverview,
+    section === "money" ? { householdId: household.householdId } : "skip",
+  );
 
   switch (section) {
     case "chores": {
@@ -334,13 +312,14 @@ function useLiveSubtitle(
       return count === 0 ? "All caught up" : `${count} to check`;
     }
     case "money": {
-      const days = daysUntilPayday(household);
+      if (!money) return null;
+      // The open week can still close on an old payday after a change,
+      // so this follows the open period, not the configured day.
+      const period = money.currentPeriod;
       const day =
-        household.payoutWeekday.charAt(0).toUpperCase() +
-        household.payoutWeekday.slice(1);
-      return days === 0
-        ? `Payday today (${day})`
-        : `Payday ${day} · in ${days} ${days === 1 ? "day" : "days"}`;
+        period.payoutWeekday.charAt(0).toUpperCase() +
+        period.payoutWeekday.slice(1);
+      return `Payday ${day} · ${formatLocalDate(period.endLocalDate)}`;
     }
     default:
       return null;
