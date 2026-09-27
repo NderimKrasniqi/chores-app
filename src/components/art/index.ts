@@ -24,3 +24,4 @@ export { LostSatellite } from "./lost-satellite";
 export { DockingScene } from "./docking";
 export { PhoneLinkScene } from "./phone-link";
 export { StarShelf, type ShelfDay, type ShelfStar } from "./star-shelf";
+export { FamilyHouse, type HouseKid, type HouseParent } from "./family-house";

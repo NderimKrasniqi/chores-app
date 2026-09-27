@@ -1,5 +1,6 @@
 import { ConvexError, v } from "convex/values";
 
+import type { Id } from "./_generated/dataModel";
 import { query } from "./_generated/server";
 import { authComponent } from "./auth";
 import { requireCurrentParentForHousehold } from "./lib/auth/parentAuthorization";
@@ -259,5 +260,41 @@ export const listDevicesForChild = query({
 
         isActive: grant.revokedAt === undefined,
       }));
+  },
+});
+
+/**
+ * Linked-phone count per kid, for the Parent's Family tab in one read.
+ */
+export const listActiveDeviceCountsForHousehold = query({
+  args: {
+    householdId: v.id("households"),
+  },
+
+  returns: v.array(
+    v.object({
+      childId: v.id("children"),
+
+      activeCount: v.number(),
+    }),
+  ),
+
+  handler: async (ctx, args) => {
+    await requireCurrentParentForHousehold(ctx, args.householdId);
+
+    const grants = await ctx.db
+      .query("childDeviceAccessGrants")
+      .withIndex("by_household", (q) => q.eq("householdId", args.householdId))
+      .take(500);
+
+    const counts = new Map<Id<"children">, number>();
+    for (const grant of grants) {
+      if (grant.revokedAt !== undefined) continue;
+      counts.set(grant.childId, (counts.get(grant.childId) ?? 0) + 1);
+    }
+    return [...counts.entries()].map(([childId, activeCount]) => ({
+      childId,
+      activeCount,
+    }));
   },
 });
