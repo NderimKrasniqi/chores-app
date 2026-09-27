@@ -7,12 +7,12 @@ import {
   consumeTrustedSingleChildAutoOpen,
   setChildExplicitlyLocked,
 } from "@/lib/child-access/unlock-policy";
-import { questTokens as themeColors } from "@/design-system/theme";
-import { AppText, Surface } from "@/design-system";
+import { LostSatellite, StarBuddy, Starfield } from "@/components/art";
+import { AppText } from "@/design-system";
 import { useAuthRuntime } from "@/providers/auth-runtime-provider";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, View } from "react-native";
+import { View } from "react-native";
 import { userErrorMessage } from "@/lib/errors";
 
 import type { Id } from "../../../convex/_generated/dataModel";
@@ -148,16 +148,14 @@ export function ChildAccessGate({ access }: ChildAccessGateProps) {
   if (loading) {
     return (
       <View className="flex-1 items-center justify-center bg-canvas px-6">
-        <StatusBar style="dark" />
-        <View className="h-16 w-16 items-center justify-center rounded-full bg-actionSoft">
-          <ActivityIndicator color={themeColors.action} />
-        </View>
-
-        <AppText variant="sectionTitle" className="mt-4 text-center">
-          Getting your profile ready
+        <StatusBar style="light" />
+        <Starfield seed={access.childDisplayName.length + 11} />
+        <StarBuddy size={84} mood="hop" />
+        <AppText variant="sectionTitle" className="mt-6 text-center">
+          Getting your quests ready
         </AppText>
-        <AppText color="ink-muted" className="mt-1 text-center">
-          Loading child profile…
+        <AppText color="ink-muted" className="mt-1 text-center font-body-bold">
+          Hang on, {access.childDisplayName}!
         </AppText>
       </View>
     );
@@ -165,20 +163,19 @@ export function ChildAccessGate({ access }: ChildAccessGateProps) {
 
   if (errorMessage) {
     return (
-      <View className="flex-1 justify-center bg-canvas px-5">
-        <AppText
-          variant="label"
-          color="urgency"
-          className="uppercase tracking-widest"
-        >
-          Child profile error
+      <View className="flex-1 items-center justify-center bg-canvas px-6">
+        <StatusBar style="light" />
+        <Starfield seed={7} />
+        <LostSatellite size={180} />
+        <AppText variant="sectionTitle" className="mt-6 text-center">
+          We couldn’t open your profile
         </AppText>
-        <AppText variant="screenTitle" className="mt-3">
-          We couldn’t open this profile
+        <AppText color="ink-muted" className="mt-2 text-center font-body-bold">
+          {errorMessage}
         </AppText>
-        <Surface tone="coral" elevated={false} className="mt-5 p-4">
-          <AppText color="urgency">{errorMessage}</AppText>
-        </Surface>
+        <AppText color="ink-muted" className="mt-4 text-center">
+          Close the app and open it again. If it keeps happening, ask a Parent.
+        </AppText>
       </View>
     );
   }
