@@ -29,7 +29,16 @@ Running log of the end-to-end workflow pass (J-01 … J-13) on iPhone 17 Pro
 - [x] Phones header art: the house has “arms” and the arrows float; redraw.
 - [x] Parent Activity, notification primer (via preview), house-rule tiles.
 
+- [ ] **Decision:** a Parent who creates a household by mistake can't then
+      accept a partner's invite (one household each, and there's no leave or
+      delete). Options: let a Parent who is alone in a household with no
+      history delete it, or add a “Leave household” for non-last Parents.
+- [ ] New Maestro flows for the Quest Path screens (the old ones are gone).
+
 ## Fixed
+- Reviewer pass: text overrides keep their line-height ratio; sheets don't
+  stack a home-indicator gap on the keyboard; device labels capped before
+  filtering; dev membership removal limited to fixture households.
 - Phones: pairing stores the device model (“iPhone 17e”); new animated
   house→phone scene (star puffs out of the chimney and lands on the phone).
 - Child access gate: night-sky loader + lost-satellite error.
