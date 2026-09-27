@@ -185,16 +185,21 @@ export const Starfield = memo(function Starfield({
       tokens.pink,
       tokens.gold,
     ];
-    return Array.from({ length: count }, (_, index) => ({
-      key: index,
-      x: random() * width,
-      y: random() * height,
-      size: 2 + random() * 2.2,
-      color: colors[Math.floor(random() * colors.length)],
-      delay: Math.round(random() * 2500),
-      duration: 1800 + Math.round(random() * 1800),
-      sparkle: index % 7 === 3,
-    }));
+    return Array.from({ length: count }, (_, index) => {
+      const sparkle = index % 7 === 3;
+      return {
+        key: index,
+        x: random() * width,
+        // Sparkles are big enough to cross text, so they keep to the sky
+        // above most content; plain dots can go anywhere.
+        y: random() * height * (sparkle ? 0.45 : 1),
+        size: 2 + random() * 2.2,
+        color: colors[Math.floor(random() * colors.length)],
+        delay: Math.round(random() * 2500),
+        duration: 1800 + Math.round(random() * 1800),
+        sparkle,
+      };
+    });
   }, [count, height, seed, tokens, width]);
 
   return (
