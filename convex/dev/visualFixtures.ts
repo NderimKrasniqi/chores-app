@@ -2990,3 +2990,29 @@ export const removeParentMembership = internalMutation({
     return null;
   },
 });
+
+/** Dev: a submitted Personal Chore for Alex or Maya, waiting for review. */
+export const createPendingTestChore = internalMutation({
+  args: {
+    householdId: v.id("households"),
+    expectedParentAuthUserId: v.string(),
+    child: v.union(v.literal("alex"), v.literal("maya")),
+    title: v.string(),
+    valueSek: v.number(),
+  },
+  returns: v.id("choreOccurrences"),
+  handler: async (ctx, args) => {
+    const fixture = await loadFixtureContext(
+      ctx,
+      args.householdId,
+      args.expectedParentAuthUserId,
+    );
+    return await createPendingPersonal(ctx, fixture, {
+      childId: args.child === "alex" ? fixture.alexId : fixture.mayaId,
+      title: args.title,
+      valueSek: args.valueSek,
+      deadline: "23:30",
+      submitted: "09:00",
+    });
+  },
+});

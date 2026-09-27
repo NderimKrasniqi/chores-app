@@ -5,9 +5,9 @@ Running log of the end-to-end workflow pass (J-01 … J-13) on iPhone 17 Pro
 
 ## Your notes (to do)
 
-- [ ] **Child star code grows 4–8.** The slots grow as you type, up to 8.
+- [x] **Child star code grows 4–8.** The slots grow as you type, up to 8.
       Make it a fixed length instead (decide: 4 or 6 digits).
-- [ ] **Quest icon too big when opening a chore.** The quest card's hero
+- [x] **Quest icon too big when opening a chore.** The quest card's hero
       icon dominates the screen; shrink it so the title, reward and send
       button carry the page (on the 17e "Snap proof" is pushed below the fold).
 
@@ -49,6 +49,9 @@ Running log of the end-to-end workflow pass (J-01 … J-13) on iPhone 17 Pro
 - House-rule tiles are tappable; Remove disables after the server says no;
   kid page says “Tomorrow”.
 - Parent Home: the day-arc ornament became the parent's avatar (account).
+- Claim lock copy in kid words; keys pill no longer runs off the edge.
+- Star codes are exactly 4 digits (older codes still unlock).
+- Quest/claimed card hero icon ~35% smaller.
 - Child Home: past quests say “· Yesterday”; midnight openings say
   “Opens tomorrow” instead of “Available tomorrow, 00:00”.
 
@@ -59,5 +62,10 @@ Running log of the end-to-end workflow pass (J-01 … J-13) on iPhone 17 Pro
 - J-03 child sends a quest; J-08 it appears instantly on the parent's Home
   and review deck; swipe-right approves; balance 240 → 270 kr.
 - J-04 approving the Unlock Chore opens the Extras chest.
+- J-05 claim (backpack fills), J-07 unclaim with a key (0 of 3 left), claim
+  again with “locks right away”, send; J-09 redo sheet → Alex's card turns
+  “Redo needed” live → redo sent → approved; J-11 celebration seen on Alex's
+  phone (auto-closes after 4.5 s).
+- House rules: unclaim allowance 2 → 3 arrives live on the child's keys.
 - Kid page: balance, chores with outcomes, coins, Phones, pairing code,
   rename sheet, removal refused while a balance is open.

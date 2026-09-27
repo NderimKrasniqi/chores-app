@@ -272,12 +272,12 @@ function getErrorMessage(error: unknown) {
 
 function lockExplanation(commitment: ClaimCommitmentStatus) {
   if (commitment.lockReason === "time_window") {
-    return "This chore is already inside the two-hour lock window. You will not be able to unclaim it.";
+    return "It’s less than 2 hours until it’s due, so once it’s in your backpack it stays there.";
   }
   if (commitment.lockReason === "allowance_exhausted") {
-    return "You have no weekly unclaims remaining. You can still claim this chore, but you won’t be able to unclaim it.";
+    return "You’ve used all your keys this week, so once it’s in your backpack it stays there.";
   }
-  return "This claim will be locked immediately and cannot be unclaimed.";
+  return "Once it’s in your backpack it stays there.";
 }
 
 function ClaimableCard({
@@ -780,9 +780,9 @@ export function ClaimableChoresView({
           remaining={unclaimAllowance.remainingUnclaims}
           size={18}
         />
-        <AppText variant="caption" color="ink-muted">
+        <AppText variant="caption" color="ink-muted" className="shrink">
           {unclaimAllowance.remainingUnclaims === 0
-            ? "No unclaim keys left · new claims lock right away"
+            ? "No keys left · new claims lock"
             : `${unclaimAllowance.remainingUnclaims} unclaim ${unclaimAllowance.remainingUnclaims === 1 ? "key" : "keys"} this week`}
         </AppText>
       </View>
