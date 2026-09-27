@@ -336,7 +336,7 @@ function CelebrationBody({
       </View>
       <Rise delay={1150} className="items-center">
         <AppText className="mt-3 font-display text-[26px]" color="gold">
-          +{item.valueSek} kr for your planet
+          +{item.valueSek} kr for your piggy bank
         </AppText>
         {moreCount > 0 ? (
           <AppText

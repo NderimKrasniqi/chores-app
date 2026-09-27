@@ -1,9 +1,11 @@
 import { useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
+import * as SecureStore from "expo-secure-store";
 import { useEffect, useState } from "react";
 import { AppState, View } from "react-native";
+import { useReducedMotion } from "react-native-reanimated";
 
-import { PiggyPlanet, RocketTrack, StarBuddy } from "@/components/art";
+import { PiggyBank, RocketTrack, StarBuddy } from "@/components/art";
 import { Icon } from "@/components/ui/icon";
 import { AppText } from "@/design-system";
 import { questTokens as tokens } from "@/design-system/theme";
@@ -70,7 +72,95 @@ function signed(value: number) {
   return `${value > 0 ? "+" : value < 0 ? "−" : ""}${Math.abs(value)} kr`;
 }
 
-export function ChildMoneyContent() {
+/** What the piggy bank looked like the last time this child opened Money. */
+type MoneySeen = { balance: number; at: number };
+
+function seenKey(childId: string) {
+  return `money-seen.${childId}`;
+}
+
+/**
+ * Coins that arrived since the last visit drop into the pig, and the number
+ * counts from the old balance to the new one. A first visit (or a failed
+ * read) only records a baseline, so nothing replays.
+ */
+function useSinceLastVisit(
+  childId: string | undefined,
+  balance: number,
+  entries: Entry[],
+) {
+  const [seen, setSeen] = useState<MoneySeen | null | undefined>(
+    childId ? undefined : null,
+  );
+
+  useEffect(() => {
+    if (!childId) return;
+    let cancelled = false;
+    SecureStore.getItemAsync(seenKey(childId))
+      .then((raw) => {
+        const parsed = raw ? (JSON.parse(raw) as MoneySeen) : null;
+        return parsed &&
+          typeof parsed.balance === "number" &&
+          typeof parsed.at === "number"
+          ? parsed
+          : null;
+      })
+      .catch(() => null)
+      .then((value) => {
+        if (!cancelled) setSeen(value);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [childId]);
+
+  const newest = entries.reduce(
+    (max, entry) => Math.max(max, entry.createdAt),
+    0,
+  );
+  useEffect(() => {
+    if (!childId || seen === undefined) return;
+    const mark: MoneySeen = { balance, at: Math.max(newest, seen?.at ?? 0) };
+    SecureStore.setItemAsync(seenKey(childId), JSON.stringify(mark)).catch(
+      () => {},
+    );
+  }, [balance, childId, newest, seen]);
+
+  if (!seen) return { ready: seen === null, from: balance, drops: 0 };
+  const drops = entries.filter(
+    (entry) => entry.createdAt > seen.at && entry.amountSek > 0,
+  ).length;
+  return { ready: true, from: seen.balance, drops };
+}
+
+/** Counts from `from` to `to` once; still under reduced motion. */
+function useCountUp(from: number, to: number, active: boolean) {
+  const reducedMotion = useReducedMotion();
+  const animate = active && !reducedMotion && from !== to;
+  const [value, setValue] = useState(animate ? from : to);
+  const [target, setTarget] = useState(to);
+  if (target !== to) {
+    setTarget(to);
+    if (!animate) setValue(to);
+  }
+  useEffect(() => {
+    if (!animate) return;
+    let frame = 0;
+    const start = Date.now();
+    const duration = 700;
+    const tick = () => {
+      const t = Math.min(1, (Date.now() - start) / duration);
+      const eased = 1 - Math.pow(1 - t, 3);
+      setValue(Math.round(from + (to - from) * eased));
+      if (t < 1) frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [animate, from, to]);
+  return animate ? value : to;
+}
+
+export function ChildMoneyContent({ childId }: { childId?: string }) {
   // `now` picks the payout period, so it must move forward while the tab
   // stays mounted: on return to the app and every few minutes.
   const [queryNow, setQueryNow] = useState(() => Date.now());
@@ -90,7 +180,7 @@ export function ChildMoneyContent() {
   if (overview === undefined) {
     return (
       <View className="items-center pb-6 pt-8">
-        <PiggyPlanet size={150} />
+        <PiggyBank size={120} />
         <AppText color="ink-muted" className="mt-3 font-body-bold">
           Counting your coins…
         </AppText>
@@ -98,53 +188,73 @@ export function ChildMoneyContent() {
     );
   }
 
-  return <ChildMoneyView overview={overview} now={queryNow} />;
+  return (
+    <ChildMoneyView overview={overview} now={queryNow} childId={childId} />
+  );
 }
 
 /**
- * Money as a piggy planet: the balance is the planet, the payout week is a
- * rocket flying to payday, and this week's coins land on a timeline.
+ * Money as a piggy bank: a compact header with the balance (coins that
+ * arrived since the last visit drop into the slot), the payout week as a
+ * rocket flying to payday, and this week's coins on a timeline.
  */
 export function ChildMoneyView({
   overview,
   now,
+  childId,
 }: {
   overview: ChildMoneyOverview;
   now: number;
+  /** Enables the "since your last visit" drop; previews omit it. */
+  childId?: string;
 }) {
   const { child, currentPeriod } = overview;
   const balance = child.runningBalanceSek;
   const negative = balance < 0;
+  const since = useSinceLastVisit(childId, balance, child.thisPeriodEntries);
+  const shown = useCountUp(since.from, balance, since.ready);
 
   return (
     <View className="pb-6">
-      <View className="items-center">
-        <PiggyPlanet size={190} negative={negative} />
-        <AppText
-          variant="label"
-          color="ink-muted"
-          className="-mt-2 uppercase tracking-[1.4px]"
-        >
-          Your planet
-        </AppText>
-        <AppText
-          className="mt-0.5 w-full text-center font-display text-[52px] leading-[60px]"
-          color={negative ? "pink" : "gold"}
-          numberOfLines={1}
-          accessibilityLabel={`Balance ${balance} kr`}
-          testID="task14-running-balance-value"
-        >
-          {balance} kr
-        </AppText>
-        <AppText
-          variant="bodySmall"
-          color="ink-muted"
-          className="mt-0.5 px-6 text-center font-body-bold"
-        >
-          {negative
-            ? `In the shadow. The next ${Math.abs(balance)} kr you earn brings it back to 0.`
-            : "Approved quests add coins to your planet."}
-        </AppText>
+      <View
+        className="mt-1 flex-row items-center gap-4 rounded-large bg-surface p-4"
+        accessible
+        accessibilityLabel={`Piggy bank: ${balance} kr`}
+      >
+        <PiggyBank
+          size={96}
+          negative={negative}
+          drops={since.ready ? since.drops : 0}
+          dropKey={`${since.ready}-${since.drops}`}
+        />
+        <View className="flex-1">
+          <AppText
+            variant="label"
+            color="ink-muted"
+            className="uppercase tracking-[1.2px]"
+          >
+            Piggy bank
+          </AppText>
+          <AppText
+            className="font-display text-[40px] leading-[46px]"
+            color={negative ? "pink" : "gold"}
+            numberOfLines={1}
+            testID="task14-running-balance-value"
+          >
+            {shown} kr
+          </AppText>
+          <AppText
+            variant="caption"
+            color="ink-muted"
+            className="font-body-bold"
+          >
+            {negative
+              ? `Earn ${Math.abs(balance)} kr to get back to 0.`
+              : since.drops > 0
+                ? `${since.drops} new ${since.drops === 1 ? "coin" : "coins"} since last time!`
+                : "Approved quests drop coins in."}
+          </AppText>
+        </View>
       </View>
 
       <WeekFlight period={currentPeriod} now={now} />
@@ -240,7 +350,7 @@ function CoinTimeline({
           <StarBuddy size={52} mood="wave" />
           <View className="mb-5 flex-1 rounded-[20px] rounded-bl-[6px] bg-surface px-4 py-3">
             <AppText className="font-body-heavy text-[15px]">
-              No coins yet this week. Quests fill your planet!
+              No coins yet this week. Quests fill your piggy bank!
             </AppText>
           </View>
         </View>
@@ -335,7 +445,7 @@ function PayoutPostcard({
           <PostcardBody
             badge={{ icon: "star", label: "Coming up", tone: "accent" }}
             title="Your first payday is coming"
-            body="When this week closes, a Parent pays out whatever your planet holds above 0 kr."
+            body="When this week closes, a Parent pays out whatever your piggy bank holds above 0 kr."
           />
         ) : payout.status === "pending" ? (
           <>
@@ -369,7 +479,7 @@ function PayoutPostcard({
           <PostcardBody
             badge={{ icon: "minus", label: "Empty", tone: "muted" }}
             title="Nothing to pay this time"
-            body="Your planet was at 0 kr when the week closed."
+            body="Your piggy bank was at 0 kr when the week closed."
           />
         )}
         {payout && payout.pendingOutcomeCount > 0 ? (
@@ -451,7 +561,7 @@ function HowItWorks() {
         color="ink-muted"
         className="uppercase tracking-[1.2px]"
       >
-        How your planet grows
+        How your piggy bank grows
       </AppText>
       <View className="flex-row items-center gap-2.5">
         <View className="h-6 w-6 items-center justify-center rounded-full bg-gold">

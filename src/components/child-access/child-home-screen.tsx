@@ -262,7 +262,7 @@ function HomeTab({
                 Running balance
               </AppText>
               <AppText className="font-display-medium text-[20px] leading-[25px]">
-                Your money jar
+                Your piggy bank
               </AppText>
               <View className="mt-2 flex-row items-center gap-1 self-start rounded-full bg-nightRaised px-3 py-1">
                 <AppText variant="caption">See payday</AppText>
@@ -376,7 +376,7 @@ function ExistingFeatureTab({
             visualFixture={activityVisualFixture}
           />
         ) : null}
-        {tab === "money" ? <ChildMoneyContent /> : null}
+        {tab === "money" ? <ChildMoneyContent childId={childId} /> : null}
       </ScrollView>
     </View>
   );

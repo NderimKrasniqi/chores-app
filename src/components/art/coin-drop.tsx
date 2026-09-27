@@ -7,12 +7,12 @@ import Animated, {
 import { AppText } from "@/design-system/text";
 
 import { useEntrance } from "./motion";
-import { PiggyPlanet } from "./piggy-planet";
+import { PiggyBank } from "./piggy-bank";
 
 /**
- * The earned coin arcs down into the piggy planet's slot, and the planet
- * gives a little squash as it lands. One shot; under reduced motion the coin
- * is already "in" and only the planet shows.
+ * The earned coin arcs down into the piggy bank's slot, and the pig gives
+ * a little squash as it lands. One shot; under reduced motion the coin is
+ * already "in" and only the pig shows.
  */
 export function CoinDrop({
   value,
@@ -47,7 +47,7 @@ export function CoinDrop({
     };
   });
 
-  const planetStyle = useAnimatedStyle(() => {
+  const pigStyle = useAnimatedStyle(() => {
     const t = drop.get();
     return {
       transform: [
@@ -66,10 +66,10 @@ export function CoinDrop({
       <Animated.View
         style={[
           { position: "absolute", bottom: 0, transformOrigin: "center bottom" },
-          planetStyle,
+          pigStyle,
         ]}
       >
-        <PiggyPlanet size={size} />
+        <PiggyBank size={size} />
       </Animated.View>
       <Animated.View
         style={[
