@@ -7,6 +7,7 @@ import { useQuery } from "convex/react";
 import { useRef, useState } from "react";
 import { Alert, Modal, Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { userErrorMessage } from "@/lib/errors";
 
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
@@ -187,9 +188,10 @@ export function ParentReviewsContent({
         approveError instanceof Error &&
           /not awaiting review/i.test(approveError.message)
           ? "Another parent already reviewed this one."
-          : approveError instanceof Error
-            ? approveError.message
-            : "Could not approve this submission.",
+          : userErrorMessage(
+              approveError,
+              "Could not approve this submission.",
+            ),
       );
       return false;
     } finally {
@@ -218,9 +220,10 @@ export function ParentReviewsContent({
             void mutation({ submissionId: item.submissionId })
               .catch((rejectError) =>
                 setError(
-                  rejectError instanceof Error
-                    ? rejectError.message
-                    : "Could not finish the redo review.",
+                  userErrorMessage(
+                    rejectError,
+                    "Could not finish the redo review.",
+                  ),
                 ),
               )
               .finally(() => setWorking(false));
@@ -268,11 +271,7 @@ export function ParentReviewsContent({
       else await rejectClaimable(args);
       setRedoFor(null);
     } catch (rejectError) {
-      setError(
-        rejectError instanceof Error
-          ? rejectError.message
-          : "Could not ask for a redo.",
-      );
+      setError(userErrorMessage(rejectError, "Could not ask for a redo."));
     } finally {
       setWorking(false);
     }

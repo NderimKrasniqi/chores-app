@@ -12,6 +12,7 @@ import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
+import { userErrorMessage } from "@/lib/errors";
 
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
@@ -180,6 +181,8 @@ export function ParentChildAccessContent({
     setError(null);
     try {
       const result = await createCredential({ householdId, childId });
+      // The clock only ticks while a code is showing; restart it from now.
+      setNow(Date.now());
       setGenerated({
         pairingCredentialId: result.pairingCredentialId,
         qrToken: result.qrToken,
@@ -189,9 +192,7 @@ export function ParentChildAccessContent({
       setGenerationCount((count) => count + 1);
     } catch (generationError) {
       setError(
-        generationError instanceof Error
-          ? generationError.message
-          : "Could not create pairing code.",
+        userErrorMessage(generationError, "Could not create pairing code."),
       );
     } finally {
       setGenerating(false);
@@ -211,11 +212,7 @@ export function ParentChildAccessContent({
         ].join("\n"),
       });
     } catch (shareError) {
-      setError(
-        shareError instanceof Error
-          ? shareError.message
-          : "Could not share pairing code.",
-      );
+      setError(userErrorMessage(shareError, "Could not share pairing code."));
     }
   }
 
@@ -230,11 +227,7 @@ export function ParentChildAccessContent({
       setGenerated(null);
       setConfirmCodeRevoke(false);
     } catch (revokeError) {
-      setError(
-        revokeError instanceof Error
-          ? revokeError.message
-          : "Could not revoke pairing code.",
-      );
+      setError(userErrorMessage(revokeError, "Could not revoke pairing code."));
     } finally {
       setRevoking(false);
     }
@@ -248,11 +241,7 @@ export function ParentChildAccessContent({
       await revokeDevice({ accessGrantId: confirmDeviceId });
       setConfirmDeviceId(null);
     } catch (revokeError) {
-      setError(
-        revokeError instanceof Error
-          ? revokeError.message
-          : "Could not revoke child device.",
-      );
+      setError(userErrorMessage(revokeError, "Could not revoke child device."));
     } finally {
       setRevoking(false);
     }

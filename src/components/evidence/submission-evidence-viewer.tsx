@@ -2,6 +2,7 @@ import { useServerConfirmedMutation } from "@/hooks/use-server-confirmed-mutatio
 import { Icon } from "@/components/ui/icon";
 import { homeTokens as themeColors } from "@/design-system/theme";
 import { AppText } from "@/design-system";
+import { userErrorMessage } from "@/lib/errors";
 
 import { useEffect, useState } from "react";
 import { Image, Modal, Pressable, View } from "react-native";
@@ -50,11 +51,7 @@ export function SubmissionEvidenceViewer({
 
       setImageUrl(siteUrl.replace(/\/+$/, "") + result.path);
     } catch (value) {
-      setError(
-        value instanceof Error
-          ? value.message
-          : "Could not load photo evidence.",
-      );
+      setError(userErrorMessage(value, "Could not load photo evidence."));
     } finally {
       setLoading(false);
     }

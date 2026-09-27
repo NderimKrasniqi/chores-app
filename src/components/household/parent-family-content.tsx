@@ -412,7 +412,12 @@ export function ParentFamilyContent({
           </AppText>
         </Pressable>
       </View>
-      <View className="mt-3 flex-row gap-2.5">
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`House rules: payday ${formatWeekday(household.payoutWeekday)}, ${household.weeklyUnclaimAllowance} unclaims a week, time zone ${shortTimezone(household.timezone)}. Change`}
+        onPress={onOpenSettings}
+        className="mt-3 flex-row gap-2.5"
+      >
         <RuleToken
           icon="calendar"
           label="Payday"
@@ -428,7 +433,7 @@ export function ParentFamilyContent({
           label="Time zone"
           value={shortTimezone(household.timezone)}
         />
-      </View>
+      </Pressable>
 
       <Modal
         transparent
@@ -482,6 +487,7 @@ export function ParentFamilyContent({
 
       <Modal
         animationType="slide"
+        presentationStyle="pageSheet"
         visible={showInvite}
         onRequestClose={() => setShowInvite(false)}
       >

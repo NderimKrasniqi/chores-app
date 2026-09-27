@@ -26,6 +26,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { userErrorMessage } from "@/lib/errors";
 
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
@@ -303,11 +304,7 @@ export function ParentMoneyContent({
       await setPayoutWeekday({ householdId, payoutWeekday: day });
       setChangingDay(false);
     } catch (changeError) {
-      setError(
-        changeError instanceof Error
-          ? changeError.message
-          : "Could not change payout day.",
-      );
+      setError(userErrorMessage(changeError, "Could not change payout day."));
     } finally {
       setWorking(false);
     }
@@ -327,9 +324,10 @@ export function ParentMoneyContent({
       setError(
         paymentError instanceof ServerConfirmationRequiredError
           ? paymentError.message
-          : paymentError instanceof Error
-            ? paymentError.message
-            : "Could not confirm whether the payout was marked paid. Check the current status before trying again.",
+          : userErrorMessage(
+              paymentError,
+              "Could not confirm whether the payout was marked paid. Check the current status before trying again.",
+            ),
       );
       return false;
     } finally {

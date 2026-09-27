@@ -12,6 +12,7 @@ import {
 import Animated from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useQuery } from "convex/react";
+import { userErrorMessage } from "@/lib/errors";
 
 import { ChoreIcon } from "@/components/art";
 import { PRESS, pressTransition } from "@/components/art/motion";
@@ -342,11 +343,7 @@ export function ParentChoresContent({
       setShowForm(false);
       resetForm(kind);
     } catch (saveError) {
-      setError(
-        saveError instanceof Error
-          ? saveError.message
-          : "Could not save chore.",
-      );
+      setError(userErrorMessage(saveError, "Could not save chore."));
     } finally {
       setWorking(false);
     }
@@ -369,9 +366,7 @@ export function ParentChoresContent({
               .catch((archiveError) => {
                 Alert.alert(
                   "Could not archive chore",
-                  archiveError instanceof Error
-                    ? archiveError.message
-                    : "Please try again.",
+                  userErrorMessage(archiveError, "Please try again."),
                 );
               }),
         },

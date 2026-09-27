@@ -249,6 +249,7 @@ export function ChildProfileScreen({
       <Modal
         visible={showOnboarding}
         animationType="slide"
+        presentationStyle="pageSheet"
         onRequestClose={() => setShowOnboarding(false)}
       >
         <OnboardingScreen

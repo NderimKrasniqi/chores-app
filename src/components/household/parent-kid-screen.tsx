@@ -68,6 +68,7 @@ function dayLabel(timestamp: number, timezone: string, now: number) {
     }).format(new Date(value));
   if (key(timestamp) === key(now)) return "Today";
   if (key(timestamp) === key(now - 86_400_000)) return "Yesterday";
+  if (key(timestamp) === key(now + 86_400_000)) return "Tomorrow";
   return new Intl.DateTimeFormat("en-GB", {
     timeZone: timezone,
     weekday: "short",

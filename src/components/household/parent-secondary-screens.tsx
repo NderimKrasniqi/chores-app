@@ -2,6 +2,7 @@ import { useState, type ReactNode } from "react";
 import { Linking, Pressable, ScrollView, TextInput, View } from "react-native";
 import Animated from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { userErrorMessage } from "@/lib/errors";
 
 import { ParentHouseholdActivity } from "@/components/activity/parent-household-activity";
 import {
@@ -313,9 +314,7 @@ export function HouseholdSettingsScreen({
       await action();
     } catch (updateError) {
       setError(
-        updateError instanceof Error
-          ? updateError.message
-          : "Could not update household settings.",
+        userErrorMessage(updateError, "Could not update household settings."),
       );
     } finally {
       setSaving(null);
