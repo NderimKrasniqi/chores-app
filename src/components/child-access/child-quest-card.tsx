@@ -242,15 +242,15 @@ function Hero({ occurrence }: { occurrence: ChildHomeChoreOccurrence }) {
 
   return (
     <View className="mt-3 items-center">
-      <View className="h-[230px] w-[230px] items-center justify-center">
+      <View className="h-[150px] w-[150px] items-center justify-center">
         <Animated.View
           pointerEvents="none"
           style={[
             {
               position: "absolute",
-              width: 230,
-              height: 230,
-              borderRadius: 115,
+              width: 150,
+              height: 150,
+              borderRadius: 75,
               borderWidth: 2,
               borderStyle: "dashed",
               borderColor: tokens.nightRaised,
@@ -261,7 +261,7 @@ function Hero({ occurrence }: { occurrence: ChildHomeChoreOccurrence }) {
         {active ? (
           <View className="absolute">
             <PulseRings
-              size={176}
+              size={112}
               color={
                 occurrence.state === "redo_required"
                   ? tokens.pink
@@ -269,14 +269,14 @@ function Hero({ occurrence }: { occurrence: ChildHomeChoreOccurrence }) {
               }
               duration={2600}
             >
-              <View className="absolute h-[176px] w-[176px] rounded-full bg-surface" />
+              <View className="absolute h-[112px] w-[112px] rounded-full bg-surface" />
             </PulseRings>
           </View>
         ) : (
-          <View className="absolute h-[176px] w-[176px] rounded-full bg-surface" />
+          <View className="absolute h-[112px] w-[112px] rounded-full bg-surface" />
         )}
-        <Floating distance={6} duration={3600}>
-          <ChoreIcon title={occurrence.title} size={132} />
+        <Floating distance={4} duration={3600}>
+          <ChoreIcon title={occurrence.title} size={84} />
         </Floating>
       </View>
     </View>

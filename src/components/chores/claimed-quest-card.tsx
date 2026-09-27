@@ -368,15 +368,15 @@ function Hero({
 
   return (
     <View className="mt-3 items-center">
-      <View className="h-[230px] w-[230px] items-center justify-center">
+      <View className="h-[150px] w-[150px] items-center justify-center">
         <Animated.View
           pointerEvents="none"
           style={[
             {
               position: "absolute",
-              width: 230,
-              height: 230,
-              borderRadius: 115,
+              width: 150,
+              height: 150,
+              borderRadius: 75,
               borderWidth: 2,
               borderStyle: "dashed",
               borderColor: tokens.gold,
@@ -386,26 +386,26 @@ function Hero({
           ]}
         />
         {waiting ? (
-          <View className="absolute h-[176px] w-[176px] rounded-full bg-surface" />
+          <View className="absolute h-[112px] w-[112px] rounded-full bg-surface" />
         ) : (
           <View className="absolute">
             <PulseRings
-              size={176}
+              size={112}
               color={redo ? tokens.pink : tokens.gold}
               duration={2600}
             >
-              <View className="absolute h-[176px] w-[176px] rounded-full bg-surface" />
+              <View className="absolute h-[112px] w-[112px] rounded-full bg-surface" />
             </PulseRings>
           </View>
         )}
-        <Floating distance={6} duration={3600}>
-          <ChoreIcon title={title} size={132} />
+        <Floating distance={4} duration={3600}>
+          <ChoreIcon title={title} size={84} />
         </Floating>
-        <View className="absolute bottom-6 right-6 h-14 w-14 items-center justify-center rounded-full border-b-4 border-goldShade bg-gold">
-          <AppText className="font-display text-[18px] leading-[20px] text-night">
+        <View className="absolute bottom-1 right-1 h-11 w-11 items-center justify-center rounded-full border-b-4 border-goldShade bg-gold">
+          <AppText className="font-display text-[15px] leading-[17px] text-night">
             {value}
           </AppText>
-          <AppText className="font-body-heavy text-[10px] leading-[12px] text-night">
+          <AppText className="font-body-heavy text-[9px] leading-[10px] text-night">
             kr
           </AppText>
         </View>
