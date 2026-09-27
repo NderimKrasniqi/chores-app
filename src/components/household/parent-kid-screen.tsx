@@ -1,14 +1,13 @@
 import { useQuery } from "convex/react";
 import { useEffect, useState, type ReactNode } from "react";
 import { AppState, Modal, Pressable, TextInput, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { userErrorMessage } from "@/lib/errors";
 
 import { ChoreIcon } from "@/components/art";
 import { ActiveClaimableClaimsView } from "@/components/chores/active-claimable-claims-view";
 import { childAvatarTone, Avatar } from "@/components/ui/avatar";
 import { Icon } from "@/components/ui/icon";
-import { ActionButton, AppText } from "@/design-system";
+import { ActionButton, AppText, SheetBody } from "@/design-system";
 import { useTheme } from "@/design-system/theme";
 import { useServerConfirmedMutation } from "@/hooks/use-server-confirmed-mutation";
 
@@ -121,6 +120,8 @@ export function ParentKidScreen({
   const [removing, setRemoving] = useState(false);
   const [working, setWorking] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  // Once the server lists what's unsettled, retrying can't help yet.
+  const [blocked, setBlocked] = useState(false);
 
   const myClaims = (claims ?? []).filter(
     (claim) => claim.childId === child.childId,
@@ -152,6 +153,7 @@ export function ParentKidScreen({
         setRemoving(false);
         onRemoved();
       } else {
+        setBlocked(true);
         setMessage(
           `Not yet — ${result.blockers.map((blocker) => BLOCKER_COPY[blocker]).join(", and ")}. Settle that first.`,
         );
@@ -314,6 +316,7 @@ export function ParentKidScreen({
         accessibilityRole="button"
         onPress={() => {
           setMessage(null);
+          setBlocked(false);
           setRemoving(true);
         }}
         className="mt-8 min-h-[44px] items-center justify-center"
@@ -365,6 +368,7 @@ export function ParentKidScreen({
           tone="destructive"
           label={`Remove ${child.displayName}`}
           loading={working}
+          disabled={blocked}
           onPress={() => void remove()}
         />
         <ActionButton
@@ -402,13 +406,12 @@ function Sheet({
         className="flex-1 justify-end bg-scrim"
       >
         <Pressable accessible={false} onPress={() => {}}>
-          <SafeAreaView
-            edges={["bottom"]}
+          <SheetBody
             className="rounded-t-sheet px-5 pb-2 pt-5"
             style={{ backgroundColor: tokens.canvas }}
           >
             {children}
-          </SafeAreaView>
+          </SheetBody>
         </Pressable>
       </Pressable>
     </Modal>

@@ -1,13 +1,12 @@
 import { useState } from "react";
 import { Modal, Pressable, View } from "react-native";
 import Animated from "react-native-reanimated";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { userErrorMessage } from "@/lib/errors";
 
 import { ChoreIcon } from "@/components/art";
 import { PRESS, pressTransition } from "@/components/art/motion";
 import { childAvatarTone, Avatar } from "@/components/ui/avatar";
-import { ActionButton, AppText } from "@/design-system";
+import { ActionButton, AppText, SheetBody } from "@/design-system";
 import { useTheme } from "@/design-system/theme";
 import { formatTimestampDateTime } from "@/lib/dates";
 
@@ -242,8 +241,7 @@ export function ActiveClaimableClaimsView({
       >
         <View className="flex-1 justify-end bg-scrim">
           {detailClaim ? (
-            <SafeAreaView
-              edges={["bottom"]}
+            <SheetBody
               className="rounded-t-sheet px-5 pb-2 pt-5"
               style={{ backgroundColor: tokens.canvas }}
             >
@@ -343,7 +341,7 @@ export function ActiveClaimableClaimsView({
                   setUnavailableClaim(null);
                 }}
               />
-            </SafeAreaView>
+            </SheetBody>
           ) : null}
         </View>
       </Modal>

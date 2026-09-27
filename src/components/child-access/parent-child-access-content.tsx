@@ -2,16 +2,12 @@ import { DockingScene } from "@/components/art";
 import Svg, { Circle } from "react-native-svg";
 import { Icon } from "@/components/ui/icon";
 import { homeTokens as themeColors } from "@/design-system/theme";
-import { ActionButton, AppText } from "@/design-system";
+import { ActionButton, AppText, SheetBody } from "@/design-system";
 import { useServerConfirmedMutation } from "@/hooks/use-server-confirmed-mutation";
 import { useAction, useQuery } from "convex/react";
 import { PairingQrCode } from "@/components/ui/pairing-qr-code";
 import { useEffect, useState } from "react";
 import { Modal, Pressable, Share, View } from "react-native";
-import {
-  SafeAreaView,
-  useSafeAreaInsets,
-} from "react-native-safe-area-context";
 import { userErrorMessage } from "@/lib/errors";
 
 import { api } from "../../../convex/_generated/api";
@@ -70,8 +66,6 @@ function ConfirmationSheet({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
-  const insets = useSafeAreaInsets();
-
   return (
     <Modal
       visible={visible}
@@ -80,11 +74,7 @@ function ConfirmationSheet({
       onRequestClose={onCancel}
     >
       <View className="flex-1 justify-end bg-scrim">
-        <SafeAreaView
-          edges={["bottom"]}
-          className="rounded-t-sheet bg-canvas px-5 pb-2 pt-3"
-          style={{ paddingBottom: insets.bottom + 8 }}
-        >
+        <SheetBody className="rounded-t-sheet bg-canvas px-5 pb-2 pt-3">
           <View className="mx-auto h-1.5 w-16 rounded-full bg-infoSoftStrong" />
           <View className="mt-3 items-center">
             <View className="h-16 w-16 items-center justify-center rounded-full bg-urgencySoft">
@@ -111,7 +101,7 @@ function ConfirmationSheet({
             label={cancelLabel}
             onPress={onCancel}
           />
-        </SafeAreaView>
+        </SheetBody>
       </View>
     </Modal>
   );

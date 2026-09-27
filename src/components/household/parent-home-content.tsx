@@ -1,13 +1,9 @@
 import { useQuery } from "convex/react";
 import { useState, type ReactNode } from "react";
 import { Pressable, View } from "react-native";
-import Animated, {
-  interpolate,
-  useAnimatedStyle,
-} from "react-native-reanimated";
-import Svg, { Circle, Path } from "react-native-svg";
+import Animated from "react-native-reanimated";
 
-import { ChoreIcon, useEntrance, useLoop } from "@/components/art";
+import { ChoreIcon } from "@/components/art";
 import { PRESS, pressTransition } from "@/components/art/motion";
 import { childAvatarTone, Avatar } from "@/components/ui/avatar";
 import { Icon } from "@/components/ui/icon";
@@ -48,76 +44,6 @@ function greeting(hour: number) {
  * The day as an arc: the sun (or moon, after dark) sits where the time of
  * day is, 06:00 on the left to 22:00 on the right.
  */
-function DayArc({ hour }: { hour: number }) {
-  const { tokens } = useTheme();
-  const width = 150;
-  const height = 70;
-  const night = hour < 6 || hour >= 22;
-  const t = Math.min(1, Math.max(0, (hour - 6) / 16));
-  const angle = Math.PI * (1 - t);
-  const cx = width / 2 + Math.cos(angle) * (width / 2 - 12);
-  const cy = height - Math.sin(angle) * (height - 14);
-  const arrive = useEntrance({ duration: 700 });
-  const glow = useLoop({ duration: 3000, reverse: true, rest: 0.5 });
-  const bodyStyle = useAnimatedStyle(() => ({
-    opacity: arrive.get(),
-    transform: [
-      { translateY: interpolate(arrive.get(), [0, 1], [10, 0]) },
-      { scale: interpolate(glow.get(), [0, 1], [0.95, 1.05]) },
-    ],
-  }));
-
-  return (
-    <View
-      accessible={false}
-      style={{ width, height: height + 6 }}
-      pointerEvents="none"
-    >
-      <Svg width={width} height={height + 6}>
-        <Path
-          d={`M12 ${height} A ${width / 2 - 12} ${height - 14} 0 0 1 ${width - 12} ${height}`}
-          fill="none"
-          stroke={tokens.line}
-          strokeWidth={3}
-          strokeDasharray="4 7"
-          strokeLinecap="round"
-        />
-        <Path
-          d={`M4 ${height + 3} H ${width - 4}`}
-          stroke={tokens.line}
-          strokeWidth={2}
-          strokeLinecap="round"
-        />
-      </Svg>
-      <Animated.View
-        style={[
-          { position: "absolute", left: cx - 15, top: cy - 15 },
-          bodyStyle,
-        ]}
-      >
-        <Svg width={30} height={30}>
-          {night ? (
-            <>
-              <Circle cx={15} cy={15} r={11} fill={tokens.info} />
-              <Circle cx={20} cy={11} r={9} fill={tokens.canvas} />
-            </>
-          ) : (
-            <>
-              <Circle
-                cx={15}
-                cy={15}
-                r={14}
-                fill={tokens.reward}
-                opacity={0.25}
-              />
-              <Circle cx={15} cy={15} r={9} fill={tokens.reward} />
-            </>
-          )}
-        </Svg>
-      </Animated.View>
-    </View>
-  );
-}
 
 function Tile({
   onPress,
@@ -250,7 +176,7 @@ export function ParentHomeContent({
 
   return (
     <View className="pb-8">
-      <View className="flex-row items-end justify-between pt-3">
+      <View className="flex-row items-center justify-between pt-3">
         <View className="flex-1 pr-2">
           <AppText variant="label" color="ink-muted">
             {greeting(hour)}, {firstName}
@@ -271,7 +197,19 @@ export function ParentHomeContent({
             <Icon name="chevron" color={tokens.inkMuted} size={18} />
           </Pressable>
         </View>
-        <DayArc hour={hour} />
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Your account"
+          onPress={onOpenSwitcher}
+          hitSlop={8}
+        >
+          <Avatar
+            tone="parent"
+            className="rounded-full"
+            fallbackLabel={parentName}
+            size={44}
+          />
+        </Pressable>
       </View>
 
       <View className="mt-5">

@@ -1,7 +1,6 @@
 import { useQuery } from "convex/react";
 import { useState, type ReactNode } from "react";
 import { Modal, Pressable, TextInput, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import Animated, {
   interpolate,
   useAnimatedStyle,
@@ -13,7 +12,7 @@ import { useLoop } from "@/components/art";
 import { Easings, PRESS, pressTransition } from "@/components/art/motion";
 import { childAvatarTone, Avatar } from "@/components/ui/avatar";
 import { Icon, type IconName } from "@/components/ui/icon";
-import { ActionButton, AppText } from "@/design-system";
+import { ActionButton, AppText, SheetBody } from "@/design-system";
 import { useServerConfirmedMutation } from "@/hooks/use-server-confirmed-mutation";
 import { useTheme } from "@/design-system/theme";
 
@@ -442,8 +441,7 @@ export function ParentFamilyContent({
         onRequestClose={() => !saving && setAdding(false)}
       >
         <View className="flex-1 justify-end bg-scrim">
-          <SafeAreaView
-            edges={["bottom"]}
+          <SheetBody
             className="rounded-t-sheet px-5 pb-2 pt-5"
             style={{ backgroundColor: tokens.canvas }}
           >
@@ -481,7 +479,7 @@ export function ParentFamilyContent({
               disabled={saving}
               onPress={() => setAdding(false)}
             />
-          </SafeAreaView>
+          </SheetBody>
         </View>
       </Modal>
 

@@ -11,7 +11,7 @@ import { userErrorMessage } from "@/lib/errors";
 
 import { useLoop } from "@/components/art";
 import { Icon } from "@/components/ui/icon";
-import { ActionButton, AppText } from "@/design-system";
+import { ActionButton, AppText, SheetBody } from "@/design-system";
 import { useTheme } from "@/design-system/theme";
 import { useServerConfirmedMutation } from "@/hooks/use-server-confirmed-mutation";
 
@@ -289,8 +289,7 @@ export function ParentInviteCard({
         onRequestClose={() => setShowRevokeConfirmation(false)}
       >
         <View className="flex-1 justify-end bg-scrim">
-          <SafeAreaView
-            edges={["bottom"]}
+          <SheetBody
             className="rounded-t-sheet px-5 pt-4"
             style={{ backgroundColor: tokens.canvas }}
           >
@@ -315,7 +314,7 @@ export function ParentInviteCard({
               disabled={working}
               onPress={() => setShowRevokeConfirmation(false)}
             />
-          </SafeAreaView>
+          </SheetBody>
         </View>
       </Modal>
     </SafeAreaView>

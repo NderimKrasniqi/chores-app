@@ -9,11 +9,10 @@ import {
 import { PRESS, pressTransition } from "@/components/art/motion";
 import { Icon } from "@/components/ui/icon";
 import { questTokens as themeColors } from "@/design-system/theme";
-import { ActionButton, AppText, Surface } from "@/design-system";
+import { ActionButton, AppText, Surface, SheetBody } from "@/design-system";
 import { useState } from "react";
 import { Modal, Pressable, View } from "react-native";
 import Animated from "react-native-reanimated";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { userErrorMessage } from "@/lib/errors";
 
 import type { Id } from "../../../convex/_generated/dataModel";
@@ -901,10 +900,7 @@ export function ClaimableChoresView({
       >
         <View className="flex-1 justify-end bg-scrim">
           {lockedCandidate ? (
-            <SafeAreaView
-              edges={["bottom"]}
-              className="rounded-t-sheet bg-surface px-5 pb-3 pt-3"
-            >
+            <SheetBody className="rounded-t-sheet bg-surface px-5 pb-3 pt-3">
               <View className="h-1.5 w-12 self-center rounded-full bg-nightRaised" />
               <View className="mt-3 self-center">
                 <LockClunk size={140} />
@@ -990,7 +986,7 @@ export function ClaimableChoresView({
                 tone="quiet"
                 onPress={() => setLockedCandidateId(null)}
               />
-            </SafeAreaView>
+            </SheetBody>
           ) : null}
         </View>
       </Modal>
