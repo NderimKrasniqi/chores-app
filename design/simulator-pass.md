@@ -27,8 +27,8 @@ Running log of the end-to-end workflow pass (J-01 … J-13) on iPhone 17 Pro
 - [ ] Phones list says “Phone 1 / Phone 2” — show something recognisable
       (device model, or when it was last used).
 - [ ] Phones header art: the house has “arms” and the arrows float; redraw.
-- [ ] Still to review in the sim: Money + slide-to-pay, house rules editor,
-      Activity, notification primer, redo flow, claim/unclaim, celebration.
+- [ ] Still to review in the sim: parent Activity screen, notification
+      primer (needs a fresh install), house-rule tiles tap (re-check).
 
 ## Fixed
 
@@ -49,6 +49,8 @@ Running log of the end-to-end workflow pass (J-01 … J-13) on iPhone 17 Pro
 - House-rule tiles are tappable; Remove disables after the server says no;
   kid page says “Tomorrow”.
 - Parent Home: the day-arc ornament became the parent's avatar (account).
+- Money week strip lit both Fridays (the past one and the coming one);
+  now only the coming payday, and today gets a ring.
 - Claim lock copy in kid words; keys pill no longer runs off the edge.
 - Star codes are exactly 4 digits (older codes still unlock).
 - Quest/claimed card hero icon ~35% smaller.
@@ -66,6 +68,8 @@ Running log of the end-to-end workflow pass (J-01 … J-13) on iPhone 17 Pro
   again with “locks right away”, send; J-09 redo sheet → Alex's card turns
   “Redo needed” live → redo sent → approved; J-11 celebration seen on Alex's
   phone (auto-closes after 4.5 s).
+- J-13 slide-to-pay: Alex 295 → 225 kr, “Paid today at 10:10”; Alex's Money
+  planet shows 225 kr, rocket on Sunday, this week's coins +55.
 - House rules: unclaim allowance 2 → 3 arrives live on the child's keys.
 - Kid page: balance, chores with outcomes, coins, Phones, pairing code,
   rename sheet, removal refused while a balance is open.
