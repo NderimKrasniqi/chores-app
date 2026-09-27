@@ -79,7 +79,16 @@ export function statusLabel(
   }
 
   if (occurrence.state === "scheduled") {
-    return `Available ${relativeDayLabel(occurrence.availabilityStartsAt, occurrence.timezone)}, ${formatTime(occurrence.availabilityStartsAt, occurrence.timezone)}`;
+    const day = relativeDayLabel(
+      occurrence.availabilityStartsAt,
+      occurrence.timezone,
+    );
+    const time = formatTime(
+      occurrence.availabilityStartsAt,
+      occurrence.timezone,
+    );
+    // A chore that opens at the start of the day just "opens tomorrow".
+    return time === "00:00" ? `Opens ${day}` : `Opens ${day}, ${time}`;
   }
 
   const dateLabel = relativeDayLabel(

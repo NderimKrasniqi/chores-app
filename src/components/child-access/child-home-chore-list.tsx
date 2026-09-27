@@ -16,7 +16,7 @@ import { userErrorMessage } from "@/lib/errors";
 
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
-import { statusLabel } from "./chore-format";
+import { relativeDayLabel, statusLabel } from "./chore-format";
 import { ChildQuestCard } from "./child-quest-card";
 
 export type OccurrenceState =
@@ -83,6 +83,11 @@ export function ChildHomeChoreList({
   const queriedRedos = useQuery(
     api.childRedos.listMine,
     visualRedos ? "skip" : {},
+  );
+  // Same server gate the Extras tab uses (shared subscription).
+  const extras = useQuery(
+    api.claimableChores.listMine,
+    visualOccurrences ? "skip" : {},
   );
   const occurrences = visualOccurrences ?? queriedOccurrences;
   const redos = visualRedos ?? queriedRedos;
@@ -270,14 +275,17 @@ export function ChildHomeChoreList({
         return {
           ...base,
           status: "done",
-          subtitle: `+${occurrence.valueSek} kr earned`,
+          subtitle: withPastDay(
+            `+${occurrence.valueSek} kr earned`,
+            occurrence,
+          ),
         } as QuestStop;
       }
       if (occurrence.state === "missed" || occurrence.state === "failed") {
         return {
           ...base,
           status: "missed",
-          subtitle: "Missed · 0 kr, no penalty",
+          subtitle: withPastDay("Missed · 0 kr, no penalty", occurrence),
         } as QuestStop;
       }
       if (occurrence.state === "submitted") {
@@ -329,10 +337,12 @@ export function ChildHomeChoreList({
     (occurrence) => occurrence.state === "redo_required",
   );
   const unlockApproved =
-    recentHistory.some(
-      (occurrence) =>
-        occurrence.isUnlockChore && occurrence.state === "approved",
-    ) && !visibleOccurrences.some((occurrence) => occurrence.isUnlockChore);
+    extras !== undefined
+      ? extras.gate.canAccessClaimables
+      : recentHistory.some(
+          (occurrence) =>
+            occurrence.isUnlockChore && occurrence.state === "approved",
+        ) && !visibleOccurrences.some((occurrence) => occurrence.isUnlockChore);
 
   let body: ReactNode;
 
@@ -471,4 +481,14 @@ export function ChildHomeChoreList({
       />
     </>
   );
+}
+
+// History under "Today's quest" says which day it was, unless it was today.
+function withPastDay(text: string, occurrence: ChildHomeChoreOccurrence) {
+  const day = relativeDayLabel(occurrence.deadlineAt, occurrence.timezone);
+  return day === "today" ? text : `${text} · ${capitalize(day)}`;
+}
+
+function capitalize(value: string) {
+  return value.charAt(0).toUpperCase() + value.slice(1);
 }
