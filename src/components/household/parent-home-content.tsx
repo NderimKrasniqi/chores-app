@@ -257,7 +257,7 @@ export function ParentHomeContent({
           </AppText>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={`${household.name}. Open account and households`}
+            accessibilityLabel={`${household.name}. Open your account`}
             onPress={onOpenSwitcher}
             className="mt-0.5 flex-row items-center gap-1"
           >
@@ -268,7 +268,7 @@ export function ParentHomeContent({
             >
               {household.name}
             </AppText>
-            <Icon name="chevronDown" color={tokens.inkMuted} size={18} />
+            <Icon name="chevron" color={tokens.inkMuted} size={18} />
           </Pressable>
         </View>
         <DayArc hour={hour} />
