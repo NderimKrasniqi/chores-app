@@ -50,28 +50,52 @@ const colorClass: Record<TextColor, string> = {
 
 // An explicit size like `text-[22px]` must replace the variant's size, not
 // compete with it: with two font-size classes NativeWind picks by stylesheet
-// order, so the override silently lost on some screens.
-const EXPLICIT_SIZE = /(^|\s)text-\[\d/;
+// order, so the override silently lost on some screens. Dropping the variant
+// class also drops its line height, so when the caller sets no `leading-*`,
+// keep the variant's proportions at the new size.
+const EXPLICIT_SIZE = /(^|\s)text-\[(\d+(?:\.\d+)?)px\]/;
+const EXPLICIT_LEADING = /(^|\s)leading-/;
 
-function variantClasses(variant: TypographyToken, className: string) {
+// Line height ÷ font size for each variant (tailwind.config.js type scale).
+const leadingRatio: Record<TypographyToken, number> = {
+  display: 44 / 40,
+  screenTitle: 34 / 30,
+  sectionTitle: 27 / 22,
+  cardTitle: 23 / 18,
+  amount: 32 / 28,
+  body: 23 / 16,
+  bodySmall: 19 / 14,
+  label: 18 / 14,
+  caption: 16 / 12,
+};
+
+function sizing(variant: TypographyToken, className: string) {
   const base = variantClass[variant];
-  if (!EXPLICIT_SIZE.test(className)) return base;
-  return base
+  const match = className.match(EXPLICIT_SIZE);
+  if (!match) return { classes: base, lineHeight: undefined };
+  const classes = base
     .split(" ")
     .filter((token) => !token.startsWith("text-"))
     .join(" ");
+  const lineHeight = EXPLICIT_LEADING.test(className)
+    ? undefined
+    : Math.round(Number(match[2]) * leadingRatio[variant]);
+  return { classes, lineHeight };
 }
 
 export function AppText({
   variant = "body",
   color = "ink",
   className = "",
+  style,
   ...props
 }: AppTextProps) {
+  const { classes, lineHeight } = sizing(variant, className);
   return (
     <Text
       {...props}
-      className={`${variantClasses(variant, className)} ${colorClass[color]} ${className}`}
+      style={lineHeight === undefined ? style : [{ lineHeight }, style]}
+      className={`${classes} ${colorClass[color]} ${className}`}
     />
   );
 }

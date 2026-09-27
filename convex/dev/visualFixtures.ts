@@ -2977,6 +2977,15 @@ export const removeParentMembership = internalMutation({
     assertDevelopmentOnly();
     const membership = await ctx.db.get(args.membershipId);
     if (!membership) return null;
+    // Only the known fixture households, never a real family.
+    const household = await ctx.db.get(membership.householdId);
+    if (
+      !household ||
+      (household.name !== EXPECTED_HOUSEHOLD_NAME &&
+        !ADDITIONAL_VISUAL_HOUSEHOLD_NAMES.has(household.name))
+    ) {
+      throw new ConvexError("Refusing to touch a non-fixture household.");
+    }
     const parents = await ctx.db
       .query("householdMembers")
       .withIndex("by_household", (q) =>

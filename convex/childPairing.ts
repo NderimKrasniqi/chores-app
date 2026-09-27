@@ -180,8 +180,11 @@ export const create = action({
 
 /** Trimmed, printable, at most 40 characters; anything else is dropped. */
 function cleanDeviceLabel(label: string | undefined) {
-  const cleaned = label?.replace(/[^\p{L}\p{N} ’'.,()-]/gu, "").trim();
-  return cleaned ? cleaned.slice(0, 40) : undefined;
+  const cleaned = label
+    ?.slice(0, 120)
+    .replace(/[^\p{L}\p{N} ’'.,()-]/gu, "")
+    .trim();
+  return cleaned ? Array.from(cleaned).slice(0, 40).join("").trim() : undefined;
 }
 
 export const redeemQr = action({

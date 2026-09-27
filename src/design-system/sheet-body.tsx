@@ -15,14 +15,15 @@ export function SheetBody({
   ...props
 }: ComponentProps<typeof View> & { extraBottom?: number }) {
   const insets = useSafeAreaInsets();
+  const bottom = insets.bottom + extraBottom;
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : undefined}
+      // The keyboard already covers the home indicator; don't add that gap
+      // on top of the keyboard's height.
+      keyboardVerticalOffset={-insets.bottom}
     >
-      <View
-        {...props}
-        style={[{ paddingBottom: insets.bottom + extraBottom }, style]}
-      />
+      <View {...props} style={[{ paddingBottom: bottom }, style]} />
     </KeyboardAvoidingView>
   );
 }
