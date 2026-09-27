@@ -1,5 +1,4 @@
-import { amountFontSize } from "@/lib/amount-size";
-import { BalanceOrb, Starfield } from "@/components/art";
+import { PiggyBank, Starfield } from "@/components/art";
 import { ChildApprovalCelebrations } from "@/components/activity/approval-celebration";
 import { ChildHouseholdActivity } from "@/components/activity/child-household-activity";
 import type { ApprovalActivityItem } from "@/components/activity/approval-activity";
@@ -247,27 +246,24 @@ function HomeTab({
             className="mt-4 flex-row items-center gap-4 rounded-large bg-surface px-4 py-3"
             testID="task14-running-balance-card"
           >
-            <BalanceOrb size={92}>
-              <AppText
-                numberOfLines={1}
-                className="font-display text-night"
-                style={{ fontSize: amountFontSize(balanceSek ?? 0, 30, 3) }}
-                testID="task14-running-balance-value"
-              >
-                {balanceSek === undefined ? "…" : balanceSek}{" "}
-                <AppText className="font-body-heavy text-[13px] leading-[15px] text-night">
-                  kr
-                </AppText>
-              </AppText>
-            </BalanceOrb>
+            <PiggyBank size={76} negative={(balanceSek ?? 0) < 0} />
             <View className="flex-1">
-              <AppText className="font-display-medium text-[20px] leading-[25px]">
+              <AppText variant="label" color="ink-muted">
                 Your piggy bank
               </AppText>
-              <View className="mt-2 flex-row items-center gap-1 self-start rounded-full bg-nightRaised px-3 py-1">
-                <AppText variant="caption">See payday</AppText>
-                <Icon name="chevron" color={themeColors.ink} size={12} />
-              </View>
+              <AppText
+                numberOfLines={1}
+                className="font-display"
+                color={(balanceSek ?? 0) < 0 ? "pink" : "gold"}
+                style={{ fontSize: 32, lineHeight: 38 }}
+                testID="task14-running-balance-value"
+              >
+                {balanceSek === undefined ? "…" : `${balanceSek} kr`}
+              </AppText>
+            </View>
+            <View className="flex-row items-center gap-1 rounded-full bg-nightRaised px-3 py-1.5">
+              <AppText variant="caption">Payday</AppText>
+              <Icon name="chevron" color={themeColors.ink} size={12} />
             </View>
           </Pressable>
         </View>
