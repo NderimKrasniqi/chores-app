@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { Linking, Pressable, ScrollView, TextInput, View } from "react-native";
 import Animated from "react-native-reanimated";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { userErrorMessage } from "@/lib/errors";
 
 import { ParentHouseholdActivity } from "@/components/activity/parent-household-activity";
@@ -45,8 +45,14 @@ export function ScreenFrame({
   children: ReactNode;
 }) {
   const { tokens } = useTheme();
+  // Insets from the provider are known on the first frame; a SafeAreaView
+  // measures a frame late and the header visibly jumps down.
+  const insets = useSafeAreaInsets();
   return (
-    <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-canvas">
+    <View
+      className="flex-1 bg-canvas"
+      style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}
+    >
       <View className="flex-row items-center gap-3 px-5 pb-2 pt-2">
         <Pressable
           accessibilityRole="button"
@@ -69,7 +75,7 @@ export function ScreenFrame({
       >
         {children}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 

@@ -181,21 +181,14 @@ export function ParentHomeContent({
           <AppText variant="label" color="ink-muted">
             {greeting(hour)}, {firstName}
           </AppText>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`${household.name}. Open your account`}
-            onPress={onOpenSwitcher}
-            className="mt-0.5 flex-row items-center gap-1"
+          <AppText
+            variant="screenTitle"
+            numberOfLines={2}
+            accessibilityRole="header"
+            className="mt-0.5"
           >
-            <AppText
-              variant="screenTitle"
-              numberOfLines={2}
-              style={{ flexShrink: 1 }}
-            >
-              {household.name}
-            </AppText>
-            <Icon name="chevron" color={tokens.inkMuted} size={18} />
-          </Pressable>
+            {household.name}
+          </AppText>
         </View>
         <Pressable
           accessibilityRole="button"
