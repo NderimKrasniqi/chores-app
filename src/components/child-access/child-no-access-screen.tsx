@@ -3,7 +3,12 @@ import {
   getLocalChildContextByStoragePrefix,
   removeLocalChildContext,
 } from "@/lib/child-access/local-access";
-import { forgetLocalChildGrant } from "@/lib/child-access/grant-status";
+import {
+  forgetLocalChildGrant,
+  listLocalChildGrantBindings,
+} from "@/lib/child-access/grant-status";
+import { useConvex } from "convex/react";
+import { api } from "../../../convex/_generated/api";
 import { setChildExplicitlyLocked } from "@/lib/child-access/unlock-policy";
 import { useAuthRuntime } from "@/providers/auth-runtime-provider";
 import { ActionButton, AppText } from "@/design-system";
@@ -16,12 +21,16 @@ import { ChildJoinScreen } from "./child-join-screen";
 
 type CleanupState = "checking" | "join" | "cleaning" | "error";
 
+/** How long to wait before asking again when the link is still active. */
+const RECHECK_MS = 2500;
+
 export function ChildNoAccessScreen({
   visualState,
 }: {
   visualState?: Extract<CleanupState, "error">;
 } = {}) {
   const { authClient, storagePrefix, activateParentStorage } = useAuthRuntime();
+  const convex = useConvex();
 
   const [cleanupState, setCleanupState] = useState<CleanupState>(
     visualState ?? "checking",
@@ -35,6 +44,7 @@ export function ChildNoAccessScreen({
     if (visualState) return;
 
     let cancelled = false;
+    let recheckTimer: ReturnType<typeof setTimeout> | undefined;
 
     async function reconcileAccess() {
       setCleanupState("checking");
@@ -60,9 +70,35 @@ export function ChildNoAccessScreen({
         }
 
         /*
-         * A saved Child context exists, but
-         * Convex says the active device grant
-         * is gone or revoked.
+         * "No access" can also mean the server hasn't recognised this
+         * login yet (right after a restart or reload). Signing out then
+         * would destroy a perfectly good pairing, so only clean up when
+         * the server positively says this phone's saved link is gone.
+         */
+        const binding = (await listLocalChildGrantBindings()).find(
+          (candidate) => candidate.contextId === localContext.contextId,
+        );
+        if (binding) {
+          const [status] = await convex.query(
+            api.childAccess.getLocalGrantStatuses,
+            { accessGrantIds: [binding.accessGrantId] },
+          );
+          if (cancelled) {
+            return;
+          }
+          if (status?.isActive) {
+            // Still linked: wait for the login to catch up, then re-check.
+            recheckTimer = setTimeout(
+              () => setCleanupAttempt((current) => current + 1),
+              RECHECK_MS,
+            );
+            return;
+          }
+        }
+
+        /*
+         * A saved Child context exists, and
+         * its device grant is gone or revoked.
          */
         setCleanupState("cleaning");
 
@@ -103,12 +139,14 @@ export function ChildNoAccessScreen({
 
     return () => {
       cancelled = true;
+      clearTimeout(recheckTimer);
     };
   }, [
     authClient,
     storagePrefix,
     activateParentStorage,
     cleanupAttempt,
+    convex,
     visualState,
   ]);
 

@@ -39,6 +39,14 @@ Running log of the end-to-end workflow pass (J-01 … J-13) on iPhone 17 Pro
 - [ ] Maestro: flows written in .maestro/ (uncommitted) but the iOS driver
       won't start on these simulators; it also froze the 17e once.
 
+- [x] **Kid logged out after a reload/restart** (“Can't open Alex”, “Pair Alex
+      again”): the no-access screen read a transient “no access” (login not yet
+      recognised) as “unlinked” and signed the phone out, deleting the session.
+      Now it only cleans up when the server confirms the saved link is gone.
+- [ ] Payout maintenance job throws “Unable to resolve current Payout Period”
+      every 30 min since 15:29 (likely the test payout week added by the
+      Money fixture). Investigate.
+
 ## UI/UX pass (27 Sep)
 
 - Money: compact piggy-bank card (tail wag, coins drop in since last visit,
