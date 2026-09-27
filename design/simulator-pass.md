@@ -13,24 +13,29 @@ Running log of the end-to-end workflow pass (J-01 … J-13) on iPhone 17 Pro
 
 ## Open (found in pass)
 
-- [ ] Child join screen says ask a Parent to open “Add a child” — the parent
+- [x] Child join screen says ask a Parent to open “Add a child” — the parent
       screen is called “Link a phone”.
-- [ ] “Getting your profile ready” loading screen shows a dark status bar on
+- [x] “Getting your profile ready” loading screen shows a dark status bar on
       the dark background.
 - [ ] Parent Home crew balances briefly show “•••” while reloading.
-- [ ] A decorative sparkle can sit on top of footer text on the entry screen.
+- [x] A decorative sparkle can sit on top of footer text on the entry screen.
 
 - [ ] Dev only: a hot reload while a Child is signed in can show “Pair Alex
       again” (active auth storage resets). A cold launch is fine. Worth a
       guard so testers aren't tempted to press Restart.
 
-- [ ] Phones list says “Phone 1 / Phone 2” — show something recognisable
+- [x] Phones list says “Phone 1 / Phone 2” — show something recognisable
       (device model, or when it was last used).
-- [ ] Phones header art: the house has “arms” and the arrows float; redraw.
-- [ ] Still to review in the sim: parent Activity screen, notification
-      primer (needs a fresh install), house-rule tiles tap (re-check).
+- [x] Phones header art: the house has “arms” and the arrows float; redraw.
+- [x] Parent Activity, notification primer (via preview), house-rule tiles.
 
 ## Fixed
+- Phones: pairing stores the device model (“iPhone 17e”); new animated
+  house→phone scene (star puffs out of the chimney and lands on the phone).
+- Child access gate: night-sky loader + lost-satellite error.
+- Notification primer: ringing bell, sound waves, a sample notification drops
+  in; separate kid/parent copy.
+- Parent Family wins no longer says “everyone's balance stays private”.
 
 - Sign-in: disabled until valid, friendly errors (no raw server text).
 - All error messages: ConvexError's own sentence, no request-id noise.
