@@ -24,6 +24,12 @@ Running log of the end-to-end workflow pass (J-01 … J-13) on iPhone 17 Pro
       again” (active auth storage resets). A cold launch is fine. Worth a
       guard so testers aren't tempted to press Restart.
 
+- [ ] Phones list says “Phone 1 / Phone 2” — show something recognisable
+      (device model, or when it was last used).
+- [ ] Phones header art: the house has “arms” and the arrows float; redraw.
+- [ ] Still to review in the sim: Money + slide-to-pay, house rules editor,
+      Activity, notification primer, redo flow, claim/unclaim, celebration.
+
 ## Fixed
 
 - Sign-in: disabled until valid, friendly errors (no raw server text).
@@ -35,6 +41,14 @@ Running log of the end-to-end workflow pass (J-01 … J-13) on iPhone 17 Pro
   and other tiny-heading glitches).
 - Child Home: Extras chest card reads the server gate (was stuck “locked”
   after the Unlock Chore was approved, because tomorrow's copy counted).
+- Pairing countdown started at 15:41 on a 15-minute code (stale clock).
+- Invite + onboarding replay: page sheets (content sat under the clock).
+- Bottom sheets: SheetBody — real home-indicator padding and keyboard lift
+  (SafeAreaView reads zero insets inside a transparent Modal).
+- Secondary screens open without a header jump.
+- House-rule tiles are tappable; Remove disables after the server says no;
+  kid page says “Tomorrow”.
+- Parent Home: the day-arc ornament became the parent's avatar (account).
 - Child Home: past quests say “· Yesterday”; midnight openings say
   “Opens tomorrow” instead of “Available tomorrow, 00:00”.
 
@@ -45,3 +59,5 @@ Running log of the end-to-end workflow pass (J-01 … J-13) on iPhone 17 Pro
 - J-03 child sends a quest; J-08 it appears instantly on the parent's Home
   and review deck; swipe-right approves; balance 240 → 270 kr.
 - J-04 approving the Unlock Chore opens the Extras chest.
+- Kid page: balance, chores with outcomes, coins, Phones, pairing code,
+  rename sheet, removal refused while a balance is open.
