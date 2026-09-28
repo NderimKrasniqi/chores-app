@@ -1,0 +1,10 @@
+appId: host.exp.Exponent
+name: Child Money — the payday delivery
+---
+- runFlow:
+    file: _open.yaml
+    env: { STATE: child-money }
+- extendedWaitUntil: { visible: "Cargo manifest", timeout: 90000 }
+- assertVisible: "+55 kr this week"
+- assertVisible: "Last delivery"
+- assertVisible: "How the delivery works"

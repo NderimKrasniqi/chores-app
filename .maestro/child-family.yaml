@@ -1,0 +1,11 @@
+appId: host.exp.Exponent
+name: Child Family — the crew and siblings' wins
+---
+- runFlow:
+    file: _open.yaml
+    env: { STATE: child-activity }
+- extendedWaitUntil: { visible: "Today", timeout: 90000 }
+- assertVisible: "You"
+- assertVisible: "Maya"
+- assertVisible: "Chore rewards are shared. Everyone’s balance stays private."
+- assertVisible: "+15 kr"

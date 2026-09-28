@@ -1,0 +1,12 @@
+appId: host.exp.Exponent
+name: Parent Family — rows and house rules
+---
+- runFlow:
+    file: _open.yaml
+    env: { STATE: parent-family }
+- extendedWaitUntil: { visible: "Krasniqi Family", timeout: 90000 }
+- assertVisible: "Kids"
+- assertVisible: "Link phone"
+- assertVisible: "Add a kid"
+- assertVisible: "Invite another parent"
+- scrollUntilVisible: { element: "House rules" }

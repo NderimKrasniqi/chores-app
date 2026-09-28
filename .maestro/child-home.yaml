@@ -1,0 +1,10 @@
+appId: host.exp.Exponent
+name: Child Home — star map and money card
+---
+- runFlow:
+    file: _open.yaml
+    env: { STATE: child-home }
+- extendedWaitUntil: { visible: "Hi, Alex!", timeout: 90000 }
+- assertVisible: "Today’s quest"
+- assertVisible: "UP NEXT"
+- assertVisible: "Clean your room"

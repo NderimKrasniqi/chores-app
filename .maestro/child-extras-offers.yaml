@@ -1,0 +1,11 @@
+appId: host.exp.Exponent
+name: Extras — missions with a commitment track
+---
+- runFlow:
+    file: _open.yaml
+    env: { STATE: child-extras-offers }
+- extendedWaitUntil: { visible: "Missions", timeout: 90000 }
+- assertVisible: "Launch pad is free"
+- assertVisible: "Wash the car"
+- assertVisible: "No abort once launched"
+- assertVisible: "Miss it: −50 kr"

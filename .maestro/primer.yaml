@@ -1,0 +1,9 @@
+appId: host.exp.Exponent
+name: Notification primer (kid)
+---
+- runFlow:
+    file: _open.yaml
+    env: { STATE: notification-primer-child }
+- extendedWaitUntil: { visible: "Want a heads-up?", timeout: 90000 }
+- assertVisible: "Turn on notifications"
+- assertVisible: "Not now"

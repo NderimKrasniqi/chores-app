@@ -1103,7 +1103,7 @@ export function ClaimableChoresView({
               ) : null}
               <ActionButton
                 className="mt-5"
-                label="Claim and lock it"
+                label="Launch and lock it"
                 tone="commit"
                 leading={
                   <Icon name="lock" color={themeColors.night} size={18} />
