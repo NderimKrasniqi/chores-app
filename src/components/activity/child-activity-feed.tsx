@@ -91,8 +91,8 @@ export function ChildActivityFeed({
   timezone,
   viewerChildId,
   onOpenChores,
-  emptyTitle = "The sky is still dark",
-  emptyBody = "Your first approved quest lights the first star.",
+  emptyTitle = "No family wins yet",
+  emptyBody = "When your brothers and sisters finish quests, they light up here.",
   emptyActionLabel = "See your quests",
   weekStars,
   seenKey,
@@ -175,10 +175,15 @@ export function ChildActivityFeed({
     };
   }, []);
   const todayKey = localDateKey(now, timezone);
-  const today = items.filter(
+  // A kid's Family log is about their brothers and sisters — their own wins
+  // are already in Money, and show here only as their stars in the sky.
+  const logItems = viewerChildId
+    ? items.filter((item) => item.childId !== viewerChildId)
+    : items;
+  const today = logItems.filter(
     (item) => localDateKey(item.approvedAt, timezone) === todayKey,
   );
-  const earlier = items.filter(
+  const earlier = logItems.filter(
     (item) => localDateKey(item.approvedAt, timezone) !== todayKey,
   );
 
@@ -233,7 +238,7 @@ export function ChildActivityFeed({
         </View>
       ) : null}
 
-      {items.length === 0 ? (
+      {logItems.length === 0 ? (
         <View
           className="mt-6 items-center"
           testID="household-approval-activity"
@@ -304,7 +309,6 @@ function LogSection({
             item={item}
             timezone={timezone}
             mine={item.childId === viewerChildId}
-            showValue={!viewerChildId || item.childId === viewerChildId}
             color={colorFor(item.childId)}
           />
         ))}
@@ -317,14 +321,11 @@ function LogRow({
   item,
   timezone,
   mine,
-  showValue,
   color,
 }: {
   item: ApprovalActivityItem;
   timezone: string;
   mine: boolean;
-  /** Kids see kr only on their own wins; Parents see all. */
-  showValue: boolean;
   color: string;
 }) {
   const who = mine ? "You" : item.childDisplayName;
@@ -332,9 +333,7 @@ function LogRow({
   return (
     <View
       accessible
-      accessibilityLabel={`${who} completed ${item.choreTitle}, ${kind}${
-        showValue ? `, plus ${item.valueSek} kronor` : ""
-      }, ${formatApprovedAt(item.approvedAt, timezone)}`}
+      accessibilityLabel={`${who} completed ${item.choreTitle}, ${kind}, plus ${item.valueSek} kronor, ${formatApprovedAt(item.approvedAt, timezone)}`}
       className="min-h-[52px] flex-row items-center gap-3 py-1.5"
     >
       <View>
@@ -357,11 +356,9 @@ function LogRow({
           {kind} · {formatApprovedAt(item.approvedAt, timezone)}
         </AppText>
       </View>
-      {showValue ? (
-        <AppText className="font-display text-[15px]" color="gold">
-          +{item.valueSek} kr
-        </AppText>
-      ) : null}
+      <AppText className="font-display text-[15px]" color="gold">
+        +{item.valueSek} kr
+      </AppText>
     </View>
   );
 }

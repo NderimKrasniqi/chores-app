@@ -106,6 +106,9 @@ export const getCurrentChildAccess = query({
       childDisplayName: v.string(),
 
       grantedAt: v.number(),
+
+      /** Other active kids in the Household (the Family tab needs one). */
+      siblingCount: v.number(),
     }),
   ),
 
@@ -142,6 +145,15 @@ export const getCurrentChildAccess = query({
       throw new ConvexError("Household no longer exists.");
     }
 
+    // Households are small; the cap only guards against a runaway read.
+    const householdChildren = await ctx.db
+      .query("children")
+      .withIndex("by_household", (q) => q.eq("householdId", household._id))
+      .take(50);
+    const siblingCount = householdChildren.filter(
+      (other) => other._id !== child._id && other.archivedAt === undefined,
+    ).length;
+
     return {
       status: "linked" as const,
 
@@ -156,6 +168,8 @@ export const getCurrentChildAccess = query({
       childDisplayName: child.displayName,
 
       grantedAt: grant.createdAt,
+
+      siblingCount,
     };
   },
 });

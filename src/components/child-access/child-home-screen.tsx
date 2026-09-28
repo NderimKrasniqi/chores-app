@@ -40,6 +40,8 @@ type ChildHomeScreenProps = {
     childId: Id<"children">;
     childDisplayName: string;
     grantedAt: number;
+    /** Other kids in the Household; no Family tab without any. */
+    siblingCount?: number;
   };
   visualFixture?: {
     initialTab?: ChildTab;
@@ -85,6 +87,13 @@ export function ChildHomeScreen({
     visualFixture?.initialTab ?? "home",
   );
   const [profileOpen, setProfileOpen] = useState(false);
+  // Family is about brothers and sisters; an only child gets three tabs.
+  const hasSiblings = access.siblingCount !== 0;
+  const visibleTabs = hasSiblings
+    ? tabs
+    : tabs.filter((tab) => tab.key !== "activity");
+  const shownTab =
+    activeTab === "activity" && !hasSiblings ? "home" : activeTab;
   const [pendingChoreId, setPendingChoreId] =
     useState<Id<"choreOccurrences"> | null>(null);
 
@@ -124,9 +133,9 @@ export function ChildHomeScreen({
     <ThemeScope mode="quest">
       <SafeAreaView edges={["top"]} className="flex-1 bg-canvas">
         <StatusBar style="light" />
-        <Starfield seed={activeTab.length * 7} />
+        <Starfield seed={shownTab.length * 7} />
 
-        {activeTab === "home" ? (
+        {shownTab === "home" ? (
           <HomeTab
             childName={access.childDisplayName}
             balanceSek={balance?.balanceSek}
@@ -140,7 +149,7 @@ export function ChildHomeScreen({
           />
         ) : (
           <ExistingFeatureTab
-            tab={activeTab}
+            tab={shownTab}
             childId={access.childId}
             childName={access.childDisplayName}
             householdName={access.householdName}
@@ -158,7 +167,11 @@ export function ChildHomeScreen({
           style={{ paddingBottom: Math.max(insets.bottom - 14, 8) }}
           className="px-4 pt-1"
         >
-          <ChildTabBar activeTab={activeTab} onChange={setActiveTab} />
+          <ChildTabBar
+            tabs={visibleTabs}
+            activeTab={shownTab}
+            onChange={setActiveTab}
+          />
         </View>
 
         <ChildApprovalCelebrations
@@ -522,9 +535,11 @@ function ExistingFeatureTab({
  * animation on switching — kids flip tabs all day.
  */
 function ChildTabBar({
+  tabs,
   activeTab,
   onChange,
 }: {
+  tabs: { key: ChildTab; label: string }[];
   activeTab: ChildTab;
   onChange: (tab: ChildTab) => void;
 }) {
