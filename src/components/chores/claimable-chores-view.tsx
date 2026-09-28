@@ -361,7 +361,7 @@ function ClaimableCard({
             numberOfLines={1}
           >
             {locksNow
-              ? `Locks the moment you launch · ${formatDeadline(occurrence.deadlineAt, occurrence.timezone)}`
+              ? `Locks at launch · ${formatDeadline(occurrence.deadlineAt, occurrence.timezone)}`
               : formatDeadline(occurrence.deadlineAt, occurrence.timezone)}
           </AppText>
         </View>
@@ -410,7 +410,7 @@ function ClaimableCard({
           <AppText variant="caption" color="ink-muted" style={{ fontSize: 11 }}>
             {locksNow
               ? "No abort once launched"
-              : `Abort until ${formatDeadline(occurrence.commitment.lockAt, occurrence.timezone)}`}
+              : `Abort until ${formatDeadline(occurrence.commitment.lockAt, occurrence.timezone).replace(/^(Today|Tomorrow)/, (day) => day.toLowerCase())}`}
           </AppText>
           <AppText variant="caption" color="pink" style={{ fontSize: 11 }}>
             Miss it: −{occurrence.valueSek} kr
