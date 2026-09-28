@@ -164,8 +164,7 @@ export function ChildHomeChoreList({
       )
       .sort(
         (left, right) => right.availabilityStartsAt - left.availabilityStartsAt,
-      )
-      .slice(0, 3);
+      );
 
     return { currentAndNext, recentHistory };
   }, [occurrences, redos]);
@@ -275,7 +274,6 @@ export function ChildHomeChoreList({
         return {
           ...base,
           status: "done",
-          reward: occurrence.valueSek,
           subtitle: withPastDay(
             `+${occurrence.valueSek} kr earned`,
             occurrence,
@@ -335,43 +333,57 @@ export function ChildHomeChoreList({
 
   // Keep the map about a screen tall: today's finished and sent quests fold
   // into the belt, the rocket's planet (up next or a redo) stays, and only
-  // the next few to-dos get one. The rest is a single "+N more" line.
+  // the next few to-dos get a planet — ones open now before ones that open
+  // later. The rest fold behind a "+N more" pill that lists them.
   const mapStops = useMemo(() => {
-    const scheduledKeys = new Set(
-      visibleOccurrences
-        .filter((occurrence) => occurrence.state === "scheduled")
-        .map((occurrence) => occurrence.occurrenceId as string),
+    const byId = new Map(
+      visibleOccurrences.map(
+        (occurrence) =>
+          [occurrence.occurrenceId as string, occurrence] as const,
+      ),
     );
-    const finished: QuestStop[] = [];
-    const route: QuestStop[] = [];
-    let queued = 0;
-    let moreToday = 0;
-    let moreLater = 0;
-    for (const stop of stops) {
-      if (
+    const isOpenNow = (stop: QuestStop) =>
+      byId.get(stop.key)?.state === "available";
+    const finished = stops.filter(
+      (stop) =>
         stop.status === "done" ||
         stop.status === "missed" ||
-        stop.status === "review"
-      ) {
-        finished.push(stop);
-      } else if (stop.status === "current" || stop.status === "redo") {
-        route.push(stop);
-      } else if (queued < NEXT_PLANETS) {
-        route.push(stop);
-        queued += 1;
-      } else if (scheduledKeys.has(stop.key)) {
-        moreLater += 1;
-      } else {
-        moreToday += 1;
-      }
-    }
+        stop.status === "review",
+    );
+    const waiting = stops.filter(
+      (stop) => stop.status === "todo" || stop.status === "unlock",
+    );
+    const next = new Set(
+      [
+        ...waiting.filter(isOpenNow),
+        ...waiting.filter((stop) => !isOpenNow(stop)),
+      ]
+        .slice(0, NEXT_PLANETS)
+        .map((stop) => stop.key),
+    );
+    const route = stops.filter(
+      (stop) =>
+        stop.status === "current" ||
+        stop.status === "redo" ||
+        next.has(stop.key),
+    );
+    const more = waiting.filter((stop) => !next.has(stop.key));
+    const dueToday = more.filter((stop) => {
+      const occurrence = byId.get(stop.key);
+      return (
+        occurrence !== undefined &&
+        relativeDayLabel(occurrence.deadlineAt, occurrence.timezone) === "today"
+      );
+    }).length;
     const moreLabel = [
-      moreToday > 0 ? `+${moreToday} more today` : null,
-      moreLater > 0 ? `+${moreLater} later this week` : null,
+      dueToday > 0 ? `+${dueToday} more today` : null,
+      more.length - dueToday > 0
+        ? `+${more.length - dueToday} later this week`
+        : null,
     ]
       .filter(Boolean)
       .join(" · ");
-    return { finished, route, moreLabel };
+    return { finished, route, more, moreLabel };
   }, [stops, visibleOccurrences]);
 
   const toDoCount = visibleOccurrences.filter(
@@ -448,16 +460,20 @@ export function ChildHomeChoreList({
 
         <View className="mb-4">
           <AppText variant="screenTitle">Today’s quest</AppText>
-          <AppText variant="label" color="ink-muted" className="mt-0.5">
-            {toDoCount === 0 ? "All done for now" : `${toDoCount} to do`}
-          </AppText>
+          {/* The map shows what's next; words only when it has nothing. */}
+          {toDoCount === 0 ? (
+            <AppText variant="label" color="ink-muted" className="mt-0.5">
+              All done for now
+            </AppText>
+          ) : null}
         </View>
 
         <View className="-mx-5">
           <StarMap
             stops={mapStops.route}
             finished={mapStops.finished}
-            moreLabel={mapStops.moreLabel || undefined}
+            more={mapStops.more}
+            moreLabel={mapStops.moreLabel}
           />
         </View>
 

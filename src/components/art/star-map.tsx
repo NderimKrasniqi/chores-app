@@ -534,13 +534,30 @@ function Rocket({
   useEffect(() => {
     if (held) return;
     const from = last.current;
-    if (from.x === targetX && from.y === targetY) return;
+    if (from.key === targetKey && from.x === targetX && from.y === targetY) {
+      return;
+    }
     last.current = { key: targetKey, x: targetX, y: targetY };
     flight.set({ ax: from.x, ay: from.y, bx: targetX, by: targetY });
-    // Same stop, the map just moved (a planet folded into the belt):
-    // re-seat quietly instead of flying.
-    if (reducedMotion || from.key === targetKey) {
+    if (reducedMotion) {
       progress.set(1);
+      return;
+    }
+    if (from.key === targetKey) {
+      // Same stop, the map just moved: re-seat quietly instead of flying.
+      progress.set(1);
+      return;
+    }
+    if (from.x === targetX && from.y === targetY) {
+      // The next quest slid into the spot the rocket was already at (the
+      // last one folded into the belt): a little hop says "on to this one".
+      progress.set(1);
+      land.set(
+        withSequence(
+          withTiming(0.82, { duration: 110 }),
+          withSpring(1, { duration: 450, dampingRatio: 0.5 }),
+        ),
+      );
       return;
     }
     progress.set(0);
@@ -819,8 +836,7 @@ function rockLook(status: QuestStopStatus, tokens: Tokens) {
 /**
  * Today's finished and sent quests, folded into an asteroid belt where the trip
  * started: one rock per quest (green done, dashed while a Parent checks,
- * grey missed), so the map only
- * holds what's next. Tap to see them; each opens its quest card.
+ * grey missed), so the map only holds what's next. Tap to see them; each opens its quest card.
  */
 function Belt({
   finished,
@@ -916,94 +932,175 @@ function Belt({
         )}
       </Pressable>
 
-      {open ? (
-        <Animated.View
-          entering={FadeIn.duration(180)}
+      {open ? <StopList stops={finished} tokens={tokens} /> : null}
+    </View>
+  );
+}
+
+/** The icon a quest gets in a folded list: the rock or planet it'd be. */
+function MiniPlanet({ stop, tokens }: { stop: QuestStop; tokens: Tokens }) {
+  const dashed = stop.status === "review" || stop.status === "todo";
+  const fill =
+    stop.status === "unlock"
+      ? tokens.gold
+      : stop.status === "todo"
+        ? tokens.nightRaised
+        : rockLook(stop.status, tokens).fill;
+  const icon =
+    stop.status === "done"
+      ? "check"
+      : stop.status === "review"
+        ? "hourglass"
+        : stop.status === "missed"
+          ? "minus"
+          : stop.status === "unlock"
+            ? "lock"
+            : null;
+  return (
+    <View
+      style={{
+        width: 28,
+        height: 28,
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <Body
+        size={28}
+        fill={fill}
+        shade={tokens.night}
+        craters={false}
+        outline={dashed ? tokens.inkMuted : undefined}
+        dashed={stop.status === "review"}
+      />
+      {icon ? (
+        <Icon
+          name={icon}
+          color={
+            stop.status === "done" || stop.status === "unlock"
+              ? tokens.night
+              : tokens.inkMuted
+          }
+          size={14}
+        />
+      ) : null}
+    </View>
+  );
+}
+
+/** A folded group of quests, opened from the belt or the "+N more" pill. */
+function StopList({ stops, tokens }: { stops: QuestStop[]; tokens: Tokens }) {
+  return (
+    <Animated.View
+      entering={FadeIn.duration(180)}
+      style={{
+        marginTop: 12,
+        borderRadius: 20,
+        backgroundColor: tokens.nightSurface,
+        paddingVertical: 6,
+      }}
+    >
+      {stops.map((stop) => (
+        <Pressable
+          key={stop.key}
+          disabled={!stop.onPress}
+          onPress={stop.onPress}
+          accessibilityRole={stop.onPress ? "button" : undefined}
+          accessibilityLabel={[stop.title, stop.eyebrow, stop.subtitle]
+            .filter(Boolean)
+            .join(", ")}
+          accessibilityHint={stop.onPress ? "Opens the quest" : undefined}
           style={{
-            marginTop: 12,
-            borderRadius: 20,
-            backgroundColor: tokens.nightSurface,
-            paddingVertical: 6,
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 12,
+            paddingHorizontal: 14,
+            paddingVertical: 8,
           }}
         >
-          {finished.map((stop) => (
-            <Pressable
-              key={stop.key}
-              disabled={!stop.onPress}
-              onPress={stop.onPress}
-              accessibilityRole={stop.onPress ? "button" : undefined}
-              accessibilityLabel={
-                stop.accessibilityLabel ??
-                [stop.title, stop.subtitle].filter(Boolean).join(", ")
-              }
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 12,
-                paddingHorizontal: 14,
-                paddingVertical: 8,
-              }}
+          <MiniPlanet stop={stop} tokens={tokens} />
+          <View style={{ flex: 1 }}>
+            <AppText
+              className="font-body-heavy"
+              style={{ fontSize: 15, lineHeight: 20, color: tokens.ink }}
+              numberOfLines={1}
             >
-              <View
+              {stop.title}
+            </AppText>
+            {stop.subtitle ? (
+              <AppText
+                className="font-body-bold"
                 style={{
-                  width: 28,
-                  height: 28,
-                  alignItems: "center",
-                  justifyContent: "center",
+                  fontSize: 12,
+                  lineHeight: 16,
+                  color:
+                    stop.status === "done"
+                      ? tokens.primary
+                      : stop.status === "unlock"
+                        ? tokens.gold
+                        : tokens.inkMuted,
                 }}
               >
-                <Body
-                  size={28}
-                  fill={rockLook(stop.status, tokens).fill}
-                  shade={tokens.night}
-                  craters={false}
-                  outline={
-                    stop.status === "review" ? tokens.inkMuted : undefined
-                  }
-                  dashed={stop.status === "review"}
-                />
-                <Icon
-                  name={
-                    stop.status === "done"
-                      ? "check"
-                      : stop.status === "review"
-                        ? "hourglass"
-                        : "minus"
-                  }
-                  color={
-                    stop.status === "done" ? tokens.night : tokens.inkMuted
-                  }
-                  size={14}
-                />
-              </View>
-              <View style={{ flex: 1 }}>
-                <AppText
-                  className="font-body-heavy"
-                  style={{ fontSize: 15, lineHeight: 20, color: tokens.ink }}
-                  numberOfLines={1}
-                >
-                  {stop.title}
-                </AppText>
-                {stop.subtitle ? (
-                  <AppText
-                    className="font-body-bold"
-                    style={{
-                      fontSize: 12,
-                      lineHeight: 16,
-                      color:
-                        stop.status === "done"
-                          ? tokens.primary
-                          : tokens.inkMuted,
-                    }}
-                  >
-                    {stop.subtitle}
-                  </AppText>
-                ) : null}
-              </View>
-            </Pressable>
-          ))}
-        </Animated.View>
-      ) : null}
+                {stop.subtitle}
+              </AppText>
+            ) : null}
+          </View>
+        </Pressable>
+      ))}
+    </Animated.View>
+  );
+}
+
+/** Quests past the next few, folded behind one pill that opens a list. */
+function MoreStops({
+  stops,
+  label,
+  tokens,
+}: {
+  stops: QuestStop[];
+  label: string;
+  tokens: Tokens;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <View style={{ paddingHorizontal: SIDE_PADDING, marginTop: 20 }}>
+      <Pressable
+        onPress={() => setOpen((value) => !value)}
+        pressRetentionOffset={16}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: open }}
+        accessibilityLabel={`${label}. ${open ? "Hide" : "Show"} them`}
+        style={{ alignSelf: "center" }}
+      >
+        {({ pressed }) => (
+          <Animated.View
+            style={[
+              {
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 8,
+                borderRadius: 999,
+                paddingHorizontal: 16,
+                paddingVertical: 8,
+                backgroundColor: tokens.nightSurface,
+                transform: [{ scale: pressed ? PRESS.scale : 1 }],
+              },
+              pressTransition,
+            ]}
+          >
+            <Icon name="star" color={tokens.inkMuted} size={14} />
+            <AppText variant="caption" color="ink-muted">
+              {label}
+            </AppText>
+            <View
+              style={{ transform: [{ rotate: open ? "-90deg" : "90deg" }] }}
+            >
+              <Icon name="chevron" color={tokens.inkMuted} size={12} />
+            </View>
+          </Animated.View>
+        )}
+      </Pressable>
+      {open ? <StopList stops={stops} tokens={tokens} /> : null}
     </View>
   );
 }
@@ -1021,17 +1118,17 @@ function Belt({
 export function StarMap({
   stops,
   finished = [],
+  more = [],
   moreLabel,
-  onRocketY,
 }: {
   /** Planets in route order (deadline order). */
   stops: QuestStop[];
   /** Today's finished quests, folded into the asteroid belt up top. */
   finished?: QuestStop[];
-  /** Chores not drawn, e.g. "+2 more today · +4 later this week". */
+  /** Upcoming quests not drawn as planets, folded behind a pill. */
+  more?: QuestStop[];
+  /** The pill's words, e.g. "+2 more today · +4 later this week". */
   moreLabel?: string;
-  /** Where the rocket sits, relative to the top of the map. */
-  onRocketY?: (y: number) => void;
 }) {
   const { tokens } = useTheme();
   const [width, setWidth] = useState(0);
@@ -1080,10 +1177,25 @@ export function StarMap({
         }
       : null;
 
-  const rocketY = rocketPoint?.y;
-  useEffect(() => {
-    if (rocketY !== undefined) onRocketY?.(rocketY);
-  }, [onRocketY, rocketY]);
+  // While a stop that just joined the route is being measured, the rocket
+  // stays where it was (mounted), so it can fly on once the spot is known.
+  const [dock, setDock] = useState<{ key: string; x: number; y: number }>();
+  const rocketKey = rocketIndex >= 0 ? planets[rocketIndex].key : undefined;
+  if (
+    rocketPoint &&
+    rocketKey &&
+    (dock?.key !== rocketKey ||
+      dock.x !== rocketPoint.x ||
+      dock.y !== rocketPoint.y)
+  ) {
+    setDock({ key: rocketKey, ...rocketPoint });
+  }
+  const shownDock =
+    rocketPoint && rocketKey
+      ? { key: rocketKey, ...rocketPoint }
+      : planets.length > 0
+        ? dock
+        : undefined;
 
   const onBlock = (key: string) => (event: LayoutChangeEvent) => {
     const y = event.nativeEvent.layout.y;
@@ -1127,27 +1239,17 @@ export function StarMap({
             </View>
           </View>
         ))}
-        {rocketPoint ? (
+        {shownDock ? (
           <Rocket
-            targetKey={planets[rocketIndex].key}
-            targetX={rocketPoint.x}
-            targetY={rocketPoint.y}
+            targetKey={shownDock.key}
+            targetX={shownDock.x}
+            targetY={shownDock.y}
             tokens={tokens}
           />
         ) : null}
       </View>
-      {moreLabel ? (
-        <View className="mt-5 items-center">
-          <View
-            className="flex-row items-center gap-2 rounded-full px-4 py-2"
-            style={{ backgroundColor: tokens.nightSurface }}
-          >
-            <Icon name="star" color={tokens.inkMuted} size={14} />
-            <AppText variant="caption" color="ink-muted">
-              {moreLabel}
-            </AppText>
-          </View>
-        </View>
+      {more.length > 0 && moreLabel ? (
+        <MoreStops stops={more} label={moreLabel} tokens={tokens} />
       ) : null}
     </View>
   );

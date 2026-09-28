@@ -1,4 +1,4 @@
-import { BalanceOrb, Starfield } from "@/components/art";
+import { HomePlanet, Starfield } from "@/components/art";
 import { amountFontSize } from "@/lib/amount-size";
 import { useHourNow } from "@/lib/use-hour-now";
 import { ChildApprovalCelebrations } from "@/components/activity/approval-celebration";
@@ -334,7 +334,7 @@ function MoneyCard({
           : `Payday ${payday} · ${daysLeft} days`;
 
   const value = shown ?? balanceSek;
-  const fontSize = amountFontSize(value ?? 0, 28, 3);
+  const fontSize = amountFontSize(value ?? 0, 46, 4);
 
   return (
     <Pressable
@@ -343,50 +343,71 @@ function MoneyCard({
         earnedToday > 0 ? ` Plus ${earnedToday} today.` : ""
       } ${paydayLabel}. Open money.`}
       onPress={onOpenMoney}
-      className="flex-row items-center gap-4 rounded-large bg-surface px-4 py-3"
+      className="overflow-hidden rounded-large bg-surface"
+      style={{ minHeight: PLANET_CARD_HEIGHT }}
       testID="task14-running-balance-card"
     >
-      <BalanceOrb
-        size={92}
-        weekProgress={weekProgress}
-        celebrateKey={celebrateKey}
+      {/* the home planet, half off the card's right edge */}
+      <View
+        style={{
+          position: "absolute",
+          right: -PLANET_SIZE * 0.42,
+          top: PLANET_CARD_HEIGHT / 2 - PLANET_BOX / 2,
+        }}
       >
+        <HomePlanet
+          size={PLANET_SIZE}
+          balance={balanceSek ?? 0}
+          weekProgress={weekProgress}
+          celebrateKey={celebrateKey}
+        />
+      </View>
+      <View className="px-5 py-4" style={{ maxWidth: "66%" }}>
+        <AppText
+          className="font-display-medium"
+          style={{ fontSize: 18, lineHeight: 23 }}
+        >
+          Hi, {childName}!
+        </AppText>
         <AppText
           numberOfLines={1}
-          className="font-display text-night"
-          style={{ fontSize, lineHeight: fontSize * 1.3 }}
+          className="mt-1 font-display"
+          style={{
+            fontSize,
+            lineHeight: fontSize * 1.15,
+            color:
+              (balanceSek ?? 0) < 0 ? themeColors.pink : themeColors.primary,
+          }}
           testID="task14-running-balance-value"
         >
           {value === undefined ? "…" : value}
           <AppText
-            className="font-body-heavy text-night"
-            style={{ fontSize: 13 }}
+            className="font-body-heavy"
+            style={{ fontSize: 18, color: themeColors.primary }}
           >
             {" "}
             kr
           </AppText>
         </AppText>
-      </BalanceOrb>
-      <View className="flex-1">
-        <AppText
-          className="font-display-medium"
-          style={{ fontSize: 20, lineHeight: 25 }}
-        >
-          Hi, {childName}!
-        </AppText>
-        {earnedToday > 0 ? (
-          <AppText variant="label" color="gold" className="mt-0.5">
-            +{earnedToday} kr today
-          </AppText>
-        ) : null}
-        <View className="mt-2 flex-row items-center gap-1.5 self-start rounded-full bg-nightRaised px-3 py-1">
-          <Icon name="star" color={themeColors.gold} size={12} />
-          <AppText variant="caption">{paydayLabel}</AppText>
+        <View className="mt-2 flex-row flex-wrap items-center gap-x-2 gap-y-1.5">
+          {earnedToday > 0 ? (
+            <AppText variant="label" color="gold">
+              +{earnedToday} kr today
+            </AppText>
+          ) : null}
+          <View className="flex-row items-center gap-1.5 self-start rounded-full bg-nightRaised px-3 py-1">
+            <Icon name="star" color={themeColors.gold} size={12} />
+            <AppText variant="caption">{paydayLabel}</AppText>
+          </View>
         </View>
       </View>
     </Pressable>
   );
 }
+
+const PLANET_SIZE = 112;
+const PLANET_BOX = PLANET_SIZE * 1.28 + 24;
+const PLANET_CARD_HEIGHT = 164;
 
 function ExistingFeatureTab({
   tab,
