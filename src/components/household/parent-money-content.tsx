@@ -17,7 +17,7 @@ import Animated, {
   withSpring,
 } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
-import { useEntrance } from "@/components/art";
+import { CargoPod, useEntrance } from "@/components/art";
 import {
   ActivityIndicator,
   Alert,
@@ -422,81 +422,31 @@ export function ParentMoneyContent({
         </AppText>
       ) : null}
 
+      {/* The dock: each kid's cargo pod, what it holds and what to send. */}
       <AppText variant="sectionTitle" className="mt-6">
-        To pay
+        Payday dock
       </AppText>
-      {pending.length === 0 ? (
-        <View className="mt-3 rounded-[22px] bg-surface p-4">
-          <AppText variant="cardTitle">Nothing to pay right now</AppText>
-          <AppText variant="caption" color="ink-muted" className="mt-1">
-            Payouts appear here when a week closes on{" "}
-            {formatWeekday(overview.configuredPayoutWeekday)}.
-          </AppText>
-        </View>
-      ) : (
-        <View className="mt-3 gap-3">
-          {pending.map((payout) => (
-            <View
-              key={payout.payoutId}
-              className="rounded-[24px] bg-surface p-4"
-            >
-              <View className="flex-row items-center gap-3">
-                <ChildAvatar
-                  name={payout.childDisplayName}
-                  className="h-12 w-12"
-                />
-                <View className="flex-1">
-                  <AppText variant="cardTitle">
-                    {payout.childDisplayName}
-                  </AppText>
-                  <AppText variant="caption" color="ink-muted">
-                    Week ending {formatShortDate(payout.periodEndLocalDate)}
-                  </AppText>
-                </View>
-                <AppText variant="amount">{payout.amountDueSek} kr</AppText>
-              </View>
-              {payout.pendingOutcomeCount > 0 ? (
-                <AppText variant="caption" color="ink-muted" className="mt-2">
-                  {payout.pendingOutcomeCount} undecided chore
-                  {payout.pendingOutcomeCount === 1 ? "" : "s"} will count in a
-                  later week.
-                </AppText>
-              ) : null}
-              <View className="mt-4">
-                {justPaid.includes(payout.payoutId) ? (
-                  <PaidStamp />
-                ) : (
-                  <SlideToPay
-                    amount={payout.amountDueSek}
-                    name={payout.childDisplayName}
-                    busy={payingId === payout.payoutId}
-                    disabled={payingId !== null && payingId !== payout.payoutId}
-                    onConfirm={() => confirmPaid(payout.payoutId)}
-                  />
-                )}
-              </View>
-            </View>
-          ))}
-        </View>
-      )}
-
-      <AppText variant="sectionTitle" className="mt-6">
-        Balances
-      </AppText>
-      <View className="mt-3 gap-2.5">
+      <View className="mt-3 gap-3">
         {overview.children.map((child) => {
-          const negative = child.runningBalanceSek < 0;
+          const due = pending.filter(
+            (payout) => payout.childId === child.childId,
+          );
           const days = child.thisPeriodDailySek ?? [];
           const week = days.reduce((sum, value) => sum + value, 0);
+          const negative = child.runningBalanceSek < 0;
           return (
             <View
               key={child.childId}
-              accessible
-              accessibilityLabel={`${child.displayName}: ${child.runningBalanceSek} kronor. ${week >= 0 ? "Plus" : "Minus"} ${Math.abs(week)} kronor this week.`}
-              className="rounded-[22px] bg-surface p-4"
+              className="rounded-[24px] bg-surface p-4"
+              accessible={due.length === 0}
+              accessibilityLabel={
+                due.length === 0
+                  ? `${child.displayName}: ${child.runningBalanceSek} kronor on board. ${week >= 0 ? "Plus" : "Minus"} ${Math.abs(week)} kronor this week.${negative ? " The debt rides along to next week." : ""}`
+                  : undefined
+              }
             >
               <View className="flex-row items-center gap-3">
-                <ChildAvatar name={child.displayName} className="h-10 w-10" />
+                <ChildAvatar name={child.displayName} className="h-11 w-11" />
                 <View className="flex-1">
                   <AppText variant="cardTitle">{child.displayName}</AppText>
                   <View className="mt-1 flex-row items-center gap-1">
@@ -514,48 +464,100 @@ export function ParentMoneyContent({
                         }}
                       />
                     ))}
+                    <AppText
+                      variant="caption"
+                      color={week < 0 ? "urgency" : "ink-muted"}
+                      className="ml-1"
+                    >
+                      {week === 0
+                        ? "nothing yet this week"
+                        : `${week > 0 ? "+" : "−"}${Math.abs(week)} kr this week`}
+                    </AppText>
                   </View>
                 </View>
-                <View className="items-end">
-                  <AppText
-                    variant="cardTitle"
-                    color={negative ? "urgency" : "ink"}
-                  >
-                    {child.runningBalanceSek} kr
-                  </AppText>
-                  <AppText
-                    variant="caption"
-                    color={
-                      week < 0 ? "urgency" : week > 0 ? "action" : "ink-muted"
-                    }
-                  >
-                    {week === 0
-                      ? "nothing yet this week"
-                      : `${week > 0 ? "+" : "−"}${Math.abs(week)} kr this week`}
-                  </AppText>
-                </View>
+                <CargoPod size={62} balance={child.runningBalanceSek} />
               </View>
+
+              <View className="mt-3 flex-row items-baseline justify-between rounded-[16px] bg-canvas px-3 py-2">
+                <AppText variant="caption" color="ink-muted">
+                  On board now
+                </AppText>
+                <AppText
+                  variant="cardTitle"
+                  color={negative ? "urgency" : "ink"}
+                >
+                  {child.runningBalanceSek} kr
+                </AppText>
+              </View>
+
+              {due.map((payout) => (
+                <View key={payout.payoutId} className="mt-3">
+                  <AppText variant="bodySmall" className="font-body-bold">
+                    {justPaid.includes(payout.payoutId)
+                      ? `${payout.amountDueSek} kr delivered`
+                      : `Send ${payout.amountDueSek} kr in Swish, then slide to mark it paid`}
+                  </AppText>
+                  <AppText variant="caption" color="ink-muted">
+                    Week ending {formatShortDate(payout.periodEndLocalDate)}
+                    {payout.pendingOutcomeCount > 0
+                      ? ` · ${payout.pendingOutcomeCount} undecided chore${payout.pendingOutcomeCount === 1 ? "" : "s"} count in a later week`
+                      : ""}
+                  </AppText>
+                  <View className="mt-3">
+                    {justPaid.includes(payout.payoutId) ? (
+                      <PaidStamp />
+                    ) : (
+                      <SlideToPay
+                        amount={payout.amountDueSek}
+                        name={payout.childDisplayName}
+                        busy={payingId === payout.payoutId}
+                        disabled={
+                          payingId !== null && payingId !== payout.payoutId
+                        }
+                        onConfirm={() => confirmPaid(payout.payoutId)}
+                      />
+                    )}
+                  </View>
+                </View>
+              ))}
+
+              {due.length === 0 && negative ? (
+                <AppText variant="caption" color="urgency" className="mt-2">
+                  Nothing to send · {child.runningBalanceSek} kr rides along to
+                  next week
+                </AppText>
+              ) : null}
             </View>
           );
         })}
       </View>
+      {pending.length === 0 ? (
+        <AppText variant="caption" color="ink-muted" className="mt-3">
+          Pay shows up here when a week closes on{" "}
+          {formatWeekday(overview.configuredPayoutWeekday)}.
+        </AppText>
+      ) : null}
 
       {recent.length > 0 ? (
         <>
           <AppText variant="sectionTitle" className="mt-6">
-            Recently paid
+            Past paydays
           </AppText>
-          <View className="mt-3 gap-2">
+          <View className="mt-3 flex-row flex-wrap gap-2">
             {recent.map((payout) => (
               <View
                 key={payout.payoutId}
-                className="flex-row items-center gap-3 rounded-[18px] bg-surface px-4 py-3"
+                className="items-center rounded-[16px] border-2 border-dashed px-3 py-2"
+                style={{ borderColor: themeColors.primaryShade }}
+                accessible
+                accessibilityLabel={`${payout.childDisplayName}, ${payout.amountDueSek} kronor, paid ${payout.paidAt ? formatPaidMoment(payout.paidAt, timezone) : ""}`}
               >
-                <Icon name="check" color={themeColors.action} size={18} />
-                <AppText className="flex-1">
-                  {payout.childDisplayName} · {payout.amountDueSek} kr
-                </AppText>
+                <View className="flex-row items-center gap-1">
+                  <Icon name="check" color={themeColors.action} size={13} />
+                  <AppText variant="label">{payout.amountDueSek} kr</AppText>
+                </View>
                 <AppText variant="caption" color="ink-muted">
+                  {payout.childDisplayName} ·{" "}
                   {payout.paidAt
                     ? formatPaidMoment(payout.paidAt, timezone)
                     : "Paid"}
