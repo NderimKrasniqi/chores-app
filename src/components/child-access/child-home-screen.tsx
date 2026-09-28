@@ -1,5 +1,6 @@
 import { BalanceOrb, Starfield } from "@/components/art";
 import { amountFontSize } from "@/lib/amount-size";
+import { useHourNow } from "@/lib/use-hour-now";
 import { ChildApprovalCelebrations } from "@/components/activity/approval-celebration";
 import { ChildHouseholdActivity } from "@/components/activity/child-household-activity";
 import type { ApprovalActivityItem } from "@/components/activity/approval-activity";
@@ -216,50 +217,174 @@ function HomeTab({
       onOpenExtras={onOpenExtras}
       header={
         <View className="pb-6 pt-2">
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`${childName}'s money: ${balanceSek ?? "loading"} kronor. Open money.`}
-            onPress={onOpenMoney}
-            className="flex-row items-center gap-4 rounded-large bg-surface px-4 py-3"
-            testID="task14-running-balance-card"
-          >
-            <BalanceOrb size={92}>
-              <AppText
-                numberOfLines={1}
-                className="font-display text-night"
-                style={{
-                  fontSize: amountFontSize(balanceSek ?? 0, 28, 3),
-                  lineHeight: amountFontSize(balanceSek ?? 0, 28, 3) * 1.3,
-                }}
-                testID="task14-running-balance-value"
-              >
-                {balanceSek === undefined ? "…" : balanceSek}
-                <AppText
-                  className="font-body-heavy text-night"
-                  style={{ fontSize: 13 }}
-                >
-                  {" "}
-                  kr
-                </AppText>
-              </AppText>
-            </BalanceOrb>
-            <View className="flex-1">
-              <AppText
-                className="font-display-medium"
-                style={{ fontSize: 20, lineHeight: 25 }}
-              >
-                Hi, {childName}!
-              </AppText>
-              <View className="mt-2 flex-row items-center gap-1 self-start rounded-full bg-nightRaised px-3 py-1">
-                <AppText variant="caption">See payday</AppText>
-                <Icon name="chevron" color={themeColors.ink} size={12} />
-              </View>
-            </View>
-          </Pressable>
+          <MoneyCard
+            childName={childName}
+            balanceSek={balanceSek}
+            preview={visualOccurrences !== undefined}
+            onOpenMoney={onOpenMoney}
+          />
           <RecentPenaltyNotice preview={visualOccurrences !== undefined} />
         </View>
       }
     />
+  );
+}
+
+const DAY_MS = 86_400_000;
+
+function localDateKey(timestamp: number, timezone: string) {
+  try {
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone: timezone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(new Date(timestamp));
+  } catch {
+    return new Date(timestamp).toISOString().slice(0, 10);
+  }
+}
+
+/** Counts to `to`, starting from wherever it was showing. */
+function useTicker(to: number | undefined) {
+  const [shown, setShown] = useState(to);
+  // First value: show it straight away (adjust during render, not in an effect).
+  if (shown === undefined && to !== undefined) setShown(to);
+  useEffect(() => {
+    if (to === undefined || shown === undefined || shown === to) return;
+    let frame = 0;
+    const from = shown;
+    const start = Date.now();
+    const tick = () => {
+      const t = Math.min(1, (Date.now() - start) / 700);
+      setShown(Math.round(from + (to - from) * (1 - Math.pow(1 - t, 3))));
+      if (t < 1) frame = requestAnimationFrame(tick);
+    };
+    // Let the coin land first.
+    const delay = setTimeout(() => {
+      frame = requestAnimationFrame(tick);
+    }, 600);
+    return () => {
+      clearTimeout(delay);
+      cancelAnimationFrame(frame);
+    };
+    // Only restart when the target changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [to]);
+  return shown;
+}
+
+/**
+ * The kid's money, at a glance: the balance on a green planet whose moon
+ * climbs toward payday, today's earnings, and when payday is. When money
+ * arrives while the screen is open, a coin arcs in and the number ticks up.
+ */
+function MoneyCard({
+  childName,
+  balanceSek,
+  preview,
+  onOpenMoney,
+}: {
+  childName: string;
+  balanceSek: number | undefined;
+  preview: boolean;
+  onOpenMoney: () => void;
+}) {
+  const now = useHourNow();
+  const money = useQuery(api.payouts.getMine, preview ? "skip" : { now });
+  const shown = useTicker(balanceSek);
+
+  // A coin flies in each time the balance goes up while we're watching.
+  const [seen, setSeen] = useState(balanceSek);
+  const [celebrateKey, setCelebrateKey] = useState(0);
+  if (balanceSek !== seen) {
+    if (seen !== undefined && balanceSek !== undefined && balanceSek > seen) {
+      setCelebrateKey((key) => key + 1);
+    }
+    setSeen(balanceSek);
+  }
+
+  const period = money?.currentPeriod;
+  const timezone = period?.timezone ?? "UTC";
+  const today = localDateKey(now, timezone);
+  const earnedToday = (money?.child.thisPeriodEntries ?? [])
+    .filter(
+      (entry) =>
+        entry.kind === "earning" &&
+        localDateKey(entry.createdAt, timezone) === today,
+    )
+    .reduce((sum, entry) => sum + entry.amountSek, 0);
+  const weekProgress = period
+    ? (now - period.startAt) / Math.max(1, period.endAt - period.startAt)
+    : undefined;
+  const daysLeft = period
+    ? Math.max(0, Math.ceil((period.endAt - now) / DAY_MS))
+    : undefined;
+  const payday = period
+    ? period.payoutWeekday.charAt(0).toUpperCase() +
+      period.payoutWeekday.slice(1)
+    : "";
+  const paydayLabel =
+    daysLeft === undefined
+      ? "See payday"
+      : daysLeft <= 0
+        ? "Payday today!"
+        : daysLeft === 1
+          ? "Payday tomorrow"
+          : `Payday ${payday} · ${daysLeft} days`;
+
+  const value = shown ?? balanceSek;
+  const fontSize = amountFontSize(value ?? 0, 28, 3);
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${childName}'s money: ${balanceSek ?? "loading"} kronor.${
+        earnedToday > 0 ? ` Plus ${earnedToday} today.` : ""
+      } ${paydayLabel}. Open money.`}
+      onPress={onOpenMoney}
+      className="flex-row items-center gap-4 rounded-large bg-surface px-4 py-3"
+      testID="task14-running-balance-card"
+    >
+      <BalanceOrb
+        size={92}
+        weekProgress={weekProgress}
+        celebrateKey={celebrateKey}
+      >
+        <AppText
+          numberOfLines={1}
+          className="font-display text-night"
+          style={{ fontSize, lineHeight: fontSize * 1.3 }}
+          testID="task14-running-balance-value"
+        >
+          {value === undefined ? "…" : value}
+          <AppText
+            className="font-body-heavy text-night"
+            style={{ fontSize: 13 }}
+          >
+            {" "}
+            kr
+          </AppText>
+        </AppText>
+      </BalanceOrb>
+      <View className="flex-1">
+        <AppText
+          className="font-display-medium"
+          style={{ fontSize: 20, lineHeight: 25 }}
+        >
+          Hi, {childName}!
+        </AppText>
+        {earnedToday > 0 ? (
+          <AppText variant="label" color="gold" className="mt-0.5">
+            +{earnedToday} kr today
+          </AppText>
+        ) : null}
+        <View className="mt-2 flex-row items-center gap-1.5 self-start rounded-full bg-nightRaised px-3 py-1">
+          <Icon name="star" color={themeColors.gold} size={12} />
+          <AppText variant="caption">{paydayLabel}</AppText>
+        </View>
+      </View>
+    </Pressable>
   );
 }
 

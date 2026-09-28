@@ -358,14 +358,6 @@ export function ChildHomeChoreList({
   const toDoCount = visibleOccurrences.filter(
     (o) => o.state === "available" || o.state === "redo_required",
   ).length;
-  const earnedToday = recentHistory
-    .filter(
-      (occurrence) =>
-        occurrence.state === "approved" &&
-        relativeDayLabel(occurrence.deadlineAt, occurrence.timezone) ===
-          "today",
-    )
-    .reduce((sum, occurrence) => sum + occurrence.valueSek, 0);
 
   const firstRedo = visibleOccurrences.find(
     (occurrence) => occurrence.state === "redo_required",
@@ -449,11 +441,6 @@ export function ChildHomeChoreList({
           <AppText variant="screenTitle">Today’s quest</AppText>
           <AppText variant="label" color="ink-muted" className="mt-0.5">
             {toDoCount === 0 ? "All done for now" : `${toDoCount} to do`}
-            {earnedToday > 0 ? (
-              <AppText variant="label" color="gold">
-                {` · +${earnedToday} kr today`}
-              </AppText>
-            ) : null}
           </AppText>
         </View>
 
