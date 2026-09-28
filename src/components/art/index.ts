@@ -33,3 +33,9 @@ export {
   type PatchKind,
 } from "./crew";
 export { GroundRadar, type RadarCraft, type RadarStatus } from "./ground-radar";
+export {
+  BudgetGauge,
+  WeekBoard,
+  type BoardDay,
+  type BoardDot,
+} from "./week-board";

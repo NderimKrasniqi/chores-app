@@ -50,7 +50,11 @@ function dayBefore(key: string, n: number) {
  * streak (Unlock Chore approved on 2+ days in a row, up to today or
  * yesterday) and mission hero (an Extra approved).
  */
-function patchesFor(stars: WeekStar[], timezone: string, todayKey: string) {
+export function patchesFor(
+  stars: WeekStar[],
+  timezone: string,
+  todayKey: string,
+) {
   const perDay = new Map<string, number>();
   const unlockDays = new Set<string>();
   let hero = false;

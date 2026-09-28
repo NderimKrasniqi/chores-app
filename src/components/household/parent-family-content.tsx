@@ -8,9 +8,22 @@ import Animated, {
 import Svg, { Path, Rect } from "react-native-svg";
 import { userErrorMessage } from "@/lib/errors";
 
-import { useLoop } from "@/components/art";
+import {
+  CrewBadge,
+  Patch,
+  PATCH_LABEL,
+  useLoop,
+  type PatchKind,
+} from "@/components/art";
+import { patchesFor } from "@/components/activity/child-activity-feed";
+import { localDateKey } from "@/components/activity/approval-activity";
+import { useHourNow } from "@/lib/use-hour-now";
 import { Easings, PRESS, pressTransition } from "@/components/art/motion";
-import { childAvatarTone, Avatar } from "@/components/ui/avatar";
+import {
+  avatarToneColor,
+  childAvatarTone,
+  Avatar,
+} from "@/components/ui/avatar";
 import { Icon, type IconName } from "@/components/ui/icon";
 import { ActionButton, AppText, SheetBody } from "@/design-system";
 import { useServerConfirmedMutation } from "@/hooks/use-server-confirmed-mutation";
@@ -152,11 +165,15 @@ function KidRow({
   child,
   onOpen,
   linkedPhones,
+  stars,
+  patches,
 }: {
   child: HouseholdSummary["children"][number];
   onOpen: () => void;
   /** undefined while loading. */
   linkedPhones: number | undefined;
+  stars: number;
+  patches: { kind: PatchKind; count?: number }[];
 }) {
   const { tokens } = useTheme();
   const activeCount = linkedPhones ?? 0;
@@ -169,13 +186,18 @@ function KidRow({
   return (
     <Row
       onPress={onOpen}
-      accessibilityLabel={`${child.displayName}. ${status}. Manage phones`}
+      accessibilityLabel={`${child.displayName}. ${stars} ${stars === 1 ? "star" : "stars"} this week${
+        patches.length > 0
+          ? `, patches: ${patches.map((patch) => PATCH_LABEL[patch.kind]).join(", ")}`
+          : ""
+      }. ${status}. Open their page`}
     >
-      <Avatar
-        tone={childAvatarTone(child.displayName)}
-        className="rounded-full"
-        fallbackLabel={child.displayName}
-        size={44}
+      {/* The same astronaut badge the kid sees on their own Family tab. */}
+      <CrewBadge
+        name={child.displayName}
+        color={avatarToneColor(childAvatarTone(child.displayName), tokens)}
+        stars={stars}
+        size={48}
       />
       <View className="flex-1">
         <AppText variant="cardTitle">{child.displayName}</AppText>
@@ -192,6 +214,18 @@ function KidRow({
             {status}
           </AppText>
         </View>
+        {patches.length > 0 ? (
+          <View className="mt-1.5 flex-row gap-1">
+            {patches.map((patch) => (
+              <Patch
+                key={patch.kind}
+                kind={patch.kind}
+                count={patch.count}
+                size={20}
+              />
+            ))}
+          </View>
+        ) : null}
       </View>
       {loaded && activeCount === 0 ? (
         <View
@@ -257,6 +291,21 @@ export function ParentFamilyContent({
     api.childAccess.listActiveDeviceCountsForHousehold,
     visualDeviceCounts ? "skip" : { householdId: household.householdId },
   );
+  const hourNow = useHourNow();
+  const week = useQuery(
+    api.householdActivity.weekForParent,
+    visualDeviceCounts
+      ? "skip"
+      : { householdId: household.householdId, now: hourNow },
+  );
+  const todayKey = localDateKey(hourNow, household.timezone);
+  const crewFor = (childId: string) => {
+    const mine = (week?.stars ?? []).filter((star) => star.childId === childId);
+    return {
+      stars: mine.length,
+      patches: patchesFor(mine, household.timezone, todayKey),
+    };
+  };
   const linkedPhonesFor = (childId: string) =>
     visualDeviceCounts
       ? (visualDeviceCounts[childId] ?? 0)
@@ -291,7 +340,7 @@ export function ParentFamilyContent({
       />
 
       <AppText variant="sectionTitle" className="mt-5">
-        Kids
+        The crew
       </AppText>
       <View className="mt-3 gap-2.5">
         {household.children.map((child) => (
@@ -300,6 +349,7 @@ export function ParentFamilyContent({
             child={child}
             onOpen={() => onOpenChildAccess(child.childId)}
             linkedPhones={linkedPhonesFor(child.childId)}
+            {...crewFor(child.childId)}
           />
         ))}
         <Row
@@ -322,7 +372,7 @@ export function ParentFamilyContent({
       </View>
 
       <AppText variant="sectionTitle" className="mt-6">
-        Parents
+        Ground crew
       </AppText>
       <View className="mt-3 gap-2.5">
         {household.parents.map((parent) => (
@@ -378,7 +428,7 @@ export function ParentFamilyContent({
       </View>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`House rules: payday ${formatWeekday(household.payoutWeekday)}, ${household.weeklyUnclaimAllowance} unclaims a week, time zone ${shortTimezone(household.timezone)}. Change`}
+        accessibilityLabel={`House rules: payday ${formatWeekday(household.payoutWeekday)}, ${household.weeklyUnclaimAllowance} abort passes a week, time zone ${shortTimezone(household.timezone)}. Change`}
         onPress={onOpenSettings}
         className="mt-3 flex-row gap-2.5"
       >
@@ -389,7 +439,7 @@ export function ParentFamilyContent({
         />
         <RuleToken
           icon="key"
-          label="Unclaims"
+          label="Abort passes"
           value={`${household.weeklyUnclaimAllowance} a week`}
         />
         <RuleToken

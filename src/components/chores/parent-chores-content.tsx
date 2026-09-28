@@ -14,9 +14,19 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useQuery } from "convex/react";
 import { userErrorMessage } from "@/lib/errors";
 
-import { ChoreIcon } from "@/components/art";
+import {
+  BudgetGauge,
+  ChoreIcon,
+  WeekBoard,
+  type BoardDay,
+} from "@/components/art";
+import { planBudget, planDays } from "@/lib/chore-budget";
 import { PRESS, pressTransition } from "@/components/art/motion";
-import { childAvatarTone, Avatar } from "@/components/ui/avatar";
+import {
+  avatarToneColor,
+  childAvatarTone,
+  Avatar,
+} from "@/components/ui/avatar";
 import { Icon } from "@/components/ui/icon";
 import { ActionButton, AppText } from "@/design-system";
 import { useTheme } from "@/design-system/theme";
@@ -394,6 +404,15 @@ export function ParentChoresContent({
 
   return (
     <View className="pb-6">
+      {definitions && definitions.length > 0 ? (
+        <WeekPlan
+          definitions={definitions}
+          today={today}
+          children={children}
+          onOpen={openEdit}
+        />
+      ) : null}
+
       <KindTabs value={listKind} onChange={setListKind} />
 
       <Pressable
@@ -813,6 +832,107 @@ const TEMPLATES: ChoreTemplate[] = [
   { title: "Take out recycling", valueSek: 15 },
   { title: "Wash the car", valueSek: 50 },
 ];
+
+/**
+ * The plan at a glance: what the next seven days hold for each kid, what it
+ * can pay, and — tap a day — which chores those are.
+ */
+function WeekPlan({
+  definitions,
+  today,
+  children,
+  onOpen,
+}: {
+  definitions: Definition[];
+  today: string;
+  children: ChildSummary[];
+  onOpen: (definition: Definition) => void;
+}) {
+  const { tokens } = useTheme();
+  const [selected, setSelected] = useState(today);
+  const plan = planDays(definitions, today);
+  const budget = planBudget(plan);
+  const colorFor = (childId?: string) => {
+    const child = children.find((item) => item.childId === childId);
+    return child
+      ? avatarToneColor(childAvatarTone(child.displayName), tokens)
+      : tokens.inkFaint;
+  };
+  const days: BoardDay[] = plan.map((day) => {
+    const [y, m, d] = day.localDate.split("-").map(Number);
+    const date = new Date(Date.UTC(y, m - 1, d, 12));
+    return {
+      localDate: day.localDate,
+      label: date.toLocaleDateString("en-GB", {
+        weekday: "narrow",
+        timeZone: "UTC",
+      }),
+      dayNumber: String(d),
+      isToday: day.localDate === today,
+      dots: day.chores.map(({ definition }) => ({
+        key: `${definition.choreDefinitionId}-${day.localDate}`,
+        color:
+          definition.kind === "claimable"
+            ? undefined
+            : colorFor(definition.personalChildId),
+        isUnlock: definition.isUnlockChore,
+      })),
+    };
+  });
+  const selectedDay = plan.find((day) => day.localDate === selected) ?? plan[0];
+
+  return (
+    <View className="mb-5 rounded-[24px] bg-surface p-4">
+      <BudgetGauge personal={budget.personal} extras={budget.extras} />
+      <View className="mt-4">
+        <WeekBoard days={days} selected={selected} onSelect={setSelected} />
+      </View>
+      <View className="mt-3 gap-1.5">
+        {selectedDay.chores.length === 0 ? (
+          <AppText variant="caption" color="ink-muted">
+            Nothing planned that day.
+          </AppText>
+        ) : (
+          selectedDay.chores.map(({ definition }) => {
+            const kid = children.find(
+              (child) => child.childId === definition.personalChildId,
+            );
+            return (
+              <Pressable
+                key={definition.choreDefinitionId}
+                accessibilityRole="button"
+                accessibilityLabel={`Edit ${definition.title}`}
+                onPress={() => onOpen(definition)}
+                className="flex-row items-center gap-2.5 py-1"
+              >
+                <View
+                  className="h-2.5 w-2.5 rounded-full"
+                  style={{
+                    backgroundColor:
+                      definition.kind === "claimable"
+                        ? tokens.gold
+                        : colorFor(definition.personalChildId),
+                  }}
+                />
+                <AppText className="flex-1 font-body-bold" numberOfLines={1}>
+                  {definition.title}
+                </AppText>
+                <AppText variant="caption" color="ink-muted">
+                  {definition.kind === "claimable"
+                    ? "Extra"
+                    : definition.isUnlockChore
+                      ? `${kid?.displayName ?? "Kid"} · unlock`
+                      : (kid?.displayName ?? "Kid")}{" "}
+                  · {definition.valueSek} kr
+                </AppText>
+              </Pressable>
+            );
+          })
+        )}
+      </View>
+    </View>
+  );
+}
 
 function TemplateGrid({
   onPick,
