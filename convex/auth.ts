@@ -21,6 +21,14 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
 
     database: authComponent.adapter(ctx),
 
+    // Stay signed in on your own phone: a login lasts 90 days and renews
+    // (at most once a day) whenever the app is used. Kids aren't forced to
+    // re-pair after a quiet week.
+    session: {
+      expiresIn: 60 * 60 * 24 * 90,
+      updateAge: 60 * 60 * 24,
+    },
+
     emailAndPassword: {
       enabled: true,
       requireEmailVerification: false,

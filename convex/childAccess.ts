@@ -75,13 +75,26 @@ export const getLocalGrantStatuses = query({
  * currently has an active grant to a
  * Child profile.
  */
+/**
+ * What this device may open, with three distinct answers so the client never
+ * mistakes "not recognised yet" for "unlinked":
+ * - unrecognized: no Child identity on this request yet (auth still
+ *   settling after a restart, or a non-Child identity). Wait; never clean up.
+ * - not_linked: a Child device identity with no active grant (never paired,
+ *   unlinked by a Parent, or the child was removed).
+ * - linked: the active grant and its profile.
+ */
 export const getCurrentChildAccess = query({
   args: {},
 
   returns: v.union(
-    v.null(),
+    v.object({ status: v.literal("unrecognized") }),
+
+    v.object({ status: v.literal("not_linked") }),
 
     v.object({
+      status: v.literal("linked"),
+
       accessGrantId: v.id("childDeviceAccessGrants"),
 
       householdId: v.id("households"),
@@ -99,12 +112,8 @@ export const getCurrentChildAccess = query({
   handler: async (ctx) => {
     const authUser = await authComponent.safeGetAuthUser(ctx);
 
-    if (!authUser) {
-      return null;
-    }
-
-    if (!isAnonymousAuthUser(authUser)) {
-      return null;
+    if (!authUser || !isAnonymousAuthUser(authUser)) {
+      return { status: "unrecognized" as const };
     }
 
     const grant = await getUniqueActiveChildAccessGrantForAuthUser(
@@ -113,14 +122,14 @@ export const getCurrentChildAccess = query({
     );
 
     if (!grant) {
-      return null;
+      return { status: "not_linked" as const };
     }
 
     const child = await ctx.db.get(grant.childId);
 
     // A removed child has no access (their grants are revoked too).
     if (!child || child.archivedAt !== undefined) {
-      return null;
+      return { status: "not_linked" as const };
     }
 
     if (child.householdId !== grant.householdId) {
@@ -134,6 +143,8 @@ export const getCurrentChildAccess = query({
     }
 
     return {
+      status: "linked" as const,
+
       accessGrantId: grant._id,
 
       householdId: household._id,

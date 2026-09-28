@@ -20,9 +20,8 @@ Running log of the end-to-end workflow pass (J-01 … J-13) on iPhone 17 Pro
 - [x] Parent Home crew balances briefly show “•••” while reloading.
 - [x] A decorative sparkle can sit on top of footer text on the entry screen.
 
-- [ ] Dev only: a hot reload while a Child is signed in can show “Pair Alex
-      again” (active auth storage resets). A cold launch is fine. Worth a
-      guard so testers aren't tempted to press Restart.
+- [x] Dev only: a hot reload while a Child is signed in can show “Pair Alex
+      again” — same root cause as the kid-logout bug below (fixed).
 
 - [x] Phones list says “Phone 1 / Phone 2” — show something recognisable
       (device model, or when it was last used).
@@ -42,7 +41,9 @@ Running log of the end-to-end workflow pass (J-01 … J-13) on iPhone 17 Pro
 - [x] **Kid logged out after a reload/restart** (“Can't open Alex”, “Pair Alex
       again”): the no-access screen read a transient “no access” (login not yet
       recognised) as “unlinked” and signed the phone out, deleting the session.
-      Now it only cleans up when the server confirms the saved link is gone.
+      Now it only cleans up when the server confirms the saved link is gone,
+      and the server answers access as unrecognized / not_linked / linked.
+      Logins last 90 days, renewed daily while used.
 - [ ] Payout maintenance job throws “Unable to resolve current Payout Period”
       every 30 min since 15:29 (likely the test payout week added by the
       Money fixture). Investigate.
