@@ -1,5 +1,6 @@
 import { defineSchema } from "convex/server";
 
+import { cheerTables } from "./schema/cheers";
 import { childAccessTables } from "./schema/childAccess";
 import { financeTables } from "./schema/finance";
 import { evidenceTables } from "./schema/evidence";
@@ -20,4 +21,5 @@ export default defineSchema({
   ...choreTables,
   ...claimTables,
   ...redoTables,
+  ...cheerTables,
 });

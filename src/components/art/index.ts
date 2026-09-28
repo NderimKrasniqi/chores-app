@@ -23,7 +23,13 @@ export { Fireworks, Sunburst } from "./fireworks";
 export { LostSatellite } from "./lost-satellite";
 export { DockingScene } from "./docking";
 export { PhoneLinkScene } from "./phone-link";
-export { Constellation, type SkyDay, type SkyStar } from "./constellation";
 export { Airlock } from "./airlock";
 export { CommitmentTrack } from "./commitment-track";
 export { LaunchPad, type PadState } from "./launch-pad";
+export {
+  CrewBadge,
+  HighFiveHand,
+  Patch,
+  PATCH_LABEL,
+  type PatchKind,
+} from "./crew";

@@ -2,6 +2,7 @@ import { HomePlanet, Starfield } from "@/components/art";
 import { amountFontSize } from "@/lib/amount-size";
 import { useHourNow } from "@/lib/use-hour-now";
 import { ChildApprovalCelebrations } from "@/components/activity/approval-celebration";
+import { CheerToast } from "@/components/activity/cheer-toast";
 import { ChildHouseholdActivity } from "@/components/activity/child-household-activity";
 import type { ApprovalActivityItem } from "@/components/activity/approval-activity";
 import { ClaimableChoresCard } from "@/components/chores/claimable-chores-card";
@@ -173,6 +174,8 @@ export function ChildHomeScreen({
             onChange={setActiveTab}
           />
         </View>
+
+        {visualFixture ? null : <CheerToast childId={access.childId} />}
 
         <ChildApprovalCelebrations
           key={access.childId}
@@ -518,6 +521,7 @@ function ExistingFeatureTab({
         {tab === "activity" ? (
           <ChildHouseholdActivity
             viewerChildId={childId}
+            viewerName={childName}
             onOpenChores={onOpenHome}
             visualFixture={activityVisualFixture}
           />

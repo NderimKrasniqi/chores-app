@@ -11,7 +11,8 @@ export type NotificationEventKind =
   | "redo_required"
   | "deadline_reminder"
   | "redo_deadline_reminder"
-  | "pre_lock_reminder";
+  | "pre_lock_reminder"
+  | "cheer";
 
 export type NotificationEventInput = {
   eventKey: string;

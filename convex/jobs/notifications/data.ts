@@ -80,6 +80,11 @@ async function isNotificationEventActionable(
     return !review;
   }
 
+  // A sibling's high-five stays worth delivering; nothing can undo it.
+  if (event.kind === "cheer") {
+    return event.childId !== undefined;
+  }
+
   if (event.kind === "approved") {
     if (!event.occurrenceId || !event.childId) {
       return false;

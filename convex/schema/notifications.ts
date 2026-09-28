@@ -14,6 +14,7 @@ export const notificationEventKindValidator = v.union(
   v.literal("deadline_reminder"),
   v.literal("redo_deadline_reminder"),
   v.literal("pre_lock_reminder"),
+  v.literal("cheer"),
 );
 
 export const notificationRecipientKindValidator = v.union(
