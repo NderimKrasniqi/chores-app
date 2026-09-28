@@ -410,6 +410,23 @@ export async function maintainPayoutPeriodForHousehold(
   householdId: Id<"households">,
   now = Date.now(),
 ) {
+  /*
+   * A household whose newest period starts in the future (clock-skewed
+   * test data) has nothing to roll over yet. Skip it instead of failing
+   * the scheduled job on every run.
+   */
+  const latest = await ctx.db
+    .query("payoutPeriods")
+    .withIndex("by_household_start_at", (q) => q.eq("householdId", householdId))
+    .order("desc")
+    .first();
+
+  if (latest && latest.state === "open" && now < latest.startAt) {
+    return {
+      householdId,
+    };
+  }
+
   await ensureCurrentPayoutPeriod(ctx, householdId, now);
 
   return {

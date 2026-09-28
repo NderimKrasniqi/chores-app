@@ -44,9 +44,12 @@ Running log of the end-to-end workflow pass (J-01 … J-13) on iPhone 17 Pro
       Now it only cleans up when the server confirms the saved link is gone,
       and the server answers access as unrecognized / not_linked / linked.
       Logins last 90 days, renewed daily while used.
-- [ ] Payout maintenance job throws “Unable to resolve current Payout Period”
-      every 30 min since 15:29 (likely the test payout week added by the
-      Money fixture). Investigate.
+- [x] Payout maintenance job threw “Unable to resolve current Payout Period”
+      every 30 min: four old “Household settings smoke” test households have
+      periods dated 2030 (fake-clock smoke tests). Maintenance now skips a
+      household whose newest period starts in the future.
+- [x] Verified live: Alex survives a full app restart (session kept, expires
+      in 90 days) and opens straight to Quests.
 
 ## UI/UX pass (27 Sep)
 
