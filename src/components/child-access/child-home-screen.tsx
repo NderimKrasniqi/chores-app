@@ -1,4 +1,4 @@
-import { PiggyBank, Starfield } from "@/components/art";
+import { CargoPod, Starfield } from "@/components/art";
 import { ChildApprovalCelebrations } from "@/components/activity/approval-celebration";
 import { ChildHouseholdActivity } from "@/components/activity/child-household-activity";
 import type { ApprovalActivityItem } from "@/components/activity/approval-activity";
@@ -226,6 +226,24 @@ function HomeTab({
             </View>
             <Pressable
               accessibilityRole="button"
+              accessibilityLabel={`Cargo pod: ${balanceSek ?? "loading"} kronor. Open money.`}
+              onPress={onOpenMoney}
+              className="mr-2.5 flex-row items-center gap-1.5 rounded-full bg-surface py-1 pl-1.5 pr-3"
+              testID="task14-running-balance-card"
+            >
+              <CargoPod size={34} balance={balanceSek ?? 0} />
+              <AppText
+                numberOfLines={1}
+                className="font-display"
+                color={(balanceSek ?? 0) < 0 ? "pink" : "gold"}
+                style={{ fontSize: 18, lineHeight: 22 }}
+                testID="task14-running-balance-value"
+              >
+                {balanceSek === undefined ? "…" : `${balanceSek} kr`}
+              </AppText>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
               accessibilityLabel={`Open ${childName}'s profile actions`}
               onPress={onOpenProfile}
             >
@@ -238,34 +256,6 @@ function HomeTab({
           </View>
 
           <RecentPenaltyNotice preview={visualOccurrences !== undefined} />
-
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`Piggy bank: ${balanceSek ?? "loading"} kronor. Open money.`}
-            onPress={onOpenMoney}
-            className="mt-4 flex-row items-center gap-4 rounded-large bg-surface px-4 py-3"
-            testID="task14-running-balance-card"
-          >
-            <PiggyBank size={76} negative={(balanceSek ?? 0) < 0} />
-            <View className="flex-1">
-              <AppText variant="label" color="ink-muted">
-                Your piggy bank
-              </AppText>
-              <AppText
-                numberOfLines={1}
-                className="font-display"
-                color={(balanceSek ?? 0) < 0 ? "pink" : "gold"}
-                style={{ fontSize: 32, lineHeight: 38 }}
-                testID="task14-running-balance-value"
-              >
-                {balanceSek === undefined ? "…" : `${balanceSek} kr`}
-              </AppText>
-            </View>
-            <View className="flex-row items-center gap-1 rounded-full bg-nightRaised px-3 py-1.5">
-              <AppText variant="caption">Payday</AppText>
-              <Icon name="chevron" color={themeColors.ink} size={12} />
-            </View>
-          </Pressable>
         </View>
       }
     />

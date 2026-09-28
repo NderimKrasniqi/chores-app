@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { AppState, View } from "react-native";
 import { useReducedMotion } from "react-native-reanimated";
 
-import { PiggyBank, RocketTrack, StarBuddy } from "@/components/art";
+import { CargoPod, RocketTrack, StarBuddy } from "@/components/art";
 import { Icon } from "@/components/ui/icon";
 import { AppText } from "@/design-system";
 import { questTokens as tokens } from "@/design-system/theme";
@@ -72,7 +72,7 @@ function signed(value: number) {
   return `${value > 0 ? "+" : value < 0 ? "−" : ""}${Math.abs(value)} kr`;
 }
 
-/** What the piggy bank looked like the last time this child opened Money. */
+/** What the cargo pod looked like the last time this child opened Money. */
 type MoneySeen = { balance: number; at: number };
 
 function seenKey(childId: string) {
@@ -207,7 +207,7 @@ export function ChildMoneyContent({ childId }: { childId?: string }) {
   if (overview === undefined) {
     return (
       <View className="items-center pb-6 pt-8">
-        <PiggyBank size={120} />
+        <CargoPod size={130} balance={0} />
         <AppText color="ink-muted" className="mt-3 font-body-bold">
           Counting your coins…
         </AppText>
@@ -221,7 +221,7 @@ export function ChildMoneyContent({ childId }: { childId?: string }) {
 }
 
 /**
- * Money as a piggy bank: a compact header with the balance (coins that
+ * Money as a cargo pod: a compact header with the balance (coins that
  * arrived since the last visit drop into the slot), the payout week as a
  * rocket flying to payday, and this week's coins on a timeline.
  */
@@ -246,7 +246,7 @@ export function ChildMoneyView({
       <View
         className="mt-1 flex-row items-center gap-4 rounded-large bg-surface p-4"
         accessible
-        accessibilityLabel={`Piggy bank: ${balance} kr. ${
+        accessibilityLabel={`Cargo pod: ${balance} kr. ${
           negative
             ? `Earn ${Math.abs(balance)} kr to get back to 0.`
             : since.drops > 0
@@ -254,9 +254,9 @@ export function ChildMoneyView({
               : ""
         }`}
       >
-        <PiggyBank
-          size={96}
-          negative={negative}
+        <CargoPod
+          size={112}
+          balance={balance}
           drops={since.drops}
           dropKey={since.ready ? "open" : "loading"}
         />
@@ -266,7 +266,7 @@ export function ChildMoneyView({
             color="ink-muted"
             className="uppercase tracking-[1.2px]"
           >
-            Piggy bank
+            Cargo pod
           </AppText>
           <AppText
             className="font-display text-[40px] leading-[46px]"
@@ -285,7 +285,7 @@ export function ChildMoneyView({
               ? `Earn ${Math.abs(balance)} kr to get back to 0.`
               : since.drops > 0
                 ? `${since.drops} new ${since.drops === 1 ? "coin" : "coins"} since last time!`
-                : "Approved quests drop coins in."}
+                : "Approved quests load coins in."}
           </AppText>
         </View>
       </View>
@@ -383,7 +383,7 @@ function CoinTimeline({
           <StarBuddy size={52} mood="wave" />
           <View className="mb-5 flex-1 rounded-[20px] rounded-bl-[6px] bg-surface px-4 py-3">
             <AppText className="font-body-heavy text-[15px]">
-              No coins yet this week. Quests fill your piggy bank!
+              No coins yet this week. Quests fill your cargo pod!
             </AppText>
           </View>
         </View>
@@ -478,7 +478,7 @@ function PayoutPostcard({
           <PostcardBody
             badge={{ icon: "star", label: "Coming up", tone: "accent" }}
             title="Your first payday is coming"
-            body="When this week closes, a Parent pays out whatever your piggy bank holds above 0 kr."
+            body="When this week closes, a Parent pays out whatever your cargo pod holds above 0 kr."
           />
         ) : payout.status === "pending" ? (
           <>
@@ -512,7 +512,7 @@ function PayoutPostcard({
           <PostcardBody
             badge={{ icon: "minus", label: "Empty", tone: "muted" }}
             title="Nothing to pay this time"
-            body="Your piggy bank was at 0 kr when the week closed."
+            body="Your cargo pod was at 0 kr when the week closed."
           />
         )}
         {payout && payout.pendingOutcomeCount > 0 ? (
@@ -594,7 +594,7 @@ function HowItWorks() {
         color="ink-muted"
         className="uppercase tracking-[1.2px]"
       >
-        How your piggy bank grows
+        How your cargo pod grows
       </AppText>
       <View className="flex-row items-center gap-2.5">
         <View className="h-6 w-6 items-center justify-center rounded-full bg-gold">

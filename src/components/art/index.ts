@@ -16,7 +16,7 @@ export { TreasureChest } from "./treasure-chest";
 export { LockClunk } from "./lock-clunk";
 export { Backpack } from "./backpack";
 export { UnclaimKeys } from "./unclaim-keys";
-export { PiggyBank } from "./piggy-bank";
+export { CargoPod } from "./cargo-pod";
 export { RocketTrack } from "./rocket-track";
 export { CoinDrop } from "./coin-drop";
 export { Fireworks, Sunburst } from "./fireworks";
