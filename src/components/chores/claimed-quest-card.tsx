@@ -9,7 +9,7 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import {
-  Backpack,
+  DockingBay,
   ChoreIcon,
   Floating,
   LockClunk,
@@ -68,7 +68,7 @@ function moment(timestamp: number, tz: string) {
 }
 
 /**
- * The Extra in your backpack, as a full-screen quest card. Tells the claim's
+ * The Extra docked in your bay, as a full-screen quest card. Tells the claim's
  * story visually: the unclaim window closing on a timeline, what's at stake
  * once it's locked, and sending the work with a deliberate hold.
  */
@@ -193,8 +193,8 @@ function CardBody({
         <View className="mt-6 gap-3">
           {claim.claimState === "submitted" ? (
             <Panel art={<FlippingHourglass />} title="A Parent is checking">
-              It stays in your backpack until it’s approved — then you can pick
-              another bonus quest.
+              It stays docked until it’s approved — then you can pick another
+              bonus quest.
             </Panel>
           ) : null}
 
@@ -603,7 +603,7 @@ function BuddyNote({ text }: { text: string }) {
 
 /**
  * Dropping a quest costs a key. On confirm the key lifts off the row and the
- * quest rises out of the backpack, so the cost is seen, not just read.
+ * quest's ship undocks from the bay, so the cost is seen, not just read.
  */
 function UnclaimSheet({
   claim,
@@ -664,7 +664,7 @@ function UnclaimSheet({
           >
             <View className="h-1.5 w-12 self-center rounded-full bg-nightRaised" />
             <View className="mt-4 items-center">
-              <Backpack size={120} title={claim.title} leaving={leaving} />
+              <DockingBay size={120} title={claim.title} leaving={leaving} />
             </View>
             <AppText variant="sectionTitle" className="mt-3 text-center">
               Drop {claim.title}?

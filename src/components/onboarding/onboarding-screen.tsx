@@ -4,7 +4,7 @@ import {
   Scene,
   StarBuddy,
   Starfield,
-  TreasureChest,
+  Airlock,
 } from "@/components/art";
 import { Icon } from "@/components/ui/icon";
 import { ActionButton, AppText, ThemeScope, useTheme } from "@/design-system";
@@ -284,11 +284,11 @@ function RealRewardsPage() {
       </View>
 
       <View className="mb-2 flex-row items-center gap-3 rounded-large bg-surface p-3">
-        <TreasureChest size={96} state="locked" />
+        <Airlock size={80} open={false} />
         <View className="flex-1">
           <AppText variant="cardTitle">Extras</AppText>
           <AppText variant="bodySmall" color="ink-muted" className="mt-1">
-            An approved Unlock Chore opens the chest of bonus chores.
+            An approved Unlock Chore opens the airlock to bonus chores.
           </AppText>
         </View>
       </View>

@@ -1,21 +1,23 @@
 import { amountFontSize } from "@/lib/amount-size";
 import {
-  Backpack,
+  Airlock,
+  Comet,
+  DockingBay,
   ChoreIcon,
   LockClunk,
   StarBuddy,
-  TreasureChest,
   UnclaimKeys,
 } from "@/components/art";
-import { PRESS, pressTransition } from "@/components/art/motion";
+import { Easings, PRESS, pressTransition } from "@/components/art/motion";
 import { Icon } from "@/components/ui/icon";
 import { questTokens as themeColors } from "@/design-system/theme";
 import { ActionButton, AppText, Surface, SheetBody } from "@/design-system";
 import * as SecureStore from "expo-secure-store";
 import { useEffect, useState } from "react";
 import { Modal, Pressable, View } from "react-native";
-import Animated from "react-native-reanimated";
+import Animated, { FadeInUp } from "react-native-reanimated";
 import { userErrorMessage } from "@/lib/errors";
+import { useHourNow } from "@/lib/use-hour-now";
 
 import type { Id } from "../../../convex/_generated/dataModel";
 import { formatLocalDate } from "@/lib/dates";
@@ -180,7 +182,7 @@ function unlockGateStatus(
         status: "Missed this time",
         action: null,
         urgent: false,
-        note: "The chest stays shut for now. Your next Unlock Chore can open it.",
+        note: "The airlock stays shut for now. Your next Unlock Chore can open it.",
       };
     default:
       return {
@@ -195,6 +197,8 @@ function unlockGateStatus(
 }
 
 /** Gold coin with the Extra's value. */
+const DAY_MS = 86_400_000;
+
 function ValueCoin({ value }: { value: number }) {
   return (
     <View className="h-14 w-14 items-center justify-center rounded-full border-b-4 border-goldShade bg-gold">
@@ -278,12 +282,12 @@ function getErrorMessage(error: unknown) {
 
 function lockExplanation(commitment: ClaimCommitmentStatus) {
   if (commitment.lockReason === "time_window") {
-    return "It’s less than 2 hours until it’s due, so once it’s in your backpack it stays there.";
+    return "It’s less than 2 hours until it’s due, so once it’s docked it stays there.";
   }
   if (commitment.lockReason === "allowance_exhausted") {
-    return "You’ve used all your keys this week, so once it’s in your backpack it stays there.";
+    return "You’ve used all your keys this week, so once it’s docked it stays there.";
   }
-  return "Once it’s in your backpack it stays there.";
+  return "Once it’s docked it stays there.";
 }
 
 function ClaimableCard({
@@ -299,6 +303,7 @@ function ClaimableCard({
   loading?: boolean;
   onClaim?: () => void;
 }) {
+  const now = useHourNow();
   if (claimedBy) {
     return (
       <View className="min-h-[64px] flex-row items-center gap-3 rounded-large border-2 border-dashed border-nightRaised px-4 py-3">
@@ -325,7 +330,11 @@ function ClaimableCard({
 
   return (
     <View className="min-h-[84px] flex-row items-center gap-3 rounded-large bg-surface py-3 pl-3.5 pr-3">
-      <ValueCoin value={occurrence.valueSek} />
+      <Comet
+        reward={occurrence.valueSek}
+        timeLeft={(occurrence.deadlineAt - now) / DAY_MS}
+        dimmed={disabled}
+      />
       <View className="flex-1">
         <AppText
           className="font-body-heavy text-[16px] leading-[21px]"
@@ -377,7 +386,7 @@ function ClaimableCard({
               <AppText
                 className={`font-display text-[16px] ${disabled ? "text-inkFaint" : "text-night"}`}
               >
-                {loading ? "…" : "Claim"}
+                {loading ? "…" : "Catch"}
               </AppText>
             </Animated.View>
           )}
@@ -388,26 +397,30 @@ function ClaimableCard({
 }
 
 /**
- * One pocket, one quest: the Child's active Extra rides in the backpack, and
- * an empty backpack invites picking one. Makes "one claim at a time" visible.
+ * One bay, one quest: the Child's active Extra is docked here, and an
+ * empty bay invites catching one. Makes "one claim at a time" visible.
  */
-function BackpackSlot({
+function DockSlot({
   claim,
   onOpen,
 }: {
   claim: ClaimableChoresViewModel["claimedOccurrences"][number] | undefined;
   onOpen: () => void;
 }) {
+  // A quest caught while you watch flies into the bay; one that was
+  // already docked when the tab opened just sits there.
+  const [firstClaimId] = useState(claim?.claimId);
+  const caught = claim !== undefined && claim.claimId !== firstClaimId;
   if (!claim) {
     return (
       <View className="mt-5 flex-row items-center gap-3 rounded-large border-2 border-dashed border-nightRaised py-2 pl-2 pr-4">
-        <Backpack size={84} />
+        <DockingBay size={84} />
         <View className="flex-1">
           <AppText className="font-body-heavy text-[16px] leading-[21px]">
-            Your backpack is empty
+            Your docking bay is empty
           </AppText>
           <AppText variant="caption" color="ink-muted" className="mt-0.5">
-            It fits one bonus quest at a time. Pick one below!
+            It fits one bonus quest at a time. Catch a comet below!
           </AppText>
         </View>
       </View>
@@ -423,64 +436,69 @@ function BackpackSlot({
         ? { label: "Redo needed", color: themeColors.pink }
         : locked
           ? { label: "Locked in", color: themeColors.gold }
-          : { label: "In your backpack", color: themeColors.accent };
+          : { label: "Docked", color: themeColors.accent };
 
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`Open active claim ${claim.title}, ${claim.valueSek} kr. ${tag.label}.`}
-      onPress={onOpen}
-      className="mt-5"
+    <Animated.View
+      key={claim.claimId}
+      entering={caught ? FadeInUp.duration(500).easing(Easings.out) : undefined}
     >
-      {({ pressed }) => (
-        <Animated.View
-          className="flex-row items-center gap-3 rounded-large bg-surface py-2 pl-2 pr-4"
-          style={[
-            { transform: [{ scale: pressed ? PRESS.scale : 1 }] },
-            pressTransition,
-          ]}
-        >
-          <Backpack size={84} title={claim.title} />
-          <View className="flex-1">
-            <View className="flex-row items-center gap-1.5">
-              <Icon
-                name={
-                  claim.claimState === "redo_required"
-                    ? "redo"
-                    : locked
-                      ? "lock"
-                      : claim.claimState === "submitted"
-                        ? "hourglass"
-                        : "star"
-                }
-                color={tag.color}
-                size={13}
-              />
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Open active claim ${claim.title}, ${claim.valueSek} kr. ${tag.label}.`}
+        onPress={onOpen}
+        className="mt-5"
+      >
+        {({ pressed }) => (
+          <Animated.View
+            className="flex-row items-center gap-3 rounded-large bg-surface py-2 pl-2 pr-4"
+            style={[
+              { transform: [{ scale: pressed ? PRESS.scale : 1 }] },
+              pressTransition,
+            ]}
+          >
+            <DockingBay size={84} title={claim.title} />
+            <View className="flex-1">
+              <View className="flex-row items-center gap-1.5">
+                <Icon
+                  name={
+                    claim.claimState === "redo_required"
+                      ? "redo"
+                      : locked
+                        ? "lock"
+                        : claim.claimState === "submitted"
+                          ? "hourglass"
+                          : "star"
+                  }
+                  color={tag.color}
+                  size={13}
+                />
+                <AppText
+                  variant="label"
+                  className="uppercase tracking-[1.1px]"
+                  style={{ color: tag.color }}
+                >
+                  {tag.label}
+                </AppText>
+              </View>
               <AppText
-                variant="label"
-                className="uppercase tracking-[1.1px]"
-                style={{ color: tag.color }}
+                className="mt-0.5 font-body-heavy text-[17px] leading-[22px]"
+                numberOfLines={2}
               >
-                {tag.label}
+                {claim.title}
+              </AppText>
+              <AppText
+                className="mt-0.5 font-display text-[18px]"
+                style={{ color: themeColors.gold }}
+              >
+                +{claim.valueSek} kr
               </AppText>
             </View>
-            <AppText
-              className="mt-0.5 font-body-heavy text-[17px] leading-[22px]"
-              numberOfLines={2}
-            >
-              {claim.title}
-            </AppText>
-            <AppText
-              className="mt-0.5 font-display text-[18px]"
-              style={{ color: themeColors.gold }}
-            >
-              +{claim.valueSek} kr
-            </AppText>
-          </View>
-          <Icon name="chevron" color={themeColors.inkMuted} size={20} />
-        </Animated.View>
-      )}
-    </Pressable>
+            <Icon name="chevron" color={themeColors.inkMuted} size={20} />
+          </Animated.View>
+        )}
+      </Pressable>
+    </Animated.View>
   );
 }
 
@@ -668,14 +686,14 @@ export function ClaimableChoresView({
     return (
       <View className="pb-6">
         <View className="mt-1 flex-row items-center gap-2 overflow-hidden rounded-large bg-surface p-3 pr-4">
-          <TreasureChest state="locked" size={130} />
+          <Airlock size={96} open={false} />
           <View className="flex-1">
             <AppText
               variant="label"
               color="gold"
               className="uppercase tracking-[1.2px]"
             >
-              Chest locked
+              Airlock closed
             </AppText>
             <AppText variant="sectionTitle" className="mt-0.5">
               Extras are locked
@@ -685,7 +703,7 @@ export function ClaimableChoresView({
               color="ink-muted"
               className="mt-1 font-body-bold"
             >
-              Get your current Unlock Chore approved to open the chest.
+              Get your current Unlock Chore approved to open the airlock.
             </AppText>
           </View>
         </View>
@@ -747,7 +765,7 @@ export function ClaimableChoresView({
         </View>
 
         <AppText variant="sectionTitle" className="mt-6">
-          How the chest opens
+          How the airlock opens
         </AppText>
         <View className="mt-3 gap-2.5">
           {[
@@ -763,7 +781,7 @@ export function ClaimableChoresView({
             },
             {
               number: "3",
-              label: "A Parent approves — the chest opens!",
+              label: "A Parent approves — the airlock opens!",
               icon: "checkShield" as const,
             },
           ].map((step) => (
@@ -793,14 +811,14 @@ export function ClaimableChoresView({
         <View className="mt-1 h-[76px]" />
       ) : chestFirstSighting ? (
         <View className="mt-1 flex-row items-center gap-1 overflow-hidden rounded-large bg-surface py-2 pl-1 pr-4">
-          <TreasureChest state="open" size={150} />
+          <Airlock size={96} open opening />
           <View className="flex-1">
             <AppText
               variant="label"
               color="gold"
               className="uppercase tracking-[1.2px]"
             >
-              Chest open
+              Airlock open
             </AppText>
             <AppText variant="sectionTitle" className="mt-0.5">
               Extras unlocked!
@@ -819,10 +837,10 @@ export function ClaimableChoresView({
         </View>
       ) : (
         <View className="mt-1 flex-row items-center gap-2 rounded-large bg-surface py-1.5 pl-1 pr-4">
-          <TreasureChest state="open" size={64} quiet />
+          <Airlock size={48} open />
           <View className="flex-1">
             <AppText variant="label" color="gold">
-              Chest open
+              Airlock open
             </AppText>
             <AppText variant="caption" color="ink-muted">
               Until your next Unlock Chore starts
@@ -852,7 +870,7 @@ export function ClaimableChoresView({
         </Surface>
       ) : null}
 
-      <BackpackSlot
+      <DockSlot
         claim={myClaim}
         onOpen={() => myClaim && setSelectedClaimId(myClaim.claimId)}
       />
@@ -865,7 +883,7 @@ export function ClaimableChoresView({
       </View>
       {myClaim ? (
         <AppText variant="bodySmall" color="ink-muted" className="mt-1">
-          Your backpack is full — one bonus quest at a time.
+          Your bay is full — one bonus quest at a time.
         </AppText>
       ) : null}
       <View className="mt-3 gap-2.5">
@@ -908,14 +926,14 @@ export function ClaimableChoresView({
           <Surface className="items-center p-6">
             <StarBuddy size={56} mood="sleepy" />
             <AppText variant="cardTitle" className="mt-3">
-              Nothing available right now
+              No comets right now
             </AppText>
             <AppText
               variant="bodySmall"
               color="ink-muted"
               className="mt-1 text-center"
             >
-              New eligible Extras will appear here.
+              New bonus quests will fly by here.
             </AppText>
           </Surface>
         ) : null}
