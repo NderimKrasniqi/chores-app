@@ -473,34 +473,30 @@ export function ChildHomeChoreList({
         {onOpenExtras ? (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Open Extras"
+            accessibilityLabel={
+              unlockApproved
+                ? "Extras chest open. Open Extras"
+                : "Extras chest locked. Open Extras"
+            }
             onPress={onOpenExtras}
-            className="mt-8 flex-row items-center gap-3 rounded-large bg-surface p-3 pr-4"
+            className="mt-8 flex-row items-center gap-3 rounded-full bg-surface py-2 pl-2 pr-4"
           >
             <TreasureChest
               state={unlockApproved ? "open" : "locked"}
-              size={92}
+              size={44}
+              quiet
             />
             <View className="flex-1">
-              <AppText
-                variant="label"
-                color="gold"
-                className="uppercase tracking-[1.2px]"
-              >
-                Extras chest
+              <AppText variant="label" color="gold">
+                {unlockApproved ? "Extras are open" : "Extras chest"}
               </AppText>
-              <AppText variant="cardTitle" className="mt-0.5">
+              <AppText variant="caption" color="ink-muted" numberOfLines={1}>
                 {unlockApproved
-                  ? "Bonus quests are open!"
-                  : "Bonus quests for extra money"}
-              </AppText>
-              <AppText variant="caption" color="ink-muted" className="mt-1">
-                {unlockApproved
-                  ? "Claim one Extra at a time."
-                  : "They open when a Parent approves your Unlock Chore."}
+                  ? "Bonus quests for extra money"
+                  : "Opens when your Unlock Chore is approved"}
               </AppText>
             </View>
-            <Icon name="chevron" color={themeColors.inkMuted} size={20} />
+            <Icon name="chevron" color={themeColors.inkMuted} size={18} />
           </Pressable>
         ) : null}
       </>

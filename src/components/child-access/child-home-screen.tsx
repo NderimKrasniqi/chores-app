@@ -1,4 +1,5 @@
-import { Starfield } from "@/components/art";
+import { BalanceOrb, Starfield } from "@/components/art";
+import { amountFontSize } from "@/lib/amount-size";
 import { ChildApprovalCelebrations } from "@/components/activity/approval-celebration";
 import { ChildHouseholdActivity } from "@/components/activity/child-household-activity";
 import type { ApprovalActivityItem } from "@/components/activity/approval-activity";
@@ -214,7 +215,50 @@ function HomeTab({
       visualRedos={visualRedos}
       onOpenExtras={onOpenExtras}
       header={
-        <View className="pt-2">
+        <View className="pb-6 pt-2">
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`${childName}'s money: ${balanceSek ?? "loading"} kronor. Open money.`}
+            onPress={onOpenMoney}
+            className="flex-row items-center gap-4 rounded-large bg-surface px-4 py-3"
+            testID="task14-running-balance-card"
+          >
+            <BalanceOrb size={92}>
+              <AppText
+                numberOfLines={1}
+                className="font-display text-night"
+                style={{
+                  fontSize: amountFontSize(balanceSek ?? 0, 28, 3),
+                  lineHeight: amountFontSize(balanceSek ?? 0, 28, 3) * 1.3,
+                }}
+                testID="task14-running-balance-value"
+              >
+                {balanceSek === undefined ? "…" : balanceSek}
+                <AppText
+                  className="font-body-heavy text-night"
+                  style={{ fontSize: 13 }}
+                >
+                  {" "}
+                  kr
+                </AppText>
+              </AppText>
+            </BalanceOrb>
+            <View className="flex-1">
+              <AppText variant="label" color="ink-muted">
+                Hi, {childName}!
+              </AppText>
+              <AppText
+                className="font-display-medium"
+                style={{ fontSize: 20, lineHeight: 25 }}
+              >
+                Your money
+              </AppText>
+              <View className="mt-2 flex-row items-center gap-1 self-start rounded-full bg-nightRaised px-3 py-1">
+                <AppText variant="caption">See payday</AppText>
+                <Icon name="chevron" color={themeColors.ink} size={12} />
+              </View>
+            </View>
+          </Pressable>
           <RecentPenaltyNotice preview={visualOccurrences !== undefined} />
         </View>
       }
