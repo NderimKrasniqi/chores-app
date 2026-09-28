@@ -7,12 +7,12 @@ import Animated, {
 import { AppText } from "@/design-system/text";
 
 import { useEntrance } from "./motion";
-import { PiggyBank } from "./piggy-bank";
+import { CargoPod } from "./cargo-pod";
 
 /**
- * The earned coin arcs down into the piggy bank's slot, and the pig gives
+ * The earned coin arcs down into the cargo pod's hatch, and the pod gives
  * a little squash as it lands. One shot; under reduced motion the coin is
- * already "in" and only the pig shows.
+ * already "in" and only the pod shows.
  */
 export function CoinDrop({
   value,
@@ -69,7 +69,7 @@ export function CoinDrop({
           pigStyle,
         ]}
       >
-        <PiggyBank size={size} />
+        <CargoPod size={size} balance={1} />
       </Animated.View>
       <Animated.View
         style={[

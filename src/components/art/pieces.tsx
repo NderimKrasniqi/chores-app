@@ -1,11 +1,17 @@
-import { useMemo, type ReactNode } from "react";
+import { useEffect, useMemo, type ReactNode } from "react";
 import { StyleSheet, View } from "react-native";
 import Animated, {
   interpolate,
   useAnimatedStyle,
   useReducedMotion,
+  useSharedValue,
+  withDelay,
+  withSequence,
+  withSpring,
+  withTiming,
 } from "react-native-reanimated";
 
+import { Icon } from "@/components/ui/icon";
 import { useTheme } from "@/design-system/theme";
 
 import { seeded, useEntrance, Easings, useLoop } from "./motion";
@@ -228,26 +234,84 @@ export function Confetti({
   );
 }
 
-/** The Child's balance as a glowing planet with orbiting coins. */
+/**
+ * The Child's balance as a glowing planet. With `weekProgress`, the little
+ * moon climbs its orbit through the payout week — just after payday it sits
+ * at the bottom, on payday it reaches the gold star at the top. Without it,
+ * the orbit spins slowly as decoration. Bump `celebrateKey` when money
+ * arrives: a coin arcs in and the planet gives a happy bounce.
+ */
 export function BalanceOrb({
   size = 96,
   children,
   orbit = true,
+  weekProgress,
+  celebrateKey,
 }: {
   size?: number;
   children: ReactNode;
   orbit?: boolean;
+  /** 0 = just after payday … 1 = payday. */
+  weekProgress?: number;
+  celebrateKey?: number;
 }) {
   const { tokens } = useTheme();
+  const reducedMotion = useReducedMotion();
   const spin = useLoop({ duration: 16000, easing: Easings.linear });
   const bob = useLoop({ duration: 5000, reverse: true });
+  const bounce = useSharedValue(1);
+  const coin = useSharedValue(1);
   const orbitSize = size * 1.22;
+  const tracking = weekProgress !== undefined;
+  const progress = Math.max(0, Math.min(1, weekProgress ?? 0));
+
+  useEffect(() => {
+    if (!celebrateKey || reducedMotion) return;
+    coin.set(0);
+    coin.set(withTiming(1, { duration: 650, easing: Easings.inOut }));
+    bounce.set(
+      withDelay(
+        600,
+        withSequence(
+          withTiming(1.12, { duration: 140, easing: Easings.out }),
+          withSpring(1, { duration: 500, dampingRatio: 0.45 }),
+        ),
+      ),
+    );
+  }, [bounce, celebrateKey, coin, reducedMotion]);
+
   const orbitStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${spin.get() * 360}deg` }],
+    transform: [{ rotate: tracking ? "0deg" : `${spin.get() * 360}deg` }],
   }));
   const bobStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: interpolate(bob.get(), [0, 1], [0, -2]) }],
+    transform: [
+      { translateY: interpolate(bob.get(), [0, 1], [0, -2]) },
+      { scale: bounce.get() },
+    ],
   }));
+  const coinStyle = useAnimatedStyle(() => {
+    const t = coin.get();
+    return {
+      opacity: interpolate(t, [0, 0.1, 0.85, 1], [0, 1, 1, 0]),
+      transform: [
+        { translateX: interpolate(t, [0, 1], [-size * 0.7, 0]) },
+        {
+          translateY: interpolate(
+            t,
+            [0, 0.45, 1],
+            [-size * 0.2, -size * 0.55, 0],
+          ),
+        },
+        { scale: interpolate(t, [0, 0.8, 1], [1, 0.9, 0.4]) },
+      ],
+    };
+  });
+
+  // Moon position: bottom (after payday) up the right side to the top.
+  const r = orbitSize / 2;
+  const angle = Math.PI / 2 - progress * Math.PI;
+  const moonX = r + Math.cos(angle) * r;
+  const moonY = r + Math.sin(angle) * r;
 
   return (
     <View
@@ -274,22 +338,49 @@ export function BalanceOrb({
             orbitStyle,
           ]}
         >
-          <View
-            style={{ position: "absolute", left: orbitSize / 2 - 10, top: -10 }}
-          >
-            <SpinningCoin size={20} duration={2400} />
-          </View>
-          <View
-            style={{
-              position: "absolute",
-              left: orbitSize / 2 - 7,
-              bottom: -7,
-              width: 14,
-              height: 14,
-              borderRadius: 7,
-              backgroundColor: tokens.pink,
-            }}
-          />
+          {tracking ? (
+            <>
+              <View
+                style={{
+                  position: "absolute",
+                  left: r - 9,
+                  top: -9,
+                }}
+              >
+                <Icon name="star" color={tokens.gold} size={18} />
+              </View>
+              <View
+                style={{
+                  position: "absolute",
+                  left: moonX - 8,
+                  top: moonY - 8,
+                  width: 16,
+                  height: 16,
+                  borderRadius: 8,
+                  backgroundColor: tokens.pink,
+                  borderWidth: 2,
+                  borderColor: tokens.nightSurface,
+                }}
+              />
+            </>
+          ) : (
+            <>
+              <View style={{ position: "absolute", left: r - 10, top: -10 }}>
+                <SpinningCoin size={20} duration={2400} />
+              </View>
+              <View
+                style={{
+                  position: "absolute",
+                  left: r - 7,
+                  bottom: -7,
+                  width: 14,
+                  height: 14,
+                  borderRadius: 7,
+                  backgroundColor: tokens.pink,
+                }}
+              />
+            </>
+          )}
         </Animated.View>
       ) : null}
       <Animated.View
@@ -309,6 +400,22 @@ export function BalanceOrb({
       >
         {children}
       </Animated.View>
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          {
+            position: "absolute",
+            width: 18,
+            height: 18,
+            borderRadius: 9,
+            backgroundColor: tokens.gold,
+            borderWidth: 3,
+            borderColor: tokens.goldShade,
+            opacity: 0,
+          },
+          coinStyle,
+        ]}
+      />
     </View>
   );
 }

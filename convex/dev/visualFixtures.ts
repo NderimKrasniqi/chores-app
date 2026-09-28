@@ -3025,3 +3025,142 @@ export const createPendingTestChore = internalMutation({
     });
   },
 });
+
+/**
+ * Dev: gives Alex one of every Star Map planet for today — two finished
+ * (the moon cluster), one missed, one being checked, one redo, one to do,
+ * and several upcoming days (the "+N more later" tail). Uses the real
+ * approve / reject logic so balances, redos and history stay consistent.
+ */
+export const seedStarMapShowcase = internalMutation({
+  args: {
+    householdId: v.id("households"),
+    expectedParentAuthUserId: v.string(),
+  },
+  returns: v.object({ created: v.number() }),
+  handler: async (ctx, args) => {
+    const fixture = await loadFixtureContext(
+      ctx,
+      args.householdId,
+      args.expectedParentAuthUserId,
+    );
+    const childId = fixture.alexId;
+    const now = Date.now();
+    let created = 0;
+
+    const oneOff = async (
+      title: string,
+      valueSek: number,
+      deadline: string,
+      date = fixture.today,
+    ) => {
+      created += 1;
+      return await createPersonalDefinition(ctx, fixture, {
+        childId,
+        title,
+        valueSek,
+        deadlineLocalTime: deadline,
+        recurrence: { kind: "one_off", scheduledDate: date },
+      });
+    };
+
+    const sent = async (title: string, valueSek: number, deadline: string) => {
+      const definitionId = await oneOff(title, valueSek, deadline);
+      const occurrenceId = await createOccurrence(ctx, fixture, {
+        definitionId,
+        kind: "personal",
+        title,
+        valueSek,
+        deadlineLocalTime: deadline,
+        state: "submitted",
+        childId,
+      });
+      return await createPendingSubmission(
+        ctx,
+        fixture,
+        occurrenceId,
+        childId,
+        now - 20 * 60_000,
+      );
+    };
+
+    // Finished today → the moon cluster.
+    for (const [title, value] of [
+      ["Make your bed", 10],
+      ["Brush your teeth", 5],
+    ] as const) {
+      const submissionId = await sent(title, value, "20:00");
+      await approvePersonalSubmission(
+        ctx,
+        submissionId,
+        fixture.parentAuthUserId,
+        now - 10 * 60_000,
+      );
+    }
+
+    // Missed earlier today (deadline already passed).
+    const missedDeadline = "06:00";
+    const missedId = await oneOff("Pack your school bag", 10, missedDeadline);
+    await createOccurrence(ctx, fixture, {
+      definitionId: missedId,
+      kind: "personal",
+      title: "Pack your school bag",
+      valueSek: 10,
+      deadlineLocalTime: missedDeadline,
+      state: "missed",
+      childId,
+    });
+
+    // Being checked → planet with a satellite.
+    await sent("Take out recycling", 10, "21:00");
+
+    // Redo → pink planet with a beacon.
+    const redoSubmission = await sent("Set the table", 15, "21:00");
+    await rejectInitialSubmission(
+      ctx,
+      redoSubmission,
+      fixture.parentAuthUserId,
+      "personal",
+      fixture.today,
+      "21:30",
+      now,
+    );
+
+    // To do today.
+    const homeworkId = await oneOff("Do your homework", 20, "19:00");
+    await createOccurrence(ctx, fixture, {
+      definitionId: homeworkId,
+      kind: "personal",
+      title: "Do your homework",
+      valueSek: 20,
+      deadlineLocalTime: "19:00",
+      state: "available",
+      childId,
+    });
+
+    // Later this week → faint planets and the "+N more" tail.
+    for (const [offset, title, value] of [
+      [1, "Walk the dog", 15],
+      [1, "Water the plants", 10],
+      [2, "Empty the dishwasher", 15],
+      [3, "Read for 20 minutes", 10],
+      [4, "Tidy your desk", 10],
+    ] as const) {
+      const date = addLocalDays(fixture.today, offset);
+      const definitionId = await oneOff(title, value, "18:00", date);
+      await createOccurrence(ctx, fixture, {
+        definitionId,
+        kind: "personal",
+        title,
+        valueSek: value,
+        date,
+        deadlineLocalTime: "18:00",
+        state: "scheduled",
+        childId,
+        activated: false,
+      });
+    }
+
+    return { created };
+  },
+});

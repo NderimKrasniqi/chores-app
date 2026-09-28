@@ -1,5 +1,5 @@
 import {
-  QuestPath,
+  StarMap,
   Scene,
   StarBuddy,
   TreasureChest,
@@ -164,8 +164,7 @@ export function ChildHomeChoreList({
       )
       .sort(
         (left, right) => right.availabilityStartsAt - left.availabilityStartsAt,
-      )
-      .slice(0, 3);
+      );
 
     return { currentAndNext, recentHistory };
   }, [occurrences, redos]);
@@ -244,24 +243,24 @@ export function ChildHomeChoreList({
   }
 
   const stops = useMemo<QuestStop[]>(() => {
-    const history = [...recentHistory].reverse();
-    const current = [...visibleOccurrences].sort((left, right) => {
-      const order = (state: OccurrenceState) =>
-        state === "submitted"
-          ? 0
-          : state === "redo_required"
-            ? 1
-            : state === "available"
-              ? 2
-              : 3;
-      return (
-        order(left.state) - order(right.state) ||
-        left.deadlineAt - right.deadlineAt
-      );
-    });
-    let currentAssigned = false;
+    // One fixed route in deadline order: a chore keeps its place on the map
+    // as it moves on (to do → sent → done), so nothing reshuffles. Finished
+    // chores from earlier days live in Family and Money instead.
+    const history = recentHistory.filter(
+      (occurrence) =>
+        relativeDayLabel(occurrence.deadlineAt, occurrence.timezone) ===
+        "today",
+    );
+    const route = [...history, ...visibleOccurrences].sort(
+      (left, right) =>
+        left.deadlineAt - right.deadlineAt ||
+        left.availabilityStartsAt - right.availabilityStartsAt,
+    );
+    const upNextId = route.find(
+      (occurrence) => occurrence.state === "available",
+    )?.occurrenceId;
 
-    return [...history, ...current].map((occurrence) => {
+    return route.map((occurrence) => {
       const redo = redoByOccurrence.get(occurrence.occurrenceId);
       const open = () => setSelectedId(occurrence.occurrenceId);
       const base = {
@@ -303,8 +302,7 @@ export function ChildHomeChoreList({
           subtitle: statusLabel(occurrence, redo),
         } as QuestStop;
       }
-      if (occurrence.state === "available" && !currentAssigned) {
-        currentAssigned = true;
+      if (occurrence.occurrenceId === upNextId) {
         return {
           ...base,
           status: "current",
@@ -332,6 +330,65 @@ export function ChildHomeChoreList({
       } as QuestStop;
     });
   }, [recentHistory, redoByOccurrence, visibleOccurrences]);
+
+  // Keep the map about a screen tall: today's finished and sent quests fold
+  // into the belt, the rocket's planet (up next or a redo) stays, and only
+  // the next few to-dos get a planet — ones open now before ones that open
+  // later. The rest fold behind a "+N more" pill that lists them.
+  const mapStops = useMemo(() => {
+    const byId = new Map(
+      visibleOccurrences.map(
+        (occurrence) =>
+          [occurrence.occurrenceId as string, occurrence] as const,
+      ),
+    );
+    const isOpenNow = (stop: QuestStop) =>
+      byId.get(stop.key)?.state === "available";
+    const finished = stops.filter(
+      (stop) =>
+        stop.status === "done" ||
+        stop.status === "missed" ||
+        stop.status === "review",
+    );
+    const waiting = stops.filter(
+      (stop) => stop.status === "todo" || stop.status === "unlock",
+    );
+    const next = new Set(
+      [
+        ...waiting.filter(isOpenNow),
+        ...waiting.filter((stop) => !isOpenNow(stop)),
+      ]
+        .slice(0, NEXT_PLANETS)
+        .map((stop) => stop.key),
+    );
+    const route = stops.filter(
+      (stop) =>
+        stop.status === "current" ||
+        stop.status === "redo" ||
+        next.has(stop.key),
+    );
+    const more = waiting.filter((stop) => !next.has(stop.key));
+    const dueToday = more.filter((stop) => {
+      const occurrence = byId.get(stop.key);
+      return (
+        occurrence !== undefined &&
+        relativeDayLabel(occurrence.deadlineAt, occurrence.timezone) === "today"
+      );
+    }).length;
+    const moreLabel = [
+      dueToday > 0 ? `+${dueToday} more today` : null,
+      more.length - dueToday > 0
+        ? `+${more.length - dueToday} later this week`
+        : null,
+    ]
+      .filter(Boolean)
+      .join(" · ");
+    return { finished, route, more, moreLabel };
+  }, [stops, visibleOccurrences]);
+
+  const toDoCount = visibleOccurrences.filter(
+    (o) => o.state === "available" || o.state === "redo_required",
+  ).length;
 
   const firstRedo = visibleOccurrences.find(
     (occurrence) => occurrence.state === "redo_required",
@@ -401,53 +458,52 @@ export function ChildHomeChoreList({
           </Pressable>
         ) : null}
 
-        <View className="mb-3 flex-row items-baseline justify-between">
-          <AppText variant="sectionTitle">Today’s quest</AppText>
-          <AppText variant="label" color="ink-muted">
-            {
-              visibleOccurrences.filter(
-                (o) => o.state === "available" || o.state === "redo_required",
-              ).length
-            }{" "}
-            to do
-          </AppText>
+        <View className="mb-4">
+          <AppText variant="screenTitle">Today’s quest</AppText>
+          {/* The map shows what's next; words only when it has nothing. */}
+          {toDoCount === 0 ? (
+            <AppText variant="label" color="ink-muted" className="mt-0.5">
+              All done for now
+            </AppText>
+          ) : null}
         </View>
 
         <View className="-mx-5">
-          <QuestPath stops={stops} />
+          <StarMap
+            stops={mapStops.route}
+            finished={mapStops.finished}
+            more={mapStops.more}
+            moreLabel={mapStops.moreLabel}
+          />
         </View>
 
         {onOpenExtras ? (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Open Extras"
+            accessibilityLabel={
+              unlockApproved
+                ? "Extras chest open. Open Extras"
+                : "Extras chest locked. Open Extras"
+            }
             onPress={onOpenExtras}
-            className="mt-8 flex-row items-center gap-3 rounded-large bg-surface p-3 pr-4"
+            className="mt-8 flex-row items-center gap-3 rounded-full bg-surface py-2 pl-2 pr-4"
           >
             <TreasureChest
               state={unlockApproved ? "open" : "locked"}
-              size={92}
+              size={44}
+              quiet
             />
             <View className="flex-1">
-              <AppText
-                variant="label"
-                color="gold"
-                className="uppercase tracking-[1.2px]"
-              >
-                Extras chest
+              <AppText variant="label" color="gold">
+                {unlockApproved ? "Extras are open" : "Extras chest"}
               </AppText>
-              <AppText variant="cardTitle" className="mt-0.5">
+              <AppText variant="caption" color="ink-muted" numberOfLines={1}>
                 {unlockApproved
-                  ? "Bonus quests are open!"
-                  : "Bonus quests for extra money"}
-              </AppText>
-              <AppText variant="caption" color="ink-muted" className="mt-1">
-                {unlockApproved
-                  ? "Claim one Extra at a time."
-                  : "They open when a Parent approves your Unlock Chore."}
+                  ? "Bonus quests for extra money"
+                  : "Opens when your Unlock Chore is approved"}
               </AppText>
             </View>
-            <Icon name="chevron" color={themeColors.inkMuted} size={20} />
+            <Icon name="chevron" color={themeColors.inkMuted} size={18} />
           </Pressable>
         ) : null}
       </>
@@ -482,6 +538,9 @@ export function ChildHomeChoreList({
     </>
   );
 }
+
+/** To-do planets drawn after whatever is waiting now. */
+const NEXT_PLANETS = 2;
 
 // History under "Today's quest" says which day it was, unless it was today.
 function withPastDay(text: string, occurrence: ChildHomeChoreOccurrence) {
