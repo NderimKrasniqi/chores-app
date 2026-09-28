@@ -355,6 +355,18 @@ export function ChildHomeChoreList({
     };
   }, [stops, visibleOccurrences]);
 
+  const toDoCount = visibleOccurrences.filter(
+    (o) => o.state === "available" || o.state === "redo_required",
+  ).length;
+  const earnedToday = recentHistory
+    .filter(
+      (occurrence) =>
+        occurrence.state === "approved" &&
+        relativeDayLabel(occurrence.deadlineAt, occurrence.timezone) ===
+          "today",
+    )
+    .reduce((sum, occurrence) => sum + occurrence.valueSek, 0);
+
   const firstRedo = visibleOccurrences.find(
     (occurrence) => occurrence.state === "redo_required",
   );
@@ -433,15 +445,15 @@ export function ChildHomeChoreList({
           </Pressable>
         ) : null}
 
-        <View className="mb-3 flex-row items-baseline justify-between">
-          <AppText variant="sectionTitle">Today’s quest</AppText>
-          <AppText variant="label" color="ink-muted">
-            {
-              visibleOccurrences.filter(
-                (o) => o.state === "available" || o.state === "redo_required",
-              ).length
-            }{" "}
-            to do
+        <View className="mb-4">
+          <AppText variant="screenTitle">Today’s quest</AppText>
+          <AppText variant="label" color="ink-muted" className="mt-0.5">
+            {toDoCount === 0 ? "All done for now" : `${toDoCount} to do`}
+            {earnedToday > 0 ? (
+              <AppText variant="label" color="gold">
+                {` · +${earnedToday} kr today`}
+              </AppText>
+            ) : null}
           </AppText>
         </View>
 

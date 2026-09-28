@@ -1,4 +1,4 @@
-import { CargoPod, Starfield } from "@/components/art";
+import { Starfield } from "@/components/art";
 import { ChildApprovalCelebrations } from "@/components/activity/approval-celebration";
 import { ChildHouseholdActivity } from "@/components/activity/child-household-activity";
 import type { ApprovalActivityItem } from "@/components/activity/approval-activity";
@@ -214,47 +214,7 @@ function HomeTab({
       visualRedos={visualRedos}
       onOpenExtras={onOpenExtras}
       header={
-        <View className="pb-6">
-          <View className="min-h-[60px] flex-row items-center justify-between pt-2">
-            <View className="flex-1">
-              <AppText variant="label" color="ink-muted">
-                Hi, {childName}!
-              </AppText>
-              <AppText variant="screenTitle" numberOfLines={1}>
-                {childName}’s quests
-              </AppText>
-            </View>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`Cargo pod: ${balanceSek ?? "loading"} kronor. Open money.`}
-              onPress={onOpenMoney}
-              className="mr-2.5 flex-row items-center gap-1.5 rounded-full bg-surface py-1 pl-1.5 pr-3"
-              testID="task14-running-balance-card"
-            >
-              <CargoPod size={34} balance={balanceSek ?? 0} />
-              <AppText
-                numberOfLines={1}
-                className="font-display"
-                color={(balanceSek ?? 0) < 0 ? "pink" : "gold"}
-                style={{ fontSize: 18, lineHeight: 22 }}
-                testID="task14-running-balance-value"
-              >
-                {balanceSek === undefined ? "…" : `${balanceSek} kr`}
-              </AppText>
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`Open ${childName}'s profile actions`}
-              onPress={onOpenProfile}
-            >
-              <Avatar
-                tone={childAvatarTone(childName)}
-                className="h-[52px] w-[52px] rounded-[18px]"
-                fallbackLabel={childName}
-              />
-            </Pressable>
-          </View>
-
+        <View className="pt-2">
           <RecentPenaltyNotice preview={visualOccurrences !== undefined} />
         </View>
       }
