@@ -334,7 +334,7 @@ function MoneyCard({
           : `Payday ${payday} · ${daysLeft} days`;
 
   const value = shown ?? balanceSek;
-  const fontSize = amountFontSize(value ?? 0, 46, 4);
+  const fontSize = amountFontSize(value ?? 0, 34, 4);
 
   return (
     <Pressable
@@ -362,39 +362,41 @@ function MoneyCard({
           celebrateKey={celebrateKey}
         />
       </View>
-      <View className="px-5 py-4" style={{ maxWidth: "66%" }}>
+      <View className="px-4 py-3" style={{ maxWidth: "72%" }}>
         <AppText
           className="font-display-medium"
-          style={{ fontSize: 18, lineHeight: 23 }}
+          style={{ fontSize: 15, lineHeight: 19 }}
         >
           Hi, {childName}!
         </AppText>
-        <AppText
-          numberOfLines={1}
-          className="mt-1 font-display"
-          style={{
-            fontSize,
-            lineHeight: fontSize * 1.15,
-            color:
-              (balanceSek ?? 0) < 0 ? themeColors.pink : themeColors.primary,
-          }}
-          testID="task14-running-balance-value"
-        >
-          {value === undefined ? "…" : value}
+        <View className="flex-row items-baseline gap-2">
           <AppText
-            className="font-body-heavy"
-            style={{ fontSize: 18, color: themeColors.primary }}
+            numberOfLines={1}
+            className="font-display"
+            style={{
+              fontSize,
+              lineHeight: fontSize * 1.15,
+              color:
+                (balanceSek ?? 0) < 0 ? themeColors.pink : themeColors.primary,
+            }}
+            testID="task14-running-balance-value"
           >
-            {" "}
-            kr
+            {value === undefined ? "…" : value}
+            <AppText
+              className="font-body-heavy"
+              style={{ fontSize: 14, color: themeColors.primary }}
+            >
+              {" "}
+              kr
+            </AppText>
           </AppText>
-        </AppText>
-        <View className="mt-2 flex-row flex-wrap items-center gap-x-2 gap-y-1.5">
           {earnedToday > 0 ? (
-            <AppText variant="label" color="gold">
-              +{earnedToday} kr today
+            <AppText variant="caption" color="gold" className="font-body-heavy">
+              +{earnedToday} today
             </AppText>
           ) : null}
+        </View>
+        <View className="mt-1 flex-row">
           <View className="flex-row items-center gap-1.5 self-start rounded-full bg-nightRaised px-3 py-1">
             <Icon name="star" color={themeColors.gold} size={12} />
             <AppText variant="caption">{paydayLabel}</AppText>
@@ -405,9 +407,9 @@ function MoneyCard({
   );
 }
 
-const PLANET_SIZE = 112;
+const PLANET_SIZE = 76;
 const PLANET_BOX = PLANET_SIZE * 1.28 + 24;
-const PLANET_CARD_HEIGHT = 164;
+const PLANET_CARD_HEIGHT = 114;
 
 function ExistingFeatureTab({
   tab,
