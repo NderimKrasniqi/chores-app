@@ -64,6 +64,32 @@ Running log of the end-to-end workflow pass (J-01 … J-13) on iPhone 17 Pro
 - Kid page: last-7-days strip.
 - “kr” always after the number, on one line.
 
+## Kid tabs: one job each (28 Sep)
+
+Each tab answers one question, and every picture on it stands for a rule.
+
+- **Quests** — "what do I do next?" Star map: the rocket at the next
+  quest, done/sent quests folded into the asteroid belt, the rest behind
+  "+N more". Money card with the home planet on top.
+- **Extras (Launch Control)** — "is this extra money worth promising?"
+  Missions show a commitment track (abort window → lock 2 h before the
+  deadline → locked in, "Miss it: −X kr"). Your one mission stands on the
+  launch pad; the ring is the abort window running out. Keys are abort
+  passes. The gate is launch control (opens when the Unlock Chore is
+  approved). Past-lock missions ask for the "locks right away" confirm.
+- **Money (the payday delivery)** — "what lands on payday, and why?" The
+  rocket tows the cargo pod from last payday's depot to your home planet.
+  Cargo manifest by day (loaded / dropped), "From last week" for a carried
+  debt or unpaid pay. After a payout the delivery lands once.
+- **Family (the crew)** — only when you have siblings. Astronaut badges
+  with this week's stars and patches (busy day, every day, unlock streak,
+  mission hero — no ranking, no totals). Siblings' wins with a high-five
+  (backend `cheers`; push "X high-fived you"; toast on the receiver).
+- Tab bar: a floating control deck; one header (title + avatar) per tab.
+
+Not done: "Maya launched Wash the car" pool lines in Family (the activity
+feed has no claim events).
+
 ## Fixed
 - Reviewer pass: text overrides keep their line-height ratio; sheets don't
   stack a home-indicator gap on the keyboard; device labels capped before
