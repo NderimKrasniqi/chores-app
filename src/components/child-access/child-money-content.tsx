@@ -299,7 +299,7 @@ function PaydayCard({
       <View className="flex-row items-end justify-between">
         <View className="flex-row items-baseline gap-2">
           <AppText
-            className="font-display text-[40px] leading-[46px]"
+            className="font-display text-[32px] leading-[38px]"
             color={negative ? "pink" : "primary"}
             numberOfLines={1}
             testID="task14-running-balance-value"

@@ -414,7 +414,7 @@ function DockSlot({
   if (!claim) {
     return (
       <View className="mt-5 flex-row items-center gap-3 rounded-large border-2 border-dashed border-nightRaised py-2 pl-2 pr-4">
-        <DockingBay size={84} />
+        <DockingBay size={64} />
         <View className="flex-1">
           <AppText className="font-body-heavy text-[16px] leading-[21px]">
             Your docking bay is empty
@@ -457,7 +457,7 @@ function DockSlot({
               pressTransition,
             ]}
           >
-            <DockingBay size={84} title={claim.title} />
+            <DockingBay size={64} title={claim.title} />
             <View className="flex-1">
               <View className="flex-row items-center gap-1.5">
                 <Icon
@@ -686,7 +686,7 @@ export function ClaimableChoresView({
     return (
       <View className="pb-6">
         <View className="mt-1 flex-row items-center gap-2 overflow-hidden rounded-large bg-surface p-3 pr-4">
-          <Airlock size={96} open={false} />
+          <Airlock size={72} open={false} />
           <View className="flex-1">
             <AppText
               variant="label"
@@ -811,7 +811,7 @@ export function ClaimableChoresView({
         <View className="mt-1 h-[76px]" />
       ) : chestFirstSighting ? (
         <View className="mt-1 flex-row items-center gap-1 overflow-hidden rounded-large bg-surface py-2 pl-1 pr-4">
-          <Airlock size={96} open opening />
+          <Airlock size={72} open opening />
           <View className="flex-1">
             <AppText
               variant="label"

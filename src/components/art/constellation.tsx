@@ -21,12 +21,12 @@ export type SkyDay = {
   stars: SkyStar[];
 };
 
-const HEIGHT = 150;
+const HEIGHT = 112;
 const LABELS = 22;
-const STAR = 14;
-const STEP = 17;
+const STAR = 12;
+const STEP = 13;
 /** Stars a day shows before "+N". */
-const PER_DAY = 6;
+const PER_DAY = 5;
 const SIDE = 14;
 
 function starPath(cx: number, cy: number, outer: number) {

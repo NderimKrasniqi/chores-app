@@ -12,11 +12,11 @@ import { CargoPod } from "./cargo-pod";
 import { HomePlanet } from "./home-planet";
 import { useLoop } from "./motion";
 
-const HEIGHT = 136;
-const HOME = 70;
-const PAYDAY = 46;
-const POD = 54;
-const ROCKET = 34;
+const HEIGHT = 104;
+const HOME = 56;
+const PAYDAY = 36;
+const POD = 46;
+const ROCKET = 28;
 
 type Point = { x: number; y: number };
 
