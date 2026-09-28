@@ -1,8 +1,8 @@
 import { amountFontSize } from "@/lib/amount-size";
 import {
   Airlock,
-  Comet,
-  DockingBay,
+  CommitmentTrack,
+  LaunchPad,
   ChoreIcon,
   LockClunk,
   StarBuddy,
@@ -17,7 +17,7 @@ import { useEffect, useState } from "react";
 import { Modal, Pressable, View } from "react-native";
 import Animated, { FadeInUp } from "react-native-reanimated";
 import { userErrorMessage } from "@/lib/errors";
-import { useHourNow } from "@/lib/use-hour-now";
+import { useMinuteNow } from "@/lib/use-hour-now";
 
 import type { Id } from "../../../convex/_generated/dataModel";
 import { formatLocalDate } from "@/lib/dates";
@@ -182,7 +182,7 @@ function unlockGateStatus(
         status: "Missed this time",
         action: null,
         urgent: false,
-        note: "The airlock stays shut for now. Your next Unlock Chore can open it.",
+        note: "Launch control stays shut for now. Your next Unlock Chore can open it.",
       };
     default:
       return {
@@ -197,7 +197,6 @@ function unlockGateStatus(
 }
 
 /** Gold coin with the Extra's value. */
-const DAY_MS = 86_400_000;
 
 function ValueCoin({ value }: { value: number }) {
   return (
@@ -282,14 +281,30 @@ function getErrorMessage(error: unknown) {
 
 function lockExplanation(commitment: ClaimCommitmentStatus) {
   if (commitment.lockReason === "time_window") {
-    return "It’s less than 2 hours until it’s due, so once it’s docked it stays there.";
+    return "It’s less than 2 hours until it’s due, so once it’s launched you can’t abort.";
   }
   if (commitment.lockReason === "allowance_exhausted") {
-    return "You’ve used all your keys this week, so once it’s docked it stays there.";
+    return "You’ve used all your abort passes this week, so once it’s launched you can’t abort.";
   }
-  return "Once it’s docked it stays there.";
+  return "Once it’s launched you can’t abort.";
 }
 
+/** "1 h 20 min", "25 min", "under a minute". */
+function formatDuration(ms: number) {
+  const minutes = Math.floor(ms / 60_000);
+  if (minutes < 1) return "under a minute";
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  if (hours === 0) return `${rest} min`;
+  return rest === 0 ? `${hours} h` : `${hours} h ${rest} min`;
+}
+
+/**
+ * One mission on the board: its reward, when it's due, and the promise it
+ * asks for — the track shows how long you could still abort, and where it
+ * locks. A mission a sibling launched stays on the board, faded, so the
+ * shared, first-come pool is visible.
+ */
 function ClaimableCard({
   occurrence,
   claimedBy,
@@ -303,151 +318,192 @@ function ClaimableCard({
   loading?: boolean;
   onClaim?: () => void;
 }) {
-  const now = useHourNow();
+  const now = useMinuteNow();
   if (claimedBy) {
     return (
-      <View className="min-h-[64px] flex-row items-center gap-3 rounded-large border-2 border-dashed border-nightRaised px-4 py-3">
-        <View className="h-9 w-9 items-center justify-center rounded-full bg-pink">
-          <Icon name="person" color={themeColors.night} size={18} />
-        </View>
+      <View
+        className="flex-row items-center gap-3 rounded-large border-2 border-dashed border-nightRaised px-3.5 py-2.5"
+        style={{ opacity: 0.7 }}
+      >
+        <ValueCoin value={occurrence.valueSek} />
         <View className="flex-1">
-          <AppText
-            variant="bodySmall"
-            color="ink-muted"
-            className="font-body-bold"
-          >
+          <AppText className="font-body-heavy text-[15px]" numberOfLines={1}>
+            {occurrence.title}
+          </AppText>
+          <AppText variant="caption" color="ink-muted" numberOfLines={1}>
             {claimedBy}
           </AppText>
-          <AppText className="font-body-heavy text-[15px]" numberOfLines={1}>
-            {occurrence.title} · {occurrence.valueSek} kr
-          </AppText>
         </View>
+        <Icon name="person" color={themeColors.inkMuted} size={18} />
       </View>
     );
   }
 
-  const locksNow = occurrence.commitment.isImmediatelyLocked;
+  // Past the lock point, launching it locks it at once.
+  const locksNow =
+    occurrence.commitment.isImmediatelyLocked ||
+    occurrence.commitment.lockAt <= now;
 
   return (
-    <View className="min-h-[84px] flex-row items-center gap-3 rounded-large bg-surface py-3 pl-3.5 pr-3">
-      <Comet
-        reward={occurrence.valueSek}
-        timeLeft={(occurrence.deadlineAt - now) / DAY_MS}
-        dimmed={disabled}
-      />
-      <View className="flex-1">
-        <AppText
-          className="font-body-heavy text-[16px] leading-[21px]"
-          numberOfLines={2}
-        >
-          {occurrence.title}
-        </AppText>
-        <View className="mt-1 flex-row items-center gap-1">
-          <Icon
-            name={locksNow ? "lock" : "clock"}
-            color={locksNow ? themeColors.accent : themeColors.inkMuted}
-            size={13}
-          />
+    <View className="rounded-large bg-surface px-3.5 pb-3 pt-3">
+      <View className="flex-row items-center gap-3">
+        <ValueCoin value={occurrence.valueSek} />
+        <View className="flex-1">
+          <AppText
+            className="font-body-heavy text-[16px] leading-[21px]"
+            numberOfLines={2}
+          >
+            {occurrence.title}
+          </AppText>
           <AppText
             variant="caption"
-            color={locksNow ? "accent" : "ink-muted"}
-            className="flex-1"
+            color={locksNow ? "pink" : "ink-muted"}
             numberOfLines={1}
           >
-            {formatDeadline(occurrence.deadlineAt, occurrence.timezone)}
-            {locksNow ? " · locks right away" : ""}
+            {locksNow
+              ? `Locks the moment you launch · ${formatDeadline(occurrence.deadlineAt, occurrence.timezone)}`
+              : formatDeadline(occurrence.deadlineAt, occurrence.timezone)}
+          </AppText>
+        </View>
+        {onClaim ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Launch ${occurrence.title}${locksNow ? ", locks right away" : ""}`}
+            disabled={disabled}
+            onPress={onClaim}
+            pressRetentionOffset={16}
+          >
+            {({ pressed }) => (
+              <Animated.View
+                className={`min-h-[44px] min-w-[84px] items-center justify-center rounded-full px-4 ${
+                  disabled
+                    ? "bg-disabledSurface"
+                    : "border-b-[3px] border-primaryShade bg-primary"
+                }`}
+                style={[
+                  {
+                    transform: [
+                      { scale: pressed && !disabled ? PRESS.scale : 1 },
+                    ],
+                  },
+                  pressTransition,
+                ]}
+              >
+                <AppText
+                  className={`font-display text-[16px] ${disabled ? "text-inkFaint" : "text-night"}`}
+                >
+                  {loading ? "…" : "Launch"}
+                </AppText>
+              </Animated.View>
+            )}
+          </Pressable>
+        ) : null}
+      </View>
+      <View className="mt-2.5">
+        <CommitmentTrack
+          now={now}
+          lockAt={occurrence.commitment.lockAt}
+          deadlineAt={occurrence.deadlineAt}
+          immediate={locksNow}
+        />
+        <View className="mt-0.5 flex-row justify-between">
+          <AppText variant="caption" color="ink-muted" style={{ fontSize: 11 }}>
+            {locksNow
+              ? "No abort once launched"
+              : `Abort until ${formatDeadline(occurrence.commitment.lockAt, occurrence.timezone)}`}
+          </AppText>
+          <AppText variant="caption" color="pink" style={{ fontSize: 11 }}>
+            Miss it: −{occurrence.valueSek} kr
           </AppText>
         </View>
       </View>
-      {onClaim ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`Claim ${occurrence.title}`}
-          disabled={disabled}
-          onPress={onClaim}
-          pressRetentionOffset={16}
-        >
-          {({ pressed }) => (
-            <Animated.View
-              className={`min-h-[44px] min-w-[84px] items-center justify-center rounded-full px-4 ${
-                disabled
-                  ? "bg-disabledSurface"
-                  : "border-b-[3px] border-primaryShade bg-primary"
-              }`}
-              style={[
-                {
-                  transform: [
-                    { scale: pressed && !disabled ? PRESS.scale : 1 },
-                  ],
-                },
-                pressTransition,
-              ]}
-            >
-              <AppText
-                className={`font-display text-[16px] ${disabled ? "text-inkFaint" : "text-night"}`}
-              >
-                {loading ? "…" : "Catch"}
-              </AppText>
-            </Animated.View>
-          )}
-        </Pressable>
-      ) : null}
     </View>
   );
 }
 
 /**
- * One bay, one quest: the Child's active Extra is docked here, and an
- * empty bay invites catching one. Makes "one claim at a time" visible.
+ * One pad, one mission: your active Extra stands on the launch pad, and the
+ * ring around it is the abort window running out. Once it closes you're
+ * committed: finish by the deadline or lose the reward. An empty pad
+ * invites launching one. Makes "one at a time" and "a promise is a
+ * promise" visible.
  */
-function DockSlot({
+function PadSlot({
   claim,
   onOpen,
 }: {
   claim: ClaimableChoresViewModel["claimedOccurrences"][number] | undefined;
   onOpen: () => void;
 }) {
-  // A quest caught while you watch flies into the bay; one that was
-  // already docked when the tab opened just sits there.
+  const now = useMinuteNow();
+  // A mission launched while you watch lands on the pad; one that was
+  // already there when the tab opened just stands.
   const [firstClaimId] = useState(claim?.claimId);
-  const caught = claim !== undefined && claim.claimId !== firstClaimId;
+  const launched = claim !== undefined && claim.claimId !== firstClaimId;
+  const committed =
+    claim?.claimState === "claimed" && !claim.commitment?.canUnclaim;
+  // The ring snapping shut plays once, the first look after a lock.
+  const firstLockLook = useFirstSighting(
+    committed && claim ? `lock.${claim.claimId}` : undefined,
+  );
+
   if (!claim) {
     return (
-      <View className="mt-5 flex-row items-center gap-3 rounded-large border-2 border-dashed border-nightRaised py-2 pl-2 pr-4">
-        <DockingBay size={64} />
+      <View className="mt-4 flex-row items-center gap-3 rounded-large border-2 border-dashed border-nightRaised py-2 pl-2 pr-4">
+        <LaunchPad size={64} state="empty" />
         <View className="flex-1">
           <AppText className="font-body-heavy text-[16px] leading-[21px]">
-            Your docking bay is empty
+            Launch pad is free
           </AppText>
           <AppText variant="caption" color="ink-muted" className="mt-0.5">
-            It fits one bonus quest at a time. Catch a comet below!
+            Pick a mission below. You can abort until it locks, after that it’s
+            a promise.
           </AppText>
         </View>
       </View>
     );
   }
 
-  const locked =
-    claim.claimState === "claimed" && !claim.commitment?.canUnclaim;
-  const tag =
+  const lockAt = claim.commitment?.lockAt ?? claim.deadlineAt;
+  const abortUsed =
+    (now - claim.claimedAt) / Math.max(1, lockAt - claim.claimedAt);
+  const padState =
     claim.claimState === "submitted"
-      ? { label: "A Parent is checking", color: themeColors.inkMuted }
+      ? "submitted"
       : claim.claimState === "redo_required"
+        ? "redo"
+        : committed
+          ? "locked"
+          : "ready";
+  const tag =
+    padState === "submitted"
+      ? { label: "Mission report sent", color: themeColors.inkMuted }
+      : padState === "redo"
         ? { label: "Redo needed", color: themeColors.pink }
-        : locked
-          ? { label: "Locked in", color: themeColors.gold }
-          : { label: "Docked", color: themeColors.accent };
+        : padState === "locked"
+          ? { label: "Committed", color: themeColors.pink }
+          : { label: "On the pad", color: themeColors.accent };
+  const line =
+    padState === "submitted"
+      ? "A Parent is checking it"
+      : padState === "redo"
+        ? "Fix it and send it again"
+        : padState === "locked"
+          ? `Finish by ${formatTime(claim.deadlineAt, claim.timezone)} or lose ${claim.valueSek} kr`
+          : `Abort window closes in ${formatDuration(lockAt - now)}`;
 
   return (
     <Animated.View
       key={claim.claimId}
-      entering={caught ? FadeInUp.duration(500).easing(Easings.out) : undefined}
+      entering={
+        launched ? FadeInUp.duration(500).easing(Easings.out) : undefined
+      }
     >
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`Open active claim ${claim.title}, ${claim.valueSek} kr. ${tag.label}.`}
+        accessibilityLabel={`Open your mission ${claim.title}, ${claim.valueSek} kr. ${tag.label}. ${line}.`}
         onPress={onOpen}
-        className="mt-5"
+        className="mt-4"
       >
         {({ pressed }) => (
           <Animated.View
@@ -457,41 +513,33 @@ function DockSlot({
               pressTransition,
             ]}
           >
-            <DockingBay size={64} title={claim.title} />
+            <LaunchPad
+              size={72}
+              state={padState}
+              title={claim.title}
+              abortUsed={abortUsed}
+              snap={padState === "locked" && firstLockLook === true}
+            />
             <View className="flex-1">
-              <View className="flex-row items-center gap-1.5">
-                <Icon
-                  name={
-                    claim.claimState === "redo_required"
-                      ? "redo"
-                      : locked
-                        ? "lock"
-                        : claim.claimState === "submitted"
-                          ? "hourglass"
-                          : "star"
-                  }
-                  color={tag.color}
-                  size={13}
-                />
-                <AppText
-                  variant="label"
-                  className="uppercase tracking-[1.1px]"
-                  style={{ color: tag.color }}
-                >
-                  {tag.label}
-                </AppText>
-              </View>
               <AppText
-                className="mt-0.5 font-body-heavy text-[17px] leading-[22px]"
-                numberOfLines={2}
+                variant="label"
+                className="uppercase tracking-[1.1px]"
+                style={{ color: tag.color }}
               >
-                {claim.title}
+                {tag.label}
               </AppText>
               <AppText
-                className="mt-0.5 font-display text-[18px]"
-                style={{ color: themeColors.gold }}
+                className="mt-0.5 font-body-heavy text-[16px] leading-[21px]"
+                numberOfLines={1}
               >
-                +{claim.valueSek} kr
+                {claim.title} · +{claim.valueSek} kr
+              </AppText>
+              <AppText
+                variant="caption"
+                color={padState === "locked" ? "pink" : "ink-muted"}
+                className="mt-0.5"
+              >
+                {line}
               </AppText>
             </View>
             <Icon name="chevron" color={themeColors.inkMuted} size={20} />
@@ -693,7 +741,7 @@ export function ClaimableChoresView({
               color="gold"
               className="uppercase tracking-[1.2px]"
             >
-              Airlock closed
+              Launch control closed
             </AppText>
             <AppText variant="sectionTitle" className="mt-0.5">
               Extras are locked
@@ -703,7 +751,7 @@ export function ClaimableChoresView({
               color="ink-muted"
               className="mt-1 font-body-bold"
             >
-              Get your current Unlock Chore approved to open the airlock.
+              Get your current Unlock Chore approved to open launch control.
             </AppText>
           </View>
         </View>
@@ -765,7 +813,7 @@ export function ClaimableChoresView({
         </View>
 
         <AppText variant="sectionTitle" className="mt-6">
-          How the airlock opens
+          How launch control opens
         </AppText>
         <View className="mt-3 gap-2.5">
           {[
@@ -781,7 +829,7 @@ export function ClaimableChoresView({
             },
             {
               number: "3",
-              label: "A Parent approves — the airlock opens!",
+              label: "A Parent approves: launch control opens!",
               icon: "checkShield" as const,
             },
           ].map((step) => (
@@ -818,7 +866,7 @@ export function ClaimableChoresView({
               color="gold"
               className="uppercase tracking-[1.2px]"
             >
-              Airlock open
+              Launch control open
             </AppText>
             <AppText variant="sectionTitle" className="mt-0.5">
               Extras unlocked!
@@ -840,7 +888,7 @@ export function ClaimableChoresView({
           <Airlock size={48} open />
           <View className="flex-1">
             <AppText variant="label" color="gold">
-              Airlock open
+              Launch control open
             </AppText>
             <AppText variant="caption" color="ink-muted">
               Until your next Unlock Chore starts
@@ -857,8 +905,8 @@ export function ClaimableChoresView({
         />
         <AppText variant="caption" color="ink-muted" className="shrink">
           {unclaimAllowance.remainingUnclaims === 0
-            ? "No keys left · new claims lock"
-            : `${unclaimAllowance.remainingUnclaims} unclaim ${unclaimAllowance.remainingUnclaims === 1 ? "key" : "keys"} this week`}
+            ? "No abort passes left · new launches lock"
+            : `${unclaimAllowance.remainingUnclaims} abort ${unclaimAllowance.remainingUnclaims === 1 ? "pass" : "passes"} left this week`}
         </AppText>
       </View>
 
@@ -870,20 +918,20 @@ export function ClaimableChoresView({
         </Surface>
       ) : null}
 
-      <DockSlot
+      <PadSlot
         claim={myClaim}
         onOpen={() => myClaim && setSelectedClaimId(myClaim.claimId)}
       />
 
       <View className="mt-6 flex-row items-baseline justify-between">
-        <AppText variant="sectionTitle">Bonus quests</AppText>
+        <AppText variant="sectionTitle">Missions</AppText>
         <AppText variant="label" color="ink-muted">
-          {claimableOccurrences.length} available
+          {claimableOccurrences.length} open
         </AppText>
       </View>
       {myClaim ? (
         <AppText variant="bodySmall" color="ink-muted" className="mt-1">
-          Your bay is full — one bonus quest at a time.
+          One mission at a time: finish this one to launch another.
         </AppText>
       ) : null}
       <View className="mt-3 gap-2.5">
@@ -918,7 +966,7 @@ export function ClaimableChoresView({
                   lockReason: "time_window",
                 },
               }}
-              claimedBy={`Claimed by ${occurrence.claimedByDisplayName}`}
+              claimedBy={`${occurrence.claimedByDisplayName} launched this`}
             />
           ))}
         {claimableOccurrences.length === 0 &&
@@ -926,14 +974,14 @@ export function ClaimableChoresView({
           <Surface className="items-center p-6">
             <StarBuddy size={56} mood="sleepy" />
             <AppText variant="cardTitle" className="mt-3">
-              No comets right now
+              No missions right now
             </AppText>
             <AppText
               variant="bodySmall"
               color="ink-muted"
               className="mt-1 text-center"
             >
-              New bonus quests will fly by here.
+              New ones show up here. First to launch gets it.
             </AppText>
           </Surface>
         ) : null}

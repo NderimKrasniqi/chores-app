@@ -25,5 +25,5 @@ export { DockingScene } from "./docking";
 export { PhoneLinkScene } from "./phone-link";
 export { Constellation, type SkyDay, type SkyStar } from "./constellation";
 export { Airlock } from "./airlock";
-export { Comet } from "./comet";
-export { DockingBay } from "./docking-bay";
+export { CommitmentTrack } from "./commitment-track";
+export { LaunchPad, type PadState } from "./launch-pad";
