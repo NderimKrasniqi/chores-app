@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { LayoutChangeEvent } from "react-native";
 import { Pressable, View } from "react-native";
 import Animated, {
+  FadeIn,
   interpolate,
   useAnimatedStyle,
   useReducedMotion,
@@ -506,10 +507,13 @@ const SPARKS = [0.05, 0.1, 0.15, 0.21, 0.28];
  * card covers the map so the kid actually sees it.
  */
 function Rocket({
+  targetKey,
   targetX,
   targetY,
   tokens,
 }: {
+  /** The stop it docks at; it only flies when this changes. */
+  targetKey: string;
   targetX: number;
   targetY: number;
   tokens: Tokens;
@@ -524,16 +528,18 @@ function Rocket({
   });
   const progress = useSharedValue(1);
   const land = useSharedValue(1);
-  const last = useRef({ x: targetX, y: targetY });
+  const last = useRef({ key: targetKey, x: targetX, y: targetY });
   const bob = useLoop({ duration: 2400, reverse: true, rest: 0.5 });
 
   useEffect(() => {
     if (held) return;
     const from = last.current;
     if (from.x === targetX && from.y === targetY) return;
-    last.current = { x: targetX, y: targetY };
+    last.current = { key: targetKey, x: targetX, y: targetY };
     flight.set({ ax: from.x, ay: from.y, bx: targetX, by: targetY });
-    if (reducedMotion) {
+    // Same stop, the map just moved (a planet folded into the belt):
+    // re-seat quietly instead of flying.
+    if (reducedMotion || from.key === targetKey) {
       progress.set(1);
       return;
     }
@@ -553,7 +559,16 @@ function Rocket({
         ),
       ),
     );
-  }, [flight, held, land, progress, reducedMotion, targetX, targetY]);
+  }, [
+    flight,
+    held,
+    land,
+    progress,
+    reducedMotion,
+    targetKey,
+    targetX,
+    targetY,
+  ]);
 
   const rocketStyle = useAnimatedStyle(() => {
     const t = progress.get();
@@ -773,6 +788,227 @@ function PlanetRow({
 }
 
 /* ------------------------------------------------------------------ */
+/* Asteroid belt                                                       */
+/* ------------------------------------------------------------------ */
+
+const BELT_H = 30;
+const BELT_ROCKS = 10;
+
+/** A lumpy little rock, so the belt doesn't read as a row of dots. */
+function rockPath(cx: number, cy: number, r: number, seed: number) {
+  const points = 7;
+  let d = "";
+  for (let i = 0; i < points; i += 1) {
+    const angle = (i / points) * Math.PI * 2;
+    const wobble = 0.78 + (((seed * 7 + i * 13) % 10) / 10) * 0.32;
+    const x = cx + Math.cos(angle) * r * wobble;
+    const y = cy + Math.sin(angle) * r * wobble;
+    d += `${i === 0 ? "M" : "L"}${x.toFixed(1)} ${y.toFixed(1)} `;
+  }
+  return `${d}Z`;
+}
+
+function rockLook(status: QuestStopStatus, tokens: Tokens) {
+  if (status === "done") return { fill: tokens.primary, stroke: tokens.night };
+  if (status === "review") {
+    return { fill: tokens.nightRaised, stroke: tokens.inkMuted };
+  }
+  return { fill: tokens.nightTrack, stroke: tokens.night };
+}
+
+/**
+ * Today's finished and sent quests, folded into an asteroid belt where the trip
+ * started: one rock per quest (green done, dashed while a Parent checks,
+ * grey missed), so the map only
+ * holds what's next. Tap to see them; each opens its quest card.
+ */
+function Belt({
+  finished,
+  tokens,
+  spaced,
+}: {
+  finished: QuestStop[];
+  tokens: Tokens;
+  spaced: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const done = finished.filter((stop) => stop.status === "done");
+  const checking = finished.filter((stop) => stop.status === "review");
+  const missed = finished.length - done.length - checking.length;
+  const rocks = finished.slice(-BELT_ROCKS);
+  const label = [
+    done.length > 0 ? `${done.length} done` : null,
+    checking.length > 0 ? `${checking.length} being checked` : null,
+    missed > 0 ? `${missed} missed` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  const rockW = 18;
+
+  return (
+    <View
+      style={{ paddingHorizontal: SIDE_PADDING, marginBottom: spaced ? 22 : 0 }}
+    >
+      <Pressable
+        onPress={() => setOpen((value) => !value)}
+        pressRetentionOffset={16}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: open }}
+        accessibilityLabel={`${label}. ${open ? "Hide" : "Show"} them`}
+      >
+        {({ pressed }) => (
+          <Animated.View
+            style={[
+              {
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 12,
+                transform: [{ scale: pressed ? PRESS.scale : 1 }],
+              },
+              pressTransition,
+            ]}
+          >
+            <Svg width={rocks.length * rockW + 6} height={BELT_H}>
+              {/* faint dust band the rocks drift in */}
+              <Path
+                d={`M0 ${BELT_H * 0.62} Q${(rocks.length * rockW) / 2} ${BELT_H * 0.3} ${rocks.length * rockW + 6} ${BELT_H * 0.62}`}
+                stroke={tokens.inkMuted}
+                strokeWidth={6}
+                strokeLinecap="round"
+                opacity={0.12}
+                fill="none"
+              />
+              {rocks.map((stop, index) => {
+                const cx = 3 + index * rockW + rockW / 2;
+                const cy = BELT_H / 2 + (index % 2 === 0 ? 2 : -3);
+                const r = stop.status === "missed" ? 5.5 : 7;
+                const look = rockLook(stop.status, tokens);
+                return (
+                  <Path
+                    key={stop.key}
+                    d={rockPath(cx, cy, r, index + 1)}
+                    fill={look.fill}
+                    stroke={look.stroke}
+                    strokeWidth={1.5}
+                    strokeDasharray={
+                      stop.status === "review" ? "2.5 2.5" : undefined
+                    }
+                    strokeLinejoin="round"
+                  />
+                );
+              })}
+            </Svg>
+            <View style={{ flex: 1 }}>
+              <AppText
+                className="font-body-heavy"
+                style={{ fontSize: 14, lineHeight: 19, color: tokens.ink }}
+                numberOfLines={1}
+              >
+                {label}
+              </AppText>
+            </View>
+            <View
+              style={{ transform: [{ rotate: open ? "-90deg" : "90deg" }] }}
+            >
+              <Icon name="chevron" color={tokens.inkMuted} size={16} />
+            </View>
+          </Animated.View>
+        )}
+      </Pressable>
+
+      {open ? (
+        <Animated.View
+          entering={FadeIn.duration(180)}
+          style={{
+            marginTop: 12,
+            borderRadius: 20,
+            backgroundColor: tokens.nightSurface,
+            paddingVertical: 6,
+          }}
+        >
+          {finished.map((stop) => (
+            <Pressable
+              key={stop.key}
+              disabled={!stop.onPress}
+              onPress={stop.onPress}
+              accessibilityRole={stop.onPress ? "button" : undefined}
+              accessibilityLabel={
+                stop.accessibilityLabel ??
+                [stop.title, stop.subtitle].filter(Boolean).join(", ")
+              }
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 12,
+                paddingHorizontal: 14,
+                paddingVertical: 8,
+              }}
+            >
+              <View
+                style={{
+                  width: 28,
+                  height: 28,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Body
+                  size={28}
+                  fill={rockLook(stop.status, tokens).fill}
+                  shade={tokens.night}
+                  craters={false}
+                  outline={
+                    stop.status === "review" ? tokens.inkMuted : undefined
+                  }
+                  dashed={stop.status === "review"}
+                />
+                <Icon
+                  name={
+                    stop.status === "done"
+                      ? "check"
+                      : stop.status === "review"
+                        ? "hourglass"
+                        : "minus"
+                  }
+                  color={
+                    stop.status === "done" ? tokens.night : tokens.inkMuted
+                  }
+                  size={14}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <AppText
+                  className="font-body-heavy"
+                  style={{ fontSize: 15, lineHeight: 20, color: tokens.ink }}
+                  numberOfLines={1}
+                >
+                  {stop.title}
+                </AppText>
+                {stop.subtitle ? (
+                  <AppText
+                    className="font-body-bold"
+                    style={{
+                      fontSize: 12,
+                      lineHeight: 16,
+                      color:
+                        stop.status === "done"
+                          ? tokens.primary
+                          : tokens.inkMuted,
+                    }}
+                  >
+                    {stop.subtitle}
+                  </AppText>
+                ) : null}
+              </View>
+            </Pressable>
+          ))}
+        </Animated.View>
+      ) : null}
+    </View>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /* Star map                                                            */
 /* ------------------------------------------------------------------ */
 
@@ -784,13 +1020,16 @@ function PlanetRow({
  */
 export function StarMap({
   stops,
-  moreLater = 0,
+  finished = [],
+  moreLabel,
   onRocketY,
 }: {
   /** Planets in route order (deadline order). */
   stops: QuestStop[];
-  /** Upcoming chores not drawn, e.g. later this week. */
-  moreLater?: number;
+  /** Today's finished quests, folded into the asteroid belt up top. */
+  finished?: QuestStop[];
+  /** Chores not drawn, e.g. "+2 more today · +4 later this week". */
+  moreLabel?: string;
   /** Where the rocket sits, relative to the top of the map. */
   onRocketY?: (y: number) => void;
 }) {
@@ -806,16 +1045,8 @@ export function StarMap({
   let rocketIndex = planets.findIndex(
     (stop) => stop.status === "current" || stop.status === "redo",
   );
-  if (rocketIndex < 0) {
-    // Nothing to do right now: park after the last planet already sent.
-    for (let i = planets.length - 1; i >= 0; i -= 1) {
-      const status = planets[i].status;
-      if (status === "done" || status === "missed" || status === "review") {
-        rocketIndex = i;
-        break;
-      }
-    }
-  }
+  // Nothing to do right now: wait at the first planet still ahead.
+  if (rocketIndex < 0 && planets.length > 0) rocketIndex = 0;
   const headroomFor = (index: number) => (index === rocketIndex ? 30 : 0);
   const flownTo = Math.max(0, rocketIndex);
 
@@ -871,6 +1102,9 @@ export function StarMap({
 
   return (
     <View>
+      {finished.length > 0 ? (
+        <Belt finished={finished} tokens={tokens} spaced={planets.length > 0} />
+      ) : null}
       <View onLayout={(event) => setWidth(event.nativeEvent.layout.width)}>
         {measured ? (
           <Trail
@@ -895,13 +1129,14 @@ export function StarMap({
         ))}
         {rocketPoint ? (
           <Rocket
+            targetKey={planets[rocketIndex].key}
             targetX={rocketPoint.x}
             targetY={rocketPoint.y}
             tokens={tokens}
           />
         ) : null}
       </View>
-      {moreLater > 0 ? (
+      {moreLabel ? (
         <View className="mt-5 items-center">
           <View
             className="flex-row items-center gap-2 rounded-full px-4 py-2"
@@ -909,7 +1144,7 @@ export function StarMap({
           >
             <Icon name="star" color={tokens.inkMuted} size={14} />
             <AppText variant="caption" color="ink-muted">
-              +{moreLater} more later this week
+              {moreLabel}
             </AppText>
           </View>
         </View>

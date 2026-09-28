@@ -10,14 +10,7 @@ import { questTokens as themeColors } from "@/design-system/theme";
 import { AppText } from "@/design-system";
 import { useServerConfirmedMutation } from "@/hooks/use-server-confirmed-mutation";
 import { useQuery } from "convex/react";
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Alert, Pressable, ScrollView, View } from "react-native";
 import { userErrorMessage } from "@/lib/errors";
 
@@ -282,6 +275,7 @@ export function ChildHomeChoreList({
         return {
           ...base,
           status: "done",
+          reward: occurrence.valueSek,
           subtitle: withPastDay(
             `+${occurrence.valueSek} kr earned`,
             occurrence,
@@ -339,20 +333,45 @@ export function ChildHomeChoreList({
     });
   }, [recentHistory, redoByOccurrence, visibleOccurrences]);
 
-  // Today's route, then only the next few upcoming days' planets.
+  // Keep the map about a screen tall: today's finished and sent quests fold
+  // into the belt, the rocket's planet (up next or a redo) stays, and only
+  // the next few to-dos get one. The rest is a single "+N more" line.
   const mapStops = useMemo(() => {
     const scheduledKeys = new Set(
       visibleOccurrences
         .filter((occurrence) => occurrence.state === "scheduled")
         .map((occurrence) => occurrence.occurrenceId as string),
     );
-    const today = stops.filter((stop) => !scheduledKeys.has(stop.key));
-    const later = stops.filter((stop) => scheduledKeys.has(stop.key));
-    const shownLater = later.slice(0, UPCOMING_PLANETS);
-    return {
-      route: [...today, ...shownLater],
-      moreLater: later.length - shownLater.length,
-    };
+    const finished: QuestStop[] = [];
+    const route: QuestStop[] = [];
+    let queued = 0;
+    let moreToday = 0;
+    let moreLater = 0;
+    for (const stop of stops) {
+      if (
+        stop.status === "done" ||
+        stop.status === "missed" ||
+        stop.status === "review"
+      ) {
+        finished.push(stop);
+      } else if (stop.status === "current" || stop.status === "redo") {
+        route.push(stop);
+      } else if (queued < NEXT_PLANETS) {
+        route.push(stop);
+        queued += 1;
+      } else if (scheduledKeys.has(stop.key)) {
+        moreLater += 1;
+      } else {
+        moreToday += 1;
+      }
+    }
+    const moreLabel = [
+      moreToday > 0 ? `+${moreToday} more today` : null,
+      moreLater > 0 ? `+${moreLater} later this week` : null,
+    ]
+      .filter(Boolean)
+      .join(" · ");
+    return { finished, route, moreLabel };
   }, [stops, visibleOccurrences]);
 
   const toDoCount = visibleOccurrences.filter(
@@ -369,16 +388,6 @@ export function ChildHomeChoreList({
           (occurrence) =>
             occurrence.isUnlockChore && occurrence.state === "approved",
         ) && !visibleOccurrences.some((occurrence) => occurrence.isUnlockChore);
-
-  // Open where the rocket is, and follow it when it flies on.
-  const scrollRef = useRef<ScrollView>(null);
-  const mapTop = useRef(0);
-  const scrolledOnce = useRef(false);
-  const scrollToRocket = useCallback((rocketY: number) => {
-    const y = Math.max(0, mapTop.current + rocketY - 220);
-    scrollRef.current?.scrollTo({ y, animated: scrolledOnce.current });
-    scrolledOnce.current = true;
-  }, []);
 
   let body: ReactNode;
 
@@ -444,16 +453,11 @@ export function ChildHomeChoreList({
           </AppText>
         </View>
 
-        <View
-          className="-mx-5"
-          onLayout={(event) => {
-            mapTop.current = event.nativeEvent.layout.y;
-          }}
-        >
+        <View className="-mx-5">
           <StarMap
             stops={mapStops.route}
-            moreLater={mapStops.moreLater}
-            onRocketY={scrollToRocket}
+            finished={mapStops.finished}
+            moreLabel={mapStops.moreLabel || undefined}
           />
         </View>
 
@@ -493,7 +497,6 @@ export function ChildHomeChoreList({
   return (
     <>
       <ScrollView
-        ref={scrollRef}
         className="flex-1"
         contentContainerClassName="px-5 pb-10"
         showsVerticalScrollIndicator={false}
@@ -520,7 +523,8 @@ export function ChildHomeChoreList({
   );
 }
 
-const UPCOMING_PLANETS = 3;
+/** To-do planets drawn after whatever is waiting now. */
+const NEXT_PLANETS = 2;
 
 // History under "Today's quest" says which day it was, unless it was today.
 function withPastDay(text: string, occurrence: ChildHomeChoreOccurrence) {
