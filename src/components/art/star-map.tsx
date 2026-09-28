@@ -728,6 +728,16 @@ export function StarMap({
           (stop) => stop.status !== "done" && stop.status !== "missed",
         );
   const headroomFor = (index: number) => (index === rocketIndex ? 30 : 0);
+  // Gold only behind chores that are really finished (the unfolded moons);
+  // planets still being checked or redone stay on the faint trail.
+  let flownTo = 0;
+  while (
+    flownTo < planets.length - 1 &&
+    (planets[flownTo].status === "done" ||
+      planets[flownTo].status === "missed")
+  ) {
+    flownTo += 1;
+  }
 
   const centerX = (index: number) => {
     const slot = planetSize("current");
@@ -788,7 +798,7 @@ export function StarMap({
         {measured ? (
           <Trail
             points={points}
-            flownTo={Math.max(0, rocketIndex)}
+            flownTo={flownTo}
             width={width}
             tokens={tokens}
           />
