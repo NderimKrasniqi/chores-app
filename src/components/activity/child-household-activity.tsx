@@ -1,7 +1,7 @@
 import { useQuery } from "convex/react";
 import { View } from "react-native";
 
-import { StarShelf } from "@/components/art";
+import { Constellation } from "@/components/art";
 import { useHourNow, useStickyValue } from "@/lib/use-hour-now";
 import { AppText } from "@/design-system";
 
@@ -47,7 +47,7 @@ export function ChildHouseholdActivity({
   if (feed === undefined) {
     return (
       <View testID="child-activity-loading" className="pb-6">
-        <StarShelf days={EMPTY_WEEK} />
+        <Constellation days={EMPTY_WEEK} />
         <AppText color="ink-muted" className="mt-3 text-center font-body-bold">
           Counting the family’s stars…
         </AppText>

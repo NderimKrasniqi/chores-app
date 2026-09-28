@@ -23,7 +23,7 @@ export { Fireworks, Sunburst } from "./fireworks";
 export { LostSatellite } from "./lost-satellite";
 export { DockingScene } from "./docking";
 export { PhoneLinkScene } from "./phone-link";
-export { StarShelf, type ShelfDay, type ShelfStar } from "./star-shelf";
+export { Constellation, type SkyDay, type SkyStar } from "./constellation";
 export { Airlock } from "./airlock";
 export { Comet } from "./comet";
 export { DockingBay } from "./docking-bay";

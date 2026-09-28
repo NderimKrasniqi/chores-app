@@ -5,8 +5,8 @@ import { AppState, View } from "react-native";
 import {
   ChoreIcon,
   StarBuddy,
-  StarShelf,
-  type ShelfDay,
+  Constellation,
+  type SkyDay,
 } from "@/components/art";
 import { Icon } from "@/components/ui/icon";
 import { ActionButton, AppText } from "@/design-system";
@@ -82,7 +82,7 @@ function useShelfSeen(seenKey: string | undefined, newest: number) {
 }
 
 /**
- * The Family tab: a shelf of this week's jars — each approved chore drops a
+ * The Family tab: this week's sky — each approved chore lights a
  * star in its owner's colour — and below it a log of who did what for how much.
  * Chore values are shared; balances never appear here.
  */
@@ -91,8 +91,8 @@ export function ChildActivityFeed({
   timezone,
   viewerChildId,
   onOpenChores,
-  emptyTitle = "The jars are empty",
-  emptyBody = "Your first approved quest drops the first star in.",
+  emptyTitle = "The sky is still dark",
+  emptyBody = "Your first approved quest lights the first star.",
   emptyActionLabel = "See your quests",
   weekStars,
   seenKey,
@@ -187,7 +187,7 @@ export function ChildActivityFeed({
   // Hold stars back until we know what was seen, so new ones mount as new
   // (and drop) instead of appearing and then silently becoming "new".
   const seenKnown = !seenKey || seen !== undefined;
-  const days: ShelfDay[] = lastSevenDays(now, timezone).map((day) => ({
+  const days: SkyDay[] = lastSevenDays(now, timezone).map((day) => ({
     ...day,
     stars: (seenKnown ? week : [])
       .filter((star) => localDateKey(star.approvedAt, timezone) === day.key)
@@ -201,7 +201,7 @@ export function ChildActivityFeed({
 
   return (
     <View className="pb-6">
-      <StarShelf days={days} />
+      <Constellation days={days} />
 
       {owners.length > 0 ? (
         <View className="mt-3 flex-row flex-wrap gap-2">
@@ -297,13 +297,14 @@ function LogSection({
       <AppText variant="sectionTitle" accessibilityRole="header">
         {title}
       </AppText>
-      <View className="mt-3 gap-2.5">
+      <View className="mt-3 rounded-large bg-surface px-4 py-1.5">
         {items.map((item) => (
           <LogRow
             key={item.activityId}
             item={item}
             timezone={timezone}
             mine={item.childId === viewerChildId}
+            showValue={!viewerChildId || item.childId === viewerChildId}
             color={colorFor(item.childId)}
           />
         ))}
@@ -316,11 +317,14 @@ function LogRow({
   item,
   timezone,
   mine,
+  showValue,
   color,
 }: {
   item: ApprovalActivityItem;
   timezone: string;
   mine: boolean;
+  /** Kids see kr only on their own wins; Parents see all. */
+  showValue: boolean;
   color: string;
 }) {
   const who = mine ? "You" : item.childDisplayName;
@@ -328,35 +332,36 @@ function LogRow({
   return (
     <View
       accessible
-      accessibilityLabel={`${who} completed ${item.choreTitle}, ${kind}, plus ${item.valueSek} kronor, ${formatApprovedAt(item.approvedAt, timezone)}`}
-      className="min-h-[72px] flex-row items-center gap-3 rounded-large bg-surface py-2.5 pl-2.5 pr-3"
-      style={mine ? { borderWidth: 2, borderColor: color } : undefined}
+      accessibilityLabel={`${who} completed ${item.choreTitle}, ${kind}${
+        showValue ? `, plus ${item.valueSek} kronor` : ""
+      }, ${formatApprovedAt(item.approvedAt, timezone)}`}
+      className="min-h-[52px] flex-row items-center gap-3 py-1.5"
     >
       <View>
-        <ChoreIcon title={item.choreTitle} size={48} />
-        <View className="absolute -right-1 -top-1 h-5 w-5 items-center justify-center rounded-full bg-night">
-          <Icon name="star" color={color} size={12} />
+        <ChoreIcon title={item.choreTitle} size={34} />
+        <View className="absolute -right-1 -top-1 h-4 w-4 items-center justify-center rounded-full bg-night">
+          <Icon name="star" color={color} size={10} />
         </View>
       </View>
       <View className="flex-1">
         <AppText
           className="font-body-heavy text-[15px] leading-[20px]"
-          numberOfLines={2}
+          numberOfLines={1}
         >
           <AppText className="font-body-heavy text-[15px]" style={{ color }}>
             {who}
           </AppText>{" "}
-          completed {item.choreTitle}
+          · {item.choreTitle}
         </AppText>
-        <AppText variant="caption" color="ink-muted" className="mt-0.5">
+        <AppText variant="caption" color="ink-muted">
           {kind} · {formatApprovedAt(item.approvedAt, timezone)}
         </AppText>
       </View>
-      <View className="min-h-[36px] items-center justify-center rounded-full border-b-[3px] border-goldShade bg-gold px-3">
-        <AppText className="font-display text-[14px] leading-[16px] text-night">
+      {showValue ? (
+        <AppText className="font-display text-[15px]" color="gold">
           +{item.valueSek} kr
         </AppText>
-      </View>
+      ) : null}
     </View>
   );
 }
