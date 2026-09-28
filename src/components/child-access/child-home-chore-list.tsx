@@ -1,5 +1,5 @@
 import {
-  QuestPath,
+  StarMap,
   Scene,
   StarBuddy,
   TreasureChest,
@@ -333,6 +333,42 @@ export function ChildHomeChoreList({
     });
   }, [recentHistory, redoByOccurrence, visibleOccurrences]);
 
+  // The map starts at the rocket: today's finished chores fold into the
+  // moon cluster (older ones live in Family and Money), and only the next
+  // few upcoming planets are drawn.
+  const mapStops = useMemo(() => {
+    const finishedToday = new Set(
+      recentHistory
+        .filter(
+          (occurrence) =>
+            relativeDayLabel(occurrence.deadlineAt, occurrence.timezone) ===
+            "today",
+        )
+        .map((occurrence) => occurrence.occurrenceId as string),
+    );
+    const doneToday = stops.filter(
+      (stop) =>
+        (stop.status === "done" || stop.status === "missed") &&
+        finishedToday.has(stop.key),
+    );
+    const live = stops.filter(
+      (stop) => stop.status !== "done" && stop.status !== "missed",
+    );
+    const scheduledKeys = new Set(
+      visibleOccurrences
+        .filter((occurrence) => occurrence.state === "scheduled")
+        .map((occurrence) => occurrence.occurrenceId as string),
+    );
+    const now = live.filter((stop) => !scheduledKeys.has(stop.key));
+    const later = live.filter((stop) => scheduledKeys.has(stop.key));
+    const shownLater = later.slice(0, UPCOMING_PLANETS);
+    return {
+      doneToday,
+      ahead: [...now, ...shownLater],
+      moreLater: later.length - shownLater.length,
+    };
+  }, [recentHistory, stops, visibleOccurrences]);
+
   const firstRedo = visibleOccurrences.find(
     (occurrence) => occurrence.state === "redo_required",
   );
@@ -414,7 +450,11 @@ export function ChildHomeChoreList({
         </View>
 
         <View className="-mx-5">
-          <QuestPath stops={stops} />
+          <StarMap
+            stops={mapStops.ahead}
+            done={mapStops.doneToday}
+            moreLater={mapStops.moreLater}
+          />
         </View>
 
         {onOpenExtras ? (
@@ -482,6 +522,8 @@ export function ChildHomeChoreList({
     </>
   );
 }
+
+const UPCOMING_PLANETS = 3;
 
 // History under "Today's quest" says which day it was, unless it was today.
 function withPastDay(text: string, occurrence: ChildHomeChoreOccurrence) {

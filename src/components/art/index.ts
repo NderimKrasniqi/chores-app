@@ -8,7 +8,7 @@ export {
   PulseRings,
   SpinningCoin,
 } from "./pieces";
-export { QuestPath, type QuestStop, type QuestStopStatus } from "./quest-path";
+export { StarMap, type QuestStop, type QuestStopStatus } from "./star-map";
 export { Scene, type SceneName } from "./scenes";
 export { StarBuddy, type BuddyMood } from "./star-buddy";
 export { Starfield } from "./starfield";
