@@ -1,32 +1,35 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { View } from "react-native";
 import Animated, {
   interpolate,
   useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withDelay,
+  withTiming,
 } from "react-native-reanimated";
-import Svg, { Circle, Ellipse, G, Line, Path } from "react-native-svg";
+import Svg, { Circle, Line, Path, Rect } from "react-native-svg";
 
 import { useTheme } from "@/design-system/theme";
 
 import { CargoPod } from "./cargo-pod";
 import { HomePlanet } from "./home-planet";
-import { useLoop } from "./motion";
+import { Easings, useLoop } from "./motion";
 
-const HEIGHT = 104;
-const HOME = 56;
-const PAYDAY = 36;
-const POD = 46;
+const HEIGHT = 108;
+const HOME = 60;
+const HOME_BOX = HOME * 1.28 + 24;
+const POD = 44;
 const ROCKET = 28;
+const LAND_MS = 1400;
+/** How far behind the rocket (in arc fraction) the towed pod rides. */
+const TOW = 0.16;
 
 type Point = { x: number; y: number };
 
 /** A point on the flight arc (quadratic curve), t = 0 … 1. */
-function arcAt(
-  a: Point,
-  c: Point,
-  b: Point,
-  t: number,
-): Point & { angle: number } {
+function arcAt(a: Point, c: Point, b: Point, t: number) {
+  "worklet";
   const u = 1 - t;
   const x = u * u * a.x + 2 * u * t * c.x + t * t * b.x;
   const y = u * u * a.y + 2 * u * t * c.y + t * t * b.y;
@@ -36,42 +39,103 @@ function arcAt(
 }
 
 /**
- * The pay week as one flight: your home planet (your money) on the left,
- * payday's gold planet on the right, and the rocket on the arc between them
- * at today's spot, towing the cargo pod with this week's coins. Coins that
- * arrived since the last visit drop into the pod; the rocket only bobs.
+ * This week's money as a delivery on its way to you. On the left, the
+ * depot it set off from (last payday); on the right, your home planet —
+ * the same one as on Quests — where it lands on payday. The rocket sits on
+ * the arc at today's spot, towing the cargo pod that holds what will land.
+ * Below zero the pod drags a pink debt crate.
+ *
+ * `landing` is the rare moment: after a Parent pays out, the rocket flies
+ * the rest of the way, the pod reaches the planet and the planet catches
+ * the coins. Otherwise only the rocket bobs.
  */
 export function PaydayFlight({
   balance,
   weekProgress,
   drops = 0,
   dropKey,
+  landing = false,
 }: {
   balance: number;
   /** 0 = just after the last payday … 1 = payday. */
   weekProgress: number;
   drops?: number;
   dropKey?: string;
+  /** Play the payday landing once (the caller decides "once"). */
+  landing?: boolean;
 }) {
   const { tokens } = useTheme();
+  const reducedMotion = useReducedMotion();
   const [width, setWidth] = useState(0);
+  const [landedKey, setLandedKey] = useState(0);
   const bob = useLoop({ duration: 2600, reverse: true, rest: 0.5 });
-  const bobStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: interpolate(bob.get(), [0, 1], [-2, 2]) }],
-  }));
 
   const progress = Math.max(0, Math.min(1, weekProgress));
-  const a = { x: HOME * 0.62, y: HEIGHT - HOME * 0.62 };
-  const b = { x: width - PAYDAY * 0.7, y: HEIGHT - PAYDAY * 0.9 };
-  const c = { x: width / 2, y: -HEIGHT * 0.3 };
-  const rocket = arcAt(a, c, b, 0.08 + progress * 0.84);
-  const pod = arcAt(a, c, b, Math.max(0.02, 0.08 + progress * 0.84 - 0.2));
+  const target = landing ? 1 : 0.06 + progress * 0.8;
+  const t = useSharedValue(landing ? 0.78 : target);
 
-  // The flown part of the arc, as a sampled path.
+  useEffect(() => {
+    if (!landing) {
+      t.set(target);
+      return;
+    }
+    if (reducedMotion) {
+      t.set(1);
+      const timer = setTimeout(() => setLandedKey((key) => key + 1), 0);
+      return () => clearTimeout(timer);
+    }
+    t.set(0.78);
+    t.set(
+      withDelay(
+        450,
+        withTiming(1, { duration: LAND_MS, easing: Easings.inOut }),
+      ),
+    );
+    // The planet catches the coins as the pod arrives.
+    const timer = setTimeout(
+      () => setLandedKey((key) => key + 1),
+      450 + LAND_MS - 150,
+    );
+    return () => clearTimeout(timer);
+  }, [landing, reducedMotion, t, target]);
+
+  const a = { x: 22, y: HEIGHT - 26 };
+  const b = { x: width - HOME * 0.62, y: HEIGHT - HOME * 0.62 };
+  const c = { x: width / 2, y: -HEIGHT * 0.3 };
+
+  const rocketStyle = useAnimatedStyle(() => {
+    const p = arcAt(a, c, b, t.get());
+    const docked = t.get() >= 0.999;
+    return {
+      opacity: docked ? 0 : 1,
+      transform: [
+        { translateX: p.x - ROCKET / 2 },
+        {
+          translateY:
+            p.y - ROCKET / 2 + interpolate(bob.get(), [0, 1], [-2, 2]),
+        },
+        { rotate: `${p.angle + 90}deg` },
+      ],
+    };
+  });
+  const podStyle = useAnimatedStyle(() => {
+    const p = arcAt(a, c, b, Math.max(0.02, t.get() - TOW));
+    const arriving = interpolate(t.get(), [0.93, 1], [1, 0], "clamp");
+    return {
+      opacity: arriving,
+      transform: [
+        { translateX: p.x - POD / 2 },
+        { translateY: p.y - POD * 0.45 },
+        { scale: interpolate(arriving, [0, 1], [0.6, 1]) },
+      ],
+    };
+  });
+
+  // The flown part of the arc (static; the landing draws over it).
   const flown: string[] = [];
   const steps = 24;
   for (let i = 0; i <= steps; i += 1) {
-    const p = arcAt(a, c, b, (i / steps) * (0.08 + progress * 0.84));
+    const p = arcAt(a, c, b, (i / steps) * target);
     flown.push(`${i === 0 ? "M" : "L"}${p.x.toFixed(1)} ${p.y.toFixed(1)}`);
   }
 
@@ -101,117 +165,109 @@ export function PaydayFlight({
               fill="none"
               opacity={0.85}
             />
-            {/* tow line from rocket to pod */}
-            <Line
-              x1={pod.x}
-              y1={pod.y}
-              x2={rocket.x}
-              y2={rocket.y}
-              stroke={tokens.inkMuted}
-              strokeWidth={1.5}
-              strokeDasharray="3 3"
+            {/* the depot: where this week's delivery set off (last payday) */}
+            <Rect
+              x={a.x - 14}
+              y={a.y + 4}
+              width={28}
+              height={6}
+              rx={3}
+              fill={tokens.nightRaised}
             />
-            {/* payday: the gold planet with a flag */}
-            <G>
-              <Circle
-                cx={b.x}
-                cy={b.y}
-                r={PAYDAY / 2 + 6}
-                fill={tokens.gold}
-                opacity={0.15}
-              />
-              <Circle cx={b.x} cy={b.y} r={PAYDAY / 2} fill={tokens.gold} />
-              <Path
-                d={`M${b.x} ${b.y + PAYDAY / 2} A${PAYDAY / 2} ${PAYDAY / 2} 0 0 0 ${b.x} ${b.y - PAYDAY / 2} A${PAYDAY * 0.28} ${PAYDAY / 2} 0 0 1 ${b.x} ${b.y + PAYDAY / 2} Z`}
-                fill={tokens.goldShade}
-                opacity={0.6}
-                transform={`rotate(35 ${b.x} ${b.y})`}
-              />
-              <Ellipse
-                cx={b.x}
-                cy={b.y}
-                rx={PAYDAY * 0.72}
-                ry={PAYDAY * 0.16}
-                stroke={tokens.goldShade}
-                strokeWidth={2.5}
-                fill="none"
-                transform={`rotate(-14 ${b.x} ${b.y})`}
-              />
-              <Line
-                x1={b.x}
-                y1={b.y - PAYDAY / 2}
-                x2={b.x}
-                y2={b.y - PAYDAY / 2 - 14}
-                stroke={tokens.star}
-                strokeWidth={2}
-                strokeLinecap="round"
-              />
-              <Path
-                d={`M${b.x} ${b.y - PAYDAY / 2 - 14} L${b.x + 11} ${b.y - PAYDAY / 2 - 10} L${b.x} ${b.y - PAYDAY / 2 - 6} Z`}
-                fill={tokens.pink}
-              />
-            </G>
+            <Rect
+              x={a.x - 9}
+              y={a.y - 10}
+              width={18}
+              height={14}
+              rx={3}
+              fill={tokens.inkMuted}
+              opacity={0.6}
+            />
+            <Line
+              x1={a.x + 6}
+              y1={a.y - 10}
+              x2={a.x + 6}
+              y2={a.y - 20}
+              stroke={tokens.inkMuted}
+              strokeWidth={2}
+              strokeLinecap="round"
+            />
+            <Circle cx={a.x + 6} cy={a.y - 21} r={2.5} fill={tokens.gold} />
           </Svg>
 
-          {/* home planet: your money */}
+          {/* your home planet: where the delivery lands on payday */}
           <View
             style={{
               position: "absolute",
-              left: a.x - (HOME * 1.28 + 24) / 2,
-              top: a.y - (HOME * 1.28 + 24) / 2,
+              left: b.x - HOME_BOX / 2,
+              top: b.y - HOME_BOX / 2,
             }}
           >
-            <HomePlanet size={HOME} balance={balance} />
+            <HomePlanet
+              size={HOME}
+              balance={balance}
+              celebrateKey={landedKey}
+            />
           </View>
 
-          <View
-            style={{
-              position: "absolute",
-              left: pod.x - POD / 2,
-              top: pod.y - (POD * 0.8 + 14 * (POD / 120)) / 2 - 4,
-            }}
+          <Animated.View
+            style={[{ position: "absolute", left: 0, top: 0 }, podStyle]}
           >
             <CargoPod
               size={POD}
               balance={balance}
-              drops={drops}
+              drops={landing ? 0 : drops}
               dropKey={dropKey}
             />
-          </View>
+            {balance < 0 ? (
+              // the carried debt, dragging behind
+              <View
+                style={{
+                  position: "absolute",
+                  left: -10,
+                  top: POD * 0.42,
+                  width: 12,
+                  height: 12,
+                  borderRadius: 3,
+                  backgroundColor: tokens.pink,
+                  borderWidth: 1.5,
+                  borderColor: tokens.night,
+                }}
+              />
+            ) : null}
+          </Animated.View>
 
           <Animated.View
             style={[
               {
                 position: "absolute",
-                left: rocket.x - ROCKET / 2,
-                top: rocket.y - ROCKET / 2,
+                left: 0,
+                top: 0,
                 width: ROCKET,
                 height: ROCKET,
-                transform: [{ rotate: `${rocket.angle + 90}deg` }],
               },
+              rocketStyle,
             ]}
           >
-            <Animated.View style={bobStyle}>
-              <Svg width={ROCKET} height={ROCKET} viewBox="0 0 40 40">
-                <Path
-                  d="M20 3 C28 10 28 24 25 30 L15 30 C12 24 12 10 20 3 Z"
-                  fill={tokens.star}
-                  stroke={tokens.night}
-                  strokeWidth={2}
-                />
-                <Circle
-                  cx={20}
-                  cy={15}
-                  r={3.6}
-                  fill={tokens.nightRaised}
-                  stroke={tokens.night}
-                  strokeWidth={1.5}
-                />
-                <Path d="M15 22 L9 30 L15 29 Z" fill={tokens.pink} />
-                <Path d="M25 22 L31 30 L25 29 Z" fill={tokens.pink} />
-                <Path d="M17 30 L20 38 L23 30 Z" fill={tokens.accent} />
-              </Svg>
-            </Animated.View>
+            <Svg width={ROCKET} height={ROCKET} viewBox="0 0 40 40">
+              <Path
+                d="M20 3 C28 10 28 24 25 30 L15 30 C12 24 12 10 20 3 Z"
+                fill={tokens.star}
+                stroke={tokens.night}
+                strokeWidth={2}
+              />
+              <Circle
+                cx={20}
+                cy={15}
+                r={3.6}
+                fill={tokens.nightRaised}
+                stroke={tokens.night}
+                strokeWidth={1.5}
+              />
+              <Path d="M15 22 L9 30 L15 29 Z" fill={tokens.pink} />
+              <Path d="M25 22 L31 30 L25 29 Z" fill={tokens.pink} />
+              <Path d="M17 30 L20 38 L23 30 Z" fill={tokens.accent} />
+            </Svg>
           </Animated.View>
         </>
       ) : null}

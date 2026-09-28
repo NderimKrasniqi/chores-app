@@ -2,8 +2,8 @@ import { useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import * as SecureStore from "expo-secure-store";
 import { useEffect, useState } from "react";
-import { AppState, View } from "react-native";
-import { useReducedMotion } from "react-native-reanimated";
+import { AppState, Pressable, View } from "react-native";
+import Animated, { FadeIn, useReducedMotion } from "react-native-reanimated";
 
 import { CargoPod, ChoreIcon, PaydayFlight, StarBuddy } from "@/components/art";
 import { Icon } from "@/components/ui/icon";
@@ -143,6 +143,38 @@ function useSinceLastVisit(
 }
 
 /**
+ * True once per paid-out week: the first time this child opens Money after a
+ * Parent marked a payout paid, the delivery lands on their planet. Decided
+ * once when the tab opens; a failed read plays nothing.
+ */
+function useDeliveryLanding(
+  childId: string | undefined,
+  payout: Payout | null,
+) {
+  const paidId =
+    payout && payout.status === "paid" ? (payout.payoutId as string) : null;
+  const [result, setResult] = useState<{ id: string; land: boolean }>();
+  useEffect(() => {
+    if (!childId || !paidId) return;
+    let cancelled = false;
+    const key = `delivery-seen.${childId}`;
+    SecureStore.getItemAsync(key)
+      .then((seen) => {
+        if (cancelled) return;
+        setResult({ id: paidId, land: seen !== paidId });
+        if (seen !== paidId) return SecureStore.setItemAsync(key, paidId);
+      })
+      .catch(() => {
+        if (!cancelled) setResult({ id: paidId, land: false });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [childId, paidId]);
+  return result !== undefined && result.id === paidId && result.land;
+}
+
+/**
  * Counts once from `from` to the balance when the tab opens. The starting
  * value is set in the same render the count begins, so there's no flash of
  * the new number first; later changes jump straight to the new value.
@@ -218,16 +250,24 @@ export function ChildMoneyView({
   overview,
   now,
   childId,
+  previewLanding = false,
 }: {
   overview: ChildMoneyOverview;
   now: number;
   /** Enables the "since your last visit" drop; previews omit it. */
   childId?: string;
+  /** Previews: play the payday landing. */
+  previewLanding?: boolean;
 }) {
   const { child, currentPeriod } = overview;
   const balance = child.runningBalanceSek;
   const since = useSinceLastVisit(childId, balance, child.thisPeriodEntries);
   const shown = useCountUp(since.from, balance, since.ready);
+  const landed = useDeliveryLanding(childId, child.latestPayout);
+  const delivery =
+    (landed || previewLanding) && child.latestPayout?.status === "paid"
+      ? child.latestPayout
+      : null;
 
   return (
     <View className="pb-6">
@@ -242,10 +282,12 @@ export function ChildMoneyView({
         )}
         drops={since.drops}
         dropKey={since.ready ? "open" : "loading"}
+        delivery={delivery}
       />
       <CoinTimeline
         entries={child.thisPeriodEntries}
         timezone={currentPeriod.timezone}
+        balance={balance}
       />
       <PayoutPostcard payout={child.latestPayout} balance={balance} />
       <HowItWorks />
@@ -254,8 +296,9 @@ export function ChildMoneyView({
 }
 
 /**
- * Your money and the pay week in one scene: the balance up top, then the
- * flight from your home planet to payday with the cargo pod in tow.
+ * Your money as a delivery on its way to you: the balance up top (what will
+ * land on payday), then the flight from last payday's depot to your home
+ * planet with the cargo pod in tow. Right after a payout, the delivery lands.
  */
 function PaydayCard({
   period,
@@ -265,6 +308,7 @@ function PaydayCard({
   weekTotal,
   drops,
   dropKey,
+  delivery,
 }: {
   period: ChildMoneyOverview["currentPeriod"];
   now: number;
@@ -274,6 +318,8 @@ function PaydayCard({
   weekTotal: number;
   drops: number;
   dropKey: string;
+  /** The payout that just landed, if this visit plays the landing. */
+  delivery: Payout | null;
 }) {
   const negative = balance < 0;
   const today = localDateKey(now, period.timezone);
@@ -330,8 +376,19 @@ function PaydayCard({
       </View>
       {negative ? (
         <AppText variant="caption" color="pink" className="font-body-bold">
-          Earn {Math.abs(balance)} kr to get back to 0.
+          Earn {Math.abs(balance)} kr to clear the debt before payday.
         </AppText>
+      ) : null}
+      {delivery ? (
+        <Animated.View
+          entering={FadeIn.delay(1700).duration(300)}
+          className="mt-2 flex-row items-center gap-2 self-start rounded-full bg-primary px-3 py-1"
+        >
+          <Icon name="check" color={tokens.night} size={13} />
+          <AppText className="font-body-heavy text-[13px] text-night">
+            {delivery.amountDueSek} kr delivered · a Parent paid you
+          </AppText>
+        </Animated.View>
       ) : null}
       <View className="mt-1">
         <PaydayFlight
@@ -339,18 +396,26 @@ function PaydayCard({
           weekProgress={progress}
           drops={drops}
           dropKey={dropKey}
+          landing={delivery !== null}
         />
       </View>
     </View>
   );
 }
 
+/**
+ * What's in the pod: every coin loaded this week (an approved quest) and
+ * every one dropped (a missed locked Extra), newest day first, plus anything
+ * the pod carried in from last week.
+ */
 function CoinTimeline({
   entries,
   timezone,
+  balance,
 }: {
   entries: Entry[];
   timezone: string;
+  balance: number;
 }) {
   const total = entries.reduce((sum, entry) => sum + entry.amountSek, 0);
   // Past the server cap the list is only the latest entries, so no total.
@@ -358,11 +423,14 @@ function CoinTimeline({
   const shown = entries.slice(0, TIMELINE_LIMIT);
   const hidden = entries.length - shown.length;
   const groups = groupByDay(shown, timezone);
+  // Whatever the balance holds beyond this week's entries rode in from last
+  // week: a debt (below 0) or pay still to be sent.
+  const carried = complete ? balance - total : 0;
 
   return (
     <View className="mt-6">
       <View className="flex-row items-baseline justify-between">
-        <AppText variant="sectionTitle">This week’s coins</AppText>
+        <AppText variant="sectionTitle">Cargo manifest</AppText>
         {entries.length > 0 && complete ? (
           <AppText
             className="font-display text-[18px]"
@@ -417,6 +485,37 @@ function CoinTimeline({
               ))}
             </View>
           ))}
+          {carried !== 0 ? (
+            <View className="mt-1 border-t border-nightRaised pb-2 pt-3">
+              <AppText
+                variant="label"
+                color="ink-muted"
+                className="uppercase tracking-[1.2px]"
+              >
+                From last week
+              </AppText>
+              <View className="mt-1.5 flex-row items-center gap-3">
+                <View
+                  className={`h-[30px] w-[30px] items-center justify-center rounded-[9px] ${carried < 0 ? "bg-pink" : "bg-gold"}`}
+                >
+                  <Icon
+                    name={carried < 0 ? "minus" : "clock"}
+                    color={tokens.night}
+                    size={15}
+                  />
+                </View>
+                <AppText className="flex-1 font-body-heavy text-[15px]">
+                  {carried < 0 ? "Debt riding along" : "Still to be paid"}
+                </AppText>
+                <AppText
+                  className="font-display text-[16px]"
+                  color={carried < 0 ? "pink" : "gold"}
+                >
+                  {signed(carried)}
+                </AppText>
+              </View>
+            </View>
+          ) : null}
           {hidden > 0 ? (
             <AppText
               variant="caption"
@@ -469,7 +568,7 @@ function CoinRow({ entry, last }: { entry: Entry; last: boolean }) {
         </AppText>
         {penalty ? (
           <AppText variant="caption" color="pink">
-            Extra not finished
+            Dropped · Extra not finished
           </AppText>
         ) : null}
       </View>
@@ -493,7 +592,7 @@ function PayoutPostcard({
 }) {
   return (
     <View className="mt-6">
-      <AppText variant="sectionTitle">Last payday</AppText>
+      <AppText variant="sectionTitle">Last delivery</AppText>
       <View className="mt-3 overflow-hidden rounded-large bg-surface p-4">
         {!payout ? (
           <PostcardBody
@@ -520,7 +619,7 @@ function PayoutPostcard({
         ) : payout.status === "paid" ? (
           <PostcardBody
             badge={{ icon: "check", label: "Paid", tone: "primary" }}
-            title={`${payout.amountDueSek} kr landed`}
+            title={`${payout.amountDueSek} kr delivered`}
             body={`A Parent paid the week ending ${formatLocalDate(payout.periodEndLocalDate)}.`}
           />
         ) : payout.balanceAtCloseSek < 0 ? (
@@ -607,32 +706,62 @@ function AmountStop({ label, value }: { label: string; value: number }) {
   );
 }
 
+/** The rules of the delivery, folded away until asked for. */
 function HowItWorks() {
+  const [open, setOpen] = useState(false);
+  const rules = [
+    {
+      icon: "plus" as const,
+      tone: "bg-gold",
+      text: "Approved quests load their coins",
+    },
+    {
+      icon: "minus" as const,
+      tone: "bg-pink",
+      text: "A missed locked Extra drops its full value",
+    },
+    {
+      icon: "check" as const,
+      tone: "bg-primary",
+      text: "On payday a Parent sends what’s in the pod",
+    },
+    {
+      icon: "redo" as const,
+      tone: "bg-nightRaised",
+      text: "Below 0, the debt rides along into next week",
+    },
+  ];
   return (
-    <View className="mt-6 gap-2 rounded-large border-2 border-dashed border-nightRaised p-4">
-      <AppText
-        variant="label"
-        color="ink-muted"
-        className="uppercase tracking-[1.2px]"
+    <View className="mt-6">
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ expanded: open }}
+        onPress={() => setOpen((value) => !value)}
+        className="flex-row items-center gap-2 self-start py-1"
       >
-        How your cargo pod grows
-      </AppText>
-      <View className="flex-row items-center gap-2.5">
-        <View className="h-6 w-6 items-center justify-center rounded-full bg-gold">
-          <Icon name="plus" color={tokens.night} size={13} />
+        <View className="h-6 w-6 items-center justify-center rounded-full bg-nightRaised">
+          <AppText className="font-display text-[13px]">?</AppText>
         </View>
-        <AppText variant="bodySmall" className="flex-1 font-body-bold">
-          Approved quests add their coins
+        <AppText variant="label" color="ink-muted">
+          How the delivery works
         </AppText>
-      </View>
-      <View className="flex-row items-center gap-2.5">
-        <View className="h-6 w-6 items-center justify-center rounded-full bg-pink">
-          <Icon name="minus" color={tokens.night} size={13} />
+      </Pressable>
+      {open ? (
+        <View className="mt-2 gap-2 rounded-large border-2 border-dashed border-nightRaised p-4">
+          {rules.map((rule) => (
+            <View key={rule.text} className="flex-row items-center gap-2.5">
+              <View
+                className={`h-6 w-6 items-center justify-center rounded-full ${rule.tone}`}
+              >
+                <Icon name={rule.icon} color={tokens.night} size={13} />
+              </View>
+              <AppText variant="bodySmall" className="flex-1 font-body-bold">
+                {rule.text}
+              </AppText>
+            </View>
+          ))}
         </View>
-        <AppText variant="bodySmall" className="flex-1 font-body-bold">
-          Missed locked Extras take their full value
-        </AppText>
-      </View>
+      ) : null}
     </View>
   );
 }
