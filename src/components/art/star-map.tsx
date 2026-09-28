@@ -6,6 +6,8 @@ import Animated, {
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
+  withDelay,
+  withSequence,
   withTiming,
 } from "react-native-reanimated";
 import Svg, { Circle, Ellipse, G, Path } from "react-native-svg";
@@ -13,6 +15,7 @@ import Svg, { Circle, Ellipse, G, Path } from "react-native-svg";
 import { Icon } from "@/components/ui/icon";
 import { amountFontSize } from "@/lib/amount-size";
 import { AppText } from "@/design-system/text";
+import { useCelebrationsHeld } from "@/lib/celebration-gate";
 import { useTheme } from "@/design-system/theme";
 
 import { Easings, PRESS, pressTransition, useLoop } from "./motion";
@@ -461,6 +464,9 @@ function Rocket({
   tokens: Tokens;
 }) {
   const reducedMotion = useReducedMotion();
+  // A quest card covers the map while the kid sends work; wait until
+  // they're back so they actually see the rocket fly.
+  const held = useCelebrationsHeld();
   const x = useSharedValue(targetX);
   const y = useSharedValue(targetY);
   const tilt = useSharedValue(0);
@@ -468,20 +474,40 @@ function Rocket({
   const bob = useLoop({ duration: 2400, reverse: true, rest: 0.5 });
 
   useEffect(() => {
+    if (held) return;
     const from = last.current;
-    last.current = { x: targetX, y: targetY };
     if (from.x === targetX && from.y === targetY) return;
+    last.current = { x: targetX, y: targetY };
     if (reducedMotion) {
       x.set(targetX);
       y.set(targetY);
       return;
     }
-    // Lean into the flight, then straighten up on arrival.
-    tilt.set(targetX > from.x ? 28 : -28);
-    x.set(withTiming(targetX, { duration: 950, easing: Easings.inOut }));
-    y.set(withTiming(targetY, { duration: 950, easing: Easings.inOut }));
-    tilt.set(withTiming(0, { duration: 1300, easing: Easings.out }));
-  }, [reducedMotion, targetX, targetY, tilt, x, y]);
+    // A beat after the map is back in view, lean into the flight, then
+    // straighten up on arrival.
+    const delay = 350;
+    x.set(
+      withDelay(
+        delay,
+        withTiming(targetX, { duration: 1100, easing: Easings.inOut }),
+      ),
+    );
+    y.set(
+      withDelay(
+        delay,
+        withTiming(targetY, { duration: 1100, easing: Easings.inOut }),
+      ),
+    );
+    tilt.set(
+      withDelay(
+        delay,
+        withSequence(
+          withTiming(targetX > from.x ? 28 : -28, { duration: 150 }),
+          withTiming(0, { duration: 1200, easing: Easings.out }),
+        ),
+      ),
+    );
+  }, [held, reducedMotion, targetX, targetY, tilt, x, y]);
 
   const style = useAnimatedStyle(() => ({
     transform: [
@@ -733,8 +759,7 @@ export function StarMap({
   let flownTo = 0;
   while (
     flownTo < planets.length - 1 &&
-    (planets[flownTo].status === "done" ||
-      planets[flownTo].status === "missed")
+    (planets[flownTo].status === "done" || planets[flownTo].status === "missed")
   ) {
     flownTo += 1;
   }
