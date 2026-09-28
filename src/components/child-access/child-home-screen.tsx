@@ -110,6 +110,11 @@ export function ChildHomeScreen({
           setActiveTab("extras");
           return;
         }
+        // A sibling's high-five: the win it's about lives in Family.
+        if (intent.eventKind === "cheer") {
+          setActiveTab("activity");
+          return;
+        }
         if (intent.occurrenceId) {
           setPendingChoreId(intent.occurrenceId as Id<"choreOccurrences">);
         }

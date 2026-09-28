@@ -440,8 +440,12 @@ function PadSlot({
   // already there when the tab opened just stands.
   const [firstClaimId] = useState(claim?.claimId);
   const launched = claim !== undefined && claim.claimId !== firstClaimId;
+  // Past the lock time it's committed, even before the server's next
+  // refresh says so.
   const committed =
-    claim?.claimState === "claimed" && !claim.commitment?.canUnclaim;
+    claim?.claimState === "claimed" &&
+    (!claim.commitment?.canUnclaim ||
+      (claim.commitment?.lockAt ?? claim.deadlineAt) <= now);
   // The ring snapping shut plays once, the first look after a lock.
   const firstLockLook = useFirstSighting(
     committed && claim ? `lock.${claim.claimId}` : undefined,
@@ -614,6 +618,7 @@ export function ClaimableChoresView({
   initialVisualState?:
     "active" | "submitted" | "unclaim" | "locked" | "redo" | "lock-sheet";
 }) {
+  const clockNow = useMinuteNow();
   const { gate, unclaimAllowance, claimableOccurrences, claimedOccurrences } =
     result;
   const chestFirstSighting = useFirstSighting(
@@ -684,7 +689,12 @@ export function ClaimableChoresView({
     occurrence: ClaimableChoresViewModel["claimableOccurrences"][number],
   ) {
     if (busy || myClaim) return;
-    if (occurrence.commitment.isImmediatelyLocked) {
+    // The server's flag goes stale once the lock time passes with the tab
+    // open; a claim past the lock needs the "locks right away" confirmation.
+    if (
+      occurrence.commitment.isImmediatelyLocked ||
+      occurrence.commitment.lockAt <= clockNow
+    ) {
       setLockedCandidateId(occurrence.occurrenceId);
     } else {
       void executeClaim(occurrence.occurrenceId, false);

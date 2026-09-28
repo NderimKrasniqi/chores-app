@@ -56,7 +56,11 @@ export function CheerToast({ childId }: { childId: Id<"children"> }) {
     setShown(newest);
     setSeen(newest.createdAt);
   } else if (newest && seen === null) {
+    // First look on this phone: older high-fives count as seen.
     setSeen(newest.createdAt);
+  } else if (data && !newest && seen === null) {
+    // None yet: from here on, the first one that arrives shows.
+    setSeen(0);
   }
 
   useEffect(() => {

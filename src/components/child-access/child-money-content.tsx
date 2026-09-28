@@ -147,12 +147,21 @@ function useSinceLastVisit(
  * Parent marked a payout paid, the delivery lands on their planet. Decided
  * once when the tab opens; a failed read plays nothing.
  */
+/** Older than this, a payout just shows as paid (a new phone, a long break). */
+const LANDING_WINDOW_MS = 7 * DAY_MS;
+
 function useDeliveryLanding(
   childId: string | undefined,
   payout: Payout | null,
+  now: number,
 ) {
   const paidId =
-    payout && payout.status === "paid" ? (payout.payoutId as string) : null;
+    payout &&
+    payout.status === "paid" &&
+    payout.paidAt !== null &&
+    now - payout.paidAt < LANDING_WINDOW_MS
+      ? (payout.payoutId as string)
+      : null;
   const [result, setResult] = useState<{ id: string; land: boolean }>();
   useEffect(() => {
     if (!childId || !paidId) return;
@@ -263,7 +272,7 @@ export function ChildMoneyView({
   const balance = child.runningBalanceSek;
   const since = useSinceLastVisit(childId, balance, child.thisPeriodEntries);
   const shown = useCountUp(since.from, balance, since.ready);
-  const landed = useDeliveryLanding(childId, child.latestPayout);
+  const landed = useDeliveryLanding(childId, child.latestPayout, now);
   const delivery =
     (landed || previewLanding) && child.latestPayout?.status === "paid"
       ? child.latestPayout
@@ -450,7 +459,13 @@ function CoinTimeline({
             </AppText>
           </View>
         </View>
-      ) : (
+      ) : null}
+      {entries.length === 0 && carried !== 0 ? (
+        <View className="mt-1 rounded-large bg-surface px-4 py-1">
+          <CarriedRow carried={carried} />
+        </View>
+      ) : null}
+      {entries.length === 0 ? null : (
         <View className="mt-3 rounded-large bg-surface px-4 py-1">
           {groups.map((group, g) => (
             <View key={group.day} className={g > 0 ? "mt-1" : ""}>
@@ -485,37 +500,7 @@ function CoinTimeline({
               ))}
             </View>
           ))}
-          {carried !== 0 ? (
-            <View className="mt-1 border-t border-nightRaised pb-2 pt-3">
-              <AppText
-                variant="label"
-                color="ink-muted"
-                className="uppercase tracking-[1.2px]"
-              >
-                From last week
-              </AppText>
-              <View className="mt-1.5 flex-row items-center gap-3">
-                <View
-                  className={`h-[30px] w-[30px] items-center justify-center rounded-[9px] ${carried < 0 ? "bg-pink" : "bg-gold"}`}
-                >
-                  <Icon
-                    name={carried < 0 ? "minus" : "clock"}
-                    color={tokens.night}
-                    size={15}
-                  />
-                </View>
-                <AppText className="flex-1 font-body-heavy text-[15px]">
-                  {carried < 0 ? "Debt riding along" : "Still to be paid"}
-                </AppText>
-                <AppText
-                  className="font-display text-[16px]"
-                  color={carried < 0 ? "pink" : "gold"}
-                >
-                  {signed(carried)}
-                </AppText>
-              </View>
-            </View>
-          ) : null}
+          {carried !== 0 ? <CarriedRow carried={carried} divider /> : null}
           {hidden > 0 ? (
             <AppText
               variant="caption"
@@ -529,6 +514,49 @@ function CoinTimeline({
           ) : null}
         </View>
       )}
+    </View>
+  );
+}
+
+/** What rode in from last week: a debt, or pay still to be sent. */
+function CarriedRow({
+  carried,
+  divider = false,
+}: {
+  carried: number;
+  divider?: boolean;
+}) {
+  return (
+    <View
+      className={`pb-2 pt-3 ${divider ? "mt-1 border-t border-nightRaised" : ""}`}
+    >
+      <AppText
+        variant="label"
+        color="ink-muted"
+        className="uppercase tracking-[1.2px]"
+      >
+        From last week
+      </AppText>
+      <View className="mt-1.5 flex-row items-center gap-3">
+        <View
+          className={`h-[30px] w-[30px] items-center justify-center rounded-[9px] ${carried < 0 ? "bg-pink" : "bg-gold"}`}
+        >
+          <Icon
+            name={carried < 0 ? "minus" : "clock"}
+            color={tokens.night}
+            size={15}
+          />
+        </View>
+        <AppText className="flex-1 font-body-heavy text-[15px]">
+          {carried < 0 ? "Debt riding along" : "Still to be paid"}
+        </AppText>
+        <AppText
+          className="font-display text-[16px]"
+          color={carried < 0 ? "pink" : "gold"}
+        >
+          {signed(carried)}
+        </AppText>
+      </View>
     </View>
   );
 }

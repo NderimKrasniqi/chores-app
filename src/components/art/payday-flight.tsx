@@ -71,12 +71,12 @@ export function PaydayFlight({
   const bob = useLoop({ duration: 2600, reverse: true, rest: 0.5 });
 
   const progress = Math.max(0, Math.min(1, weekProgress));
-  const target = landing ? 1 : 0.06 + progress * 0.8;
-  const t = useSharedValue(landing ? 0.78 : target);
+  const weekSpot = 0.06 + progress * 0.8;
+  const t = useSharedValue(weekSpot);
 
   useEffect(() => {
     if (!landing) {
-      t.set(target);
+      t.set(weekSpot);
       return;
     }
     if (reducedMotion) {
@@ -84,7 +84,7 @@ export function PaydayFlight({
       const timer = setTimeout(() => setLandedKey((key) => key + 1), 0);
       return () => clearTimeout(timer);
     }
-    t.set(0.78);
+    // Fly on from wherever the rocket is now — no jump before take-off.
     t.set(
       withDelay(
         450,
@@ -97,7 +97,7 @@ export function PaydayFlight({
       450 + LAND_MS - 150,
     );
     return () => clearTimeout(timer);
-  }, [landing, reducedMotion, t, target]);
+  }, [landing, reducedMotion, t, weekSpot]);
 
   const a = { x: 22, y: HEIGHT - 26 };
   const b = { x: width - HOME * 0.62, y: HEIGHT - HOME * 0.62 };
@@ -105,9 +105,8 @@ export function PaydayFlight({
 
   const rocketStyle = useAnimatedStyle(() => {
     const p = arcAt(a, c, b, t.get());
-    const docked = t.get() >= 0.999;
+    // Docked at the planet after a landing it stays, upright, beside it.
     return {
-      opacity: docked ? 0 : 1,
       transform: [
         { translateX: p.x - ROCKET / 2 },
         {
@@ -135,7 +134,7 @@ export function PaydayFlight({
   const flown: string[] = [];
   const steps = 24;
   for (let i = 0; i <= steps; i += 1) {
-    const p = arcAt(a, c, b, (i / steps) * target);
+    const p = arcAt(a, c, b, (i / steps) * weekSpot);
     flown.push(`${i === 0 ? "M" : "L"}${p.x.toFixed(1)} ${p.y.toFixed(1)}`);
   }
 

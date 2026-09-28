@@ -420,8 +420,14 @@ function LogRow({
   const kind = item.choreKind === "claimable" ? "Extra" : "Quest";
   return (
     <View
-      accessible
-      accessibilityLabel={`${who} completed ${item.choreTitle}, ${kind}, plus ${item.valueSek} kronor, ${formatApprovedAt(item.approvedAt, timezone)}`}
+      // With a high-five button inside, the row can't be one element or
+      // VoiceOver can't reach the button; the text gets the label instead.
+      accessible={!onCheer}
+      accessibilityLabel={
+        onCheer
+          ? undefined
+          : `${who} completed ${item.choreTitle}, ${kind}, plus ${item.valueSek} kronor, ${formatApprovedAt(item.approvedAt, timezone)}`
+      }
       className="min-h-[52px] flex-row items-center gap-3 py-1.5"
     >
       <View>
@@ -430,7 +436,15 @@ function LogRow({
           <Icon name="star" color={color} size={10} />
         </View>
       </View>
-      <View className="flex-1">
+      <View
+        className="flex-1"
+        accessible={Boolean(onCheer)}
+        accessibilityLabel={
+          onCheer
+            ? `${who} completed ${item.choreTitle}, ${kind}, plus ${item.valueSek} kronor, ${formatApprovedAt(item.approvedAt, timezone)}`
+            : undefined
+        }
+      >
         <AppText
           className="font-body-heavy text-[15px] leading-[20px]"
           numberOfLines={1}

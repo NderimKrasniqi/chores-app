@@ -45,6 +45,11 @@ export const send = mutation({
       throw new ConvexError("That win isn’t available any more.");
     }
 
+    const recipient = await ctx.db.get(submission.childId);
+    if (!recipient || recipient.archivedAt !== undefined) {
+      throw new ConvexError("That win isn’t available any more.");
+    }
+
     if (submission.childId === child._id) {
       throw new ConvexError("High-fives are for your brothers and sisters.");
     }
