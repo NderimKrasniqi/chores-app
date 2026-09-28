@@ -417,7 +417,11 @@ function ChildMoneyFixture({
         <AppText variant="screenTitle" className="mt-4">
           Money
         </AppText>
-        <ChildMoneyView overview={overview} now={now} />
+        <ChildMoneyView
+          overview={overview}
+          now={now}
+          previewLanding={state === "paid"}
+        />
       </ScrollView>
     </SafeAreaView>
   );
