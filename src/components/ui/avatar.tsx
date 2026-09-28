@@ -53,3 +53,22 @@ export function Avatar({
     </View>
   );
 }
+
+const toneToken: Record<
+  AvatarTone,
+  "pink" | "primary" | "accent" | "nightDash" | "gold"
+> = {
+  alex: "pink",
+  maya: "primary",
+  parent: "accent",
+  sky: "nightDash",
+  sun: "gold",
+};
+
+/** The avatar's colour as a value, for SVG art that shows the same kid. */
+export function avatarToneColor(
+  tone: AvatarTone,
+  tokens: Record<"pink" | "primary" | "accent" | "nightDash" | "gold", string>,
+) {
+  return tokens[toneToken[tone]];
+}

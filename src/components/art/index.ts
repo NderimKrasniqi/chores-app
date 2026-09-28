@@ -32,3 +32,4 @@ export {
   PATCH_LABEL,
   type PatchKind,
 } from "./crew";
+export { GroundRadar, type RadarCraft, type RadarStatus } from "./ground-radar";

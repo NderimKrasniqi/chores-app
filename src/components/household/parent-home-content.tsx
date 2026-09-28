@@ -1,11 +1,21 @@
 import { useQuery } from "convex/react";
-import { useState, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import { Pressable, View } from "react-native";
-import Animated from "react-native-reanimated";
+import Animated, { FadeInDown } from "react-native-reanimated";
 
-import { ChoreIcon } from "@/components/art";
-import { PRESS, pressTransition } from "@/components/art/motion";
-import { childAvatarTone, Avatar } from "@/components/ui/avatar";
+import {
+  ChoreIcon,
+  GroundRadar,
+  type RadarCraft,
+  type RadarStatus,
+} from "@/components/art";
+import { Easings, PRESS, pressTransition } from "@/components/art/motion";
+import {
+  avatarToneColor,
+  childAvatarTone,
+  Avatar,
+} from "@/components/ui/avatar";
+import { useHourNow, useMinuteNow } from "@/lib/use-hour-now";
 import { Icon } from "@/components/ui/icon";
 import { AppText } from "@/design-system";
 import { useTheme } from "@/design-system/theme";
@@ -123,15 +133,61 @@ function MiniDeck({ count }: { count: number }) {
   );
 }
 
+const LOCK_MS = 2 * 60 * 60 * 1000;
+
+/** A signal on the console: something that needs (or is worth) a look. */
+function Signal({
+  tone,
+  icon,
+  title,
+  detail,
+  onPress,
+}: {
+  tone: "pay" | "watch";
+  icon: "money" | "lock";
+  title: string;
+  detail: string;
+  onPress?: () => void;
+}) {
+  const { tokens } = useTheme();
+  const color = tone === "pay" ? tokens.gold : tokens.pink;
+  return (
+    <Animated.View entering={FadeInDown.duration(200).easing(Easings.out)}>
+      <Tile onPress={onPress} accessibilityLabel={`${title}. ${detail}`}>
+        <View className="flex-row items-center gap-3">
+          <View
+            className="h-11 w-11 items-center justify-center rounded-full"
+            style={{ backgroundColor: color }}
+          >
+            <Icon name={icon} color={tokens.ink} size={20} />
+          </View>
+          <View className="flex-1">
+            <AppText variant="cardTitle">{title}</AppText>
+            <AppText variant="caption" color="ink-muted" numberOfLines={2}>
+              {detail}
+            </AppText>
+          </View>
+          {onPress ? (
+            <Icon name="chevron" color={tokens.inkMuted} size={18} />
+          ) : null}
+        </View>
+      </Tile>
+    </Animated.View>
+  );
+}
+
 /**
- * The parent's mission control: what the day looks like, what's waiting to
- * be checked, how each child is doing, and the latest win.
+ * Ground Control: the parent's console. One job — what needs you now.
+ * Signals up top (chores to check, pay due on payday, locked Extras near
+ * their deadline) appear only when there's something; then the radar, where
+ * each kid's craft sits closer to home the further through today's quests
+ * they are; then missions in flight and the latest win. Balances live in
+ * Money.
  */
 export function ParentHomeContent({
   household,
   parentName,
   onOpenReviews,
-  onAddChore,
   onOpenSwitcher,
   onOpenActivity,
   onOpenMoney,
@@ -140,7 +196,7 @@ export function ParentHomeContent({
   household: HouseholdSummary;
   parentName: string;
   onOpenReviews: () => void;
-  onAddChore: () => void;
+  onAddChore?: () => void;
   onOpenSwitcher: () => void;
   onOpenActivity: () => void;
   onOpenMoney: () => void;
@@ -162,9 +218,13 @@ export function ParentHomeContent({
   const activeClaims = useQuery(api.claimableChores.listActiveForParent, {
     householdId,
   });
-  const [now] = useState(() => Date.now());
+  const hourNow = useHourNow();
+  const progress = useQuery(api.groundControl.todayProgress, {
+    householdId,
+    now: hourNow,
+  });
+  const now = useMinuteNow();
   const hour = localHour(household.timezone, now);
-
   const pending = [...(personal ?? []), ...(claimable ?? []), ...(redos ?? [])];
   const pendingLoaded =
     personal !== undefined && claimable !== undefined && redos !== undefined;
@@ -173,6 +233,53 @@ export function ParentHomeContent({
   ];
   const latestWin = activity?.items[0];
   const firstName = parentName.split(" ")[0];
+
+  // Pay: what's due to be sent (finalised weeks not yet marked paid).
+  const due = (payouts?.children ?? []).flatMap((child) =>
+    child.pendingPayouts.map((payout) => ({
+      name: child.displayName,
+      amount: payout.amountDueSek,
+    })),
+  );
+  const dueTotal = due.reduce((sum, item) => sum + item.amount, 0);
+  // Watch: locked Extras whose deadline is close and not yet sent.
+  const atRisk = (activeClaims ?? []).filter(
+    (claim) =>
+      claim.claimState === "claimed" &&
+      claim.deadlineAt - LOCK_MS <= now &&
+      claim.deadlineAt > now,
+  );
+  const allClear =
+    pendingLoaded &&
+    payouts !== undefined &&
+    activeClaims !== undefined &&
+    pending.length === 0 &&
+    dueTotal === 0 &&
+    atRisk.length === 0;
+
+  const crafts: RadarCraft[] = household.children.map((child) => {
+    const today = progress?.children.find(
+      (item) => item.childId === child.childId,
+    );
+    const waiting = pending.some(
+      (item) => item.childDisplayName === child.displayName,
+    );
+    const status: RadarStatus =
+      today && (today.redo > 0 || today.missed > 0)
+        ? "attention"
+        : waiting || (today?.submitted ?? 0) > 0
+          ? "waiting"
+          : today && today.total > 0
+            ? "on_track"
+            : "idle";
+    return {
+      id: child.childId,
+      name: child.displayName,
+      color: avatarToneColor(childAvatarTone(child.displayName), tokens),
+      progress: today && today.total > 0 ? today.approved / today.total : 0,
+      status,
+    };
+  });
 
   return (
     <View className="pb-8">
@@ -205,116 +312,153 @@ export function ParentHomeContent({
         </Pressable>
       </View>
 
-      <View className="mt-5">
-        <Tile
-          tone={pending.length > 0 ? "ink" : "surface"}
-          onPress={onOpenReviews}
-          accessibilityLabel={
-            pending.length > 0
-              ? `${pending.length} chores to check from ${waitingNames.join(", ")}`
-              : "Nothing to check. Open reviews"
-          }
-        >
-          <View className="flex-row items-center gap-3">
-            <MiniDeck count={pending.length} />
-            <View className="flex-1">
-              <AppText
-                variant="display"
-                style={{
-                  color: pending.length > 0 ? tokens.surface : tokens.ink,
-                }}
-              >
-                {pendingLoaded ? pending.length : "…"}
-              </AppText>
-              <AppText
-                className="font-body-bold"
-                style={{
-                  color: pending.length > 0 ? tokens.surface : tokens.inkMuted,
-                }}
-              >
-                {pending.length === 0
-                  ? "All caught up"
-                  : `to check · ${waitingNames.join(", ")}`}
-              </AppText>
-            </View>
-            <Icon
-              name="chevron"
-              color={pending.length > 0 ? tokens.surface : tokens.inkMuted}
-              size={20}
-            />
-          </View>
-        </Tile>
-      </View>
-
-      <View className="mt-6 flex-row items-baseline justify-between">
-        <AppText variant="sectionTitle">The crew</AppText>
-        <Pressable accessibilityRole="button" onPress={onOpenMoney} hitSlop={8}>
-          <AppText variant="label" color="action">
-            Money
-          </AppText>
-        </Pressable>
-      </View>
-      <View className="mt-3 gap-2.5">
-        {household.children.map((child) => {
-          const money = payouts?.children.find(
-            (item) => item.childId === child.childId,
-          );
-          const owed = (money?.pendingPayouts ?? []).reduce(
-            (sum, payout) => sum + payout.amountDueSek,
-            0,
-          );
-          const claims = (activeClaims ?? []).filter(
-            (claim) => claim.childId === child.childId,
-          );
-          const waiting = pending.filter(
-            (item) => item.childDisplayName === child.displayName,
-          ).length;
-          return (
-            <Tile
-              key={child.childId}
-              onPress={() =>
-                onOpenKid ? onOpenKid(child.childId) : onOpenMoney()
-              }
-              accessibilityLabel={`${child.displayName}: balance ${money?.runningBalanceSek ?? 0} kronor${owed > 0 ? `, ${owed} kronor to pay` : ""}`}
-            >
-              <View className="flex-row items-center gap-3">
-                <Avatar
-                  tone={childAvatarTone(child.displayName)}
-                  className="rounded-full"
-                  fallbackLabel={child.displayName}
-                  size={52}
-                />
-                <View className="flex-1">
-                  <AppText variant="cardTitle">{child.displayName}</AppText>
-                  <AppText
-                    variant="caption"
-                    color="ink-muted"
-                    className="mt-0.5"
-                  >
-                    {[
-                      waiting > 0 ? `${waiting} to check` : null,
-                      claims.length > 0 ? `Extra: ${claims[0].title}` : null,
-                      owed > 0 ? `${owed} kr to pay` : null,
-                    ]
-                      .filter(Boolean)
-                      .join(" · ") || "All quiet"}
-                  </AppText>
-                </View>
-                <View className="items-end">
-                  <AppText variant="amount">
-                    {money ? money.runningBalanceSek : "…"}{" "}
-                    <AppText variant="caption" color="ink-muted">
-                      kr
-                    </AppText>
-                  </AppText>
-                </View>
+      {/* Signals: only what needs you. */}
+      <View className="mt-5 gap-2.5">
+        {pending.length > 0 || !allClear ? (
+          <Tile
+            tone={pending.length > 0 ? "ink" : "surface"}
+            onPress={onOpenReviews}
+            accessibilityLabel={
+              pending.length > 0
+                ? `${pending.length} chores to check from ${waitingNames.join(", ")}`
+                : "Nothing to check. Open reviews"
+            }
+          >
+            <View className="flex-row items-center gap-3">
+              <MiniDeck count={pending.length} />
+              <View className="flex-1">
+                <AppText
+                  variant="display"
+                  style={{
+                    color: pending.length > 0 ? tokens.surface : tokens.ink,
+                  }}
+                >
+                  {pendingLoaded ? pending.length : "…"}
+                </AppText>
+                <AppText
+                  className="font-body-bold"
+                  style={{
+                    color:
+                      pending.length > 0 ? tokens.surface : tokens.inkMuted,
+                  }}
+                >
+                  {pending.length === 0
+                    ? "Nothing to check"
+                    : `to check · ${waitingNames.join(", ")}`}
+                </AppText>
               </View>
-            </Tile>
-          );
-        })}
+              <Icon
+                name="chevron"
+                color={pending.length > 0 ? tokens.surface : tokens.inkMuted}
+                size={20}
+              />
+            </View>
+          </Tile>
+        ) : null}
+        {dueTotal > 0 ? (
+          <Signal
+            tone="pay"
+            icon="money"
+            title={`${dueTotal} kr to send`}
+            detail={due
+              .map((item) => `${item.name} ${item.amount} kr`)
+              .join(" · ")}
+            onPress={onOpenMoney}
+          />
+        ) : null}
+        {atRisk.map((claim) => (
+          <Signal
+            key={claim.claimId}
+            tone="watch"
+            icon="lock"
+            title={`${claim.claimedByDisplayName}: ${claim.title}`}
+            detail={`Locked in · due ${formatClock(claim.deadlineAt, household.timezone)} or −${claim.valueSek} kr`}
+          />
+        ))}
+        {allClear ? (
+          <Tile accessibilityLabel="All clear. Nothing needs you right now.">
+            <View className="flex-row items-center gap-3">
+              <View className="h-11 w-11 items-center justify-center rounded-full bg-primary">
+                <Icon name="check" color={tokens.ink} size={20} />
+              </View>
+              <View className="flex-1">
+                <AppText variant="cardTitle">All clear</AppText>
+                <AppText variant="caption" color="ink-muted">
+                  Nothing needs you right now.
+                </AppText>
+              </View>
+            </View>
+          </Tile>
+        ) : null}
       </View>
 
-      {/* Claimed Extras, with the Parent's no-penalty cancel. */}
+      {/* The radar: how far each kid is through today. */}
+      <View className="mt-6 flex-row items-baseline justify-between">
+        <AppText variant="sectionTitle">Today</AppText>
+        <AppText variant="caption" color="ink-muted">
+          Closer to home = more done
+        </AppText>
+      </View>
+      <View className="mt-3 flex-row items-center gap-4 rounded-[26px] bg-surface p-4">
+        <GroundRadar crafts={crafts} size={150} sweep={allClear} />
+        <View className="flex-1 gap-2.5">
+          {household.children.map((child, i) => {
+            const today = progress?.children.find(
+              (item) => item.childId === child.childId,
+            );
+            const craft = crafts[i];
+            return (
+              <Pressable
+                key={child.childId}
+                accessibilityRole="button"
+                accessibilityLabel={`Open ${child.displayName}`}
+                onPress={() => onOpenKid?.(child.childId)}
+                hitSlop={4}
+              >
+                <View className="flex-row items-center gap-2">
+                  <View
+                    className="h-2.5 w-2.5 rounded-full"
+                    style={{
+                      backgroundColor:
+                        craft.status === "attention"
+                          ? tokens.pink
+                          : craft.status === "waiting"
+                            ? tokens.gold
+                            : craft.status === "on_track"
+                              ? tokens.primary
+                              : tokens.inkFaint,
+                    }}
+                  />
+                  <AppText className="font-body-heavy text-[15px]">
+                    {child.displayName}
+                  </AppText>
+                </View>
+                <AppText
+                  variant="caption"
+                  color="ink-muted"
+                  className="ml-[18px]"
+                >
+                  {!today
+                    ? "…"
+                    : today.total === 0
+                      ? "No quests today"
+                      : [
+                          `${today.approved} of ${today.total} done`,
+                          today.submitted > 0
+                            ? `${today.submitted} sent`
+                            : null,
+                          today.redo > 0 ? `${today.redo} redo` : null,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
+                </AppText>
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
+
+      {/* Missions in flight, with the Parent's no-penalty cancel. */}
       <ActiveClaimableClaimsCard householdId={householdId} homeVariant />
 
       <View className="mt-6 flex-row items-baseline justify-between">
@@ -364,25 +508,19 @@ export function ParentHomeContent({
           )}
         </Tile>
       </View>
-
-      <View className="mt-6 flex-row gap-3">
-        <View className="flex-1">
-          <Tile onPress={onAddChore} accessibilityLabel="Add a chore">
-            <Icon name="plus" color={tokens.action} size={24} />
-            <AppText variant="cardTitle" className="mt-2">
-              Add a chore
-            </AppText>
-          </Tile>
-        </View>
-        <View className="flex-1">
-          <Tile onPress={onOpenMoney} accessibilityLabel="Pay out">
-            <Icon name="money" color={tokens.action} size={24} />
-            <AppText variant="cardTitle" className="mt-2">
-              Pay out
-            </AppText>
-          </Tile>
-        </View>
-      </View>
     </View>
   );
+}
+
+function formatClock(timestamp: number, timezone: string) {
+  try {
+    return new Intl.DateTimeFormat("en-GB", {
+      timeZone: timezone,
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).format(new Date(timestamp));
+  } catch {
+    return new Date(timestamp).toTimeString().slice(0, 5);
+  }
 }

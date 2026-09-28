@@ -72,6 +72,7 @@ import type * as dev_smoke_task22_parentPrincipalSeparation from "../dev/smoke/t
 import type * as dev_smoke_task22_unlockActivation from "../dev/smoke/task22/unlockActivation.js";
 import type * as dev_visualFixtureEvidence from "../dev/visualFixtureEvidence.js";
 import type * as dev_visualFixtures from "../dev/visualFixtures.js";
+import type * as groundControl from "../groundControl.js";
 import type * as health from "../health.js";
 import type * as householdActivity from "../householdActivity.js";
 import type * as households from "../households.js";
@@ -231,6 +232,7 @@ declare const fullApi: ApiFromModules<{
   "dev/smoke/task22/unlockActivation": typeof dev_smoke_task22_unlockActivation;
   "dev/visualFixtureEvidence": typeof dev_visualFixtureEvidence;
   "dev/visualFixtures": typeof dev_visualFixtures;
+  groundControl: typeof groundControl;
   health: typeof health;
   householdActivity: typeof householdActivity;
   households: typeof households;
