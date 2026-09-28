@@ -426,7 +426,14 @@ function ChildMoneyFixture({
 function ChildClaimFixture({
   state,
 }: {
-  state: "active" | "submitted" | "unclaim" | "locked" | "redo" | "lock-sheet";
+  state:
+    | "active"
+    | "submitted"
+    | "unclaim"
+    | "locked"
+    | "redo"
+    | "lock-sheet"
+    | "offers";
 }) {
   // Relative to now so the unclaim window is always open in the preview.
   const now = new Date().getTime();
@@ -465,22 +472,38 @@ function ChildClaimFixture({
       },
     },
     claimableOccurrences:
-      state === "lock-sheet"
-        ? [
-            {
-              occurrenceId,
-              title: "Wash the car",
-              description:
-                "Wash the outside of the car and put the bucket away.",
-              valueSek: 50,
-              timezone: household.timezone,
-              deadlineAt,
-              commitment,
-            },
-          ]
-        : [],
+      state === "offers"
+        ? (
+            [
+              ["Wash the car", 50, 30 * 3_600_000],
+              ["Fold the laundry", 20, 6 * 3_600_000],
+              ["Water the plants", 15, 40 * 60_000],
+            ] as const
+          ).map(([title, valueSek, left], i) => ({
+            occurrenceId: `${occurrenceId}-${i}` as typeof occurrenceId,
+            title,
+            description: "",
+            valueSek,
+            timezone: household.timezone,
+            deadlineAt: now + left,
+            commitment: { ...commitment, lockAt: now + left - 3_600_000 },
+          }))
+        : state === "lock-sheet"
+          ? [
+              {
+                occurrenceId,
+                title: "Wash the car",
+                description:
+                  "Wash the outside of the car and put the bucket away.",
+                valueSek: 50,
+                timezone: household.timezone,
+                deadlineAt,
+                commitment,
+              },
+            ]
+          : [],
     claimedOccurrences:
-      state === "lock-sheet"
+      state === "lock-sheet" || state === "offers"
         ? []
         : [
             {
@@ -532,7 +555,7 @@ function ChildClaimFixture({
               : []
           }
           onSubmitRedo={async () => {}}
-          initialVisualState={state}
+          initialVisualState={state === "offers" ? undefined : state}
         />
       </ScrollView>
     </SafeAreaView>
@@ -822,6 +845,8 @@ function VerificationState({ state }: { state: string }) {
           />
         </View>
       );
+    case "child-extras-offers":
+      return <ChildClaimFixture state="offers" />;
     case "child-active-claim":
       return <ChildClaimFixture state="active" />;
     case "child-unclaim-confirmation":
