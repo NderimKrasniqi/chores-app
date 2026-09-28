@@ -244,14 +244,11 @@ function HomeTab({
               </AppText>
             </BalanceOrb>
             <View className="flex-1">
-              <AppText variant="label" color="ink-muted">
-                Hi, {childName}!
-              </AppText>
               <AppText
                 className="font-display-medium"
                 style={{ fontSize: 20, lineHeight: 25 }}
               >
-                Your money
+                Hi, {childName}!
               </AppText>
               <View className="mt-2 flex-row items-center gap-1 self-start rounded-full bg-nightRaised px-3 py-1">
                 <AppText variant="caption">See payday</AppText>
