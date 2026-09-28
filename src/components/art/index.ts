@@ -17,6 +17,7 @@ export { LockClunk } from "./lock-clunk";
 export { Backpack } from "./backpack";
 export { UnclaimKeys } from "./unclaim-keys";
 export { CargoPod } from "./cargo-pod";
+export { PaydayFlight } from "./payday-flight";
 export { HomePlanet } from "./home-planet";
 export { RocketTrack } from "./rocket-track";
 export { CoinDrop } from "./coin-drop";
