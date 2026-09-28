@@ -2,6 +2,7 @@ import { HomePlanet, Starfield } from "@/components/art";
 import { amountFontSize } from "@/lib/amount-size";
 import { useHourNow } from "@/lib/use-hour-now";
 import { ChildApprovalCelebrations } from "@/components/activity/approval-celebration";
+import { CheerToast } from "@/components/activity/cheer-toast";
 import { ChildHouseholdActivity } from "@/components/activity/child-household-activity";
 import type { ApprovalActivityItem } from "@/components/activity/approval-activity";
 import { ClaimableChoresCard } from "@/components/chores/claimable-chores-card";
@@ -40,6 +41,8 @@ type ChildHomeScreenProps = {
     childId: Id<"children">;
     childDisplayName: string;
     grantedAt: number;
+    /** Other kids in the Household; no Family tab without any. */
+    siblingCount?: number;
   };
   visualFixture?: {
     initialTab?: ChildTab;
@@ -85,6 +88,13 @@ export function ChildHomeScreen({
     visualFixture?.initialTab ?? "home",
   );
   const [profileOpen, setProfileOpen] = useState(false);
+  // Family is about brothers and sisters; an only child gets three tabs.
+  const hasSiblings = access.siblingCount !== 0;
+  const visibleTabs = hasSiblings
+    ? tabs
+    : tabs.filter((tab) => tab.key !== "activity");
+  const shownTab =
+    activeTab === "activity" && !hasSiblings ? "home" : activeTab;
   const [pendingChoreId, setPendingChoreId] =
     useState<Id<"choreOccurrences"> | null>(null);
 
@@ -98,6 +108,11 @@ export function ChildHomeScreen({
           intent.eventKind === "pre_lock_reminder";
         if (extras) {
           setActiveTab("extras");
+          return;
+        }
+        // A sibling's high-five: the win it's about lives in Family.
+        if (intent.eventKind === "cheer") {
+          setActiveTab("activity");
           return;
         }
         if (intent.occurrenceId) {
@@ -124,9 +139,9 @@ export function ChildHomeScreen({
     <ThemeScope mode="quest">
       <SafeAreaView edges={["top"]} className="flex-1 bg-canvas">
         <StatusBar style="light" />
-        <Starfield seed={activeTab.length * 7} />
+        <Starfield seed={shownTab.length * 7} />
 
-        {activeTab === "home" ? (
+        {shownTab === "home" ? (
           <HomeTab
             childName={access.childDisplayName}
             balanceSek={balance?.balanceSek}
@@ -140,7 +155,7 @@ export function ChildHomeScreen({
           />
         ) : (
           <ExistingFeatureTab
-            tab={activeTab}
+            tab={shownTab}
             childId={access.childId}
             childName={access.childDisplayName}
             householdName={access.householdName}
@@ -154,10 +169,18 @@ export function ChildHomeScreen({
           />
         )}
 
-        <View>
-          <ChildTabBar activeTab={activeTab} onChange={setActiveTab} />
-          <View className="bg-surface" style={{ height: insets.bottom }} />
+        <View
+          style={{ paddingBottom: Math.max(insets.bottom - 14, 8) }}
+          className="px-4 pt-1"
+        >
+          <ChildTabBar
+            tabs={visibleTabs}
+            activeTab={shownTab}
+            onChange={setActiveTab}
+          />
         </View>
+
+        {visualFixture ? null : <CheerToast childId={access.childId} />}
 
         <ChildApprovalCelebrations
           key={access.childId}
@@ -215,6 +238,9 @@ function HomeTab({
       visualOccurrences={visualOccurrences}
       visualRedos={visualRedos}
       onOpenExtras={onOpenExtras}
+      titleAccessory={
+        <ProfileButton childName={childName} onPress={onOpenProfile} />
+      }
       header={
         <View className="pb-6 pt-2">
           <MoneyCard
@@ -411,6 +437,50 @@ const PLANET_SIZE = 76;
 const PLANET_BOX = PLANET_SIZE * 1.28 + 24;
 const PLANET_CARD_HEIGHT = 114;
 
+/** Every tab's top: the title, and your avatar (opens your profile). */
+function TabHeader({
+  title,
+  childName,
+  onOpenProfile,
+}: {
+  title: string;
+  childName: string;
+  onOpenProfile: () => void;
+}) {
+  return (
+    <View className="flex-row items-center pb-3 pt-2">
+      <AppText variant="screenTitle" className="flex-1">
+        {title}
+      </AppText>
+      <ProfileButton childName={childName} onPress={onOpenProfile} />
+    </View>
+  );
+}
+
+function ProfileButton({
+  childName,
+  onPress,
+}: {
+  childName: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`Open ${childName}'s profile`}
+      onPress={onPress}
+      hitSlop={6}
+      className="h-9 w-9"
+    >
+      <Avatar
+        tone={childAvatarTone(childName)}
+        className="h-full w-full rounded-full"
+        fallbackLabel={childName}
+      />
+    </Pressable>
+  );
+}
+
 function ExistingFeatureTab({
   tab,
   childId,
@@ -434,67 +504,16 @@ function ExistingFeatureTab({
     timezone: string;
   };
 }) {
-  const extrasResult = useQuery(
-    api.claimableChores.listMine,
-    tab === "extras" ? {} : "skip",
-  );
   const title =
-    tab === "extras" ? "Extras" : tab === "activity" ? "Family" : "My money";
-  const subtitle =
-    tab === "extras"
-      ? extrasResult?.gate.canAccessClaimables === false
-        ? "Extra chores unlock after approval."
-        : "Choose one extra chore to earn more."
-      : tab === "activity"
-        ? `Cheers from ${householdName}`
-        : "Your balance, your progress.";
-  const avatarFirst = tab !== "extras";
+    tab === "extras" ? "Extras" : tab === "activity" ? "Family" : "Money";
 
   return (
     <View className="flex-1 px-5">
-      <View className="min-h-[76px] flex-row items-center pt-2">
-        {avatarFirst ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`Open ${childName}'s profile`}
-            onPress={onOpenProfile}
-            className="h-[52px] w-[52px]"
-          >
-            <Avatar
-              tone={childAvatarTone(childName)}
-              className="h-full w-full rounded-[18px]"
-              fallbackLabel={childName}
-            />
-          </Pressable>
-        ) : null}
-
-        <View className={`${avatarFirst ? "ml-4" : ""} flex-1`}>
-          <AppText variant="screenTitle">{title}</AppText>
-          <AppText
-            variant="bodySmall"
-            color="ink-muted"
-            className="mt-0.5 font-body-bold"
-            numberOfLines={1}
-          >
-            {subtitle}
-          </AppText>
-        </View>
-
-        {!avatarFirst ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`Open ${childName}'s profile`}
-            onPress={onOpenProfile}
-            className="h-[52px] w-[52px]"
-          >
-            <Avatar
-              tone={childAvatarTone(childName)}
-              className="h-full w-full rounded-[18px]"
-              fallbackLabel={childName}
-            />
-          </Pressable>
-        ) : null}
-      </View>
+      <TabHeader
+        title={title}
+        childName={childName}
+        onOpenProfile={onOpenProfile}
+      />
 
       <ScrollView
         className="flex-1"
@@ -507,6 +526,7 @@ function ExistingFeatureTab({
         {tab === "activity" ? (
           <ChildHouseholdActivity
             viewerChildId={childId}
+            viewerName={childName}
             onOpenChores={onOpenHome}
             visualFixture={activityVisualFixture}
           />
@@ -517,15 +537,43 @@ function ExistingFeatureTab({
   );
 }
 
+/**
+ * The control deck: a capsule floating above the page, darker than both the
+ * sky and the cards so it reads as the app's controls, not another card.
+ * The active tab is a lime pill with its name; the rest are icons. No
+ * animation on switching — kids flip tabs all day.
+ */
 function ChildTabBar({
+  tabs,
   activeTab,
   onChange,
 }: {
+  tabs: { key: ChildTab; label: string }[];
   activeTab: ChildTab;
   onChange: (tab: ChildTab) => void;
 }) {
   return (
-    <View className="min-h-[74px] flex-row rounded-t-[28px] bg-surface px-2 pt-2.5">
+    <View
+      className="flex-row overflow-hidden rounded-full p-1.5"
+      style={{
+        backgroundColor: themeColors.night,
+        borderWidth: 1,
+        borderColor: "rgba(255,255,255,0.08)",
+        shadowColor: "#000",
+        shadowOpacity: 0.45,
+        shadowRadius: 18,
+        shadowOffset: { width: 0, height: 8 },
+        elevation: 10,
+      }}
+    >
+      <View
+        pointerEvents="none"
+        style={{
+          position: "absolute",
+          inset: 0,
+          backgroundColor: "rgba(0,0,0,0.32)",
+        }}
+      />
       {tabs.map((tab) => {
         const selected = activeTab === tab.key;
         const icon =
@@ -544,24 +592,23 @@ function ChildTabBar({
             accessibilityState={{ selected }}
             accessibilityLabel={tab.label}
             onPress={() => onChange(tab.key)}
-            className="min-h-[58px] flex-1 items-center"
+            className="min-h-[50px] flex-row items-center justify-center gap-1.5 rounded-full"
+            style={{
+              flexGrow: selected ? 1.6 : 1,
+              flexBasis: 0,
+              backgroundColor: selected ? themeColors.primary : "transparent",
+            }}
           >
-            <View
-              className={`h-8 w-12 items-center justify-center rounded-full ${selected ? "bg-primary" : ""}`}
-            >
-              <Icon
-                name={icon}
-                color={selected ? themeColors.night : themeColors.inkMuted}
-                size={selected ? 20 : 22}
-              />
-            </View>
-            <AppText
-              variant="caption"
-              color={selected ? "primary" : "ink-muted"}
-              className={`mt-1 ${selected ? "font-body-heavy" : ""}`}
-            >
-              {tab.label}
-            </AppText>
+            <Icon
+              name={icon}
+              color={selected ? themeColors.night : themeColors.inkMuted}
+              size={21}
+            />
+            {selected ? (
+              <AppText className="font-body-heavy text-[14px] text-night">
+                {tab.label}
+              </AppText>
+            ) : null}
           </Pressable>
         );
       })}

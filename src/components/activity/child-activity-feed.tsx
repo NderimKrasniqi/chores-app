@@ -1,16 +1,19 @@
 import * as SecureStore from "expo-secure-store";
 import { useEffect, useMemo, useState } from "react";
-import { AppState, View } from "react-native";
+import { AppState, Pressable, View } from "react-native";
 
 import {
   ChoreIcon,
+  CrewBadge,
+  HighFiveHand,
+  Patch,
+  PATCH_LABEL,
   StarBuddy,
-  StarShelf,
-  type ShelfDay,
+  type PatchKind,
 } from "@/components/art";
 import { Icon } from "@/components/ui/icon";
 import { ActionButton, AppText } from "@/design-system";
-import { useTheme } from "@/design-system/theme";
+import { questTokens, useTheme } from "@/design-system/theme";
 
 import type { Id } from "../../../convex/_generated/dataModel";
 import {
@@ -27,26 +30,47 @@ export type WeekStar = {
   childId: string;
   childDisplayName: string;
   approvedAt: number;
+  choreKind?: "personal" | "claimable";
+  isUnlockChore?: boolean;
 };
 
 const DAY_MS = 86_400_000;
 
-/** The last 7 household-local dates, oldest first, ending today. */
-function lastSevenDays(now: number, timezone: string) {
-  const today = localDateKey(now, timezone);
-  const [y, m, d] = today.split("-").map(Number);
-  const base = Date.UTC(y, m - 1, d, 12);
-  return Array.from({ length: 7 }, (_, i) => {
-    const date = new Date(base - (6 - i) * DAY_MS);
-    return {
-      key: date.toISOString().slice(0, 10),
-      label: date.toLocaleDateString("en-GB", {
-        weekday: "narrow",
-        timeZone: "UTC",
-      }),
-      isToday: i === 6,
-    };
-  });
+/** The household-local date `n` days before `key` (YYYY-MM-DD). */
+function dayBefore(key: string, n: number) {
+  const [y, m, d] = key.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d, 12) - n * DAY_MS)
+    .toISOString()
+    .slice(0, 10);
+}
+
+/**
+ * This week's patches for one crew member, from their approvals (no money):
+ * a busy day (3+ wins in one day), every day (wins on 5+ days), an unlock
+ * streak (Unlock Chore approved on 2+ days in a row, up to today or
+ * yesterday) and mission hero (an Extra approved).
+ */
+function patchesFor(stars: WeekStar[], timezone: string, todayKey: string) {
+  const perDay = new Map<string, number>();
+  const unlockDays = new Set<string>();
+  let hero = false;
+  for (const star of stars) {
+    const day = localDateKey(star.approvedAt, timezone);
+    perDay.set(day, (perDay.get(day) ?? 0) + 1);
+    if (star.isUnlockChore) unlockDays.add(day);
+    if (star.choreKind === "claimable") hero = true;
+  }
+  let streak = 0;
+  const start = unlockDays.has(todayKey) ? 0 : 1;
+  while (unlockDays.has(dayBefore(todayKey, start + streak))) streak += 1;
+
+  const earned: { kind: PatchKind; count?: number }[] = [];
+  if ([...perDay.values()].some((wins) => wins >= 3))
+    earned.push({ kind: "busy" });
+  if (perDay.size >= 5) earned.push({ kind: "everyday" });
+  if (streak >= 2) earned.push({ kind: "streak", count: streak });
+  if (hero) earned.push({ kind: "hero" });
+  return earned;
 }
 
 /**
@@ -82,20 +106,24 @@ function useShelfSeen(seenKey: string | undefined, newest: number) {
 }
 
 /**
- * The Family tab: a shelf of this week's jars — each approved chore drops a
- * star in its owner's colour — and below it a log of who did what for how much.
- * Chore values are shared; balances never appear here.
+ * The Family tab is about the crew: everyone as an astronaut with this
+ * week's star count and the patches they earned (no ranking, no totals),
+ * then what the brothers and sisters did, each win with a high-five.
+ * Chore values are shared (J-11); balances never appear here.
  */
 export function ChildActivityFeed({
   items,
   timezone,
   viewerChildId,
   onOpenChores,
-  emptyTitle = "The jars are empty",
-  emptyBody = "Your first approved quest drops the first star in.",
+  emptyTitle = "No family wins yet",
+  emptyBody = "When your brothers and sisters finish quests, they light up here.",
   emptyActionLabel = "See your quests",
   weekStars,
   seenKey,
+  cheered,
+  onCheer,
+  viewerName,
 }: {
   items: ApprovalActivityItem[];
   timezone: string;
@@ -109,6 +137,12 @@ export function ChildActivityFeed({
   emptyTitle?: string;
   emptyBody?: string;
   emptyActionLabel?: string;
+  /** Wins this Child already high-fived. */
+  cheered?: ReadonlySet<string>;
+  /** Kids only: high-five a sibling's win. */
+  onCheer?: (activityId: ApprovalActivityItem["activityId"]) => void;
+  /** The signed-in child's name, for their helmet's initial. */
+  viewerName?: string;
 }) {
   const { tokens } = useTheme();
   const week: WeekStar[] = useMemo(
@@ -119,6 +153,7 @@ export function ChildActivityFeed({
         childId: item.childId,
         childDisplayName: item.childDisplayName,
         approvedAt: item.approvedAt,
+        choreKind: item.choreKind,
       })),
     [items, weekStars],
   );
@@ -175,52 +210,92 @@ export function ChildActivityFeed({
     };
   }, []);
   const todayKey = localDateKey(now, timezone);
-  const today = items.filter(
+  // A kid's Family log is about their brothers and sisters — their own wins
+  // are already in Money, and show here only as their stars in the sky.
+  const logItems = viewerChildId
+    ? items.filter((item) => item.childId !== viewerChildId)
+    : items;
+  const today = logItems.filter(
     (item) => localDateKey(item.approvedAt, timezone) === todayKey,
   );
-  const earlier = items.filter(
+  const earlier = logItems.filter(
     (item) => localDateKey(item.approvedAt, timezone) !== todayKey,
   );
 
   const newest = week.reduce((max, star) => Math.max(max, star.approvedAt), 0);
   const seen = useShelfSeen(seenKey, newest);
-  // Hold stars back until we know what was seen, so new ones mount as new
-  // (and drop) instead of appearing and then silently becoming "new".
-  const seenKnown = !seenKey || seen !== undefined;
-  const days: ShelfDay[] = lastSevenDays(now, timezone).map((day) => ({
-    ...day,
-    stars: (seenKnown ? week : [])
-      .filter((star) => localDateKey(star.approvedAt, timezone) === day.key)
-      .sort((a, b) => a.approvedAt - b.approvedAt)
-      .map((star) => ({
-        id: star.activityId,
-        color: colorFor(star.childId),
-        isNew: typeof seen === "number" && star.approvedAt > seen,
+  // Patches earned since the last visit stitch themselves on once.
+  const crew = owners.map((owner) => {
+    const mine = week.filter((star) => star.childId === owner.id);
+    const now = patchesFor(mine, timezone, todayKey);
+    const before =
+      typeof seen === "number"
+        ? patchesFor(
+            mine.filter((star) => star.approvedAt <= seen),
+            timezone,
+            todayKey,
+          ).map((patch) => patch.kind)
+        : null;
+    return {
+      ...owner,
+      patches: now.map((patch) => ({
+        ...patch,
+        isNew: before !== null && !before.includes(patch.kind),
       })),
-  }));
+    };
+  });
+  const seenKnown = !seenKey || seen !== undefined;
 
   return (
     <View className="pb-6">
-      <StarShelf days={days} />
-
-      {owners.length > 0 ? (
-        <View className="mt-3 flex-row flex-wrap gap-2">
-          {owners.map((owner) => (
+      {seenKnown && crew.length > 0 ? (
+        <View className="gap-2.5">
+          {crew.map((member) => (
             <View
-              key={owner.id}
+              key={member.id}
               accessible
-              accessibilityLabel={`${owner.name}: ${owner.wins} ${owner.wins === 1 ? "win" : "wins"} this week`}
-              className="flex-row items-center gap-1.5 rounded-full bg-surface px-3 py-1.5"
+              accessibilityLabel={`${member.name}: ${member.wins} ${member.wins === 1 ? "star" : "stars"} this week${
+                member.patches.length > 0
+                  ? `. Patches: ${member.patches.map((patch) => PATCH_LABEL[patch.kind]).join(", ")}`
+                  : ""
+              }`}
+              className="flex-row items-center gap-3.5 rounded-large bg-surface py-3 pl-3 pr-4"
             >
-              <Icon name="star" color={owner.color} size={14} />
-              <AppText className="font-body-heavy text-[14px]">
-                {owner.name}
-              </AppText>
-              <AppText variant="caption" color="ink-muted">
-                {owner.wins}
-              </AppText>
+              <CrewBadge
+                name={
+                  member.name === "You" ? (viewerName ?? "You") : member.name
+                }
+                color={member.color}
+                stars={member.wins}
+                size={52}
+              />
+              <View className="flex-1">
+                <AppText className="font-body-heavy text-[16px]">
+                  {member.name}
+                </AppText>
+                {member.patches.length > 0 ? (
+                  <View className="mt-1.5 flex-row flex-wrap gap-1.5">
+                    {member.patches.map((patch) => (
+                      <Patch
+                        key={patch.kind}
+                        kind={patch.kind}
+                        count={patch.count}
+                        isNew={patch.isNew}
+                        size={28}
+                      />
+                    ))}
+                  </View>
+                ) : (
+                  <AppText variant="caption" color="ink-muted">
+                    {member.wins === 0
+                      ? "No stars yet this week"
+                      : "No patches yet this week"}
+                  </AppText>
+                )}
+              </View>
             </View>
           ))}
+          <PatchLegend />
         </View>
       ) : null}
 
@@ -233,7 +308,7 @@ export function ChildActivityFeed({
         </View>
       ) : null}
 
-      {items.length === 0 ? (
+      {logItems.length === 0 ? (
         <View
           className="mt-6 items-center"
           testID="household-approval-activity"
@@ -264,6 +339,8 @@ export function ChildActivityFeed({
             timezone={timezone}
             viewerChildId={viewerChildId}
             colorFor={colorFor}
+            cheered={cheered}
+            onCheer={onCheer}
           />
           <LogSection
             title="Earlier"
@@ -271,6 +348,8 @@ export function ChildActivityFeed({
             timezone={timezone}
             viewerChildId={viewerChildId}
             colorFor={colorFor}
+            cheered={cheered}
+            onCheer={onCheer}
           />
         </View>
       )}
@@ -284,12 +363,16 @@ function LogSection({
   timezone,
   viewerChildId,
   colorFor,
+  cheered,
+  onCheer,
 }: {
   title: string;
   items: ApprovalActivityItem[];
   timezone: string;
   viewerChildId?: Id<"children">;
   colorFor: (childId: string) => string;
+  cheered?: ReadonlySet<string>;
+  onCheer?: (activityId: ApprovalActivityItem["activityId"]) => void;
 }) {
   if (items.length === 0) return null;
   return (
@@ -297,7 +380,7 @@ function LogSection({
       <AppText variant="sectionTitle" accessibilityRole="header">
         {title}
       </AppText>
-      <View className="mt-3 gap-2.5">
+      <View className="mt-3 rounded-large bg-surface px-4 py-1.5">
         {items.map((item) => (
           <LogRow
             key={item.activityId}
@@ -305,6 +388,12 @@ function LogSection({
             timezone={timezone}
             mine={item.childId === viewerChildId}
             color={colorFor(item.childId)}
+            cheered={cheered?.has(item.activityId) ?? false}
+            onCheer={
+              onCheer && item.childId !== viewerChildId
+                ? () => onCheer(item.activityId)
+                : undefined
+            }
           />
         ))}
       </View>
@@ -317,46 +406,139 @@ function LogRow({
   timezone,
   mine,
   color,
+  cheered,
+  onCheer,
 }: {
   item: ApprovalActivityItem;
   timezone: string;
   mine: boolean;
   color: string;
+  cheered: boolean;
+  onCheer?: () => void;
 }) {
   const who = mine ? "You" : item.childDisplayName;
   const kind = item.choreKind === "claimable" ? "Extra" : "Quest";
   return (
     <View
-      accessible
-      accessibilityLabel={`${who} completed ${item.choreTitle}, ${kind}, plus ${item.valueSek} kronor, ${formatApprovedAt(item.approvedAt, timezone)}`}
-      className="min-h-[72px] flex-row items-center gap-3 rounded-large bg-surface py-2.5 pl-2.5 pr-3"
-      style={mine ? { borderWidth: 2, borderColor: color } : undefined}
+      // With a high-five button inside, the row can't be one element or
+      // VoiceOver can't reach the button; the text gets the label instead.
+      accessible={!onCheer}
+      accessibilityLabel={
+        onCheer
+          ? undefined
+          : `${who} completed ${item.choreTitle}, ${kind}, plus ${item.valueSek} kronor, ${formatApprovedAt(item.approvedAt, timezone)}`
+      }
+      className="min-h-[52px] flex-row items-center gap-3 py-1.5"
     >
       <View>
-        <ChoreIcon title={item.choreTitle} size={48} />
-        <View className="absolute -right-1 -top-1 h-5 w-5 items-center justify-center rounded-full bg-night">
-          <Icon name="star" color={color} size={12} />
+        <ChoreIcon title={item.choreTitle} size={34} />
+        <View className="absolute -right-1 -top-1 h-4 w-4 items-center justify-center rounded-full bg-night">
+          <Icon name="star" color={color} size={10} />
         </View>
       </View>
-      <View className="flex-1">
+      <View
+        className="flex-1"
+        accessible={Boolean(onCheer)}
+        accessibilityLabel={
+          onCheer
+            ? `${who} completed ${item.choreTitle}, ${kind}, plus ${item.valueSek} kronor, ${formatApprovedAt(item.approvedAt, timezone)}`
+            : undefined
+        }
+      >
         <AppText
           className="font-body-heavy text-[15px] leading-[20px]"
-          numberOfLines={2}
+          numberOfLines={1}
         >
           <AppText className="font-body-heavy text-[15px]" style={{ color }}>
             {who}
           </AppText>{" "}
-          completed {item.choreTitle}
+          · {item.choreTitle}
         </AppText>
-        <AppText variant="caption" color="ink-muted" className="mt-0.5">
+        <AppText variant="caption" color="ink-muted">
           {kind} · {formatApprovedAt(item.approvedAt, timezone)}
         </AppText>
       </View>
-      <View className="min-h-[36px] items-center justify-center rounded-full border-b-[3px] border-goldShade bg-gold px-3">
-        <AppText className="font-display text-[14px] leading-[16px] text-night">
-          +{item.valueSek} kr
-        </AppText>
-      </View>
+      <AppText className="font-display text-[15px]" color="gold">
+        +{item.valueSek} kr
+      </AppText>
+      {onCheer ? (
+        <HighFiveButton
+          cheered={cheered}
+          who={item.childDisplayName}
+          onPress={onCheer}
+        />
+      ) : null}
+    </View>
+  );
+}
+
+/**
+ * A high-five for a sibling's win. Press gives a small squash; once sent
+ * it turns gold and stays that way (one per win).
+ */
+function HighFiveButton({
+  cheered,
+  who,
+  onPress,
+}: {
+  cheered: boolean;
+  who: string;
+  onPress: () => void;
+}) {
+  // Only kids see this button, always on the night-sky theme.
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={
+        cheered ? `You high-fived ${who}` : `High-five ${who}`
+      }
+      accessibilityState={{ disabled: cheered }}
+      disabled={cheered}
+      onPress={onPress}
+      hitSlop={8}
+    >
+      {({ pressed }) => (
+        <View
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: 20,
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: cheered
+              ? questTokens.gold
+              : questTokens.nightRaised,
+            transform: [{ scale: pressed ? 0.9 : 1 }],
+          }}
+        >
+          <HighFiveHand
+            size={20}
+            color={cheered ? questTokens.night : questTokens.ink}
+          />
+        </View>
+      )}
+    </Pressable>
+  );
+}
+
+/** What the patches mean, one line each. */
+function PatchLegend() {
+  const kinds: { kind: PatchKind; text: string }[] = [
+    { kind: "busy", text: "3 wins in one day" },
+    { kind: "everyday", text: "Wins on 5 days" },
+    { kind: "streak", text: "Unlock Chore days in a row" },
+    { kind: "hero", text: "An Extra done" },
+  ];
+  return (
+    <View className="flex-row flex-wrap gap-x-3 gap-y-1.5 px-1">
+      {kinds.map(({ kind, text }) => (
+        <View key={kind} className="flex-row items-center gap-1.5">
+          <Patch kind={kind} size={16} />
+          <AppText variant="caption" color="ink-muted" style={{ fontSize: 11 }}>
+            {text}
+          </AppText>
+        </View>
+      ))}
     </View>
   );
 }

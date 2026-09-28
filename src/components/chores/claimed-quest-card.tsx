@@ -9,7 +9,7 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import {
-  Backpack,
+  LaunchPad,
   ChoreIcon,
   Floating,
   LockClunk,
@@ -68,7 +68,7 @@ function moment(timestamp: number, tz: string) {
 }
 
 /**
- * The Extra in your backpack, as a full-screen quest card. Tells the claim's
+ * Your mission on the launch pad, as a full-screen quest card. Tells the claim's
  * story visually: the unclaim window closing on a timeline, what's at stake
  * once it's locked, and sending the work with a deliberate hold.
  */
@@ -153,7 +153,7 @@ function CardBody({
       <View className="flex-row items-center justify-between px-5 pb-1 pt-2">
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Close quest"
+          accessibilityLabel="Close mission"
           onPress={onClose}
           hitSlop={8}
           className="h-11 w-11 items-center justify-center rounded-full bg-surface"
@@ -193,8 +193,8 @@ function CardBody({
         <View className="mt-6 gap-3">
           {claim.claimState === "submitted" ? (
             <Panel art={<FlippingHourglass />} title="A Parent is checking">
-              It stays in your backpack until it’s approved — then you can pick
-              another bonus quest.
+              It stays on your launch pad until it’s approved, then you can
+              launch another mission.
             </Panel>
           ) : null}
 
@@ -226,8 +226,8 @@ function CardBody({
           {locked ? (
             <Panel art={<LockClunk size={64} />} title="Locked in">
               {claim.commitment?.lockReason === "allowance_exhausted"
-                ? "You’re out of unclaim keys this week, so this quest is yours to finish."
-                : "The unclaim window has closed, so this quest is yours to finish."}
+                ? "You’re out of abort passes this week, so this mission is yours to finish."
+                : "The abort window has closed, so this mission is yours to finish."}
             </Panel>
           ) : null}
 
@@ -271,7 +271,7 @@ function CardBody({
                 ? "Fingers crossed!"
                 : isRedo
                   ? "You can fix this. I believe in you!"
-                  : "Bonus quest time — let’s go!"
+                  : "Mission time. Let’s go!"
             }
           />
 
@@ -279,7 +279,7 @@ function CardBody({
             <Pressable
               testID="child-active-claim-unclaim"
               accessibilityRole="button"
-              accessibilityLabel="Unclaim this quest"
+              accessibilityLabel="Abort this mission"
               accessibilityHint="Uses one of your weekly unclaims"
               onPress={() => setUnclaimOpen(true)}
               className="mt-1 min-h-[44px] flex-row items-center justify-center gap-2 self-center px-4"
@@ -290,7 +290,7 @@ function CardBody({
                 color="ink-muted"
                 className="font-body-bold underline"
               >
-                Use a key to drop this quest
+                Use an abort pass to drop this mission
               </AppText>
             </Pressable>
           ) : null}
@@ -465,7 +465,7 @@ function CommitmentStrip({
         Unclaim window
       </AppText>
       <AppText className="mt-1 font-body-heavy text-[16px] leading-[22px]">
-        You can drop it until {stripTime(lockAt, tz).replace(/^T/, "t")}
+        You can abort until {stripTime(lockAt, tz).replace(/^T/, "t")}
       </AppText>
 
       <View
@@ -602,8 +602,8 @@ function BuddyNote({ text }: { text: string }) {
 }
 
 /**
- * Dropping a quest costs a key. On confirm the key lifts off the row and the
- * quest rises out of the backpack, so the cost is seen, not just read.
+ * Aborting a mission costs a pass. On confirm the pass lifts off the row and
+ * the rocket powers down and leaves the pad, so the cost is seen, not just read.
  */
 function UnclaimSheet({
   claim,
@@ -664,23 +664,28 @@ function UnclaimSheet({
           >
             <View className="h-1.5 w-12 self-center rounded-full bg-nightRaised" />
             <View className="mt-4 items-center">
-              <Backpack size={120} title={claim.title} leaving={leaving} />
+              <LaunchPad
+                size={120}
+                state="ready"
+                title={claim.title}
+                leaving={leaving}
+              />
             </View>
             <AppText variant="sectionTitle" className="mt-3 text-center">
-              Drop {claim.title}?
+              Abort {claim.title}?
             </AppText>
             <AppText
               color="ink-muted"
               className="mt-1.5 text-center font-body-bold"
             >
-              It goes back to the bonus quests for someone else to claim. Your
+              It goes back to the missions for someone else to launch. Your
               balance doesn’t change.
             </AppText>
 
             <View className="mt-5 flex-row items-center justify-between rounded-large bg-canvas px-4 py-3">
               <View>
                 <AppText className="font-body-heavy text-[15px]">
-                  Costs 1 key
+                  Costs 1 abort pass
                 </AppText>
                 <AppText variant="caption" color="ink-muted" className="mt-0.5">
                   You’ll have {keysAfter} of {allowance.allowance} left this
@@ -706,7 +711,7 @@ function UnclaimSheet({
 
             <ActionButton
               className="mt-5"
-              label="Use 1 key"
+              label="Use 1 pass"
               tone="destructive"
               leading={<Icon name="key" color={tokens.white} size={18} />}
               loading={busy}

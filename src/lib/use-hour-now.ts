@@ -26,6 +26,28 @@ export function useHourNow() {
 }
 
 /**
+ * "Now" rounded to the minute, for countdowns a kid reads ("closes in
+ * 1 h 20 min"): ticks once a minute and on return to the app, never per
+ * frame.
+ */
+export function useMinuteNow() {
+  const round = () => Math.floor(Date.now() / 60_000) * 60_000;
+  const [now, setNow] = useState(round);
+  useEffect(() => {
+    const refresh = () => setNow(round());
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state === "active") refresh();
+    });
+    const timer = setInterval(refresh, 60_000);
+    return () => {
+      subscription.remove();
+      clearInterval(timer);
+    };
+  }, []);
+  return now;
+}
+
+/**
  * Keeps showing the last result while a query with new arguments loads,
  * instead of flashing back to `undefined`.
  */

@@ -9,6 +9,7 @@
  */
 
 import type * as auth from "../auth.js";
+import type * as cheers from "../cheers.js";
 import type * as childAccess from "../childAccess.js";
 import type * as childOverview from "../childOverview.js";
 import type * as childPairing from "../childPairing.js";
@@ -147,6 +148,7 @@ import type * as personalChores from "../personalChores.js";
 import type * as pushNotifications from "../pushNotifications.js";
 import type * as redoChoreReviews from "../redoChoreReviews.js";
 import type * as runningBalances from "../runningBalances.js";
+import type * as schema_cheers from "../schema/cheers.js";
 import type * as schema_childAccess from "../schema/childAccess.js";
 import type * as schema_chores from "../schema/chores.js";
 import type * as schema_claims from "../schema/claims.js";
@@ -166,6 +168,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
+  cheers: typeof cheers;
   childAccess: typeof childAccess;
   childOverview: typeof childOverview;
   childPairing: typeof childPairing;
@@ -304,6 +307,7 @@ declare const fullApi: ApiFromModules<{
   pushNotifications: typeof pushNotifications;
   redoChoreReviews: typeof redoChoreReviews;
   runningBalances: typeof runningBalances;
+  "schema/cheers": typeof schema_cheers;
   "schema/childAccess": typeof schema_childAccess;
   "schema/chores": typeof schema_chores;
   "schema/claims": typeof schema_claims;

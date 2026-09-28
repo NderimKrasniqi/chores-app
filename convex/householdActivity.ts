@@ -16,6 +16,8 @@ const activityItemValidator = v.object({
 
   choreKind: v.union(v.literal("personal"), v.literal("claimable")),
 
+  isUnlockChore: v.boolean(),
+
   valueSek: v.number(),
 
   approvedAt: v.number(),
@@ -96,6 +98,10 @@ const weekStarsValidator = v.object({
 
       childDisplayName: v.string(),
 
+      choreKind: v.union(v.literal("personal"), v.literal("claimable")),
+
+      isUnlockChore: v.boolean(),
+
       approvedAt: v.number(),
     }),
   ),
@@ -115,6 +121,8 @@ async function weekStars(
     activityId: item.activityId,
     childId: item.childId,
     childDisplayName: item.childDisplayName,
+    choreKind: item.choreKind,
+    isUnlockChore: item.isUnlockChore,
     approvedAt: item.approvedAt,
   }));
 }

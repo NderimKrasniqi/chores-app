@@ -80,6 +80,13 @@ async function isNotificationEventActionable(
     return !review;
   }
 
+  // A sibling's high-five stays worth delivering; nothing can undo it.
+  if (event.kind === "cheer") {
+    if (!event.childId) return false;
+    const recipient = await ctx.db.get(event.childId);
+    return recipient !== null && recipient.archivedAt === undefined;
+  }
+
   if (event.kind === "approved") {
     if (!event.occurrenceId || !event.childId) {
       return false;

@@ -12,6 +12,9 @@ export type ApprovalActivityItem = {
 
   choreKind: "personal" | "claimable";
 
+  /** An approved Unlock Chore (for the Family "unlock streak" patch). */
+  isUnlockChore: boolean;
+
   valueSek: number;
 
   approvedAt: number;
@@ -109,6 +112,8 @@ export async function listHouseholdApprovalActivity(
       choreTitle: occurrence.title,
 
       choreKind: occurrence.kind,
+
+      isUnlockChore: occurrence.isUnlockChore,
 
       valueSek: occurrence.valueSek,
 

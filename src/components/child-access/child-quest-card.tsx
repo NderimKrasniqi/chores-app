@@ -11,7 +11,7 @@ import {
   Scene,
   StarBuddy,
   Starfield,
-  TreasureChest,
+  Airlock,
   useLoop,
 } from "@/components/art";
 import { Easings } from "@/components/art/motion";
@@ -358,7 +358,7 @@ function UnlockNote({ occurrence }: { occurrence: ChildHomeChoreOccurrence }) {
   const missed = occurrence.state === "missed" || occurrence.state === "failed";
   return (
     <View className="flex-row items-center gap-2 overflow-hidden rounded-large bg-surface py-2 pl-1 pr-4">
-      <TreasureChest state={approved ? "open" : "locked"} size={88} />
+      <Airlock size={88} open={approved} />
       <View className="flex-1">
         <AppText
           variant="label"
@@ -369,10 +369,10 @@ function UnlockNote({ occurrence }: { occurrence: ChildHomeChoreOccurrence }) {
         </AppText>
         <AppText className="mt-0.5 font-body-heavy text-[15px] leading-[20px]">
           {approved
-            ? "The Extras chest is open!"
+            ? "The Extras airlock is open!"
             : missed
               ? "This one didn’t open Extras. Only approval of your current Unlock Chore can."
-              : "When a Parent approves this, the Extras chest opens."}
+              : "When a Parent approves this, the Extras airlock opens."}
         </AppText>
       </View>
     </View>
