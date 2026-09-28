@@ -10,7 +10,14 @@ import { questTokens as themeColors } from "@/design-system/theme";
 import { AppText } from "@/design-system";
 import { useServerConfirmedMutation } from "@/hooks/use-server-confirmed-mutation";
 import { useQuery } from "convex/react";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { Alert, Pressable, ScrollView, View } from "react-native";
 import { userErrorMessage } from "@/lib/errors";
 
@@ -244,24 +251,24 @@ export function ChildHomeChoreList({
   }
 
   const stops = useMemo<QuestStop[]>(() => {
-    const history = [...recentHistory].reverse();
-    const current = [...visibleOccurrences].sort((left, right) => {
-      const order = (state: OccurrenceState) =>
-        state === "submitted"
-          ? 0
-          : state === "redo_required"
-            ? 1
-            : state === "available"
-              ? 2
-              : 3;
-      return (
-        order(left.state) - order(right.state) ||
-        left.deadlineAt - right.deadlineAt
-      );
-    });
-    let currentAssigned = false;
+    // One fixed route in deadline order: a chore keeps its place on the map
+    // as it moves on (to do → sent → done), so nothing reshuffles. Finished
+    // chores from earlier days live in Family and Money instead.
+    const history = recentHistory.filter(
+      (occurrence) =>
+        relativeDayLabel(occurrence.deadlineAt, occurrence.timezone) ===
+        "today",
+    );
+    const route = [...history, ...visibleOccurrences].sort(
+      (left, right) =>
+        left.deadlineAt - right.deadlineAt ||
+        left.availabilityStartsAt - right.availabilityStartsAt,
+    );
+    const upNextId = route.find(
+      (occurrence) => occurrence.state === "available",
+    )?.occurrenceId;
 
-    return [...history, ...current].map((occurrence) => {
+    return route.map((occurrence) => {
       const redo = redoByOccurrence.get(occurrence.occurrenceId);
       const open = () => setSelectedId(occurrence.occurrenceId);
       const base = {
@@ -303,8 +310,7 @@ export function ChildHomeChoreList({
           subtitle: statusLabel(occurrence, redo),
         } as QuestStop;
       }
-      if (occurrence.state === "available" && !currentAssigned) {
-        currentAssigned = true;
+      if (occurrence.occurrenceId === upNextId) {
         return {
           ...base,
           status: "current",
@@ -333,41 +339,21 @@ export function ChildHomeChoreList({
     });
   }, [recentHistory, redoByOccurrence, visibleOccurrences]);
 
-  // The map starts at the rocket: today's finished chores fold into the
-  // moon cluster (older ones live in Family and Money), and only the next
-  // few upcoming planets are drawn.
+  // Today's route, then only the next few upcoming days' planets.
   const mapStops = useMemo(() => {
-    const finishedToday = new Set(
-      recentHistory
-        .filter(
-          (occurrence) =>
-            relativeDayLabel(occurrence.deadlineAt, occurrence.timezone) ===
-            "today",
-        )
-        .map((occurrence) => occurrence.occurrenceId as string),
-    );
-    const doneToday = stops.filter(
-      (stop) =>
-        (stop.status === "done" || stop.status === "missed") &&
-        finishedToday.has(stop.key),
-    );
-    const live = stops.filter(
-      (stop) => stop.status !== "done" && stop.status !== "missed",
-    );
     const scheduledKeys = new Set(
       visibleOccurrences
         .filter((occurrence) => occurrence.state === "scheduled")
         .map((occurrence) => occurrence.occurrenceId as string),
     );
-    const now = live.filter((stop) => !scheduledKeys.has(stop.key));
-    const later = live.filter((stop) => scheduledKeys.has(stop.key));
+    const today = stops.filter((stop) => !scheduledKeys.has(stop.key));
+    const later = stops.filter((stop) => scheduledKeys.has(stop.key));
     const shownLater = later.slice(0, UPCOMING_PLANETS);
     return {
-      doneToday,
-      ahead: [...now, ...shownLater],
+      route: [...today, ...shownLater],
       moreLater: later.length - shownLater.length,
     };
-  }, [recentHistory, stops, visibleOccurrences]);
+  }, [stops, visibleOccurrences]);
 
   const firstRedo = visibleOccurrences.find(
     (occurrence) => occurrence.state === "redo_required",
@@ -379,6 +365,16 @@ export function ChildHomeChoreList({
           (occurrence) =>
             occurrence.isUnlockChore && occurrence.state === "approved",
         ) && !visibleOccurrences.some((occurrence) => occurrence.isUnlockChore);
+
+  // Open where the rocket is, and follow it when it flies on.
+  const scrollRef = useRef<ScrollView>(null);
+  const mapTop = useRef(0);
+  const scrolledOnce = useRef(false);
+  const scrollToRocket = useCallback((rocketY: number) => {
+    const y = Math.max(0, mapTop.current + rocketY - 220);
+    scrollRef.current?.scrollTo({ y, animated: scrolledOnce.current });
+    scrolledOnce.current = true;
+  }, []);
 
   let body: ReactNode;
 
@@ -449,11 +445,16 @@ export function ChildHomeChoreList({
           </AppText>
         </View>
 
-        <View className="-mx-5">
+        <View
+          className="-mx-5"
+          onLayout={(event) => {
+            mapTop.current = event.nativeEvent.layout.y;
+          }}
+        >
           <StarMap
-            stops={mapStops.ahead}
-            done={mapStops.doneToday}
+            stops={mapStops.route}
             moreLater={mapStops.moreLater}
+            onRocketY={scrollToRocket}
           />
         </View>
 
@@ -497,6 +498,7 @@ export function ChildHomeChoreList({
   return (
     <>
       <ScrollView
+        ref={scrollRef}
         className="flex-1"
         contentContainerClassName="px-5 pb-10"
         showsVerticalScrollIndicator={false}

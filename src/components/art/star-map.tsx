@@ -8,7 +8,9 @@ import Animated, {
   useSharedValue,
   withDelay,
   withSequence,
+  withSpring,
   withTiming,
+  type SharedValue,
 } from "react-native-reanimated";
 import Svg, { Circle, Ellipse, G, Path } from "react-native-svg";
 
@@ -401,11 +403,23 @@ function Trail({
   );
 }
 
-function RocketArt({ tokens }: { tokens: Tokens }) {
+function RocketArt({
+  tokens,
+  flying,
+}: {
+  tokens: Tokens;
+  flying: SharedValue<number>;
+}) {
   const flicker = useLoop({ duration: 260, reverse: true, rest: 0.5 });
-  const flameStyle = useAnimatedStyle(() => ({
-    transform: [{ scaleY: interpolate(flicker.get(), [0, 1], [0.75, 1.15]) }],
-  }));
+  const flameStyle = useAnimatedStyle(() => {
+    const t = flying.get();
+    const boost = t > 0 && t < 1 ? 2.2 : 1;
+    return {
+      transform: [
+        { scaleY: interpolate(flicker.get(), [0, 1], [0.75, 1.15]) * boost },
+      ],
+    };
+  });
   return (
     <View style={{ width: ROCKET, height: ROCKET }}>
       <Animated.View
@@ -449,10 +463,47 @@ function RocketArt({ tokens }: { tokens: Tokens }) {
   );
 }
 
+type Flight = { ax: number; ay: number; bx: number; by: number };
+
+/** A point on the same S-curve the trail uses between two stops. */
+function curveAt(f: Flight, t: number) {
+  "worklet";
+  const pull = (f.by - f.ay) * 0.5;
+  const c1x = f.ax;
+  const c1y = f.ay + pull;
+  const c2x = f.bx;
+  const c2y = f.by - pull;
+  const u = 1 - t;
+  const x =
+    u * u * u * f.ax +
+    3 * u * u * t * c1x +
+    3 * u * t * t * c2x +
+    t * t * t * f.bx;
+  const y =
+    u * u * u * f.ay +
+    3 * u * u * t * c1y +
+    3 * u * t * t * c2y +
+    t * t * t * f.by;
+  // Tangent, for pointing the nose along the curve.
+  const dx =
+    3 * u * u * (c1x - f.ax) +
+    6 * u * t * (c2x - c1x) +
+    3 * t * t * (f.bx - c2x);
+  const dy =
+    3 * u * u * (c1y - f.ay) +
+    6 * u * t * (c2y - c1y) +
+    3 * t * t * (f.by - c2y);
+  return { x, y, angle: (Math.atan2(dy, dx) * 180) / Math.PI + 90 };
+}
+
+const FLIGHT_MS = 1500;
+const SPARKS = [0.05, 0.1, 0.15, 0.21, 0.28];
+
 /**
- * The kid's rocket, docked beside the current planet. When the current
- * planet changes (a chore got approved), it flies along to the new one —
- * the map's one big moment. Otherwise it only bobs.
+ * The kid's rocket, docked at the next thing to do. When that moves on, it
+ * takes off along the dotted trail — nose following the bends, flame long,
+ * a tail of sparks — and lands with a little bump. It waits while a quest
+ * card covers the map so the kid actually sees it.
  */
 function Rocket({
   targetX,
@@ -464,12 +515,15 @@ function Rocket({
   tokens: Tokens;
 }) {
   const reducedMotion = useReducedMotion();
-  // A quest card covers the map while the kid sends work; wait until
-  // they're back so they actually see the rocket fly.
   const held = useCelebrationsHeld();
-  const x = useSharedValue(targetX);
-  const y = useSharedValue(targetY);
-  const tilt = useSharedValue(0);
+  const flight = useSharedValue<Flight>({
+    ax: targetX,
+    ay: targetY,
+    bx: targetX,
+    by: targetY,
+  });
+  const progress = useSharedValue(1);
+  const land = useSharedValue(1);
   const last = useRef({ x: targetX, y: targetY });
   const bob = useLoop({ duration: 2400, reverse: true, rest: 0.5 });
 
@@ -478,56 +532,113 @@ function Rocket({
     const from = last.current;
     if (from.x === targetX && from.y === targetY) return;
     last.current = { x: targetX, y: targetY };
+    flight.set({ ax: from.x, ay: from.y, bx: targetX, by: targetY });
     if (reducedMotion) {
-      x.set(targetX);
-      y.set(targetY);
+      progress.set(1);
       return;
     }
-    // A beat after the map is back in view, lean into the flight, then
-    // straighten up on arrival.
-    const delay = 350;
-    x.set(
+    progress.set(0);
+    progress.set(
       withDelay(
-        delay,
-        withTiming(targetX, { duration: 1100, easing: Easings.inOut }),
+        350,
+        withTiming(1, { duration: FLIGHT_MS, easing: Easings.inOut }),
       ),
     );
-    y.set(
+    land.set(
       withDelay(
-        delay,
-        withTiming(targetY, { duration: 1100, easing: Easings.inOut }),
-      ),
-    );
-    tilt.set(
-      withDelay(
-        delay,
+        350 + FLIGHT_MS,
         withSequence(
-          withTiming(targetX > from.x ? 28 : -28, { duration: 150 }),
-          withTiming(0, { duration: 1200, easing: Easings.out }),
+          withTiming(0.82, { duration: 110 }),
+          withSpring(1, { duration: 450, dampingRatio: 0.5 }),
         ),
       ),
     );
-  }, [held, reducedMotion, targetX, targetY, tilt, x, y]);
+  }, [flight, held, land, progress, reducedMotion, targetX, targetY]);
 
-  const style = useAnimatedStyle(() => ({
-    transform: [
-      { translateX: x.get() - ROCKET / 2 },
-      {
-        translateY:
-          y.get() - ROCKET / 2 + interpolate(bob.get(), [0, 1], [-3, 3]),
-      },
-      { rotate: `${tilt.get()}deg` },
-    ],
-  }));
+  const rocketStyle = useAnimatedStyle(() => {
+    const t = progress.get();
+    const flying = t > 0 && t < 1;
+    const p = curveAt(flight.get(), t);
+    // Upright when docked; nose along the curve in flight, easing back
+    // upright over the last stretch.
+    const lean = flying ? Math.min(1, Math.min(t, 1 - t) * 6) : 0;
+    const bobY = flying ? 0 : interpolate(bob.get(), [0, 1], [-3, 3]);
+    return {
+      transform: [
+        { translateX: p.x - ROCKET / 2 },
+        { translateY: p.y - ROCKET / 2 + bobY },
+        { rotate: `${p.angle * lean}deg` },
+        { scaleY: land.get() },
+        { scaleX: 2 - land.get() },
+      ],
+    };
+  });
 
+  return (
+    <>
+      {SPARKS.map((lag, index) => (
+        <Spark
+          key={index}
+          lag={lag}
+          flight={flight}
+          progress={progress}
+          color={index % 2 ? tokens.gold : tokens.accent}
+        />
+      ))}
+      <Animated.View
+        pointerEvents="none"
+        accessible={false}
+        style={[{ position: "absolute", left: 0, top: 0 }, rocketStyle]}
+      >
+        <RocketArt tokens={tokens} flying={progress} />
+      </Animated.View>
+    </>
+  );
+}
+
+/** One spark in the rocket's wake, a little behind it on the curve. */
+function Spark({
+  lag,
+  flight,
+  progress,
+  color,
+}: {
+  lag: number;
+  flight: SharedValue<Flight>;
+  progress: SharedValue<number>;
+  color: string;
+}) {
+  const style = useAnimatedStyle(() => {
+    const t = progress.get();
+    const at = t - lag;
+    if (t <= 0 || t >= 1 || at <= 0) return { opacity: 0 };
+    const p = curveAt(flight.get(), at);
+    const fade = 1 - lag / 0.3;
+    return {
+      opacity: fade,
+      transform: [
+        { translateX: p.x - 4 },
+        { translateY: p.y + ROCKET * 0.35 - 4 },
+        { scale: 0.5 + fade },
+      ],
+    };
+  });
   return (
     <Animated.View
       pointerEvents="none"
-      accessible={false}
-      style={[{ position: "absolute", left: 0, top: 0 }, style]}
-    >
-      <RocketArt tokens={tokens} />
-    </Animated.View>
+      style={[
+        {
+          position: "absolute",
+          left: 0,
+          top: 0,
+          width: 8,
+          height: 8,
+          borderRadius: 4,
+          backgroundColor: color,
+        },
+        style,
+      ]}
+    />
   );
 }
 
@@ -661,108 +772,52 @@ function PlanetRow({
   );
 }
 
-/** Today's finished chores as a little cluster of moons you can open. */
-function DoneCluster({
-  done,
-  open,
-  onToggle,
-  tokens,
-}: {
-  done: QuestStop[];
-  open: boolean;
-  onToggle: () => void;
-  tokens: Tokens;
-}) {
-  const approved = done.filter((stop) => stop.status === "done").length;
-  const label =
-    approved === done.length
-      ? `${done.length} done today`
-      : `${approved} done · ${done.length - approved} missed today`;
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ expanded: open }}
-      accessibilityLabel={`${label}. ${open ? "Hide" : "Show"}`}
-      onPress={onToggle}
-      className="mx-5 mb-4 flex-row items-center gap-3 self-start rounded-full py-2 pl-2 pr-4"
-      style={{ backgroundColor: tokens.nightSurface }}
-    >
-      <View className="flex-row">
-        {done.slice(0, 4).map((stop, index) => (
-          <View
-            key={stop.key}
-            style={{
-              width: 22,
-              height: 22,
-              borderRadius: 11,
-              marginLeft: index === 0 ? 0 : -8,
-              borderWidth: 2,
-              borderColor: tokens.nightSurface,
-              backgroundColor:
-                stop.status === "done" ? tokens.primary : tokens.nightTrack,
-            }}
-          />
-        ))}
-      </View>
-      <AppText variant="label">{label}</AppText>
-      <Icon
-        name={open ? "chevronDown" : "chevron"}
-        color={tokens.inkMuted}
-        size={14}
-      />
-    </Pressable>
-  );
-}
-
 /* ------------------------------------------------------------------ */
 /* Star map                                                            */
 /* ------------------------------------------------------------------ */
 
 /**
- * The kid's day as a trip through space. Today's finished chores fold into
- * a cluster of moons at the top; the map starts at the rocket, docked at the
- * chore that's up next, with a short trail of planets ahead. When a chore is
- * approved the rocket flies to the next planet.
+ * The kid's day as a trip through space: every chore is a planet on a fixed
+ * route in deadline order, so nothing reshuffles — a planet just changes
+ * look as its chore moves on (to do → being checked → done moon). The
+ * rocket docks at the next thing to do and flies there along the trail.
  */
 export function StarMap({
   stops,
-  done = [],
   moreLater = 0,
+  onRocketY,
 }: {
-  /** Planets from the rocket onwards, in flight order. */
+  /** Planets in route order (deadline order). */
   stops: QuestStop[];
-  /** Today's finished chores, folded into the cluster. */
-  done?: QuestStop[];
   /** Upcoming chores not drawn, e.g. later this week. */
   moreLater?: number;
+  /** Where the rocket sits, relative to the top of the map. */
+  onRocketY?: (y: number) => void;
 }) {
   const { tokens } = useTheme();
   const [width, setWidth] = useState(0);
-  const [showDone, setShowDone] = useState(false);
   const [blocks, setBlocks] = useState<Record<string, number>>({});
   const [rows, setRows] = useState<Record<string, { y: number; h: number }>>(
     {},
   );
 
-  const planets = showDone ? [...done, ...stops] : stops;
-  const currentIndex = planets.findIndex((stop) => stop.status === "current");
-  // The rocket docks at "up next", or at the first planet still in play.
-  const rocketIndex =
-    currentIndex >= 0
-      ? currentIndex
-      : planets.findIndex(
-          (stop) => stop.status !== "done" && stop.status !== "missed",
-        );
-  const headroomFor = (index: number) => (index === rocketIndex ? 30 : 0);
-  // Gold only behind chores that are really finished (the unfolded moons);
-  // planets still being checked or redone stay on the faint trail.
-  let flownTo = 0;
-  while (
-    flownTo < planets.length - 1 &&
-    (planets[flownTo].status === "done" || planets[flownTo].status === "missed")
-  ) {
-    flownTo += 1;
+  const planets = stops;
+  // Dock at the next thing to do: a redo or the chore up next.
+  let rocketIndex = planets.findIndex(
+    (stop) => stop.status === "current" || stop.status === "redo",
+  );
+  if (rocketIndex < 0) {
+    // Nothing to do right now: park after the last planet already sent.
+    for (let i = planets.length - 1; i >= 0; i -= 1) {
+      const status = planets[i].status;
+      if (status === "done" || status === "missed" || status === "review") {
+        rocketIndex = i;
+        break;
+      }
+    }
   }
+  const headroomFor = (index: number) => (index === rocketIndex ? 30 : 0);
+  const flownTo = Math.max(0, rocketIndex);
 
   const centerX = (index: number) => {
     const slot = planetSize("current");
@@ -794,6 +849,11 @@ export function StarMap({
         }
       : null;
 
+  const rocketY = rocketPoint?.y;
+  useEffect(() => {
+    if (rocketY !== undefined) onRocketY?.(rocketY);
+  }, [onRocketY, rocketY]);
+
   const onBlock = (key: string) => (event: LayoutChangeEvent) => {
     const y = event.nativeEvent.layout.y;
     setBlocks((current) =>
@@ -811,14 +871,6 @@ export function StarMap({
 
   return (
     <View>
-      {done.length > 0 ? (
-        <DoneCluster
-          done={done}
-          open={showDone}
-          onToggle={() => setShowDone((value) => !value)}
-          tokens={tokens}
-        />
-      ) : null}
       <View onLayout={(event) => setWidth(event.nativeEvent.layout.width)}>
         {measured ? (
           <Trail
