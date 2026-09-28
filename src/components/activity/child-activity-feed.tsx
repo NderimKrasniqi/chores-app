@@ -13,7 +13,7 @@ import {
 } from "@/components/art";
 import { Icon } from "@/components/ui/icon";
 import { ActionButton, AppText } from "@/design-system";
-import { useTheme } from "@/design-system/theme";
+import { questTokens, useTheme } from "@/design-system/theme";
 
 import type { Id } from "../../../convex/_generated/dataModel";
 import {
@@ -471,7 +471,7 @@ function HighFiveButton({
   who: string;
   onPress: () => void;
 }) {
-  const { tokens } = useTheme();
+  // Only kids see this button, always on the night-sky theme.
   return (
     <Pressable
       accessibilityRole="button"
@@ -482,13 +482,27 @@ function HighFiveButton({
       disabled={cheered}
       onPress={onPress}
       hitSlop={8}
-      className="h-10 w-10 items-center justify-center rounded-full"
-      style={({ pressed }) => ({
-        backgroundColor: cheered ? tokens.gold : tokens.nightRaised,
-        transform: [{ scale: pressed ? 0.9 : 1 }],
-      })}
     >
-      <HighFiveHand size={20} color={cheered ? tokens.night : tokens.ink} />
+      {({ pressed }) => (
+        <View
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: 20,
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: cheered
+              ? questTokens.gold
+              : questTokens.nightRaised,
+            transform: [{ scale: pressed ? 0.9 : 1 }],
+          }}
+        >
+          <HighFiveHand
+            size={20}
+            color={cheered ? questTokens.night : questTokens.ink}
+          />
+        </View>
+      )}
     </Pressable>
   );
 }
