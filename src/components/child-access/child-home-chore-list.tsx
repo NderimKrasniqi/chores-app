@@ -66,9 +66,12 @@ export function ChildHomeChoreList({
   visualRedos,
   initialVisualSubmissionState,
   header,
+  titleAccessory,
   onOpenExtras,
 }: {
   header?: ReactNode;
+  /** Sits at the end of the "Today’s quest" title row. */
+  titleAccessory?: ReactNode;
   onOpenExtras?: () => void;
   initialOccurrenceId?: Id<"choreOccurrences"> | null;
   onInitialOccurrenceHandled?: () => void;
@@ -459,7 +462,12 @@ export function ChildHomeChoreList({
         ) : null}
 
         <View className="mb-4">
-          <AppText variant="screenTitle">Today’s quest</AppText>
+          <View className="flex-row items-center">
+            <AppText variant="screenTitle" className="flex-1">
+              Today’s quest
+            </AppText>
+            {titleAccessory}
+          </View>
           {/* The map shows what's next; words only when it has nothing. */}
           {toDoCount === 0 ? (
             <AppText variant="label" color="ink-muted" className="mt-0.5">
