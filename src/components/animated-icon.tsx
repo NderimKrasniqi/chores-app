@@ -5,33 +5,23 @@ import { Dimensions, StyleSheet, View } from "react-native";
 import Animated, { Easing, Keyframe } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 
+import { Easings } from "@/components/art/motion";
+
 const INITIAL_SCALE_FACTOR = Dimensions.get("screen").height / 90;
 const DURATION = 600;
+
+/** The splash hands off to the app with a quick fade: no hold, no bounce. */
+const splashFadeOut = new Keyframe({
+  0: { opacity: 1 },
+  100: { opacity: 0, easing: Easings.out },
+});
+const SPLASH_FADE_MS = 250;
 
 export function AnimatedSplashOverlay() {
   const [animate, setAnimate] = useState(false);
   const [visible, setVisible] = useState(true);
 
   if (!visible) return null;
-
-  const splashKeyframe = new Keyframe({
-    0: {
-      transform: [{ scale: 1 }],
-      opacity: 1,
-    },
-    20: {
-      opacity: 1,
-    },
-    70: {
-      opacity: 0,
-      easing: Easing.elastic(0.7),
-    },
-    100: {
-      opacity: 0,
-      transform: [{ scale: 1 }],
-      easing: Easing.elastic(0.7),
-    },
-  });
 
   const image = (
     <Image
@@ -42,12 +32,14 @@ export function AnimatedSplashOverlay() {
 
   return animate ? (
     <Animated.View
-      entering={splashKeyframe.duration(DURATION).withCallback((finished) => {
-        "worklet";
-        if (finished) {
-          scheduleOnRN(setVisible, false);
-        }
-      })}
+      entering={splashFadeOut
+        .duration(SPLASH_FADE_MS)
+        .withCallback((finished) => {
+          "worklet";
+          if (finished) {
+            scheduleOnRN(setVisible, false);
+          }
+        })}
       style={styles.splashOverlay}
     >
       {image}

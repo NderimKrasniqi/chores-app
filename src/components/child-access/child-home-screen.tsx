@@ -139,7 +139,8 @@ export function ChildHomeScreen({
     <ThemeScope mode="quest">
       <SafeAreaView edges={["top"]} className="flex-1 bg-canvas">
         <StatusBar style="light" />
-        <Starfield seed={shownTab.length * 7} />
+        {/* One sky for every tab: switching tabs must not move or re-twinkle the stars. */}
+        <Starfield seed={28} />
 
         {shownTab === "home" ? (
           <HomeTab

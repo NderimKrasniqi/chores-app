@@ -528,6 +528,9 @@ function Rocket({
   });
   const progress = useSharedValue(1);
   const land = useSharedValue(1);
+  // The heading the rocket had when it changed course mid-flight (NaN when
+  // not rebased), so the nose turns from there instead of snapping.
+  const turnFrom = useSharedValue(Number.NaN);
   const last = useRef({ key: targetKey, x: targetX, y: targetY });
   const bob = useLoop({ duration: 2400, reverse: true, rest: 0.5 });
 
@@ -538,6 +541,55 @@ function Rocket({
       return;
     }
     last.current = { key: targetKey, x: targetX, y: targetY };
+    const t = progress.get();
+    const current = flight.get();
+    const underway =
+      t < 1 && (current.ax !== current.bx || current.ay !== current.by);
+    if (!reducedMotion && underway && t === 0) {
+      // Still waiting on the launch pad: re-plan from where the rocket
+      // actually sits, not from the stop it hasn't reached yet.
+      flight.set({ ax: current.ax, ay: current.ay, bx: targetX, by: targetY });
+      turnFrom.set(Number.NaN);
+      progress.set(
+        withDelay(
+          350,
+          withTiming(1, { duration: FLIGHT_MS, easing: Easings.inOut }),
+        ),
+      );
+      land.set(
+        withDelay(
+          350 + FLIGHT_MS,
+          withSequence(
+            withTiming(0.82, { duration: 110 }),
+            withSpring(1, { duration: 450, dampingRatio: 0.5 }),
+          ),
+        ),
+      );
+      return;
+    }
+    if (!reducedMotion && underway) {
+      // Mid-flight and the dock moved (the map reflowed, or the next quest
+      // changed): change course from where the rocket is now, over the time
+      // it had left, instead of snapping to the end or back to the start.
+      const here = curveAt(current, t);
+      const remaining = Math.max(300, FLIGHT_MS * (1 - t));
+      turnFrom.set(here.angle * Math.min(1, Math.min(t, 1 - t) * 6));
+      flight.set({ ax: here.x, ay: here.y, bx: targetX, by: targetY });
+      // Just past 0, so this frame still counts as flying.
+      progress.set(0.001);
+      progress.set(withTiming(1, { duration: remaining, easing: Easings.out }));
+      land.set(
+        withDelay(
+          remaining,
+          withSequence(
+            withTiming(0.82, { duration: 110 }),
+            withSpring(1, { duration: 450, dampingRatio: 0.5 }),
+          ),
+        ),
+      );
+      return;
+    }
+    turnFrom.set(Number.NaN);
     flight.set({ ax: from.x, ay: from.y, bx: targetX, by: targetY });
     if (reducedMotion) {
       progress.set(1);
@@ -585,6 +637,7 @@ function Rocket({
     targetKey,
     targetX,
     targetY,
+    turnFrom,
   ]);
 
   const rocketStyle = useAnimatedStyle(() => {
@@ -594,12 +647,21 @@ function Rocket({
     // Upright when docked; nose along the curve in flight, easing back
     // upright over the last stretch.
     const lean = flying ? Math.min(1, Math.min(t, 1 - t) * 6) : 0;
+    let angle = p.angle * lean;
+    const from = turnFrom.get();
+    if (flying && !Number.isNaN(from)) {
+      // After a change of course: turn from the old heading over the first
+      // quarter, then settle upright on arrival as usual.
+      const target = p.angle * Math.min(1, (1 - t) * 6);
+      const delta = ((((target - from) % 360) + 540) % 360) - 180;
+      angle = from + delta * Math.min(1, t / 0.25);
+    }
     const bobY = flying ? 0 : interpolate(bob.get(), [0, 1], [-3, 3]);
     return {
       transform: [
         { translateX: p.x - ROCKET / 2 },
         { translateY: p.y - ROCKET / 2 + bobY },
-        { rotate: `${p.angle * lean}deg` },
+        { rotate: `${angle}deg` },
         { scaleY: land.get() },
         { scaleX: 2 - land.get() },
       ],

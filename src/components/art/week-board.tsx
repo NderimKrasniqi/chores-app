@@ -1,5 +1,8 @@
 import { Pressable, View } from "react-native";
-import Animated, { FadeIn } from "react-native-reanimated";
+import Animated, {
+  FadeIn,
+  LayoutAnimationConfig,
+} from "react-native-reanimated";
 import Svg, { Circle, Path } from "react-native-svg";
 
 import { AppText } from "@/design-system/text";
@@ -39,108 +42,112 @@ export function WeekBoard({
 }) {
   const { tokens } = useTheme();
   return (
-    <View className="flex-row justify-between">
-      {days.map((day) => {
-        const own = day.dots.filter((dot) => dot.color !== undefined);
-        const pool = day.dots.filter((dot) => dot.color === undefined);
-        const active = day.localDate === selected;
-        return (
-          <Pressable
-            key={day.localDate}
-            accessibilityRole="button"
-            accessibilityState={{ selected: active }}
-            accessibilityLabel={`${day.label} ${day.dayNumber}: ${own.length} chores, ${pool.length} Extras`}
-            onPress={() => onSelect(day.localDate)}
-            hitSlop={4}
-            className="items-center rounded-[16px] px-1 py-2"
-            style={{
-              width: 42,
-              backgroundColor: active ? tokens.ink : "transparent",
-            }}
-          >
-            <AppText
-              variant="caption"
-              style={{ color: active ? tokens.surface : tokens.inkMuted }}
-            >
-              {day.label}
-            </AppText>
-            <AppText
-              className="font-display text-[15px]"
+    <LayoutAnimationConfig skipEntering>
+      <View className="flex-row justify-between">
+        {days.map((day) => {
+          const own = day.dots.filter((dot) => dot.color !== undefined);
+          const pool = day.dots.filter((dot) => dot.color === undefined);
+          const active = day.localDate === selected;
+          return (
+            <Pressable
+              key={day.localDate}
+              accessibilityRole="button"
+              accessibilityState={{ selected: active }}
+              accessibilityLabel={`${day.label} ${day.dayNumber}: ${own.length} chores, ${pool.length} Extras`}
+              onPress={() => onSelect(day.localDate)}
+              hitSlop={4}
+              className="items-center rounded-[16px] px-1 py-2"
               style={{
-                color: active
-                  ? tokens.surface
-                  : day.isToday
-                    ? tokens.action
-                    : tokens.ink,
+                width: 42,
+                backgroundColor: active ? tokens.ink : "transparent",
               }}
             >
-              {day.dayNumber}
-            </AppText>
-            <View className="mt-1.5 min-h-[62px] items-center gap-1">
-              {own.slice(0, MAX_DOTS).map((dot) => (
-                <Animated.View key={dot.key} entering={FadeIn.duration(180)}>
-                  <Svg width={14} height={14}>
-                    {dot.isUnlock ? (
+              <AppText
+                variant="caption"
+                style={{ color: active ? tokens.surface : tokens.inkMuted }}
+              >
+                {day.label}
+              </AppText>
+              <AppText
+                className="font-display text-[15px]"
+                style={{
+                  color: active
+                    ? tokens.surface
+                    : day.isToday
+                      ? tokens.action
+                      : tokens.ink,
+                }}
+              >
+                {day.dayNumber}
+              </AppText>
+              <View className="mt-1.5 min-h-[62px] items-center gap-1">
+                {own.slice(0, MAX_DOTS).map((dot) => (
+                  <Animated.View key={dot.key} entering={FadeIn.duration(180)}>
+                    <Svg width={14} height={14}>
+                      {dot.isUnlock ? (
+                        <Circle
+                          cx={7}
+                          cy={7}
+                          r={6}
+                          fill="none"
+                          stroke={active ? tokens.surface : tokens.ink}
+                          strokeWidth={1.5}
+                        />
+                      ) : null}
                       <Circle
                         cx={7}
                         cy={7}
-                        r={6}
-                        fill="none"
-                        stroke={active ? tokens.surface : tokens.ink}
-                        strokeWidth={1.5}
+                        r={dot.isUnlock ? 3.8 : 5}
+                        fill={dot.color}
                       />
-                    ) : null}
-                    <Circle
-                      cx={7}
-                      cy={7}
-                      r={dot.isUnlock ? 3.8 : 5}
-                      fill={dot.color}
+                    </Svg>
+                  </Animated.View>
+                ))}
+                {own.length > MAX_DOTS ? (
+                  <AppText
+                    variant="caption"
+                    style={{
+                      fontSize: 10,
+                      color: active ? tokens.surface : tokens.inkMuted,
+                    }}
+                  >
+                    +{own.length - MAX_DOTS}
+                  </AppText>
+                ) : null}
+              </View>
+              <View
+                className="my-1 h-px w-6"
+                style={{
+                  backgroundColor: active ? tokens.surface : tokens.line,
+                }}
+              />
+              <View className="min-h-[16px] flex-row flex-wrap justify-center gap-0.5">
+                {pool.slice(0, 3).map((dot) => (
+                  <Svg key={dot.key} width={9} height={9}>
+                    <Path
+                      d="M4.5 0.5 L5.7 3.3 L8.7 3.5 L6.4 5.4 L7.1 8.4 L4.5 6.8 L1.9 8.4 L2.6 5.4 L0.3 3.5 L3.3 3.3 Z"
+                      fill={tokens.gold}
                     />
                   </Svg>
-                </Animated.View>
-              ))}
-              {own.length > MAX_DOTS ? (
-                <AppText
-                  variant="caption"
-                  style={{
-                    fontSize: 10,
-                    color: active ? tokens.surface : tokens.inkMuted,
-                  }}
-                >
-                  +{own.length - MAX_DOTS}
-                </AppText>
-              ) : null}
-            </View>
-            <View
-              className="my-1 h-px w-6"
-              style={{ backgroundColor: active ? tokens.surface : tokens.line }}
-            />
-            <View className="min-h-[16px] flex-row flex-wrap justify-center gap-0.5">
-              {pool.slice(0, 3).map((dot) => (
-                <Svg key={dot.key} width={9} height={9}>
-                  <Path
-                    d="M4.5 0.5 L5.7 3.3 L8.7 3.5 L6.4 5.4 L7.1 8.4 L4.5 6.8 L1.9 8.4 L2.6 5.4 L0.3 3.5 L3.3 3.3 Z"
-                    fill={tokens.gold}
-                  />
-                </Svg>
-              ))}
-              {pool.length > 3 ? (
-                <AppText
-                  variant="caption"
-                  style={{
-                    fontSize: 9,
-                    lineHeight: 10,
-                    color: active ? tokens.surface : tokens.inkMuted,
-                  }}
-                >
-                  +{pool.length - 3}
-                </AppText>
-              ) : null}
-            </View>
-          </Pressable>
-        );
-      })}
-    </View>
+                ))}
+                {pool.length > 3 ? (
+                  <AppText
+                    variant="caption"
+                    style={{
+                      fontSize: 9,
+                      lineHeight: 10,
+                      color: active ? tokens.surface : tokens.inkMuted,
+                    }}
+                  >
+                    +{pool.length - 3}
+                  </AppText>
+                ) : null}
+              </View>
+            </Pressable>
+          );
+        })}
+      </View>
+    </LayoutAnimationConfig>
   );
 }
 

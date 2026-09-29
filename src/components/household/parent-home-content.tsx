@@ -1,7 +1,10 @@
 import { useQuery } from "convex/react";
 import { type ReactNode } from "react";
 import { Pressable, View } from "react-native";
-import Animated, { FadeInDown } from "react-native-reanimated";
+import Animated, {
+  FadeInDown,
+  LayoutAnimationConfig,
+} from "react-native-reanimated";
 
 import {
   ChoreIcon,
@@ -319,84 +322,87 @@ export function ParentHomeContent({
       </View>
 
       {/* Signals: only what needs you. */}
-      <View className="mt-5 gap-2.5">
-        {pending.length > 0 || !pendingLoaded ? (
-          <Tile
-            tone={pending.length > 0 ? "ink" : "surface"}
-            onPress={onOpenReviews}
-            accessibilityLabel={
-              pending.length > 0
-                ? `${pending.length} chores to check from ${waitingNames.join(", ")}`
-                : "Nothing to check. Open reviews"
-            }
-          >
-            <View className="flex-row items-center gap-3">
-              <MiniDeck count={pending.length} />
-              <View className="flex-1">
-                <AppText
-                  variant="display"
-                  style={{
-                    color: pending.length > 0 ? tokens.surface : tokens.ink,
-                  }}
-                >
-                  {pendingLoaded ? pending.length : "…"}
-                </AppText>
-                <AppText
-                  className="font-body-bold"
-                  style={{
-                    color:
-                      pending.length > 0 ? tokens.surface : tokens.inkMuted,
-                  }}
-                >
-                  {pending.length === 0
-                    ? "Nothing to check"
-                    : `to check · ${waitingNames.join(", ")}`}
-                </AppText>
+      {/* Signals already there when Home opens just sit; new ones slide in. */}
+      <LayoutAnimationConfig skipEntering>
+        <View className="mt-5 gap-2.5">
+          {pending.length > 0 || !pendingLoaded ? (
+            <Tile
+              tone={pending.length > 0 ? "ink" : "surface"}
+              onPress={onOpenReviews}
+              accessibilityLabel={
+                pending.length > 0
+                  ? `${pending.length} chores to check from ${waitingNames.join(", ")}`
+                  : "Nothing to check. Open reviews"
+              }
+            >
+              <View className="flex-row items-center gap-3">
+                <MiniDeck count={pending.length} />
+                <View className="flex-1">
+                  <AppText
+                    variant="display"
+                    style={{
+                      color: pending.length > 0 ? tokens.surface : tokens.ink,
+                    }}
+                  >
+                    {pendingLoaded ? pending.length : "…"}
+                  </AppText>
+                  <AppText
+                    className="font-body-bold"
+                    style={{
+                      color:
+                        pending.length > 0 ? tokens.surface : tokens.inkMuted,
+                    }}
+                  >
+                    {pending.length === 0
+                      ? "Nothing to check"
+                      : `to check · ${waitingNames.join(", ")}`}
+                  </AppText>
+                </View>
+                <Icon
+                  name="chevron"
+                  color={pending.length > 0 ? tokens.surface : tokens.inkMuted}
+                  size={20}
+                />
               </View>
-              <Icon
-                name="chevron"
-                color={pending.length > 0 ? tokens.surface : tokens.inkMuted}
-                size={20}
-              />
-            </View>
-          </Tile>
-        ) : null}
-        {dueTotal > 0 ? (
-          <Signal
-            tone="pay"
-            icon="money"
-            title={`${dueTotal} kr to send`}
-            detail={due
-              .map((item) => `${item.name} ${item.amount} kr`)
-              .join(" · ")}
-            onPress={onOpenMoney}
-          />
-        ) : null}
-        {atRisk.map((claim) => (
-          <Signal
-            key={claim.claimId}
-            tone="watch"
-            icon="lock"
-            title={`${claim.claimedByDisplayName}: ${claim.title}`}
-            detail={`${claim.claimState === "redo_required" ? "Redo" : "Locked in"} · due ${formatClock(claim.due, household.timezone)} or −${claim.valueSek} kr`}
-          />
-        ))}
-        {allClear ? (
-          <Tile accessibilityLabel="All clear. Nothing needs you right now.">
-            <View className="flex-row items-center gap-3">
-              <View className="h-11 w-11 items-center justify-center rounded-full bg-primary">
-                <Icon name="check" color={tokens.ink} size={20} />
+            </Tile>
+          ) : null}
+          {dueTotal > 0 ? (
+            <Signal
+              tone="pay"
+              icon="money"
+              title={`${dueTotal} kr to send`}
+              detail={due
+                .map((item) => `${item.name} ${item.amount} kr`)
+                .join(" · ")}
+              onPress={onOpenMoney}
+            />
+          ) : null}
+          {atRisk.map((claim) => (
+            <Signal
+              key={claim.claimId}
+              tone="watch"
+              icon="lock"
+              title={`${claim.claimedByDisplayName}: ${claim.title}`}
+              detail={`${claim.claimState === "redo_required" ? "Redo" : "Locked in"} · due ${formatClock(claim.due, household.timezone)} or −${claim.valueSek} kr`}
+            />
+          ))}
+          {allClear ? (
+            <Tile accessibilityLabel="All clear. Nothing needs you right now.">
+              <View className="flex-row items-center gap-3">
+                <View className="h-11 w-11 items-center justify-center rounded-full bg-primary">
+                  <Icon name="check" color={tokens.ink} size={20} />
+                </View>
+                <View className="flex-1">
+                  <AppText variant="cardTitle">All clear</AppText>
+                  <AppText variant="caption" color="ink-muted">
+                    Nothing needs you right now.
+                  </AppText>
+                </View>
               </View>
-              <View className="flex-1">
-                <AppText variant="cardTitle">All clear</AppText>
-                <AppText variant="caption" color="ink-muted">
-                  Nothing needs you right now.
-                </AppText>
-              </View>
-            </View>
-          </Tile>
-        ) : null}
-      </View>
+            </Tile>
+          ) : null}
+        </View>
+      </LayoutAnimationConfig>
 
       {/* The radar: how far each kid is through today. */}
       <View className="mt-6 flex-row items-baseline justify-between">

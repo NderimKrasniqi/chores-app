@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useWindowDimensions, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
+  type CSSTransitionProperties,
+  cubicBezier,
   interpolate,
   useAnimatedStyle,
   useReducedMotion,
@@ -13,7 +15,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 
-import { ChoreIcon } from "@/components/art";
+import { ChoreIcon, useEntrance } from "@/components/art";
 import { SubmissionEvidenceViewer } from "@/components/evidence/submission-evidence-viewer";
 import { childAvatarTone, Avatar } from "@/components/ui/avatar";
 import { Icon } from "@/components/ui/icon";
@@ -43,6 +45,13 @@ export type Verdict = "approve" | "redo";
 const SWIPE_DISTANCE = 0.32; // of screen width
 const SWIPE_VELOCITY = 800; // pt/s — a flick is enough
 
+/** Back cards glide forward when the deck advances. */
+const DECK_SHIFT = {
+  transitionProperty: ["transform", "opacity"],
+  transitionDuration: "250ms",
+  transitionTimingFunction: cubicBezier(0.23, 1, 0.32, 1),
+} satisfies CSSTransitionProperties;
+
 /**
  * Reviewing as a deck: the oldest submission is on top with the next two
  * peeking behind. Swipe right to approve, left for a redo — or use the
@@ -63,6 +72,9 @@ export function ReviewDeck({
   onVerdict: (item: DeckItem, verdict: Verdict) => Promise<boolean>;
 }) {
   const top = items[0];
+  // The card on top when the deck first showed just sits; later ones rise
+  // from their place in the stack.
+  const [firstTopId] = useState(top?.submissionId);
   if (!top) return null;
 
   return (
@@ -82,6 +94,7 @@ export function ReviewDeck({
         <TopCard
           key={top.submissionId}
           item={top}
+          promoted={top.submissionId !== firstTopId}
           submittedLabel={submittedLabel}
           busy={busy}
           onVerdict={onVerdict}
@@ -93,29 +106,35 @@ export function ReviewDeck({
 
 function BackCard({ item, depth }: { item: DeckItem; depth: number }) {
   return (
-    <View
+    <Animated.View
       pointerEvents="none"
-      style={{
-        position: "absolute",
-        left: 0,
-        right: 0,
-        top: 0,
-        transform: [{ translateY: depth * 14 }, { scale: 1 - depth * 0.05 }],
-        opacity: 1 - depth * 0.25,
-      }}
+      style={[
+        {
+          position: "absolute",
+          left: 0,
+          right: 0,
+          top: 0,
+          transform: [{ translateY: depth * 14 }, { scale: 1 - depth * 0.05 }],
+          opacity: 1 - depth * 0.25,
+        },
+        DECK_SHIFT,
+      ]}
     >
       <CardFace item={item} submittedLabel={() => ""} compact />
-    </View>
+    </Animated.View>
   );
 }
 
 function TopCard({
   item,
+  promoted,
   submittedLabel,
   busy,
   onVerdict,
 }: {
   item: DeckItem;
+  /** Took the top because the previous card left: rise from the stack. */
+  promoted: boolean;
   submittedLabel: (timestamp: number) => string;
   busy: boolean;
   onVerdict: (item: DeckItem, verdict: Verdict) => Promise<boolean>;
@@ -124,6 +143,7 @@ function TopCard({
   const { tokens } = useTheme();
   const reducedMotion = useReducedMotion();
   const x = useSharedValue(0);
+  const dragStart = useSharedValue(0);
   const [committing, setCommitting] = useState(false);
 
   async function commit(verdict: Verdict, velocity = 0) {
@@ -158,11 +178,15 @@ function TopCard({
     .enabled(!busy && !committing)
     .activeOffsetX([-12, 12])
     .failOffsetY([-14, 14])
+    .onStart(() => {
+      // Continue from where the card is, even mid-spring.
+      dragStart.set(x.get());
+    })
     .onUpdate((event) => {
-      x.set(event.translationX);
+      x.set(dragStart.get() + event.translationX);
     })
     .onEnd((event) => {
-      const dx = event.translationX;
+      const dx = x.get();
       const far = Math.abs(dx) > width * SWIPE_DISTANCE;
       // A flick counts only if it has travelled a bit and agrees with the
       // drag, so the verdict always matches the stamp the parent saw.
@@ -184,6 +208,20 @@ function TopCard({
       }
     });
 
+  // The next card rises from its place in the stack; the first one just sits.
+  const rise = useEntrance({ duration: promoted ? 250 : 1 });
+  // On its own layer with the default (centre) origin, like the back cards,
+  // so its first frame matches the depth-1 pose it rises from.
+  const riseStyle = useAnimatedStyle(() => {
+    const r = promoted ? rise.get() : 1;
+    return {
+      opacity: interpolate(r, [0, 1], [0.75, 1]),
+      transform: [
+        { translateY: interpolate(r, [0, 1], [14, 0]) },
+        { scale: interpolate(r, [0, 1], [0.95, 1]) },
+      ],
+    };
+  });
   const cardStyle = useAnimatedStyle(() => ({
     transform: [
       { translateX: x.get() },
@@ -201,44 +239,46 @@ function TopCard({
 
   return (
     <View>
-      <GestureDetector gesture={pan}>
-        <Animated.View
-          style={[{ transformOrigin: "center bottom" }, cardStyle]}
-          accessible
-          accessibilityLabel={`${item.childDisplayName}: ${item.title}, ${item.valueSek} kronor. ${submittedLabel(item.submittedAt)}.`}
-          accessibilityHint="Swipe right to approve, left to ask for a redo, or use the buttons below."
-        >
-          <CardFace item={item} submittedLabel={submittedLabel} />
+      <Animated.View style={riseStyle}>
+        <GestureDetector gesture={pan}>
           <Animated.View
-            pointerEvents="none"
-            style={[
-              {
-                position: "absolute",
-                top: 22,
-                left: 20,
-                transform: [{ rotate: "-12deg" }],
-              },
-              approveStamp,
-            ]}
+            style={[{ transformOrigin: "center bottom" }, cardStyle]}
+            accessible
+            accessibilityLabel={`${item.childDisplayName}: ${item.title}, ${item.valueSek} kronor. ${submittedLabel(item.submittedAt)}.`}
+            accessibilityHint="Swipe right to approve, left to ask for a redo, or use the buttons below."
           >
-            <Stamp label="Approve" color={tokens.action} />
+            <CardFace item={item} submittedLabel={submittedLabel} />
+            <Animated.View
+              pointerEvents="none"
+              style={[
+                {
+                  position: "absolute",
+                  top: 22,
+                  left: 20,
+                  transform: [{ rotate: "-12deg" }],
+                },
+                approveStamp,
+              ]}
+            >
+              <Stamp label="Approve" color={tokens.action} />
+            </Animated.View>
+            <Animated.View
+              pointerEvents="none"
+              style={[
+                {
+                  position: "absolute",
+                  top: 22,
+                  right: 20,
+                  transform: [{ rotate: "12deg" }],
+                },
+                redoStamp,
+              ]}
+            >
+              <Stamp label="Redo" color={tokens.urgency} />
+            </Animated.View>
           </Animated.View>
-          <Animated.View
-            pointerEvents="none"
-            style={[
-              {
-                position: "absolute",
-                top: 22,
-                right: 20,
-                transform: [{ rotate: "12deg" }],
-              },
-              redoStamp,
-            ]}
-          >
-            <Stamp label="Redo" color={tokens.urgency} />
-          </Animated.View>
-        </Animated.View>
-      </GestureDetector>
+        </GestureDetector>
+      </Animated.View>
 
       <View className="flex-row gap-3" style={{ marginTop: 44 }}>
         <ActionButton

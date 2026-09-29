@@ -726,6 +726,7 @@ function SlideToPay({
 }) {
   const [width, setWidth] = useState(0);
   const x = useSharedValue(0);
+  const dragStart = useSharedValue(0);
   const travel = Math.max(0, width - KNOB - 8);
 
   async function commit() {
@@ -756,8 +757,13 @@ function SlideToPay({
     .enabled(!busy && !disabled && travel > 0)
     .activeOffsetX([0, 12])
     .failOffsetY([-10, 10])
+    .onStart(() => {
+      dragStart.set(x.get());
+    })
     .onUpdate((event) => {
-      x.set(Math.min(travel, Math.max(0, event.translationX)));
+      x.set(
+        Math.min(travel, Math.max(0, dragStart.get() + event.translationX)),
+      );
     })
     .onEnd((event) => {
       if (x.get() > travel * 0.9) {
