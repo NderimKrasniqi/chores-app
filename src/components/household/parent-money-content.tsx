@@ -287,15 +287,25 @@ export function ParentMoneyContent({
   const [error, setError] = useState<string | null>(null);
   const connection = useServerConnectionStatus();
 
+  // Sync the payout week when the tab opens, and again whenever the
+  // connection comes back (a deploy or a network blip shouldn't leave a
+  // stale error on screen).
+  const [syncError, setSyncError] = useState(false);
+  const online = connection.status === "online";
   useEffect(() => {
+    if (!online) return;
     let active = true;
-    void ensureCurrent({ householdId }).catch(() => {
-      if (active) setError("Could not sync the current payout week.");
-    });
+    ensureCurrent({ householdId })
+      .then(() => {
+        if (active) setSyncError(false);
+      })
+      .catch(() => {
+        if (active) setSyncError(true);
+      });
     return () => {
       active = false;
     };
-  }, [ensureCurrent, householdId]);
+  }, [ensureCurrent, householdId, online]);
 
   async function changeWeekday(day: Weekday) {
     setWorking(true);
@@ -420,10 +430,10 @@ export function ParentMoneyContent({
         </View>
       ) : null}
 
-      {error ? (
+      {error || (syncError && online) ? (
         <View className="mt-4 rounded-[18px] bg-urgencySoft px-4 py-3">
           <AppText variant="bodySmall" color="urgency">
-            {error}
+            {error ?? "Could not sync the current payout week."}
           </AppText>
         </View>
       ) : null}
