@@ -3,7 +3,6 @@ import {
   Alert,
   KeyboardAvoidingView,
   Modal,
-  Platform,
   Pressable,
   ScrollView,
   TextInput,
@@ -531,10 +530,7 @@ export function ParentChoresContent({
         onRequestClose={() => setShowForm(false)}
       >
         <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-canvas">
-          <KeyboardAvoidingView
-            className="flex-1"
-            behavior={Platform.OS === "ios" ? "padding" : undefined}
-          >
+          <KeyboardAvoidingView className="flex-1" behavior="padding">
             <View className="flex-row items-center justify-between px-5 pb-2 pt-3">
               <Pressable
                 accessibilityRole="button"

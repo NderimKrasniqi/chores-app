@@ -3,7 +3,6 @@ import { StatusBar } from "expo-status-bar";
 import { useRef, useState } from "react";
 import {
   KeyboardAvoidingView,
-  Platform,
   Pressable,
   ScrollView,
   TextInput,
@@ -183,10 +182,7 @@ export function ChildJoinScreen() {
     <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-canvas">
       <StatusBar style="light" />
       <Starfield seed={53} />
-      <KeyboardAvoidingView
-        className="flex-1"
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
+      <KeyboardAvoidingView className="flex-1" behavior="padding">
         <ScrollView
           contentContainerClassName="flex-grow px-5 pb-6"
           keyboardShouldPersistTaps="handled"

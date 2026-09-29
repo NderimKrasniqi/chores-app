@@ -3,7 +3,6 @@ import { StatusBar } from "expo-status-bar";
 import { useState, type ReactNode } from "react";
 import {
   KeyboardAvoidingView,
-  Platform,
   Pressable,
   ScrollView,
   TextInput,
@@ -287,10 +286,7 @@ function Frame({
   return (
     <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-canvas">
       <StatusBar style="dark" />
-      <KeyboardAvoidingView
-        className="flex-1"
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
+      <KeyboardAvoidingView className="flex-1" behavior="padding">
         {onBack ? (
           <View className="px-5 pt-2">
             <Pressable

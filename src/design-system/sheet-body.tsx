@@ -1,5 +1,5 @@
 import type { ComponentProps } from "react";
-import { KeyboardAvoidingView, Platform, View } from "react-native";
+import { KeyboardAvoidingView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 /**
@@ -18,7 +18,7 @@ export function SheetBody({
   const bottom = insets.bottom + extraBottom;
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      behavior="padding"
       // The keyboard already covers the home indicator; don't add that gap
       // on top of the keyboard's height.
       keyboardVerticalOffset={-insets.bottom}

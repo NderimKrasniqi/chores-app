@@ -4,7 +4,6 @@ import { useRef, useState, type ComponentProps, type Ref } from "react";
 import {
   AccessibilityInfo,
   KeyboardAvoidingView,
-  Platform,
   Pressable,
   ScrollView,
   TextInput,
@@ -15,6 +14,7 @@ import Animated, {
   FadeIn,
   FadeOut,
   LinearTransition,
+  useReducedMotion,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -174,10 +174,7 @@ export function ParentAuthScreen({
   return (
     <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-canvas">
       <StatusBar style="dark" />
-      <KeyboardAvoidingView
-        className="flex-1"
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
+      <KeyboardAvoidingView className="flex-1" behavior="padding">
         <ScrollView
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
@@ -407,6 +404,8 @@ function ModeSwitch({
 }) {
   const { tokens } = useTheme();
   const [segmentWidth, setSegmentWidth] = useState(0);
+  // Reduce Motion: the thumb jumps instead of sliding.
+  const reducedMotion = useReducedMotion();
   const options: { value: AuthMode; label: string }[] = [
     { value: "sign-up", label: "Create account" },
     { value: "sign-in", label: "Sign in" },
@@ -433,7 +432,7 @@ function ModeSwitch({
             backgroundColor: tokens.ink,
             transform: [{ translateX: mode === "sign-in" ? segmentWidth : 0 }],
           },
-          thumbTransition,
+          reducedMotion ? undefined : thumbTransition,
         ]}
       />
       {options.map((option) => {
