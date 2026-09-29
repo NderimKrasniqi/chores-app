@@ -362,19 +362,30 @@ export function ParentMoneyContent({
     )
     .sort((left, right) => (right.paidAt ?? 0) - (left.paidAt ?? 0));
   const timezone = overview.currentPeriod.timezone;
+  // This week closes on the day it was opened with; a changed payday only
+  // applies from the next week (J-13).
+  const thisWeekPayday = overview.currentPeriod.payoutWeekday;
+  const paydayChanged = thisWeekPayday !== overview.configuredPayoutWeekday;
 
   return (
     <View className="pb-8">
       <WeekStrip
         start={overview.currentPeriod.startLocalDate}
         end={overview.currentPeriod.endLocalDate}
-        payday={overview.configuredPayoutWeekday}
+        payday={thisWeekPayday}
         today={localToday(overview.currentPeriod.timezone)}
         onChange={() => setChangingDay((value) => !value)}
       />
-      {changingDay ? (
+      {paydayChanged ? (
+        <AppText variant="caption" color="action" className="mt-3">
+          This week still closes on {formatWeekday(thisWeekPayday)}. Payday
+          moves to {formatWeekday(overview.configuredPayoutWeekday)} from next
+          week.
+        </AppText>
+      ) : changingDay ? (
         <AppText variant="caption" color="ink-muted" className="mt-3">
-          A new payday starts from next week.
+          This week still closes on {formatWeekday(thisWeekPayday)}. A new
+          payday starts from next week.
         </AppText>
       ) : null}
       {changingDay ? (
@@ -535,8 +546,8 @@ export function ParentMoneyContent({
       </View>
       {pending.length === 0 ? (
         <AppText variant="caption" color="ink-muted" className="mt-3">
-          Pay shows up here when a week closes on{" "}
-          {formatWeekday(overview.configuredPayoutWeekday)}.
+          Pay shows up here when this week closes on{" "}
+          {formatWeekday(thisWeekPayday)}.
         </AppText>
       ) : null}
 

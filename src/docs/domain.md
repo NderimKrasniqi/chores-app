@@ -16,7 +16,7 @@
 - **Claim** — a Child's exclusive commitment to one Claimable Chore Occurrence.
 - **Submission** — a Child's declaration that work is complete, optionally accompanied by photo evidence, recorded at a submission time.
 - **Review** — a Parent's approval or rejection of a Submission.
-- **Redo** — the single correction opportunity created by rejecting an on-time Submission, with a new Parent-set deadline.
+- **Redo** — the single correction opportunity created by rejecting an on-time Submission, with a new Parent-set deadline and an optional Parent note on what to fix.
 - **Payout Week** — the household settlement period defined by the Parent-configured payout weekday.
 - **Ledger Entry** — an immutable financial event such as an approved earning, a missed-commitment penalty, or a settled payout.
 - **Running Balance** — the sum of the Child's unsettled Ledger Entries and any carried negative balance.

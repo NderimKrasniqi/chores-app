@@ -339,6 +339,33 @@ export const run = internalMutation({
     );
 
     /*
+     * 2b. The loser of the race hears who got it first (claimed-by is
+     * household-visible, J-05).
+     */
+    let raceMessage = "";
+    try {
+      await claimClaimableOccurrence(
+        ctx,
+        householdId,
+        childTwoId,
+        firstOccurrenceId,
+        now,
+      );
+    } catch (error) {
+      raceMessage =
+        error instanceof ConvexError ? String(error.data) : String(error);
+    }
+    const winner = await ctx.db.get(childOneId);
+
+    results.push(
+      result(
+        "Losing a claim race names the Child who got it",
+        winner !== null && raceMessage.endsWith(`by ${winner.displayName}.`),
+        raceMessage,
+      ),
+    );
+
+    /*
      * 3. Same Child cannot claim a
      * second occurrence while the first
      * Claim remains unresolved.

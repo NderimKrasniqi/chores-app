@@ -40,7 +40,7 @@ import type { ClaimableChoresViewModel } from "./claimable-chores-view";
 
 type ClaimedQuest = ClaimableChoresViewModel["claimedOccurrences"][number];
 type Allowance = ClaimableChoresViewModel["unclaimAllowance"];
-type Redo = { deadlineAt: number; canSubmitRedo: boolean };
+type Redo = { deadlineAt: number; canSubmitRedo: boolean; reason?: string };
 
 type Props = {
   claim: ClaimedQuest | undefined;
@@ -205,7 +205,9 @@ function CardBody({
                   <Icon name="redo" color={tokens.night} size={28} />
                 </View>
               }
-              title="One redo"
+              title={
+                redo?.reason ? `A Parent says: ${redo.reason}` : "One redo"
+              }
               tone="pink"
             >
               {canSend

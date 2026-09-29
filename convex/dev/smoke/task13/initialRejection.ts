@@ -329,6 +329,7 @@ export const run = internalMutation({
         redoDeadlineLocalDate,
         redoDeadlineLocalTime,
         reviewAt,
+        "  Missed a   spot ",
       );
 
       reviewIds.push(personalResult.reviewId);
@@ -338,6 +339,11 @@ export const run = internalMutation({
       const personalReview = await ctx.db.get(personalResult.reviewId);
 
       const personalRedo = await ctx.db.get(personalResult.redoId);
+
+      assert(
+        personalRedo?.reason === "Missed a spot",
+        "A redo note is stored trimmed with single spaces.",
+      );
 
       const personalOccurrence = await ctx.db.get(personal.occurrenceId);
 
@@ -386,6 +392,13 @@ export const run = internalMutation({
       reviewIds.push(claimableResult.reviewId);
 
       redoIds.push(claimableResult.redoId);
+
+      const claimableNote = await ctx.db.get(claimableResult.redoId);
+
+      assert(
+        claimableNote !== null && claimableNote.reason === undefined,
+        "A redo without a note stores no reason.",
+      );
 
       const claimableOccurrence = await ctx.db.get(claimable.occurrenceId);
 

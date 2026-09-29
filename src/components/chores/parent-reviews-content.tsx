@@ -1,12 +1,11 @@
 import { StarBuddy } from "@/components/art";
-import { ActionButton, AppText } from "@/design-system";
+import { ActionButton, AppText, SheetBody } from "@/design-system";
 import { useTheme } from "@/design-system/theme";
 import { useServerConfirmedMutation } from "@/hooks/use-server-confirmed-mutation";
 import { formatTimestampDateTime } from "@/lib/dates";
 import { useQuery } from "convex/react";
 import { useRef, useState } from "react";
-import { Alert, Modal, Pressable, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Alert, Modal, Pressable, TextInput, View } from "react-native";
 import { userErrorMessage } from "@/lib/errors";
 
 import { api } from "../../../convex/_generated/api";
@@ -97,6 +96,19 @@ function dayChipLabel(value: string, days: number) {
 }
 
 /**
+ * Two parents reviewing at once: the first decision wins (D-17), and the
+ * second one hears that plainly instead of a server message.
+ */
+function reviewErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error &&
+    /not awaiting (parent |initial )?review|already been reviewed|already has an earning/i.test(
+      error.message,
+    )
+    ? "Another parent already reviewed this one. The deck has moved on."
+    : userErrorMessage(error, fallback);
+}
+
+/**
  * Reviews as a deck of cards: swipe right to approve, left for a redo.
  * Initial submissions ask for a redo deadline in a quick sheet; a redo that
  * isn't good enough is confirmed first, since it ends at 0 kr (and a penalty
@@ -161,7 +173,11 @@ export function ParentReviewsContent({
       kind: "claimable" as const,
       isUnlockChore: false,
     })),
-    ...(redos ?? []).map((item) => ({ ...item, source: "redo" as const })),
+    ...(redos ?? []).map((item) => ({
+      ...item,
+      source: "redo" as const,
+      deadlineAt: item.redoDeadlineAt,
+    })),
   ].sort((left, right) => left.submittedAt - right.submittedAt);
   const items = visualItems
     ? visualItems.filter((item) => !visualDone.includes(item.submissionId))
@@ -184,15 +200,7 @@ export function ParentReviewsContent({
       else await approveClaimableRedo({ submissionId: item.submissionId });
       return true;
     } catch (approveError) {
-      setError(
-        approveError instanceof Error &&
-          /not awaiting review/i.test(approveError.message)
-          ? "Another parent already reviewed this one."
-          : userErrorMessage(
-              approveError,
-              "Could not approve this submission.",
-            ),
-      );
+      setError(reviewErrorMessage(approveError, "Could not approve this."));
       return false;
     } finally {
       setWorking(false);
@@ -220,7 +228,7 @@ export function ParentReviewsContent({
             void mutation({ submissionId: item.submissionId })
               .catch((rejectError) =>
                 setError(
-                  userErrorMessage(
+                  reviewErrorMessage(
                     rejectError,
                     "Could not finish the redo review.",
                   ),
@@ -258,7 +266,12 @@ export function ParentReviewsContent({
     return false;
   }
 
-  async function askForRedo(item: DeckItem, date: string, time: string) {
+  async function askForRedo(
+    item: DeckItem,
+    date: string,
+    time: string,
+    reason: string,
+  ) {
     setWorking(true);
     setError(null);
     try {
@@ -266,12 +279,23 @@ export function ParentReviewsContent({
         submissionId: item.submissionId,
         redoDeadlineLocalDate: date,
         redoDeadlineLocalTime: time,
+        ...(reason.trim() ? { reason: reason.trim() } : {}),
       };
       if (item.source === "personal") await rejectPersonal(args);
       else await rejectClaimable(args);
       setRedoFor(null);
     } catch (rejectError) {
-      setError(userErrorMessage(rejectError, "Could not ask for a redo."));
+      const message = reviewErrorMessage(
+        rejectError,
+        "Could not ask for a redo.",
+      );
+      setError(message);
+      // Another parent already decided: that card is gone, so close the
+      // sheet and show the message on the deck.
+      if (
+        message !== userErrorMessage(rejectError, "Could not ask for a redo.")
+      )
+        setRedoFor(null);
     } finally {
       setWorking(false);
     }
@@ -352,8 +376,8 @@ export function ParentReviewsContent({
         working={working}
         error={redoFor ? error : null}
         onClose={() => setRedoFor(null)}
-        onConfirm={(date, time) => {
-          if (redoFor) void askForRedo(redoFor, date, time);
+        onConfirm={(date, time, reason) => {
+          if (redoFor) void askForRedo(redoFor, date, time, reason);
         }}
       />
     </View>
@@ -362,6 +386,15 @@ export function ParentReviewsContent({
 
 const DAY_OPTIONS = [0, 1, 2, 3];
 const TIME_OPTIONS = ["14:00", "16:00", "18:00", "20:00"];
+
+/** Matches the server's cap (convex/lib/reviews/initialRejection.ts). */
+const REDO_REASON_MAX = 120;
+const REASON_CHIPS = [
+  "Missed a spot",
+  "Not finished",
+  "Tidy it up",
+  "Add a photo",
+];
 
 function RedoSheet({
   item,
@@ -376,11 +409,12 @@ function RedoSheet({
   working: boolean;
   error: string | null;
   onClose: () => void;
-  onConfirm: (date: string, time: string) => void;
+  onConfirm: (date: string, time: string, reason: string) => void;
 }) {
-  const insets = useSafeAreaInsets();
+  const { tokens } = useTheme();
   const [days, setDays] = useState(1);
   const [time, setTime] = useState("18:00");
+  const [reason, setReason] = useState("");
   const date = dateInDays(timezone, days);
 
   return (
@@ -394,10 +428,7 @@ function RedoSheet({
     >
       <View className="flex-1 justify-end bg-scrim">
         {item ? (
-          <View
-            className="rounded-t-sheet bg-surface px-5 pt-3"
-            style={{ paddingBottom: Math.max(insets.bottom, 12) }}
-          >
+          <SheetBody className="rounded-t-sheet bg-surface px-5 pt-3">
             <View className="h-1.5 w-12 self-center rounded-full bg-line" />
             <AppText variant="sectionTitle" className="mt-4">
               Ask {item.childDisplayName} for a redo
@@ -426,6 +457,46 @@ function RedoSheet({
               onSelect={setTime}
             />
 
+            <AppText variant="label" color="ink-muted" className="mt-5">
+              What to fix (optional)
+            </AppText>
+            <View className="mt-2 flex-row flex-wrap gap-2">
+              {REASON_CHIPS.map((chip) => {
+                const active = reason === chip;
+                return (
+                  <Pressable
+                    key={chip}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: active }}
+                    onPress={() => setReason(active ? "" : chip)}
+                    className="min-h-[36px] justify-center rounded-full px-3.5"
+                    style={{
+                      backgroundColor: active
+                        ? tokens.ink
+                        : tokens.surfaceMuted,
+                    }}
+                  >
+                    <AppText
+                      variant="label"
+                      style={{ color: active ? tokens.surface : tokens.ink }}
+                    >
+                      {chip}
+                    </AppText>
+                  </Pressable>
+                );
+              })}
+            </View>
+            <TextInput
+              accessibilityLabel="What to fix"
+              value={reason}
+              onChangeText={setReason}
+              placeholder={`Tell ${item.childDisplayName} what to fix`}
+              placeholderTextColor={tokens.inkFaint}
+              maxLength={REDO_REASON_MAX}
+              className="mt-2 min-h-[48px] rounded-[16px] px-4 font-body-bold text-ink"
+              style={{ backgroundColor: tokens.surfaceMuted }}
+            />
+
             {error ? (
               <AppText variant="bodySmall" color="urgency" className="mt-4">
                 {error}
@@ -436,7 +507,7 @@ function RedoSheet({
               tone="destructive"
               label="Ask for a redo"
               loading={working}
-              onPress={() => onConfirm(date, time)}
+              onPress={() => onConfirm(date, time, reason)}
             />
             <ActionButton
               className="mt-1"
@@ -445,7 +516,7 @@ function RedoSheet({
               disabled={working}
               onPress={onClose}
             />
-          </View>
+          </SheetBody>
         ) : null}
       </View>
     </Modal>

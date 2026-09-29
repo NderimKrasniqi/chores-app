@@ -19,6 +19,7 @@ import { childAvatarTone, Avatar } from "@/components/ui/avatar";
 import { Icon } from "@/components/ui/icon";
 import { ActionButton, AppText } from "@/design-system";
 import { useTheme } from "@/design-system/theme";
+import { useMinuteNow } from "@/lib/use-hour-now";
 
 import type { Id } from "../../../convex/_generated/dataModel";
 
@@ -31,6 +32,8 @@ export type DeckItem = {
   description?: string;
   valueSek: number;
   submittedAt: number;
+  /** The deadline the work was sent against (the redo deadline for a redo). */
+  deadlineAt?: number;
   isUnlockChore: boolean;
   hasEvidence: boolean;
 };
@@ -285,6 +288,8 @@ function CardFace({
   compact?: boolean;
 }) {
   const { tokens } = useTheme();
+  const now = useMinuteNow();
+  const reviewedLate = item.deadlineAt !== undefined && now > item.deadlineAt;
   const badge =
     item.source === "redo"
       ? { label: "Redo check", color: tokens.urgency }
@@ -359,6 +364,26 @@ function CardFace({
               Sent {submittedLabel(item.submittedAt)}
               {item.hasEvidence ? " · photo attached" : ""}
             </AppText>
+            {item.deadlineAt !== undefined &&
+            item.submittedAt <= item.deadlineAt &&
+            reviewedLate ? (
+              // Past the deadline now, but it was sent in time: a late
+              // review never costs the kid (D-04).
+              <View
+                accessible
+                accessibilityLabel={`Sent on time, before ${submittedLabel(item.deadlineAt)}. Reviewing it now still counts.`}
+                className="mt-2 flex-row items-center gap-1.5 self-start rounded-full px-2.5 py-1"
+                style={{ backgroundColor: tokens.actionSoft }}
+              >
+                <Icon name="check" color={tokens.action} size={13} />
+                <AppText
+                  className="font-body-heavy text-[12px]"
+                  style={{ color: tokens.action }}
+                >
+                  On time · still counts
+                </AppText>
+              </View>
+            ) : null}
             {item.description ? (
               <AppText
                 variant="bodySmall"

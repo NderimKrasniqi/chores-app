@@ -91,7 +91,14 @@ export async function claimClaimableOccurrence(
   const blockingClaim = await findClaimPreventingReclaim(ctx, occurrenceId);
 
   if (blockingClaim) {
-    throw new ConvexError("This Claimable Chore has already been claimed.");
+    // Who claimed it is already household-visible (J-05), so the loser of a
+    // first-come race hears the winner's name.
+    const winner = await ctx.db.get(blockingClaim.childId);
+    throw new ConvexError(
+      winner && winner.householdId === occurrence.householdId
+        ? `This Claimable Chore has already been claimed by ${winner.displayName}.`
+        : "This Claimable Chore has already been claimed.",
+    );
   }
 
   const activeClaim = await findActiveClaimForChild(ctx, childId);

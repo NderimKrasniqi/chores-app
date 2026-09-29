@@ -331,7 +331,7 @@ function StatePanel({
               <Icon name="redo" color={tokens.night} size={28} />
             </View>
           }
-          title="One redo"
+          title={redo?.reason ? `A Parent says: ${redo.reason}` : "One redo"}
           tone="pink"
         >
           {redo

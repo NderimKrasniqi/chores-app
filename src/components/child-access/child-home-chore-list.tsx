@@ -49,6 +49,8 @@ export type ChildHomeRedo = {
   occurrenceId: Id<"choreOccurrences">;
   deadlineAt: number;
   canSubmitRedo: boolean;
+  /** The Parent's note on what to fix, if any. */
+  reason?: string;
 };
 
 function statePriority(state: OccurrenceState) {

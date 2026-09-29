@@ -96,6 +96,7 @@
 **Contract:** Rejected on-time work receives exactly one correction opportunity with a new Parent-set deadline.
 
 - After the first rejection, a Parent sets the redo deadline and the Child may submit one redo by that deadline.
+- The Parent may add a short optional note on what to fix; the Child sees it with the redo. The note changes no deadline, value, or outcome.
 - Parent approval of the redo completes the occurrence and creates the normal earning.
 - If the redo is not submitted by its deadline, or the redo submission is rejected, no further redo is created.
 - A failed Personal Chore earns `0 kr` with no penalty; a failed claimed Claimable Chore receives its full-value penalty.

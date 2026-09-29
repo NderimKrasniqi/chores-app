@@ -74,6 +74,9 @@ export const reject = mutation({
     redoDeadlineLocalDate: v.string(),
 
     redoDeadlineLocalTime: v.string(),
+
+    /** Optional note on what to fix. */
+    reason: v.optional(v.string()),
   },
 
   returns: initialRejectionResultValidator,
@@ -97,6 +100,8 @@ export const reject = mutation({
       "personal",
       args.redoDeadlineLocalDate,
       args.redoDeadlineLocalTime,
+      undefined,
+      args.reason,
     );
 
     await scheduleRedoDeadlineFailure(

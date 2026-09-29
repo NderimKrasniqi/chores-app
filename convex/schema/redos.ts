@@ -46,6 +46,12 @@ export const redoTables = {
 
     deadlineAt: v.number(),
 
+    /*
+     * Optional Parent note on what to fix ("Missed a spot"). Guidance
+     * only; it changes no deadline, value, or outcome.
+     */
+    reason: v.optional(v.string()),
+
     createdAt: v.number(),
   })
     .index("by_occurrence", ["occurrenceId"])

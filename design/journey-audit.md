@@ -54,7 +54,7 @@ Legend: ✅ covered · ⚠️ works but weak/unclear · ❌ missing · 💡 prop
 | Step                                                       | Screen                 | Status                                                                                                             |
 | ---------------------------------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------ |
 | See eligible available Extras                              | Bonus quests list      | ✅                                                                                                                 |
-| First claim wins                                           | Claim button           | ⚠️ Losing the race shows the raw server error, not "Maya got it first"                                             |
+| First claim wins                                           | Claim button           | ✅ "Maya got it first!" (name when known)                                                                          |
 | Claimed shows as claimed by sibling                        | "Claimed by Maya" card | ✅                                                                                                                 |
 | One active claim                                           | Backpack full          | ✅                                                                                                                 |
 | **Expired unclaimed Extras visible to parents in history** | —                      | ❌ Parents have no chore history at all (a `choreOccurrences.listForHousehold` query exists but no screen uses it) |
@@ -79,21 +79,21 @@ Legend: ✅ covered · ⚠️ works but weak/unclear · ❌ missing · 💡 prop
 
 ## J-08 — Submit and review completed work
 
-| Step                       | Screen                        | Status                                                                   |
-| -------------------------- | ----------------------------- | ------------------------------------------------------------------------ |
-| Child submits (+photo)     | Quest card / claimed card     | ✅                                                                       |
-| Parent reviews             | Review deck (swipe / buttons) | ✅                                                                       |
-| See the photo              | Under the deck                | ⚠️ Old evidence viewer layout                                            |
-| Two parents review at once | Deck                          | ⚠️ Second parent gets a raw error instead of "Sam already approved this" |
+| Step                       | Screen                        | Status                                         |
+| -------------------------- | ----------------------------- | ---------------------------------------------- |
+| Child submits (+photo)     | Quest card / claimed card     | ✅                                             |
+| Parent reviews             | Review deck (swipe / buttons) | ✅                                             |
+| See the photo              | Under the deck                | ⚠️ Old evidence viewer layout                  |
+| Two parents review at once | Deck                          | ✅ "Another parent already reviewed this one." |
 
 ## J-09 — Redo rejected work
 
-| Step                         | Screen                               | Status                                                                 |
-| ---------------------------- | ------------------------------------ | ---------------------------------------------------------------------- |
-| Parent sets redo deadline    | Redo sheet (day + time chips)        | ✅                                                                     |
-| Child does one redo          | Quest card / claimed card redo state | ✅                                                                     |
-| Failed redo → 0 kr / penalty | Quest path + Money coins             | ✅                                                                     |
-| **Child knows what to fix**  | —                                    | ❌ There's no way for a parent to say why. The child just sees "Redo". |
+| Step                         | Screen                               | Status                                                         |
+| ---------------------------- | ------------------------------------ | -------------------------------------------------------------- |
+| Parent sets redo deadline    | Redo sheet (day + time chips)        | ✅                                                             |
+| Child does one redo          | Quest card / claimed card redo state | ✅                                                             |
+| Failed redo → 0 kr / penalty | Quest path + Money coins             | ✅                                                             |
+| **Child knows what to fix**  | Redo sheet note → kid redo panel     | ✅ Optional note with quick chips; kid sees "A Parent says: …" |
 
 ## J-10 — Resolve missed commitments
 
@@ -124,7 +124,7 @@ Legend: ✅ covered · ⚠️ works but weak/unclear · ❌ missing · 💡 prop
 
 | Step                            | Screen                                  | Status                                               |
 | ------------------------------- | --------------------------------------- | ---------------------------------------------------- |
-| Choose / change payday          | Payday board, House rules               | ⚠️ Doesn't say a change applies from the _next_ week |
+| Choose / change payday          | Payday board, House rules               | ✅ Money shows this week still closes on the old day |
 | Pay + mark paid                 | Slide to pay (+ accessible confirm)     | ✅                                                   |
 | Paid is final                   | No undo                                 | ✅                                                   |
 | Unresolved work carries forward | Payout card note                        | ✅                                                   |

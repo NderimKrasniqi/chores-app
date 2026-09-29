@@ -125,6 +125,9 @@ export const activeRedoForChildValidator = v.object({
   occurrenceState: v.literal("redo_required"),
 
   canSubmitRedo: v.boolean(),
+
+  /** The Parent's note on what to fix, if any. */
+  reason: v.optional(v.string()),
 });
 
 export const activeRedosForChildValidator = v.array(

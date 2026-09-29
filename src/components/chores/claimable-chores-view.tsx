@@ -272,9 +272,13 @@ function formatDeadlineSentence(timestamp: number, timezone: string) {
 
 function getErrorMessage(error: unknown) {
   const message = userErrorMessage(error, "");
-  // Someone else won the first-come race: say so kindly.
+  // Someone else won the first-come race: say so kindly, by name (the
+  // server says who).
   if (/already been claimed/i.test(message)) {
-    return "Too slow — someone else just grabbed that one! Pick another.";
+    const winner = /claimed by (.+?)\.?$/i.exec(message)?.[1];
+    return winner
+      ? `${winner} got it first! Pick another mission.`
+      : "Too slow — someone else just grabbed that one! Pick another.";
   }
   return message || "Could not complete this action. Please try again.";
 }
@@ -609,6 +613,7 @@ export function ClaimableChoresView({
     occurrenceId: Id<"choreOccurrences">;
     deadlineAt: number;
     canSubmitRedo: boolean;
+    reason?: string;
   }[];
   onSubmitRedo?: (
     claimId: Id<"choreClaims">,

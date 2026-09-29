@@ -31,7 +31,9 @@ export async function rejectInitialSubmission(
   redoDeadlineLocalDate: string,
   redoDeadlineLocalTime: string,
   now = Date.now(),
+  reason?: string,
 ) {
+  const note = normalizeRedoReason(reason);
   const submission = await ctx.db.get(submissionId);
 
   if (!submission) {
@@ -169,6 +171,8 @@ export async function rejectInitialSubmission(
 
     deadlineAt: redoDeadline.deadlineAt,
 
+    ...(note !== undefined ? { reason: note } : {}),
+
     createdAt: now,
   });
 
@@ -206,4 +210,22 @@ export async function rejectInitialSubmission(
 
     state: "redo_required" as const,
   };
+}
+
+/** The longest redo note a Parent can leave. */
+export const REDO_REASON_MAX = 120;
+
+/**
+ * A redo note is optional guidance: trimmed, blank means none, and capped
+ * so it stays a note rather than a message thread.
+ */
+export function normalizeRedoReason(reason: string | undefined) {
+  const trimmed = reason?.trim().replace(/\s+/g, " ");
+  if (!trimmed) return undefined;
+  if (trimmed.length > REDO_REASON_MAX) {
+    throw new ConvexError(
+      `Keep the redo note under ${REDO_REASON_MAX} characters.`,
+    );
+  }
+  return trimmed;
 }

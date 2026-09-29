@@ -92,6 +92,8 @@ export async function listActiveRedosForChild(
 
       canSubmitRedo:
         attemptTwo === null && now >= redo.createdAt && now <= redo.deadlineAt,
+
+      ...(redo.reason !== undefined ? { reason: redo.reason } : {}),
     });
   }
 
