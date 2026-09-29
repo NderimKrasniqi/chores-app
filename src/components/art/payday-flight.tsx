@@ -24,6 +24,11 @@ const ROCKET = 28;
 const LAND_MS = 1400;
 /** How far behind the rocket (in arc fraction) the towed pod rides. */
 const TOW = 0.16;
+/** Where a landing stops: at the planet's edge, not inside it. */
+const DOCK = 0.9;
+/** How long the rocket rests docked before this week's flight shows again. */
+const DOCKED_MS = 1600;
+const FADE_MS = 220;
 
 type Point = { x: number; y: number };
 
@@ -46,8 +51,10 @@ function arcAt(a: Point, c: Point, b: Point, t: number) {
  * Below zero the pod drags a pink debt crate.
  *
  * `landing` is the rare moment: after a Parent pays out, the rocket flies
- * the rest of the way, the pod reaches the planet and the planet catches
- * the coins. Otherwise only the rocket bobs.
+ * the rest of the way, docks upright at the planet's edge and the planet
+ * catches the coins; then the rocket and pod fade back to today's spot,
+ * carrying what's on board for the next payday. Otherwise only the rocket
+ * bobs.
  */
 export function PaydayFlight({
   balance,
@@ -73,31 +80,70 @@ export function PaydayFlight({
   const progress = Math.max(0, Math.min(1, weekProgress));
   const weekSpot = 0.06 + progress * 0.8;
   const t = useSharedValue(weekSpot);
+  const craftOpacity = useSharedValue(1);
+  // 1 while a landing is docking: only then does the rocket turn upright and
+  // the pod close in, so a late-week spot never looks like an arrival.
+  const docking = useSharedValue(0);
+  // Today's spot, read by the landing when it hands back to this week, so a
+  // clock tick mid-landing doesn't restart the flight.
+  const home = useSharedValue(weekSpot);
 
   useEffect(() => {
+    home.set(weekSpot);
     if (!landing) {
       t.set(weekSpot);
-      return;
+      docking.set(0);
+      craftOpacity.set(1);
     }
+  }, [landing, weekSpot, t, home, docking, craftOpacity]);
+
+  useEffect(() => {
+    if (!landing) return;
     if (reducedMotion) {
-      t.set(1);
+      // No flight: the planet still catches the coins.
       const timer = setTimeout(() => setLandedKey((key) => key + 1), 0);
       return () => clearTimeout(timer);
     }
-    // Fly on from wherever the rocket is now — no jump before take-off.
+    // Fly on from wherever the rocket is now — no jump before take-off —
+    // and dock at the planet's edge.
+    docking.set(1);
     t.set(
       withDelay(
         450,
-        withTiming(1, { duration: LAND_MS, easing: Easings.inOut }),
+        withTiming(DOCK, { duration: LAND_MS, easing: Easings.inOut }),
       ),
     );
     // The planet catches the coins as the pod arrives.
-    const timer = setTimeout(
+    const caught = setTimeout(
       () => setLandedKey((key) => key + 1),
       450 + LAND_MS - 150,
     );
-    return () => clearTimeout(timer);
-  }, [landing, reducedMotion, t, weekSpot]);
+    // Then this week's delivery is back on its way: fade out at the dock,
+    // reappear at today's spot.
+    const resume = setTimeout(
+      () => {
+        craftOpacity.set(
+          withTiming(
+            0,
+            { duration: FADE_MS, easing: Easings.out },
+            (finished) => {
+              if (!finished) return;
+              docking.set(0);
+              t.set(home.get());
+              craftOpacity.set(
+                withTiming(1, { duration: FADE_MS, easing: Easings.out }),
+              );
+            },
+          ),
+        );
+      },
+      450 + LAND_MS + DOCKED_MS,
+    );
+    return () => {
+      clearTimeout(caught);
+      clearTimeout(resume);
+    };
+  }, [landing, reducedMotion, t, craftOpacity, docking, home]);
 
   const a = { x: 22, y: HEIGHT - 26 };
   const b = { x: width - HOME * 0.62, y: HEIGHT - HOME * 0.62 };
@@ -105,23 +151,34 @@ export function PaydayFlight({
 
   const rocketStyle = useAnimatedStyle(() => {
     const p = arcAt(a, c, b, t.get());
-    // Docked at the planet after a landing it stays, upright, beside it.
+    // Nearing the dock it turns upright, so it lands beside the planet
+    // instead of nose-first into it.
+    const upright =
+      docking.get() * interpolate(t.get(), [DOCK - 0.1, DOCK], [0, 1], "clamp");
     return {
+      opacity: craftOpacity.get(),
       transform: [
         { translateX: p.x - ROCKET / 2 },
         {
           translateY:
             p.y - ROCKET / 2 + interpolate(bob.get(), [0, 1], [-2, 2]),
         },
-        { rotate: `${p.angle + 90}deg` },
+        { rotate: `${(p.angle + 90) * (1 - upright)}deg` },
       ],
     };
   });
   const podStyle = useAnimatedStyle(() => {
-    const p = arcAt(a, c, b, Math.max(0.02, t.get() - TOW));
-    const arriving = interpolate(t.get(), [0.93, 1], [1, 0], "clamp");
+    // Docking, the tow line reels in so the pod reaches the planet too.
+    const reel =
+      docking.get() *
+      interpolate(t.get(), [DOCK - 0.25, DOCK], [0, 1], "clamp");
+    const p = arcAt(a, c, b, Math.max(0.02, t.get() - TOW * (1 - reel)));
+    const arriving =
+      1 -
+      docking.get() *
+        interpolate(t.get(), [DOCK - 0.04, DOCK], [0, 1], "clamp");
     return {
-      opacity: arriving,
+      opacity: arriving * craftOpacity.get(),
       transform: [
         { translateX: p.x - POD / 2 },
         { translateY: p.y - POD * 0.45 },

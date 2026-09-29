@@ -143,3 +143,21 @@ feed has no claim events).
 - House rules: unclaim allowance 2 → 3 arrives live on the child's keys.
 - Kid page: balance, chores with outcomes, coins, Phones, pairing code,
   rename sheet, removal refused while a balance is open.
+
+## Redesign pass (2026-09-29, iPhone 17 Pro + 17e)
+
+- Maestro suite 10/10 on the redesigned screens.
+- J-08 approve from the deck (balance and badge update live); on-time stamp
+  on a late-reviewed quest.
+- J-09 redo with a note: “A Parent says: Missed a spot” on Alex's card,
+  redo sent from the kid side.
+- J-04 Unlock Chore approved → launch control opens live.
+- J-05/J-06 with no abort passes left: Launch → “This one locks right away”
+  sheet (+50 kr / −50 kr / due tomorrow 18:00) → Committed on the pad.
+- J-11 high-five on a sibling win shows gold once sent.
+- Fixed in this pass: the committed pad said “Finish by 18:00” for a mission
+  due tomorrow (now names the day); Extras showed an empty block while the
+  first-sighting check read SecureStore (now the calm strip shows at once).
+- Open: J-07 abort on the new pad needs a child with a pass left and no
+  mission in flight; J-13 slide-to-pay on the new dock needs a payday
+  (previews cover both).
