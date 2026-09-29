@@ -19,6 +19,7 @@ Fredoka (display) + Nunito (body) via `AppText` variants: `display`, `screenTitl
 - `PRESS` + `pressTransition` — scale 0.97 over 120 ms on every pressable.
 - `useLoop` (ambient, rests under reduced motion unless `essential`) and `useEntrance` (one-shot).
 - Haptics: one per commit the user caused.
+- Rules from the animation audit (`plans/`): one starfield seed per shell (tabs and onboarding pages never reshuffle the sky); entrances play only for content that arrives while watching (`LayoutAnimationConfig skipEntering`, first-sighting checks); gestures continue from where the element is; celebrations and pops only for moments the user caused in-session; quest cards stay calm (no pulse rings).
 
 ## Art library (`src/components/art/`)
 
