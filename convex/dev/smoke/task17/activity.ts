@@ -323,6 +323,7 @@ export const run = internalMutation({
       "childId",
       "choreKind",
       "choreTitle",
+      "isUnlockChore",
       "valueSek",
     ]
       .sort()

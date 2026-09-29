@@ -91,6 +91,7 @@ Not done: "Maya launched Wash the car" pool lines in Family (the activity
 feed has no claim events).
 
 ## Fixed
+
 - Reviewer pass: text overrides keep their line-height ratio; sheets don't
   stack a home-indicator gap on the keyboard; device labels capped before
   filtering; dev membership removal limited to fixture households.

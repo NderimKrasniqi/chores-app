@@ -73,8 +73,9 @@ export const todayProgress = query({
         approved: today.filter((o) => o.state === "approved").length,
         submitted: today.filter((o) => o.state === "submitted").length,
         redo: today.filter((o) => o.state === "redo_required").length,
-        missed: today.filter((o) => o.state === "missed" || o.state === "failed")
-          .length,
+        missed: today.filter(
+          (o) => o.state === "missed" || o.state === "failed",
+        ).length,
       });
     }
 

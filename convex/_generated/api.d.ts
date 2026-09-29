@@ -21,6 +21,7 @@ import type * as claimableChoreSubmissions from "../claimableChoreSubmissions.js
 import type * as claimableChores from "../claimableChores.js";
 import type * as claimableClaimCancellations from "../claimableClaimCancellations.js";
 import type * as crons from "../crons.js";
+import type * as dev_smoke_cheers from "../dev/smoke/cheers.js";
 import type * as dev_smoke_householdSettings from "../dev/smoke/householdSettings.js";
 import type * as dev_smoke_task06_choreDefinitions from "../dev/smoke/task06/choreDefinitions.js";
 import type * as dev_smoke_task07_maintenance from "../dev/smoke/task07/maintenance.js";
@@ -92,6 +93,7 @@ import type * as lib_activity_approvalActivity from "../lib/activity/approvalAct
 import type * as lib_api_choreContracts from "../lib/api/choreContracts.js";
 import type * as lib_auth_childAuthorization from "../lib/auth/childAuthorization.js";
 import type * as lib_auth_parentAuthorization from "../lib/auth/parentAuthorization.js";
+import type * as lib_cheers_sendCheer from "../lib/cheers/sendCheer.js";
 import type * as lib_childAccess_activeGrants from "../lib/childAccess/activeGrants.js";
 import type * as lib_claims_accessGate from "../lib/claims/accessGate.js";
 import type * as lib_claims_cancellation from "../lib/claims/cancellation.js";
@@ -181,6 +183,7 @@ declare const fullApi: ApiFromModules<{
   claimableChores: typeof claimableChores;
   claimableClaimCancellations: typeof claimableClaimCancellations;
   crons: typeof crons;
+  "dev/smoke/cheers": typeof dev_smoke_cheers;
   "dev/smoke/householdSettings": typeof dev_smoke_householdSettings;
   "dev/smoke/task06/choreDefinitions": typeof dev_smoke_task06_choreDefinitions;
   "dev/smoke/task07/maintenance": typeof dev_smoke_task07_maintenance;
@@ -252,6 +255,7 @@ declare const fullApi: ApiFromModules<{
   "lib/api/choreContracts": typeof lib_api_choreContracts;
   "lib/auth/childAuthorization": typeof lib_auth_childAuthorization;
   "lib/auth/parentAuthorization": typeof lib_auth_parentAuthorization;
+  "lib/cheers/sendCheer": typeof lib_cheers_sendCheer;
   "lib/childAccess/activeGrants": typeof lib_childAccess_activeGrants;
   "lib/claims/accessGate": typeof lib_claims_accessGate;
   "lib/claims/cancellation": typeof lib_claims_cancellation;

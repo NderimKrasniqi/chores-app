@@ -1,8 +1,8 @@
-import { ConvexError, v } from "convex/values";
+import { v } from "convex/values";
 
 import { mutation, query } from "./_generated/server";
 import { requireCurrentChildAccess } from "./lib/auth/childAuthorization";
-import { enqueueNotificationEvent } from "./lib/notifications/events";
+import { sendCheer } from "./lib/cheers/sendCheer";
 
 /** How many recent high-fives each list returns. */
 const CHEER_LIMIT = 30;
@@ -22,75 +22,8 @@ export const send = mutation({
 
   handler: async (ctx, args) => {
     const { child, household } = await requireCurrentChildAccess(ctx);
-
-    const review = await ctx.db.get(args.activityId);
-
-    if (
-      !review ||
-      review.householdId !== household._id ||
-      review.decision !== "approved"
-    ) {
-      throw new ConvexError("That win isn’t available any more.");
-    }
-
-    const submission = await ctx.db.get(review.submissionId);
-    const occurrence = await ctx.db.get(review.occurrenceId);
-
-    if (
-      !submission ||
-      !occurrence ||
-      submission.childId === undefined ||
-      submission.householdId !== household._id
-    ) {
-      throw new ConvexError("That win isn’t available any more.");
-    }
-
-    const recipient = await ctx.db.get(submission.childId);
-    if (!recipient || recipient.archivedAt !== undefined) {
-      throw new ConvexError("That win isn’t available any more.");
-    }
-
-    if (submission.childId === child._id) {
-      throw new ConvexError("High-fives are for your brothers and sisters.");
-    }
-
-    const existing = await ctx.db
-      .query("cheers")
-      .withIndex("by_activityId_and_fromChildId", (q) =>
-        q.eq("activityId", review._id).eq("fromChildId", child._id),
-      )
-      .unique();
-
-    if (existing) {
-      return { status: "already_sent" as const };
-    }
-
-    const now = Date.now();
-
-    await ctx.db.insert("cheers", {
-      householdId: household._id,
-      activityId: review._id,
-      fromChildId: child._id,
-      toChildId: submission.childId,
-      createdAt: now,
-    });
-
-    await enqueueNotificationEvent(
-      ctx,
-      {
-        eventKey: `cheer:${review._id}:${child._id}`,
-        kind: "cheer",
-        householdId: household._id,
-        recipientKind: "child",
-        childId: submission.childId,
-        title: `${child.displayName} high-fived you`,
-        body: `For ${occurrence.title}. Nice work!`,
-        occurrenceId: occurrence._id,
-      },
-      { now },
-    );
-
-    return { status: "sent" as const };
+    const result = await sendCheer(ctx, { child, household }, args.activityId);
+    return { status: result.status };
   },
 });
 
