@@ -1,5 +1,12 @@
-import Animated from "react-native-reanimated";
-import { PRESS, pressTransition } from "@/components/art/motion";
+import Animated, {
+  cubicBezier,
+  FadeIn,
+  FadeInLeft,
+  FadeInRight,
+  ReduceMotion,
+  useReducedMotion,
+} from "react-native-reanimated";
+import { Easings, PRESS, pressTransition } from "@/components/art/motion";
 import {
   BalanceOrb,
   ChoreIcon,
@@ -42,6 +49,18 @@ function OnboardingContent({
 }: OnboardingScreenProps) {
   const { tokens } = useTheme();
   const [page, setPage] = useState<number>(initialPage);
+  // Which way the last move went, so the new page comes in from that side.
+  const [shown, setShown] = useState<{ page: number; dir: number }>({
+    page: initialPage,
+    dir: 1,
+  });
+  if (shown.page !== page) setShown({ page, dir: page > shown.page ? 1 : -1 });
+  const reducedMotion = useReducedMotion();
+  const pageEntering = reducedMotion
+    ? FadeIn.duration(200).reduceMotion(ReduceMotion.Never)
+    : (shown.dir > 0 ? FadeInRight : FadeInLeft)
+        .duration(300)
+        .easing(Easings.out);
   const [finishing, setFinishing] = useState(false);
 
   async function finish(next: () => void) {
@@ -81,9 +100,19 @@ function OnboardingContent({
           className="flex-row items-center gap-1.5"
         >
           {[0, 1, 2, 3].map((dot) => (
-            <View
+            // Four tiny, childless dots: the one place width may animate.
+            <Animated.View
               key={dot}
-              className={`h-2 rounded-full ${dot === page ? "w-6 bg-primary" : "w-2 bg-nightRaised"}`}
+              style={{
+                height: 8,
+                borderRadius: 4,
+                width: dot === page ? 24 : 8,
+                backgroundColor:
+                  dot === page ? tokens.primary : tokens.nightRaised,
+                transitionProperty: ["width", "backgroundColor"],
+                transitionDuration: reducedMotion ? "0ms" : "250ms",
+                transitionTimingFunction: cubicBezier(0.77, 0, 0.175, 1),
+              }}
             />
           ))}
         </View>
@@ -103,19 +132,22 @@ function OnboardingContent({
         </Pressable>
       </View>
 
-      {page === 0 ? <WelcomePage /> : null}
-      {page === 1 ? <HowItWorksPage /> : null}
-      {page === 2 ? <RealRewardsPage /> : null}
-      {page === 3 && reviewMode ? (
-        <ReviewCompletePage onDone={() => onDone?.()} />
-      ) : null}
-      {page === 3 && !reviewMode ? (
-        <ChooseRolePage
-          disabled={finishing}
-          onChooseParent={() => void finish(onChooseParent)}
-          onChooseChild={() => void finish(onChooseChild)}
-        />
-      ) : null}
+      {/* Enter only: an exiting page would share the slot and squeeze this one. */}
+      <Animated.View key={page} className="flex-1" entering={pageEntering}>
+        {page === 0 ? <WelcomePage /> : null}
+        {page === 1 ? <HowItWorksPage /> : null}
+        {page === 2 ? <RealRewardsPage /> : null}
+        {page === 3 && reviewMode ? (
+          <ReviewCompletePage onDone={() => onDone?.()} />
+        ) : null}
+        {page === 3 && !reviewMode ? (
+          <ChooseRolePage
+            disabled={finishing}
+            onChooseParent={() => void finish(onChooseParent)}
+            onChooseChild={() => void finish(onChooseChild)}
+          />
+        ) : null}
+      </Animated.View>
 
       {page < 3 ? (
         <View className="px-5 pb-2 pt-3">
