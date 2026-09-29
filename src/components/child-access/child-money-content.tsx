@@ -348,8 +348,16 @@ function PaydayCard({
       className="mt-1 rounded-large bg-surface px-4 pb-2 pt-4"
       accessible
       accessibilityLabel={`${balance} kr. ${
-        negative ? `Earn ${Math.abs(balance)} kr to get back to 0. ` : ""
-      }${drops > 0 ? `${drops} new ${drops === 1 ? "coin" : "coins"} since last time. ` : ""}Payday ${countdown}.`}
+        weekTotal !== 0 ? `${signed(weekTotal)} this week. ` : ""
+      }${
+        negative
+          ? `Earn ${Math.abs(balance)} kr to clear the debt before payday. `
+          : ""
+      }${drops > 0 ? `${drops} new ${drops === 1 ? "coin" : "coins"} since last time. ` : ""}${
+        delivery
+          ? `${delivery.amountDueSek} kr delivered, a Parent paid you. `
+          : ""
+      }Payday ${countdown}.`}
     >
       <View className="flex-row items-end justify-between">
         <View className="flex-row items-baseline gap-2">

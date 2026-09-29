@@ -4,7 +4,7 @@ name: Parent Reviews — approve from the deck
 - runFlow:
     file: _open.yaml
     env: { STATE: parent-reviews-deck }
-- extendedWaitUntil: { visible: "chores to check", timeout: 90000 }
-- assertVisible: "Clean your room"
+- extendedWaitUntil: { visible: ".*chores to check.*", timeout: 90000 }
+- assertVisible: ".*Clean your room.*"
 - tapOn: "Approve +30 kr"
-- assertNotVisible: "Approve +30 kr"
+- assertNotVisible: '.*Approve \+30 kr.*'

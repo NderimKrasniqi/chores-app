@@ -4,6 +4,6 @@ name: Child Money — below zero
 - runFlow:
     file: _open.yaml
     env: { STATE: child-money-negative }
-- extendedWaitUntil: { visible: "Cargo manifest", timeout: 90000 }
-- assertVisible: "Earn 55 kr to clear the debt before payday."
-- assertVisible: "Debt riding along"
+- extendedWaitUntil: { visible: ".*Cargo manifest.*", timeout: 90000 }
+- assertVisible: '.*Earn 55 kr to clear the debt before payday\..*'
+- assertVisible: ".*Debt riding along.*"

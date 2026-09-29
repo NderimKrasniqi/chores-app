@@ -4,8 +4,8 @@ name: Extras — a mission that locks right away
 - runFlow:
     file: _open.yaml
     env: { STATE: child-claim-locked-confirmation }
-- extendedWaitUntil: { visible: "This one locks right away", timeout: 90000 }
-- assertVisible: "Launch and lock it"
+- extendedWaitUntil: { visible: ".*This one locks right away.*", timeout: 90000 }
+- assertVisible: ".*Launch and lock it.*"
 - tapOn: "Not now"
-- assertNotVisible: "This one locks right away"
-- assertVisible: "Launch control open"
+- assertNotVisible: ".*This one locks right away.*"
+- assertVisible: ".*Launch control open.*"
