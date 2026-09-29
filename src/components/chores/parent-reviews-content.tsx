@@ -1,4 +1,6 @@
-import { StarBuddy } from "@/components/art";
+import { PopIn, StarBuddy } from "@/components/art";
+import { Easings } from "@/components/art/motion";
+import Animated, { FadeIn } from "react-native-reanimated";
 import { ActionButton, AppText, ScrimSheet } from "@/design-system";
 import { useLastDefined } from "@/lib/use-last-defined";
 import { useTheme } from "@/design-system/theme";
@@ -187,6 +189,11 @@ export function ParentReviewsContent({
   const loading =
     !visualItems &&
     (personal === undefined || claimable === undefined || redos === undefined);
+  // Cleared while watching (not already empty on open): the moment gets a
+  // small pop. Opening to an empty queue stays calm.
+  const [hadItems, setHadItems] = useState(false);
+  if (!loading && items.length > 0 && !hadItems) setHadItems(true);
+  const justCleared = hadItems && !loading && items.length === 0;
 
   async function approve(item: DeckItem) {
     setWorking(true);
@@ -339,13 +346,27 @@ export function ParentReviewsContent({
 
       {!loading && items.length === 0 ? (
         <View className="mt-10 items-center">
-          <StarBuddy size={96} mood="dance" />
-          <AppText variant="sectionTitle" className="mt-4 text-center">
-            All caught up!
-          </AppText>
-          <AppText color="ink-muted" className="mt-1 text-center">
-            New work from the kids lands here as a card.
-          </AppText>
+          {justCleared ? (
+            <PopIn>
+              <StarBuddy size={96} mood="dance" />
+            </PopIn>
+          ) : (
+            <StarBuddy size={96} mood="dance" />
+          )}
+          <Animated.View
+            entering={
+              justCleared
+                ? FadeIn.delay(120).duration(300).easing(Easings.out)
+                : undefined
+            }
+          >
+            <AppText variant="sectionTitle" className="mt-4 text-center">
+              All caught up!
+            </AppText>
+            <AppText color="ink-muted" className="mt-1 text-center">
+              New work from the kids lands here as a card.
+            </AppText>
+          </Animated.View>
         </View>
       ) : null}
 

@@ -230,6 +230,7 @@ export function HouseholdListScreen({
             {activeSection === "reviews" ? (
               <View className="mt-2">
                 <ParentReviewsContent
+                  key={household.householdId}
                   householdId={household.householdId}
                   householdTimezone={household.timezone}
                 />

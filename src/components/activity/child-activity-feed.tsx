@@ -1,6 +1,11 @@
 import * as SecureStore from "expo-secure-store";
 import { useEffect, useMemo, useState } from "react";
 import { AppState, Pressable, View } from "react-native";
+import Animated, {
+  cubicBezier,
+  useReducedMotion,
+} from "react-native-reanimated";
+import { PRESS } from "@/components/art/motion";
 
 import {
   ChoreIcon,
@@ -490,6 +495,11 @@ function HighFiveButton({
   onPress: () => void;
 }) {
   // Only kids see this button, always on the night-sky theme.
+  // Sent from this tap (never when saved high-fives load in): the hand
+  // gives one little wave.
+  const [sentHere, setSentHere] = useState(false);
+  const reducedMotion = useReducedMotion();
+  const wave = cheered && sentHere && !reducedMotion;
   return (
     <Pressable
       accessibilityRole="button"
@@ -498,11 +508,14 @@ function HighFiveButton({
       }
       accessibilityState={{ disabled: cheered }}
       disabled={cheered}
-      onPress={onPress}
+      onPress={() => {
+        setSentHere(true);
+        onPress();
+      }}
       hitSlop={8}
     >
       {({ pressed }) => (
-        <View
+        <Animated.View
           style={{
             width: 40,
             height: 40,
@@ -512,18 +525,40 @@ function HighFiveButton({
             backgroundColor: cheered
               ? questTokens.gold
               : questTokens.nightRaised,
-            transform: [{ scale: pressed ? 0.9 : 1 }],
+            transform: [{ scale: pressed ? PRESS.scale : 1 }],
+            transitionProperty: ["transform", "backgroundColor"],
+            transitionDuration: [`${PRESS.durationMs}ms`, "200ms"],
+            transitionTimingFunction: cubicBezier(0.23, 1, 0.32, 1),
           }}
         >
-          <HighFiveHand
-            size={20}
-            color={cheered ? questTokens.night : questTokens.ink}
-          />
-        </View>
+          <Animated.View
+            style={
+              wave
+                ? {
+                    animationName: HIGH_FIVE_WAVE,
+                    animationDuration: "320ms",
+                    animationTimingFunction: cubicBezier(0.23, 1, 0.32, 1),
+                  }
+                : undefined
+            }
+          >
+            <HighFiveHand
+              size={20}
+              color={cheered ? questTokens.night : questTokens.ink}
+            />
+          </Animated.View>
+        </Animated.View>
       )}
     </Pressable>
   );
 }
+
+/** One quick wave when a high-five is sent. */
+const HIGH_FIVE_WAVE = {
+  "0%": { transform: [{ scale: 1 }, { rotate: "0deg" }] },
+  "40%": { transform: [{ scale: 1.18 }, { rotate: "-16deg" }] },
+  "100%": { transform: [{ scale: 1 }, { rotate: "0deg" }] },
+};
 
 /** What the patches mean, one line each. */
 function PatchLegend() {
