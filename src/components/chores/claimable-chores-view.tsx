@@ -15,7 +15,7 @@ import { ActionButton, AppText, Surface, SheetBody } from "@/design-system";
 import * as SecureStore from "expo-secure-store";
 import { useEffect, useState } from "react";
 import { Modal, Pressable, View } from "react-native";
-import Animated, { FadeInUp } from "react-native-reanimated";
+import Animated, { FadeIn, FadeInUp } from "react-native-reanimated";
 import { userErrorMessage } from "@/lib/errors";
 import { useMinuteNow } from "@/lib/use-hour-now";
 
@@ -497,7 +497,7 @@ function PadSlot({
       : padState === "redo"
         ? "Fix it and send it again"
         : padState === "locked"
-          ? `Finish by ${formatTime(claim.deadlineAt, claim.timezone)} or lose ${claim.valueSek} kr`
+          ? `Finish by ${formatDeadlineSentence(claim.deadlineAt, claim.timezone)} or lose ${claim.valueSek} kr`
           : `Abort window closes in ${formatDuration(lockAt - now)}`;
 
   return (
@@ -563,16 +563,22 @@ function PadSlot({
  * the big rays-and-coins card is a moment, not wallpaper. Later visits (and
  * a failed read) get the calm strip.
  */
+// Keys already read this session, so coming back to the tab answers at once
+// instead of waiting on SecureStore again.
+const seenThisSession = new Set<string>();
+
 function useFirstSighting(key: string | undefined) {
   // undefined = still reading; per key so a new unlock starts fresh.
   const [result, setResult] = useState<{ key: string; first: boolean }>();
+  const known = key !== undefined && seenThisSession.has(key);
   useEffect(() => {
-    if (!key) return;
+    if (!key || seenThisSession.has(key)) return;
     let cancelled = false;
     const storageKey = `chest-seen.${key}`;
     SecureStore.getItemAsync(storageKey)
       .then((seen) => {
         if (cancelled) return;
+        seenThisSession.add(key);
         setResult({ key, first: !seen });
         if (!seen) return SecureStore.setItemAsync(storageKey, "1");
       })
@@ -584,7 +590,8 @@ function useFirstSighting(key: string | undefined) {
     };
   }, [key]);
   if (!key) return false;
-  return result?.key === key ? result.first : undefined;
+  if (result?.key === key) return result.first;
+  return known ? false : undefined;
 }
 
 export function ClaimableChoresView({
@@ -870,10 +877,11 @@ export function ClaimableChoresView({
 
   return (
     <View className="pb-6">
-      {chestFirstSighting === undefined ? (
-        <View className="mt-1 h-[76px]" />
-      ) : chestFirstSighting ? (
-        <View className="mt-1 flex-row items-center gap-1 overflow-hidden rounded-large bg-surface py-2 pl-1 pr-4">
+      {chestFirstSighting ? (
+        <Animated.View
+          entering={FadeIn.duration(200).easing(Easings.out)}
+          className="mt-1 flex-row items-center gap-1 overflow-hidden rounded-large bg-surface py-2 pl-1 pr-4"
+        >
           <Airlock size={72} open opening />
           <View className="flex-1">
             <AppText
@@ -897,7 +905,7 @@ export function ClaimableChoresView({
               starts.
             </AppText>
           </View>
-        </View>
+        </Animated.View>
       ) : (
         <View className="mt-1 flex-row items-center gap-2 rounded-large bg-surface py-1.5 pl-1 pr-4">
           <Airlock size={48} open />
