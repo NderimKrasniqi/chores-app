@@ -1,3 +1,4 @@
+import { PRESS, pressTransition } from "@/components/art/motion";
 import { useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import * as SecureStore from "expo-secure-store";
@@ -773,14 +774,24 @@ function HowItWorks() {
         accessibilityRole="button"
         accessibilityState={{ expanded: open }}
         onPress={() => setOpen((value) => !value)}
-        className="flex-row items-center gap-2 self-start py-1"
+        pressRetentionOffset={16}
       >
-        <View className="h-6 w-6 items-center justify-center rounded-full bg-nightRaised">
-          <AppText className="font-display text-[13px]">?</AppText>
-        </View>
-        <AppText variant="label" color="ink-muted">
-          How the delivery works
-        </AppText>
+        {({ pressed }) => (
+          <Animated.View
+            className="flex-row items-center gap-2 self-start py-1"
+            style={[
+              { transform: [{ scale: pressed ? PRESS.scale : 1 }] },
+              pressTransition,
+            ]}
+          >
+            <View className="h-6 w-6 items-center justify-center rounded-full bg-nightRaised">
+              <AppText className="font-display text-[13px]">?</AppText>
+            </View>
+            <AppText variant="label" color="ink-muted">
+              How the delivery works
+            </AppText>
+          </Animated.View>
+        )}
       </Pressable>
       {open ? (
         <View className="mt-2 gap-2 rounded-large border-2 border-dashed border-nightRaised p-4">

@@ -1,3 +1,5 @@
+import Animated from "react-native-reanimated";
+import { PRESS, pressTransition } from "@/components/art/motion";
 import {
   BalanceOrb,
   ChoreIcon,
@@ -61,7 +63,7 @@ function OnboardingContent({
   return (
     <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-canvas">
       <StatusBar style="light" />
-      <Starfield seed={page + 3} />
+      <Starfield seed={3} />
 
       <View className="flex-row items-center justify-between px-5 pb-2 pt-1">
         <Pressable
@@ -326,20 +328,30 @@ function ChooseRolePage({
           accessibilityLabel="I’m a child. Join with a code from a Parent."
           disabled={disabled}
           onPress={onChooseChild}
-          className="flex-row items-center gap-3.5 rounded-large border-b-[5px] border-primaryShade bg-primary p-4"
+          pressRetentionOffset={16}
         >
-          <View className="h-[52px] w-[52px] items-center justify-center rounded-[18px] bg-night">
-            <Icon name="star" color={tokens.gold} size={28} />
-          </View>
-          <View className="flex-1">
-            <AppText className="font-display text-[20px] text-night">
-              I’m a child
-            </AppText>
-            <AppText className="font-body-bold text-[14px] text-night">
-              Scan the code from a Parent
-            </AppText>
-          </View>
-          <Icon name="chevron" color={tokens.night} size={20} />
+          {({ pressed }) => (
+            <Animated.View
+              className="flex-row items-center gap-3.5 rounded-large border-b-[5px] border-primaryShade bg-primary p-4"
+              style={[
+                { transform: [{ scale: pressed ? PRESS.scale : 1 }] },
+                pressTransition,
+              ]}
+            >
+              <View className="h-[52px] w-[52px] items-center justify-center rounded-[18px] bg-night">
+                <Icon name="star" color={tokens.gold} size={28} />
+              </View>
+              <View className="flex-1">
+                <AppText className="font-display text-[20px] text-night">
+                  I’m a child
+                </AppText>
+                <AppText className="font-body-bold text-[14px] text-night">
+                  Scan the code from a Parent
+                </AppText>
+              </View>
+              <Icon name="chevron" color={tokens.night} size={20} />
+            </Animated.View>
+          )}
         </Pressable>
 
         <Pressable
@@ -347,22 +359,34 @@ function ChooseRolePage({
           accessibilityLabel="I’m a parent. Sign in and set up your household."
           disabled={disabled}
           onPress={onChooseParent}
-          className="flex-row items-center gap-3.5 rounded-large bg-surface p-4"
+          pressRetentionOffset={16}
         >
-          <View className="h-[52px] w-[52px] items-center justify-center rounded-[18px] bg-nightRaised">
-            <Icon name="home" color={tokens.ink} size={26} />
-          </View>
-          <View className="flex-1">
-            <AppText className="font-display text-[20px]">I’m a parent</AppText>
-            <AppText
-              variant="bodySmall"
-              color="ink-muted"
-              className="font-body-bold"
+          {({ pressed }) => (
+            <Animated.View
+              className="flex-row items-center gap-3.5 rounded-large bg-surface p-4"
+              style={[
+                { transform: [{ scale: pressed ? PRESS.scale : 1 }] },
+                pressTransition,
+              ]}
             >
-              Set chores, review work, and manage payouts
-            </AppText>
-          </View>
-          <Icon name="chevron" color={tokens.inkMuted} size={20} />
+              <View className="h-[52px] w-[52px] items-center justify-center rounded-[18px] bg-nightRaised">
+                <Icon name="home" color={tokens.ink} size={26} />
+              </View>
+              <View className="flex-1">
+                <AppText className="font-display text-[20px]">
+                  I’m a parent
+                </AppText>
+                <AppText
+                  variant="bodySmall"
+                  color="ink-muted"
+                  className="font-body-bold"
+                >
+                  Set chores, review work, and manage payouts
+                </AppText>
+              </View>
+              <Icon name="chevron" color={tokens.inkMuted} size={20} />
+            </Animated.View>
+          )}
         </Pressable>
       </View>
     </View>

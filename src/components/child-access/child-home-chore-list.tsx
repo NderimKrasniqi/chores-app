@@ -1,3 +1,5 @@
+import { PRESS, pressTransition } from "@/components/art/motion";
+import Animated from "react-native-reanimated";
 import {
   StarMap,
   Scene,
@@ -444,22 +446,32 @@ export function ChildHomeChoreList({
             accessibilityRole="button"
             accessibilityLabel={`Redo ${firstRedo.title}`}
             onPress={() => setSelectedId(firstRedo.occurrenceId)}
-            className="mb-5 flex-row items-center gap-2.5 rounded-full bg-pink py-2.5 pl-2.5 pr-4"
+            pressRetentionOffset={16}
           >
-            <View className="h-8 w-8 items-center justify-center rounded-full bg-night">
-              <Icon name="redo" color={themeColors.pink} size={16} />
-            </View>
-            <AppText
-              className="flex-1 font-body-heavy text-[15px] text-night"
-              numberOfLines={1}
-            >
-              Redo “{firstRedo.title}” ·{" "}
-              {statusLabel(
-                firstRedo,
-                redoByOccurrence.get(firstRedo.occurrenceId),
-              ).replace(/^Redo due /, "by ")}
-            </AppText>
-            <Icon name="chevron" color={themeColors.night} size={18} />
+            {({ pressed }) => (
+              <Animated.View
+                className="mb-5 flex-row items-center gap-2.5 rounded-full bg-pink py-2.5 pl-2.5 pr-4"
+                style={[
+                  { transform: [{ scale: pressed ? PRESS.scale : 1 }] },
+                  pressTransition,
+                ]}
+              >
+                <View className="h-8 w-8 items-center justify-center rounded-full bg-night">
+                  <Icon name="redo" color={themeColors.pink} size={16} />
+                </View>
+                <AppText
+                  className="flex-1 font-body-heavy text-[15px] text-night"
+                  numberOfLines={1}
+                >
+                  Redo “{firstRedo.title}” ·{" "}
+                  {statusLabel(
+                    firstRedo,
+                    redoByOccurrence.get(firstRedo.occurrenceId),
+                  ).replace(/^Redo due /, "by ")}
+                </AppText>
+                <Icon name="chevron" color={themeColors.night} size={18} />
+              </Animated.View>
+            )}
           </Pressable>
         ) : null}
 
@@ -496,20 +508,36 @@ export function ChildHomeChoreList({
                 : "Launch control closed. Open Extras"
             }
             onPress={onOpenExtras}
-            className="mt-8 flex-row items-center gap-3 rounded-full bg-surface py-2 pl-2 pr-4"
+            pressRetentionOffset={16}
           >
-            <Airlock size={40} open={unlockApproved} />
-            <View className="flex-1">
-              <AppText variant="label" color="gold">
-                {unlockApproved ? "Launch control is open" : "Launch control"}
-              </AppText>
-              <AppText variant="caption" color="ink-muted" numberOfLines={1}>
-                {unlockApproved
-                  ? "Missions for extra money"
-                  : "Opens when your Unlock Chore is approved"}
-              </AppText>
-            </View>
-            <Icon name="chevron" color={themeColors.inkMuted} size={18} />
+            {({ pressed }) => (
+              <Animated.View
+                className="mt-8 flex-row items-center gap-3 rounded-full bg-surface py-2 pl-2 pr-4"
+                style={[
+                  { transform: [{ scale: pressed ? PRESS.scale : 1 }] },
+                  pressTransition,
+                ]}
+              >
+                <Airlock size={40} open={unlockApproved} />
+                <View className="flex-1">
+                  <AppText variant="label" color="gold">
+                    {unlockApproved
+                      ? "Launch control is open"
+                      : "Launch control"}
+                  </AppText>
+                  <AppText
+                    variant="caption"
+                    color="ink-muted"
+                    numberOfLines={1}
+                  >
+                    {unlockApproved
+                      ? "Missions for extra money"
+                      : "Opens when your Unlock Chore is approved"}
+                  </AppText>
+                </View>
+                <Icon name="chevron" color={themeColors.inkMuted} size={18} />
+              </Animated.View>
+            )}
           </Pressable>
         ) : null}
       </>

@@ -1,3 +1,4 @@
+import { PRESS, pressTransition, Easings } from "@/components/art/motion";
 import { useState } from "react";
 import { Modal, Pressable, ScrollView, View } from "react-native";
 import Animated, { useAnimatedStyle } from "react-native-reanimated";
@@ -14,7 +15,6 @@ import {
   Airlock,
   useLoop,
 } from "@/components/art";
-import { Easings } from "@/components/art/motion";
 import { Icon } from "@/components/ui/icon";
 import { AppText, HoldButton, ThemeScope } from "@/design-system";
 import { questTokens as tokens } from "@/design-system/theme";
@@ -114,9 +114,19 @@ function QuestCardBody({
           accessibilityLabel="Close chore"
           onPress={onClose}
           hitSlop={8}
-          className="h-11 w-11 items-center justify-center rounded-full bg-surface"
+          pressRetentionOffset={16}
         >
-          <Icon name="close" color={tokens.ink} size={18} />
+          {({ pressed }) => (
+            <Animated.View
+              className="h-11 w-11 items-center justify-center rounded-full bg-surface"
+              style={[
+                { transform: [{ scale: pressed ? PRESS.scale : 1 }] },
+                pressTransition,
+              ]}
+            >
+              <Icon name="close" color={tokens.ink} size={18} />
+            </Animated.View>
+          )}
         </Pressable>
         <StatePill state={occurrence.state} />
         <View className="h-11 w-11" />

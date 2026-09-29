@@ -1,4 +1,6 @@
 import { HomePlanet, Starfield } from "@/components/art";
+import { PRESS, pressTransition } from "@/components/art/motion";
+import Animated from "react-native-reanimated";
 import { amountFontSize } from "@/lib/amount-size";
 import { useHourNow } from "@/lib/use-hour-now";
 import { ChildApprovalCelebrations } from "@/components/activity/approval-celebration";
@@ -370,66 +372,82 @@ function MoneyCard({
         earnedToday > 0 ? ` Plus ${earnedToday} today.` : ""
       } ${paydayLabel}. Open money.`}
       onPress={onOpenMoney}
-      className="overflow-hidden rounded-large bg-surface"
-      style={{ minHeight: PLANET_CARD_HEIGHT }}
+      pressRetentionOffset={16}
       testID="task14-running-balance-card"
     >
-      {/* the home planet, half off the card's right edge */}
-      <View
-        style={{
-          position: "absolute",
-          right: -PLANET_SIZE * 0.42,
-          top: PLANET_CARD_HEIGHT / 2 - PLANET_BOX / 2,
-        }}
-      >
-        <HomePlanet
-          size={PLANET_SIZE}
-          balance={balanceSek ?? 0}
-          weekProgress={weekProgress}
-          celebrateKey={celebrateKey}
-        />
-      </View>
-      <View className="px-4 py-3" style={{ maxWidth: "72%" }}>
-        <AppText
-          className="font-display-medium"
-          style={{ fontSize: 15, lineHeight: 19 }}
+      {({ pressed }) => (
+        <Animated.View
+          className="overflow-hidden rounded-large bg-surface"
+          style={[
+            { minHeight: PLANET_CARD_HEIGHT },
+            { transform: [{ scale: pressed ? PRESS.scale : 1 }] },
+            pressTransition,
+          ]}
         >
-          Hi, {childName}!
-        </AppText>
-        <View className="flex-row items-baseline gap-2">
-          <AppText
-            numberOfLines={1}
-            className="font-display"
+          {/* the home planet, half off the card's right edge */}
+          <View
             style={{
-              fontSize,
-              lineHeight: fontSize * 1.15,
-              color:
-                (balanceSek ?? 0) < 0 ? themeColors.pink : themeColors.primary,
+              position: "absolute",
+              right: -PLANET_SIZE * 0.42,
+              top: PLANET_CARD_HEIGHT / 2 - PLANET_BOX / 2,
             }}
-            testID="task14-running-balance-value"
           >
-            {value === undefined ? "…" : value}
-            <AppText
-              className="font-body-heavy"
-              style={{ fontSize: 14, color: themeColors.primary }}
-            >
-              {" "}
-              kr
-            </AppText>
-          </AppText>
-          {earnedToday > 0 ? (
-            <AppText variant="caption" color="gold" className="font-body-heavy">
-              +{earnedToday} today
-            </AppText>
-          ) : null}
-        </View>
-        <View className="mt-1 flex-row">
-          <View className="flex-row items-center gap-1.5 self-start rounded-full bg-nightRaised px-3 py-1">
-            <Icon name="star" color={themeColors.gold} size={12} />
-            <AppText variant="caption">{paydayLabel}</AppText>
+            <HomePlanet
+              size={PLANET_SIZE}
+              balance={balanceSek ?? 0}
+              weekProgress={weekProgress}
+              celebrateKey={celebrateKey}
+            />
           </View>
-        </View>
-      </View>
+          <View className="px-4 py-3" style={{ maxWidth: "72%" }}>
+            <AppText
+              className="font-display-medium"
+              style={{ fontSize: 15, lineHeight: 19 }}
+            >
+              Hi, {childName}!
+            </AppText>
+            <View className="flex-row items-baseline gap-2">
+              <AppText
+                numberOfLines={1}
+                className="font-display"
+                style={{
+                  fontSize,
+                  lineHeight: fontSize * 1.15,
+                  color:
+                    (balanceSek ?? 0) < 0
+                      ? themeColors.pink
+                      : themeColors.primary,
+                }}
+                testID="task14-running-balance-value"
+              >
+                {value === undefined ? "…" : value}
+                <AppText
+                  className="font-body-heavy"
+                  style={{ fontSize: 14, color: themeColors.primary }}
+                >
+                  {" "}
+                  kr
+                </AppText>
+              </AppText>
+              {earnedToday > 0 ? (
+                <AppText
+                  variant="caption"
+                  color="gold"
+                  className="font-body-heavy"
+                >
+                  +{earnedToday} today
+                </AppText>
+              ) : null}
+            </View>
+            <View className="mt-1 flex-row">
+              <View className="flex-row items-center gap-1.5 self-start rounded-full bg-nightRaised px-3 py-1">
+                <Icon name="star" color={themeColors.gold} size={12} />
+                <AppText variant="caption">{paydayLabel}</AppText>
+              </View>
+            </View>
+          </View>
+        </Animated.View>
+      )}
     </Pressable>
   );
 }
