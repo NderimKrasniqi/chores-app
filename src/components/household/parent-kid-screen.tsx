@@ -1,13 +1,13 @@
 import { useQuery } from "convex/react";
 import { useEffect, useState, type ReactNode } from "react";
-import { AppState, Modal, Pressable, TextInput, View } from "react-native";
+import { AppState, Pressable, TextInput, View } from "react-native";
 import { userErrorMessage } from "@/lib/errors";
 
 import { ChoreIcon } from "@/components/art";
 import { ActiveClaimableClaimsView } from "@/components/chores/active-claimable-claims-view";
 import { childAvatarTone, Avatar } from "@/components/ui/avatar";
 import { Icon } from "@/components/ui/icon";
-import { ActionButton, AppText, SheetBody } from "@/design-system";
+import { ActionButton, AppText, ScrimSheet } from "@/design-system";
 import { useTheme } from "@/design-system/theme";
 import { useServerConfirmedMutation } from "@/hooks/use-server-confirmed-mutation";
 
@@ -330,7 +330,11 @@ export function ParentKidScreen({
         </AppText>
       </Pressable>
 
-      <Sheet visible={renaming} onClose={() => !working && setRenaming(false)}>
+      <Sheet
+        visible={renaming}
+        busy={working}
+        onClose={() => setRenaming(false)}
+      >
         <AppText variant="sectionTitle">Rename</AppText>
         <TextInput
           accessibilityLabel="Name"
@@ -355,7 +359,11 @@ export function ParentKidScreen({
         />
       </Sheet>
 
-      <Sheet visible={removing} onClose={() => !working && setRemoving(false)}>
+      <Sheet
+        visible={removing}
+        busy={working}
+        onClose={() => setRemoving(false)}
+      >
         <AppText variant="sectionTitle">Remove {child.displayName}?</AppText>
         <AppText color="ink-muted" className="mt-2">
           Their phones are unlinked and their chores stop. Past chores, wins and
@@ -389,36 +397,26 @@ export function ParentKidScreen({
 
 function Sheet({
   visible,
+  busy,
   onClose,
   children,
 }: {
   visible: boolean;
+  /** While saving, the sheet can't be closed. */
+  busy: boolean;
   onClose: () => void;
   children: ReactNode;
 }) {
-  const { tokens } = useTheme();
   return (
-    <Modal
-      transparent
-      animationType="slide"
+    <ScrimSheet
       visible={visible}
-      onRequestClose={onClose}
+      onClose={onClose}
+      dismissible={!busy}
+      className="rounded-t-sheet bg-canvas px-5 pb-2 pt-3"
+      grabberClassName="bg-line"
     >
-      <Pressable
-        accessible={false}
-        onPress={onClose}
-        className="flex-1 justify-end bg-scrim"
-      >
-        <Pressable accessible={false} onPress={() => {}}>
-          <SheetBody
-            className="rounded-t-sheet px-5 pb-2 pt-5"
-            style={{ backgroundColor: tokens.canvas }}
-          >
-            {children}
-          </SheetBody>
-        </Pressable>
-      </Pressable>
-    </Modal>
+      {children}
+    </ScrimSheet>
   );
 }
 

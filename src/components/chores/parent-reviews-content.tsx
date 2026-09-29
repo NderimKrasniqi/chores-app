@@ -1,11 +1,12 @@
 import { StarBuddy } from "@/components/art";
-import { ActionButton, AppText, SheetBody } from "@/design-system";
+import { ActionButton, AppText, ScrimSheet } from "@/design-system";
+import { useLastDefined } from "@/lib/use-last-defined";
 import { useTheme } from "@/design-system/theme";
 import { useServerConfirmedMutation } from "@/hooks/use-server-confirmed-mutation";
 import { formatTimestampDateTime } from "@/lib/dates";
 import { useQuery } from "convex/react";
 import { useRef, useState } from "react";
-import { Alert, Modal, Pressable, TextInput, View } from "react-native";
+import { Alert, Pressable, TextInput, View } from "react-native";
 import { userErrorMessage } from "@/lib/errors";
 
 import { api } from "../../../convex/_generated/api";
@@ -416,110 +417,106 @@ function RedoSheet({
   const [time, setTime] = useState("18:00");
   const [reason, setReason] = useState("");
   const date = dateInDays(timezone, days);
+  // Keeps the card's details while the sheet slides closed.
+  const shown = useLastDefined(item);
 
   return (
-    <Modal
-      transparent
-      animationType="slide"
+    <ScrimSheet
       visible={item !== null}
-      onRequestClose={() => {
-        if (!working) onClose();
-      }}
+      onClose={onClose}
+      dismissible={!working}
+      className="rounded-t-sheet bg-surface px-5 pt-3"
+      grabberClassName="bg-line"
     >
-      <View className="flex-1 justify-end bg-scrim">
-        {item ? (
-          <SheetBody className="rounded-t-sheet bg-surface px-5 pt-3">
-            <View className="h-1.5 w-12 self-center rounded-full bg-line" />
-            <AppText variant="sectionTitle" className="mt-4">
-              Ask {item.childDisplayName} for a redo
-            </AppText>
-            <AppText color="ink-muted" className="mt-1">
-              {item.title} gets one more try. There’s no second redo.
-            </AppText>
+      {shown ? (
+        <>
+          <AppText variant="sectionTitle" className="mt-2">
+            Ask {shown.childDisplayName} for a redo
+          </AppText>
+          <AppText color="ink-muted" className="mt-1">
+            {shown.title} gets one more try. There’s no second redo.
+          </AppText>
 
-            <AppText variant="label" color="ink-muted" className="mt-5">
-              Redo by
-            </AppText>
-            <ChipRow
-              options={DAY_OPTIONS.map((option) => ({
-                key: String(option),
-                label: dayChipLabel(dateInDays(timezone, option), option),
-              }))}
-              selected={String(days)}
-              onSelect={(key) => setDays(Number(key))}
-            />
-            <ChipRow
-              options={TIME_OPTIONS.map((option) => ({
-                key: option,
-                label: option,
-              }))}
-              selected={time}
-              onSelect={setTime}
-            />
+          <AppText variant="label" color="ink-muted" className="mt-5">
+            Redo by
+          </AppText>
+          <ChipRow
+            options={DAY_OPTIONS.map((option) => ({
+              key: String(option),
+              label: dayChipLabel(dateInDays(timezone, option), option),
+            }))}
+            selected={String(days)}
+            onSelect={(key) => setDays(Number(key))}
+          />
+          <ChipRow
+            options={TIME_OPTIONS.map((option) => ({
+              key: option,
+              label: option,
+            }))}
+            selected={time}
+            onSelect={setTime}
+          />
 
-            <AppText variant="label" color="ink-muted" className="mt-5">
-              What to fix (optional)
-            </AppText>
-            <View className="mt-2 flex-row flex-wrap gap-2">
-              {REASON_CHIPS.map((chip) => {
-                const active = reason === chip;
-                return (
-                  <Pressable
-                    key={chip}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: active }}
-                    onPress={() => setReason(active ? "" : chip)}
-                    className="min-h-[36px] justify-center rounded-full px-3.5"
-                    style={{
-                      backgroundColor: active
-                        ? tokens.ink
-                        : tokens.surfaceMuted,
-                    }}
+          <AppText variant="label" color="ink-muted" className="mt-5">
+            What to fix (optional)
+          </AppText>
+          <View className="mt-2 flex-row flex-wrap gap-2">
+            {REASON_CHIPS.map((chip) => {
+              const active = reason === chip;
+              return (
+                <Pressable
+                  key={chip}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
+                  onPress={() => setReason(active ? "" : chip)}
+                  className="min-h-[36px] justify-center rounded-full px-3.5"
+                  style={{
+                    backgroundColor: active ? tokens.ink : tokens.surfaceMuted,
+                  }}
+                >
+                  <AppText
+                    variant="label"
+                    style={{ color: active ? tokens.surface : tokens.ink }}
                   >
-                    <AppText
-                      variant="label"
-                      style={{ color: active ? tokens.surface : tokens.ink }}
-                    >
-                      {chip}
-                    </AppText>
-                  </Pressable>
-                );
-              })}
-            </View>
-            <TextInput
-              accessibilityLabel="What to fix"
-              value={reason}
-              onChangeText={setReason}
-              placeholder={`Tell ${item.childDisplayName} what to fix`}
-              placeholderTextColor={tokens.inkFaint}
-              maxLength={REDO_REASON_MAX}
-              className="mt-2 min-h-[48px] rounded-[16px] px-4 font-body-bold text-ink"
-              style={{ backgroundColor: tokens.surfaceMuted }}
-            />
+                    {chip}
+                  </AppText>
+                </Pressable>
+              );
+            })}
+          </View>
+          <TextInput
+            accessibilityLabel="What to fix"
+            value={reason}
+            onChangeText={setReason}
+            placeholder={`Tell ${shown.childDisplayName} what to fix`}
+            placeholderTextColor={tokens.inkFaint}
+            maxLength={REDO_REASON_MAX}
+            className="mt-2 min-h-[48px] rounded-[16px] px-4 font-body-bold text-ink"
+            style={{ backgroundColor: tokens.surfaceMuted }}
+          />
 
-            {error ? (
-              <AppText variant="bodySmall" color="urgency" className="mt-4">
-                {error}
-              </AppText>
-            ) : null}
-            <ActionButton
-              className="mt-6"
-              tone="destructive"
-              label="Ask for a redo"
-              loading={working}
-              onPress={() => onConfirm(date, time, reason)}
-            />
-            <ActionButton
-              className="mt-1"
-              tone="quiet"
-              label="Cancel"
-              disabled={working}
-              onPress={onClose}
-            />
-          </SheetBody>
-        ) : null}
-      </View>
-    </Modal>
+          {error ? (
+            <AppText variant="bodySmall" color="urgency" className="mt-4">
+              {error}
+            </AppText>
+          ) : null}
+          <ActionButton
+            className="mt-6"
+            tone="destructive"
+            label="Ask for a redo"
+            loading={working}
+            onPress={() => onConfirm(date, time, reason)}
+          />
+          <ActionButton
+            className="mt-1"
+            tone="quiet"
+            label="Cancel"
+            disabled={working}
+            onPress={onClose}
+          />
+        </>
+      ) : null}
+    </ScrimSheet>
   );
 }
 

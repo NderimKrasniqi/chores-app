@@ -1,12 +1,13 @@
 import { useState } from "react";
-import { Modal, Pressable, View } from "react-native";
+import { Pressable, View } from "react-native";
 import Animated from "react-native-reanimated";
 import { userErrorMessage } from "@/lib/errors";
 
 import { ChoreIcon } from "@/components/art";
 import { PRESS, pressTransition } from "@/components/art/motion";
 import { childAvatarTone, Avatar } from "@/components/ui/avatar";
-import { ActionButton, AppText, SheetBody } from "@/design-system";
+import { ActionButton, AppText, ScrimSheet } from "@/design-system";
+import { useLastDefined } from "@/lib/use-last-defined";
 import { useTheme } from "@/design-system/theme";
 import { formatTimestampDateTime } from "@/lib/dates";
 
@@ -161,8 +162,6 @@ export function ActiveClaimableClaimsView({
     }
   }
 
-  if (claims.length === 0) return null;
-
   const stateLabel = (claim: ActiveClaimableClaimViewModel) =>
     claim.claimState === "submitted"
       ? { label: "To check", color: tokens.info }
@@ -171,9 +170,29 @@ export function ActiveClaimableClaimsView({
         : { label: "Working on it", color: tokens.action };
 
   const detailClaim = selectedClaim ?? unavailableClaim ?? undefined;
+  // Keeps the sheet's content while it slides closed.
+  const shownClaim = useLastDefined(detailClaim);
   const unavailable =
     unavailableClaim !== null &&
     unavailableClaim.claimId === detailClaim?.claimId;
+  // The sheet's view (detail, confirm, deadline passed) and the claim being
+  // confirmed also hold still while it slides closed.
+  const confirmingThis =
+    confirmingClaim !== undefined &&
+    confirmingClaim.claimId === detailClaim?.claimId
+      ? confirmingClaim
+      : undefined;
+  const shownMode = useLastDefined(
+    detailClaim === undefined
+      ? undefined
+      : unavailable
+        ? "unavailable"
+        : confirmingThis
+          ? "confirm"
+          : "detail",
+  );
+  const shownConfirming = useLastDefined(confirmingThis);
+  if (claims.length === 0) return null;
 
   return (
     <View className={homeVariant ? "mt-6" : "mt-5"}>
@@ -228,123 +247,116 @@ export function ActiveClaimableClaimsView({
         })}
       </View>
 
-      <Modal
-        transparent
-        animationType="slide"
+      <ScrimSheet
         visible={detailClaim !== undefined}
-        onRequestClose={() => {
-          if (cancellingClaimId) return;
+        dismissible={!cancellingClaimId}
+        onClose={() => {
           setSelectedClaimId(null);
           setConfirmingClaimId(null);
           setUnavailableClaim(null);
         }}
+        className="rounded-t-sheet bg-canvas px-5 pb-2 pt-3"
       >
-        <View className="flex-1 justify-end bg-scrim">
-          {detailClaim ? (
-            <SheetBody
-              className="rounded-t-sheet px-5 pb-2 pt-5"
-              style={{ backgroundColor: tokens.canvas }}
-            >
-              <View className="flex-row items-center gap-4">
-                <ChoreIcon title={detailClaim.title} size={72} />
-                <View className="flex-1">
-                  <AppText variant="sectionTitle" numberOfLines={2}>
-                    {detailClaim.title}
+        {shownClaim ? (
+          <>
+            <View className="flex-row items-center gap-4">
+              <ChoreIcon title={shownClaim.title} size={72} />
+              <View className="flex-1">
+                <AppText variant="sectionTitle" numberOfLines={2}>
+                  {shownClaim.title}
+                </AppText>
+                <View className="mt-1 flex-row items-center gap-2">
+                  <Avatar
+                    tone={childAvatarTone(shownClaim.claimedByDisplayName)}
+                    className="rounded-full"
+                    fallbackLabel={shownClaim.claimedByDisplayName}
+                    size={24}
+                  />
+                  <AppText variant="label">
+                    {shownClaim.claimedByDisplayName} · {shownClaim.valueSek} kr
                   </AppText>
-                  <View className="mt-1 flex-row items-center gap-2">
-                    <Avatar
-                      tone={childAvatarTone(detailClaim.claimedByDisplayName)}
-                      className="rounded-full"
-                      fallbackLabel={detailClaim.claimedByDisplayName}
-                      size={24}
-                    />
-                    <AppText variant="label">
-                      {detailClaim.claimedByDisplayName} ·{" "}
-                      {detailClaim.valueSek} kr
-                    </AppText>
-                  </View>
                 </View>
               </View>
+            </View>
 
-              <View
-                className="mt-4 gap-1.5 rounded-[18px] p-4"
-                style={{ backgroundColor: tokens.surface }}
-              >
-                <AppText variant="caption" color="ink-muted">
-                  Claimed{" "}
-                  {formatMoment(detailClaim.claimedAt, detailClaim.timezone)}
+            <View
+              className="mt-4 gap-1.5 rounded-[18px] p-4"
+              style={{ backgroundColor: tokens.surface }}
+            >
+              <AppText variant="caption" color="ink-muted">
+                Claimed{" "}
+                {formatMoment(shownClaim.claimedAt, shownClaim.timezone)}
+              </AppText>
+              <AppText variant="caption" color="ink-muted">
+                {shownClaim.claimState === "redo_required" &&
+                shownClaim.redoDeadlineAt
+                  ? `Redo due ${formatMoment(shownClaim.redoDeadlineAt, shownClaim.timezone)}`
+                  : `Due ${formatMoment(shownClaim.deadlineAt, shownClaim.timezone)}`}
+              </AppText>
+              {shownClaim.description ? (
+                <AppText variant="bodySmall" className="mt-1">
+                  {shownClaim.description}
                 </AppText>
-                <AppText variant="caption" color="ink-muted">
-                  {detailClaim.claimState === "redo_required" &&
-                  detailClaim.redoDeadlineAt
-                    ? `Redo due ${formatMoment(detailClaim.redoDeadlineAt, detailClaim.timezone)}`
-                    : `Due ${formatMoment(detailClaim.deadlineAt, detailClaim.timezone)}`}
-                </AppText>
-                {detailClaim.description ? (
-                  <AppText variant="bodySmall" className="mt-1">
-                    {detailClaim.description}
-                  </AppText>
-                ) : null}
-              </View>
+              ) : null}
+            </View>
 
-              {unavailable ? (
-                <AppText color="urgency" className="mt-4">
-                  The deadline has passed, so this Extra can no longer be
-                  cancelled. It resolves as done or not done.
+            {shownMode === "unavailable" ? (
+              <AppText color="urgency" className="mt-4">
+                The deadline has passed, so this Extra can no longer be
+                cancelled. It resolves as done or not done.
+              </AppText>
+            ) : shownMode === "confirm" && shownConfirming ? (
+              <>
+                <AppText variant="cardTitle" className="mt-5">
+                  Cancel {shownConfirming.title}?
                 </AppText>
-              ) : confirmingClaim ? (
-                <>
-                  <AppText variant="cardTitle" className="mt-5">
-                    Cancel {confirmingClaim.title}?
-                  </AppText>
-                  <AppText color="ink-muted" className="mt-1">
-                    No penalty for {confirmingClaim.claimedByDisplayName}, and
-                    their weekly unclaim keys stay the same.
-                  </AppText>
-                  <ActionButton
-                    className="mt-4"
-                    tone="destructive"
-                    label="Cancel Extra"
-                    loading={cancellingClaimId === confirmingClaim.claimId}
-                    onPress={() => void handleCancel(confirmingClaim)}
-                  />
-                  <ActionButton
-                    className="mt-1"
-                    tone="quiet"
-                    label="Keep it"
-                    disabled={cancellingClaimId !== null}
-                    onPress={() => setConfirmingClaimId(null)}
-                  />
-                </>
-              ) : (
-                <>
-                  <AppText variant="caption" color="ink-muted" className="mt-4">
-                    Cancelling is on you as a Parent: no penalty for the kid and
-                    no unclaim key used.
-                  </AppText>
-                  <ActionButton
-                    className="mt-3"
-                    tone="destructiveSecondary"
-                    label="Cancel this Extra"
-                    onPress={() => setConfirmingClaimId(detailClaim.claimId)}
-                  />
-                </>
-              )}
-              <ActionButton
-                className="mt-1"
-                tone="quiet"
-                label="Close"
-                disabled={cancellingClaimId !== null}
-                onPress={() => {
-                  setSelectedClaimId(null);
-                  setConfirmingClaimId(null);
-                  setUnavailableClaim(null);
-                }}
-              />
-            </SheetBody>
-          ) : null}
-        </View>
-      </Modal>
+                <AppText color="ink-muted" className="mt-1">
+                  No penalty for {shownConfirming.claimedByDisplayName}, and
+                  their weekly unclaim keys stay the same.
+                </AppText>
+                <ActionButton
+                  className="mt-4"
+                  tone="destructive"
+                  label="Cancel Extra"
+                  loading={cancellingClaimId === shownConfirming.claimId}
+                  onPress={() => void handleCancel(shownConfirming)}
+                />
+                <ActionButton
+                  className="mt-1"
+                  tone="quiet"
+                  label="Keep it"
+                  disabled={cancellingClaimId !== null}
+                  onPress={() => setConfirmingClaimId(null)}
+                />
+              </>
+            ) : (
+              <>
+                <AppText variant="caption" color="ink-muted" className="mt-4">
+                  Cancelling is on you as a Parent: no penalty for the kid and
+                  no unclaim key used.
+                </AppText>
+                <ActionButton
+                  className="mt-3"
+                  tone="destructiveSecondary"
+                  label="Cancel this Extra"
+                  onPress={() => setConfirmingClaimId(shownClaim.claimId)}
+                />
+              </>
+            )}
+            <ActionButton
+              className="mt-1"
+              tone="quiet"
+              label="Close"
+              disabled={cancellingClaimId !== null}
+              onPress={() => {
+                setSelectedClaimId(null);
+                setConfirmingClaimId(null);
+                setUnavailableClaim(null);
+              }}
+            />
+          </>
+        ) : null}
+      </ScrimSheet>
     </View>
   );
 }

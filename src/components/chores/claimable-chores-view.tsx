@@ -11,13 +11,14 @@ import {
 import { Easings, PRESS, pressTransition } from "@/components/art/motion";
 import { Icon } from "@/components/ui/icon";
 import { questTokens as themeColors } from "@/design-system/theme";
-import { ActionButton, AppText, Surface, SheetBody } from "@/design-system";
+import { ActionButton, AppText, ScrimSheet, Surface } from "@/design-system";
 import * as SecureStore from "expo-secure-store";
 import { useEffect, useState } from "react";
-import { Modal, Pressable, View } from "react-native";
+import { Pressable, View } from "react-native";
 import Animated, { FadeIn, FadeInUp } from "react-native-reanimated";
 import { userErrorMessage } from "@/lib/errors";
 import { useMinuteNow } from "@/lib/use-hour-now";
+import { useLastDefined } from "@/lib/use-last-defined";
 
 import type { Id } from "../../../convex/_generated/dataModel";
 import { formatLocalDate } from "@/lib/dates";
@@ -677,6 +678,8 @@ export function ClaimableChoresView({
   const lockedCandidate = claimableOccurrences.find(
     (occurrence) => occurrence.occurrenceId === lockedCandidateId,
   );
+  // Keeps the sheet's content while it slides closed.
+  const shownCandidate = useLastDefined(lockedCandidate);
   const busy =
     claimingId !== null || submittingId !== null || unclaimingId !== null;
 
@@ -1038,104 +1041,98 @@ export function ClaimableChoresView({
         }
       />
 
-      <Modal
-        transparent
-        animationType="slide"
+      <ScrimSheet
         visible={lockedCandidate !== undefined}
-        onRequestClose={() => setLockedCandidateId(null)}
+        onClose={() => setLockedCandidateId(null)}
+        dismissible={claimingId === null}
       >
-        <View className="flex-1 justify-end bg-scrim">
-          {lockedCandidate ? (
-            <SheetBody className="rounded-t-sheet bg-surface px-5 pb-3 pt-3">
-              <View className="h-1.5 w-12 self-center rounded-full bg-nightRaised" />
-              <View className="mt-3 self-center">
-                <LockClunk size={140} />
-              </View>
-              <AppText variant="sectionTitle" className="mt-3 text-center">
-                This one locks right away
-              </AppText>
-              <AppText
-                color="ink-muted"
-                className="mt-1.5 text-center font-body-bold"
-              >
-                {lockExplanation(lockedCandidate.commitment)}
-              </AppText>
+        {shownCandidate ? (
+          <>
+            <View className="mt-1 self-center">
+              <LockClunk size={140} />
+            </View>
+            <AppText variant="sectionTitle" className="mt-3 text-center">
+              This one locks right away
+            </AppText>
+            <AppText
+              color="ink-muted"
+              className="mt-1.5 text-center font-body-bold"
+            >
+              {lockExplanation(shownCandidate.commitment)}
+            </AppText>
 
-              <View className="mt-5 rounded-large bg-canvas px-4 py-1">
-                <View className="min-h-[46px] flex-row items-center justify-between">
-                  <AppText
-                    variant="bodySmall"
-                    color="ink-muted"
-                    className="font-body-bold"
-                  >
-                    Finish {lockedCandidate.title}
-                  </AppText>
-                  <AppText className="font-display text-[17px] text-primary">
-                    +{lockedCandidate.valueSek} kr
-                  </AppText>
-                </View>
-                <View className="h-px bg-surface" />
-                <View className="min-h-[46px] flex-row items-center justify-between">
-                  <AppText
-                    variant="bodySmall"
-                    color="ink-muted"
-                    className="font-body-bold"
-                  >
-                    Miss it
-                  </AppText>
-                  <AppText className="font-display text-[17px] text-pink">
-                    −{lockedCandidate.valueSek} kr
-                  </AppText>
-                </View>
-                <View className="h-px bg-surface" />
-                <View className="min-h-[46px] flex-row items-center justify-between">
-                  <AppText
-                    variant="bodySmall"
-                    color="ink-muted"
-                    className="font-body-bold"
-                  >
-                    Due
-                  </AppText>
-                  <AppText className="font-body-heavy text-[15px]">
-                    {formatDeadline(
-                      lockedCandidate.deadlineAt,
-                      lockedCandidate.timezone,
-                    )}
-                  </AppText>
-                </View>
-              </View>
-
-              {actionError ? (
+            <View className="mt-5 rounded-large bg-canvas px-4 py-1">
+              <View className="min-h-[46px] flex-row items-center justify-between">
                 <AppText
                   variant="bodySmall"
-                  className="mt-4 text-center font-body-bold"
-                  style={{ color: themeColors.pink }}
+                  color="ink-muted"
+                  className="font-body-bold"
                 >
-                  {actionError}
+                  Finish {shownCandidate.title}
                 </AppText>
-              ) : null}
-              <ActionButton
-                className="mt-5"
-                label="Launch and lock it"
-                tone="commit"
-                leading={
-                  <Icon name="lock" color={themeColors.night} size={18} />
-                }
-                loading={claimingId === lockedCandidate.occurrenceId}
-                onPress={() =>
-                  void executeClaim(lockedCandidate.occurrenceId, true)
-                }
-              />
-              <ActionButton
-                className="mt-1"
-                label="Not now"
-                tone="quiet"
-                onPress={() => setLockedCandidateId(null)}
-              />
-            </SheetBody>
-          ) : null}
-        </View>
-      </Modal>
+                <AppText className="font-display text-[17px] text-primary">
+                  +{shownCandidate.valueSek} kr
+                </AppText>
+              </View>
+              <View className="h-px bg-surface" />
+              <View className="min-h-[46px] flex-row items-center justify-between">
+                <AppText
+                  variant="bodySmall"
+                  color="ink-muted"
+                  className="font-body-bold"
+                >
+                  Miss it
+                </AppText>
+                <AppText className="font-display text-[17px] text-pink">
+                  −{shownCandidate.valueSek} kr
+                </AppText>
+              </View>
+              <View className="h-px bg-surface" />
+              <View className="min-h-[46px] flex-row items-center justify-between">
+                <AppText
+                  variant="bodySmall"
+                  color="ink-muted"
+                  className="font-body-bold"
+                >
+                  Due
+                </AppText>
+                <AppText className="font-body-heavy text-[15px]">
+                  {formatDeadline(
+                    shownCandidate.deadlineAt,
+                    shownCandidate.timezone,
+                  )}
+                </AppText>
+              </View>
+            </View>
+
+            {actionError ? (
+              <AppText
+                variant="bodySmall"
+                className="mt-4 text-center font-body-bold"
+                style={{ color: themeColors.pink }}
+              >
+                {actionError}
+              </AppText>
+            ) : null}
+            <ActionButton
+              className="mt-5"
+              label="Launch and lock it"
+              tone="commit"
+              leading={<Icon name="lock" color={themeColors.night} size={18} />}
+              loading={claimingId === shownCandidate.occurrenceId}
+              onPress={() =>
+                void executeClaim(shownCandidate.occurrenceId, true)
+              }
+            />
+            <ActionButton
+              className="mt-1"
+              label="Not now"
+              tone="quiet"
+              onPress={() => setLockedCandidateId(null)}
+            />
+          </>
+        ) : null}
+      </ScrimSheet>
     </View>
   );
 }

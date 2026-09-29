@@ -1,12 +1,5 @@
 import { useState, type ReactNode } from "react";
-import {
-  Linking,
-  Modal,
-  Pressable,
-  ScrollView,
-  TextInput,
-  View,
-} from "react-native";
+import { Linking, Pressable, ScrollView, TextInput, View } from "react-native";
 import Animated from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { userErrorMessage } from "@/lib/errors";
@@ -19,7 +12,7 @@ import {
 import { PRESS, pressTransition } from "@/components/art/motion";
 import { Avatar } from "@/components/ui/avatar";
 import { Icon, type IconName } from "@/components/ui/icon";
-import { ActionButton, AppText, SheetBody } from "@/design-system";
+import { ActionButton, AppText, ScrimSheet } from "@/design-system";
 import { useTheme } from "@/design-system/theme";
 import { useServerConfirmedMutation } from "@/hooks/use-server-confirmed-mutation";
 
@@ -202,7 +195,6 @@ const DELETE_BLOCKED_COPY = {
  * for a sole Parent, and the server refuses once anything has happened.
  */
 function DeleteHousehold({ household }: { household: HouseholdSummary }) {
-  const { tokens } = useTheme();
   const deleteHousehold = useServerConfirmedMutation(
     api.households.deleteEmptyHousehold,
   );
@@ -252,52 +244,42 @@ function DeleteHousehold({ household }: { household: HouseholdSummary }) {
           </AppText>
         </AppText>
       </Pressable>
-      <Modal
-        transparent
-        animationType="slide"
+      <ScrimSheet
         visible={open}
-        onRequestClose={() => !busy && setOpen(false)}
+        onClose={() => setOpen(false)}
+        dismissible={!busy}
+        className="rounded-t-sheet bg-canvas px-5 pt-3"
+        grabberClassName="bg-line"
       >
-        <Pressable
-          accessible={false}
-          onPress={() => !busy && setOpen(false)}
-          className="flex-1 justify-end bg-scrim"
-        >
-          <Pressable accessible={false} onPress={() => {}}>
-            <SheetBody
-              className="rounded-t-sheet px-5 pt-5"
-              style={{ backgroundColor: tokens.canvas }}
-            >
-              <AppText variant="sectionTitle">Delete {household.name}?</AppText>
-              <AppText color="ink-muted" className="mt-2">
-                Its kids, chores and settings are removed for good. Do this if
-                you want to join another parent’s household instead. It only
-                works while nothing has happened here yet.
-              </AppText>
-              {message ? (
-                <AppText variant="bodySmall" color="urgency" className="mt-3">
-                  {message}
-                </AppText>
-              ) : null}
-              <ActionButton
-                className="mt-5"
-                tone="destructive"
-                label="Delete household"
-                loading={busy}
-                disabled={blocked}
-                onPress={() => void confirm()}
-              />
-              <ActionButton
-                className="mt-1"
-                tone="quiet"
-                label="Keep it"
-                disabled={busy}
-                onPress={() => setOpen(false)}
-              />
-            </SheetBody>
-          </Pressable>
-        </Pressable>
-      </Modal>
+        <AppText variant="sectionTitle" className="mt-2">
+          Delete {household.name}?
+        </AppText>
+        <AppText color="ink-muted" className="mt-2">
+          Its kids, chores and settings are removed for good. Do this if you
+          want to join another parent’s household instead. It only works while
+          nothing has happened here yet.
+        </AppText>
+        {message ? (
+          <AppText variant="bodySmall" color="urgency" className="mt-3">
+            {message}
+          </AppText>
+        ) : null}
+        <ActionButton
+          className="mt-5"
+          tone="destructive"
+          label="Delete household"
+          loading={busy}
+          disabled={blocked}
+          onPress={() => void confirm()}
+        />
+        <ActionButton
+          className="mt-1"
+          tone="quiet"
+          label="Keep it"
+          disabled={busy}
+          onPress={() => setOpen(false)}
+        />
+      </ScrimSheet>
     </>
   );
 }

@@ -15,4 +15,5 @@ export {
 } from "./theme";
 export type { ThemeMode, ThemeTokens } from "./theme";
 export { HoldButton } from "./hold-button";
+export { ScrimSheet } from "./scrim-sheet";
 export { SheetBody } from "./sheet-body";

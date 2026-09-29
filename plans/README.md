@@ -11,6 +11,7 @@ stands alone. Give one plan to any agent and it has everything it needs.
 | 004 | [Let the quest-map rocket change course mid-flight](004-rocket-retargets-mid-flight.md)                                    | MEDIUM   | DONE   |
 | 005 | [Stop parent Home signals and week-board dots re-animating on every visit](005-no-entrance-replay-on-parent-tab-switch.md) | MEDIUM   | DONE   |
 | 006 | [Make the launch splash hand-off a quick, plain fade](006-splash-handoff-fade.md)                                          | MEDIUM   | DONE   |
+| 007 | [One bottom sheet: the dim stays put, the sheet slides, the grabber drags](007-scrim-sheet.md)                             | MEDIUM   | DONE   |
 
 ## Recommended order
 

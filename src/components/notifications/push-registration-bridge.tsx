@@ -5,7 +5,7 @@ import * as Notifications from "expo-notifications";
 import { useConvexAuth } from "convex/react";
 import * as SecureStore from "expo-secure-store";
 import { useEffect, useState } from "react";
-import { Modal, Platform, View } from "react-native";
+import { Platform, View } from "react-native";
 import Animated, {
   interpolate,
   useAnimatedStyle,
@@ -15,8 +15,7 @@ import Svg, { Circle, Path } from "react-native-svg";
 import { useLoop } from "@/components/art";
 import { Easings } from "@/components/art/motion";
 import { authClient } from "@/lib/auth/client";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { ActionButton, AppText } from "@/design-system";
+import { ActionButton, AppText, ScrimSheet } from "@/design-system";
 import { useTheme } from "@/design-system/theme";
 import { setNotificationIntent } from "@/lib/notification-intent";
 
@@ -224,46 +223,36 @@ export function NotificationPrimer({
   onEnable: () => void;
   onLater: () => void;
 }) {
-  const { tokens } = useTheme();
-  const insets = useSafeAreaInsets();
   return (
-    <Modal
-      transparent
-      animationType="slide"
+    <ScrimSheet
       visible={visible}
-      onRequestClose={onLater}
+      onClose={onLater}
+      className="rounded-t-sheet bg-canvas px-6 pt-3"
+      grabberClassName="bg-line"
+      extraBottom={16}
     >
-      <View className="flex-1 justify-end bg-scrim">
-        <View
-          className="rounded-t-sheet px-6 pt-8"
-          style={{
-            backgroundColor: tokens.canvas,
-            paddingBottom: insets.bottom + 16,
-          }}
-        >
-          <Bell audience={audience} />
-          <AppText variant="sectionTitle" className="mt-2 text-center">
-            Want a heads-up?
-          </AppText>
-          <AppText color="ink-muted" className="mt-2 text-center">
-            {audience === "child"
-              ? "We’ll tell you when a Parent approves your work or asks for a redo, when a deadline is close, and when new Extras appear."
-              : "We’ll tell you when there’s work to check, and when an Extra is claimed or missed."}
-          </AppText>
-          <ActionButton
-            className="mt-6"
-            label="Turn on notifications"
-            onPress={onEnable}
-          />
-          <ActionButton
-            className="mt-1"
-            tone="quiet"
-            label="Not now"
-            onPress={onLater}
-          />
-        </View>
-      </View>
-    </Modal>
+      <View className="mt-2" />
+      <Bell audience={audience} />
+      <AppText variant="sectionTitle" className="mt-2 text-center">
+        Want a heads-up?
+      </AppText>
+      <AppText color="ink-muted" className="mt-2 text-center">
+        {audience === "child"
+          ? "We’ll tell you when a Parent approves your work or asks for a redo, when a deadline is close, and when new Extras appear."
+          : "We’ll tell you when there’s work to check, and when an Extra is claimed or missed."}
+      </AppText>
+      <ActionButton
+        className="mt-6"
+        label="Turn on notifications"
+        onPress={onEnable}
+      />
+      <ActionButton
+        className="mt-1"
+        tone="quiet"
+        label="Not now"
+        onPress={onLater}
+      />
+    </ScrimSheet>
   );
 }
 

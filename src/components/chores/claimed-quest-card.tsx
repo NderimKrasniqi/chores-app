@@ -22,7 +22,13 @@ import {
   useLoop,
 } from "@/components/art";
 import { Icon } from "@/components/ui/icon";
-import { ActionButton, AppText, HoldButton, ThemeScope } from "@/design-system";
+import {
+  ActionButton,
+  AppText,
+  HoldButton,
+  ScrimSheet,
+  ThemeScope,
+} from "@/design-system";
 import { questTokens as tokens } from "@/design-system/theme";
 import { useHoldCelebrations } from "@/lib/celebration-gate";
 
@@ -346,15 +352,15 @@ function CardBody({
         </View>
       ) : null}
 
-      {unclaimOpen ? (
-        <UnclaimSheet
-          claim={claim}
-          allowance={unclaimAllowance}
-          onKeep={() => setUnclaimOpen(false)}
-          onUnclaim={onUnclaim}
-          onDone={finishUnclaim}
-        />
-      ) : null}
+      {/* Always mounted so closing slides it out. */}
+      <UnclaimSheet
+        visible={unclaimOpen}
+        claim={claim}
+        allowance={unclaimAllowance}
+        onKeep={() => setUnclaimOpen(false)}
+        onUnclaim={onUnclaim}
+        onDone={finishUnclaim}
+      />
 
       {sent ? <SentOverlay onDone={onClose} /> : null}
     </View>
@@ -618,19 +624,20 @@ function BuddyNote({ text }: { text: string }) {
  * the rocket powers down and leaves the pad, so the cost is seen, not just read.
  */
 function UnclaimSheet({
+  visible,
   claim,
   allowance,
   onKeep,
   onUnclaim,
   onDone,
 }: {
+  visible: boolean;
   claim: ClaimedQuest;
   allowance: Allowance;
   onKeep: () => void;
   onUnclaim: () => Promise<string | null>;
   onDone: () => void;
 }) {
-  const insets = useSafeAreaInsets();
   const [leaving, setLeaving] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -660,85 +667,69 @@ function UnclaimSheet({
   }
 
   return (
-    <Modal
-      transparent
-      animationType="slide"
-      visible
-      onRequestClose={() => {
-        if (!busy) onKeep();
-      }}
+    <ScrimSheet
+      visible={visible}
+      onClose={onKeep}
+      dismissible={!busy}
+      className="rounded-t-sheet bg-surface px-5 pt-3"
     >
-      <ThemeScope mode="quest">
-        <View className="flex-1 justify-end bg-scrim">
-          <View
-            className="rounded-t-sheet bg-surface px-5 pt-3"
-            style={{ paddingBottom: Math.max(insets.bottom, 12) }}
-          >
-            <View className="h-1.5 w-12 self-center rounded-full bg-nightRaised" />
-            <View className="mt-4 items-center">
-              <LaunchPad
-                size={120}
-                state="ready"
-                title={claim.title}
-                leaving={leaving}
-              />
-            </View>
-            <AppText variant="sectionTitle" className="mt-3 text-center">
-              Abort {claim.title}?
-            </AppText>
-            <AppText
-              color="ink-muted"
-              className="mt-1.5 text-center font-body-bold"
-            >
-              It goes back to the missions for someone else to launch. Your
-              balance doesn’t change.
-            </AppText>
+      <View className="mt-2 items-center">
+        <LaunchPad
+          size={120}
+          state="ready"
+          title={claim.title}
+          leaving={leaving}
+        />
+      </View>
+      <AppText variant="sectionTitle" className="mt-3 text-center">
+        Abort {claim.title}?
+      </AppText>
+      <AppText color="ink-muted" className="mt-1.5 text-center font-body-bold">
+        It goes back to the missions for someone else to launch. Your balance
+        doesn’t change.
+      </AppText>
 
-            <View className="mt-5 flex-row items-center justify-between rounded-large bg-canvas px-4 py-3">
-              <View>
-                <AppText className="font-body-heavy text-[15px]">
-                  Costs 1 abort pass
-                </AppText>
-                <AppText variant="caption" color="ink-muted" className="mt-0.5">
-                  You’ll have {keysAfter} of {allowance.allowance} left this
-                  week
-                </AppText>
-              </View>
-              <UnclaimKeys
-                total={allowance.allowance}
-                remaining={allowance.remainingUnclaims}
-                spending={leaving}
-              />
-            </View>
-
-            {error ? (
-              <AppText
-                variant="bodySmall"
-                className="mt-3 text-center font-body-bold"
-                style={{ color: tokens.pink }}
-              >
-                {error}
-              </AppText>
-            ) : null}
-
-            <ActionButton
-              className="mt-5"
-              label="Use 1 pass"
-              tone="destructive"
-              leading={<Icon name="key" color={tokens.white} size={18} />}
-              loading={busy}
-              onPress={() => void confirm()}
-            />
-            <ActionButton
-              className="mt-1"
-              label="Keep it"
-              tone="quiet"
-              disabled={busy}
-              onPress={onKeep}
-            />
-          </View>
+      <View className="mt-5 flex-row items-center justify-between rounded-large bg-canvas px-4 py-3">
+        <View>
+          <AppText className="font-body-heavy text-[15px]">
+            Costs 1 abort pass
+          </AppText>
+          <AppText variant="caption" color="ink-muted" className="mt-0.5">
+            You’ll have {keysAfter} of {allowance.allowance} left this week
+          </AppText>
         </View>
-      </ThemeScope>
-    </Modal>
+        <UnclaimKeys
+          total={allowance.allowance}
+          remaining={allowance.remainingUnclaims}
+          spending={leaving}
+        />
+      </View>
+
+      {error ? (
+        <AppText
+          variant="bodySmall"
+          className="mt-3 text-center font-body-bold"
+          style={{ color: tokens.pink }}
+        >
+          {error}
+        </AppText>
+      ) : null}
+
+      <ActionButton
+        className="mt-5"
+        label="Use 1 pass"
+        tone="destructive"
+        leading={<Icon name="key" color={tokens.white} size={18} />}
+        loading={busy}
+        onPress={() => void confirm()}
+      />
+      <ActionButton
+        className="mt-1"
+        label="Keep it"
+        tone="quiet"
+        disabled={busy}
+        onPress={onKeep}
+      />
+    </ScrimSheet>
   );
 }

@@ -25,7 +25,7 @@ import {
   Avatar,
 } from "@/components/ui/avatar";
 import { Icon, type IconName } from "@/components/ui/icon";
-import { ActionButton, AppText, SheetBody } from "@/design-system";
+import { ActionButton, AppText, ScrimSheet } from "@/design-system";
 import { useServerConfirmedMutation } from "@/hooks/use-server-confirmed-mutation";
 import { useTheme } from "@/design-system/theme";
 
@@ -449,54 +449,50 @@ export function ParentFamilyContent({
         />
       </Pressable>
 
-      <Modal
-        transparent
-        animationType="slide"
+      <ScrimSheet
         visible={adding}
-        onRequestClose={() => !saving && setAdding(false)}
+        onClose={() => setAdding(false)}
+        dismissible={!saving}
+        className="rounded-t-sheet bg-canvas px-5 pb-2 pt-3"
+        grabberClassName="bg-line"
       >
-        <View className="flex-1 justify-end bg-scrim">
-          <SheetBody
-            className="rounded-t-sheet px-5 pb-2 pt-5"
-            style={{ backgroundColor: tokens.canvas }}
-          >
-            <AppText variant="sectionTitle">Add a kid</AppText>
-            <AppText color="ink-muted" className="mt-1">
-              Then link their phone from their page.
-            </AppText>
-            <TextInput
-              accessibilityLabel="First name"
-              value={newName}
-              onChangeText={setNewName}
-              placeholder="First name"
-              placeholderTextColor={tokens.inkFaint}
-              autoFocus
-              maxLength={40}
-              className="mt-4 min-h-[52px] rounded-[16px] px-4 font-body-heavy text-ink"
-              style={{ backgroundColor: tokens.surfaceMuted }}
-            />
-            {addError ? (
-              <AppText variant="bodySmall" color="urgency" className="mt-3">
-                {addError}
-              </AppText>
-            ) : null}
-            <ActionButton
-              className="mt-5"
-              label="Add"
-              loading={saving}
-              disabled={!newName.trim()}
-              onPress={() => void saveKid()}
-            />
-            <ActionButton
-              className="mt-1"
-              tone="quiet"
-              label="Cancel"
-              disabled={saving}
-              onPress={() => setAdding(false)}
-            />
-          </SheetBody>
-        </View>
-      </Modal>
+        <AppText variant="sectionTitle" className="mt-2">
+          Add a kid
+        </AppText>
+        <AppText color="ink-muted" className="mt-1">
+          Then link their phone from their page.
+        </AppText>
+        <TextInput
+          accessibilityLabel="First name"
+          value={newName}
+          onChangeText={setNewName}
+          placeholder="First name"
+          placeholderTextColor={tokens.inkFaint}
+          autoFocus
+          maxLength={40}
+          className="mt-4 min-h-[52px] rounded-[16px] px-4 font-body-heavy text-ink"
+          style={{ backgroundColor: tokens.surfaceMuted }}
+        />
+        {addError ? (
+          <AppText variant="bodySmall" color="urgency" className="mt-3">
+            {addError}
+          </AppText>
+        ) : null}
+        <ActionButton
+          className="mt-5"
+          label="Add"
+          loading={saving}
+          disabled={!newName.trim()}
+          onPress={() => void saveKid()}
+        />
+        <ActionButton
+          className="mt-1"
+          tone="quiet"
+          label="Cancel"
+          disabled={saving}
+          onPress={() => setAdding(false)}
+        />
+      </ScrimSheet>
 
       <Modal
         animationType="slide"
