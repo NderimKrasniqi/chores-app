@@ -41,6 +41,7 @@ import {
 } from "@/components/household/parent-secondary-screens";
 import { HouseholdSetupScreen } from "@/components/household/household-setup-screen";
 import { OnboardingScreen } from "@/components/onboarding/onboarding-screen";
+import { ParentAuthScreen } from "@/components/auth/parent-auth-screen";
 import type { HouseholdSummary } from "@/components/household/household-types";
 import { ThemeScope, AppText } from "@/design-system";
 import { Redirect, useLocalSearchParams } from "expo-router";
@@ -739,6 +740,10 @@ function VerificationState({ state }: { state: string }) {
           initialPage={3}
         />
       );
+    case "parent-sign-up":
+      return <ParentAuthScreen onBack={noop} />;
+    case "parent-sign-in":
+      return <ParentAuthScreen onBack={noop} initialMode="sign-in" />;
     case "child-pairing-entry":
       return <ChildJoinScreen />;
     case "child-pairing-scanner":
