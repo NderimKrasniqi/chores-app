@@ -12,5 +12,5 @@
 ## Parent (home theme)
 
 - Parent sign-in → Household setup (start / create / join with invite)
-- Tabs: **Home** (Ground Control: signals → review deck / Money, today's radar → kid page, missions in flight, latest win) · **Chores** (week board + budget, list, chore builder sheet) · **Money** (payday dock: per-kid pod, Swish step, slide to pay, past paydays) · **Family** (crew badges + patches, ground crew, invite, house rules)
+- Tabs: **Home** (Ground Control: signals shown only when needed — check → review deck, pay → Money, watch = Extras past their lock (incl. redos); otherwise "All clear" — today's radar → kid page, missions in flight, latest win) · **Chores** (week board + budget, list, chore builder sheet) · **Money** (payday dock: per-kid pod, Swish step, slide to pay, past paydays) · **Family** (crew badges + patches, ground crew, invite, house rules)
 - Pushed screens: Kid page (chores, coins, Extra, phones, rename/remove) · Link a phone (QR + code + countdown) · Account · Households · House rules · Family wins · Invite a parent

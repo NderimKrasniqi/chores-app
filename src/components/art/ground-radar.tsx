@@ -29,6 +29,7 @@ export type RadarCraft = {
 };
 
 const RINGS = [1, 0.68, 0.36];
+const MAX_CRAFTS = 6;
 
 /**
  * Ground Control's radar: every kid is a small craft, spaced round the dish.
@@ -50,11 +51,6 @@ export function GroundRadar({
   const { tokens } = useTheme();
   const c = size / 2;
   const outer = c - 14;
-  const t = useEntrance({ duration: sweep ? 1600 : 1, delay: 200 });
-  const sweepStyle = useAnimatedStyle(() => ({
-    opacity: sweep ? interpolate(t.get(), [0, 0.1, 0.85, 1], [0, 1, 1, 0]) : 0,
-    transform: [{ rotate: `${interpolate(t.get(), [0, 1], [0, 360])}deg` }],
-  }));
 
   const light = (status: RadarStatus) =>
     status === "attention"
@@ -65,10 +61,15 @@ export function GroundRadar({
           ? tokens.primary
           : tokens.inkFaint;
 
-  const count = Math.max(1, crafts.length);
-  const placed = crafts.slice(0, 6).map((craft, i) => {
+  const shown = crafts.slice(0, MAX_CRAFTS);
+  const hidden = crafts.length - shown.length;
+  const count = Math.max(1, shown.length);
+  // All done parks just outside home base (craft 11 + home 9, plus a gap).
+  const nearest = 24;
+  const placed = shown.map((craft, i) => {
     const angle = -Math.PI / 2 + (i / count) * Math.PI * 2 + 0.35;
-    const r = outer * (1 - Math.max(0, Math.min(1, craft.progress)) * 0.72);
+    const done = Math.max(0, Math.min(1, craft.progress));
+    const r = outer - done * (outer - nearest);
     return {
       ...craft,
       x: c + Math.cos(angle) * r,
@@ -80,18 +81,22 @@ export function GroundRadar({
     <View
       style={{ width: size, height: size }}
       accessible
-      accessibilityLabel={crafts
-        .map(
-          (craft) =>
-            `${craft.name}: ${Math.round(craft.progress * 100)}% of today's quests done${
-              craft.status === "waiting"
-                ? ", waiting on you"
-                : craft.status === "attention"
-                  ? ", needs attention"
-                  : ""
-            }`,
-        )
-        .join(". ")}
+      accessibilityLabel={
+        crafts.length === 0
+          ? "No kids yet"
+          : crafts
+              .map(
+                (craft) =>
+                  `${craft.name}: ${Math.round(craft.progress * 100)}% of today's quests done${
+                    craft.status === "waiting"
+                      ? ", waiting on you"
+                      : craft.status === "attention"
+                        ? ", needs attention"
+                        : ""
+                  }`,
+              )
+              .join(". ")
+      }
     >
       <Svg width={size} height={size} style={{ position: "absolute" }}>
         <Defs>
@@ -172,23 +177,66 @@ export function GroundRadar({
         </View>
       ))}
 
-      {sweep ? (
-        <Animated.View
+      {hidden > 0 ? (
+        <View
           pointerEvents="none"
-          style={[
-            { position: "absolute", width: size, height: size },
-            sweepStyle,
-          ]}
+          style={{
+            position: "absolute",
+            right: 2,
+            bottom: 2,
+            borderRadius: 10,
+            paddingHorizontal: 6,
+            paddingVertical: 1,
+            backgroundColor: tokens.ink,
+          }}
         >
-          <Svg width={size} height={size}>
-            <Path
-              d={`M${c} ${c} L${c} ${c - outer} A${outer} ${outer} 0 0 1 ${c + outer * Math.sin(0.6)} ${c - outer * Math.cos(0.6)} Z`}
-              fill={tokens.primary}
-              opacity={0.28}
-            />
-          </Svg>
-        </Animated.View>
+          <AppText
+            className="font-display"
+            style={{ fontSize: 11, lineHeight: 15, color: tokens.surface }}
+          >
+            +{hidden}
+          </AppText>
+        </View>
+      ) : null}
+
+      {sweep ? (
+        <Sweep size={size} outer={outer} color={tokens.primary} />
       ) : null}
     </View>
+  );
+}
+
+/**
+ * One pass of the scanner. Mounted only when there's nothing to do, so the
+ * pass starts from zero every time "all clear" appears — then it's gone.
+ */
+function Sweep({
+  size,
+  outer,
+  color,
+}: {
+  size: number;
+  outer: number;
+  color: string;
+}) {
+  const c = size / 2;
+  const t = useEntrance({ duration: 1600, delay: 200 });
+  const style = useAnimatedStyle(() => ({
+    opacity: interpolate(t.get(), [0, 0.1, 0.85, 1], [0, 1, 1, 0]),
+    transform: [{ rotate: `${interpolate(t.get(), [0, 1], [0, 360])}deg` }],
+  }));
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={[{ position: "absolute", width: size, height: size }, style]}
+    >
+      <Svg width={size} height={size}>
+        <Path
+          d={`M${c} ${c} L${c} ${c - outer} A${outer} ${outer} 0 0 1 ${c + outer * Math.sin(0.6)} ${c - outer * Math.cos(0.6)} Z`}
+          fill={color}
+          opacity={0.28}
+        />
+      </Svg>
+    </Animated.View>
   );
 }

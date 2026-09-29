@@ -4,6 +4,7 @@ const npx = process.platform === "win32" ? "npx.cmd" : "npx";
 
 const smokeFunctions = [
   "dev/smoke/cheers:run",
+  "dev/smoke/groundControl:run",
   "dev/smoke/householdSettings:run",
   "dev/smoke/task07/maintenance:run",
   "dev/smoke/task07/maintenanceIsolation:run",

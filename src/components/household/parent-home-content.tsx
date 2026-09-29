@@ -16,6 +16,7 @@ import {
   Avatar,
 } from "@/components/ui/avatar";
 import { useHourNow, useMinuteNow } from "@/lib/use-hour-now";
+import { getClaimCommitmentLockAt } from "../../../convex/lib/claims/commitmentRules";
 import { Icon } from "@/components/ui/icon";
 import { AppText } from "@/design-system";
 import { useTheme } from "@/design-system/theme";
@@ -133,8 +134,6 @@ function MiniDeck({ count }: { count: number }) {
   );
 }
 
-const LOCK_MS = 2 * 60 * 60 * 1000;
-
 /** A signal on the console: something that needs (or is worth) a look. */
 function Signal({
   tone,
@@ -228,9 +227,9 @@ export function ParentHomeContent({
   const pending = [...(personal ?? []), ...(claimable ?? []), ...(redos ?? [])];
   const pendingLoaded =
     personal !== undefined && claimable !== undefined && redos !== undefined;
-  const waitingNames = [
-    ...new Set(pending.map((item) => item.childDisplayName)),
-  ];
+  const waitingNames = household.children
+    .filter((child) => pending.some((item) => item.childId === child.childId))
+    .map((child) => child.displayName);
   const latestWin = activity?.items[0];
   const firstName = parentName.split(" ")[0];
 
@@ -242,13 +241,22 @@ export function ParentHomeContent({
     })),
   );
   const dueTotal = due.reduce((sum, item) => sum + item.amount, 0);
-  // Watch: locked Extras whose deadline is close and not yet sent.
-  const atRisk = (activeClaims ?? []).filter(
-    (claim) =>
-      claim.claimState === "claimed" &&
-      claim.deadlineAt - LOCK_MS <= now &&
-      claim.deadlineAt > now,
-  );
+  // Watch: Extras past their commitment lock and not yet sent — a claim
+  // before its deadline, or a redo before its redo deadline. Missing either
+  // costs the full value.
+  const atRisk = (activeClaims ?? []).flatMap((claim) => {
+    const due =
+      claim.claimState === "claimed"
+        ? claim.deadlineAt
+        : claim.claimState === "redo_required"
+          ? claim.redoDeadlineAt
+          : undefined;
+    return due !== undefined &&
+      getClaimCommitmentLockAt(due) <= now &&
+      due > now
+      ? [{ ...claim, due }]
+      : [];
+  });
   const allClear =
     pendingLoaded &&
     payouts !== undefined &&
@@ -261,9 +269,7 @@ export function ParentHomeContent({
     const today = progress?.children.find(
       (item) => item.childId === child.childId,
     );
-    const waiting = pending.some(
-      (item) => item.childDisplayName === child.displayName,
-    );
+    const waiting = pending.some((item) => item.childId === child.childId);
     const status: RadarStatus =
       today && (today.redo > 0 || today.missed > 0)
         ? "attention"
@@ -314,7 +320,7 @@ export function ParentHomeContent({
 
       {/* Signals: only what needs you. */}
       <View className="mt-5 gap-2.5">
-        {pending.length > 0 || !allClear ? (
+        {pending.length > 0 || !pendingLoaded ? (
           <Tile
             tone={pending.length > 0 ? "ink" : "surface"}
             onPress={onOpenReviews}
@@ -372,7 +378,7 @@ export function ParentHomeContent({
             tone="watch"
             icon="lock"
             title={`${claim.claimedByDisplayName}: ${claim.title}`}
-            detail={`Locked in · due ${formatClock(claim.deadlineAt, household.timezone)} or −${claim.valueSek} kr`}
+            detail={`${claim.claimState === "redo_required" ? "Redo" : "Locked in"} · due ${formatClock(claim.due, household.timezone)} or −${claim.valueSek} kr`}
           />
         ))}
         {allClear ? (
@@ -460,6 +466,7 @@ export function ParentHomeContent({
                             ? `${today.submitted} sent`
                             : null,
                           today.redo > 0 ? `${today.redo} redo` : null,
+                          today.missed > 0 ? `${today.missed} missed` : null,
                         ]
                           .filter(Boolean)
                           .join(" · ")}

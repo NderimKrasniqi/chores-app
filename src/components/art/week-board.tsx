@@ -124,6 +124,18 @@ export function WeekBoard({
                   />
                 </Svg>
               ))}
+              {pool.length > 3 ? (
+                <AppText
+                  variant="caption"
+                  style={{
+                    fontSize: 9,
+                    lineHeight: 10,
+                    color: active ? tokens.surface : tokens.inkMuted,
+                  }}
+                >
+                  +{pool.length - 3}
+                </AppText>
+              ) : null}
             </View>
           </Pressable>
         );
