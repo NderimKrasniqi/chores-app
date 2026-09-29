@@ -1,4 +1,7 @@
 import { PhoneLinkScene } from "@/components/art";
+import { Easings } from "@/components/art/motion";
+import * as Haptics from "expo-haptics";
+import Animated, { FadeInDown } from "react-native-reanimated";
 import Svg, { Circle } from "react-native-svg";
 import { Icon } from "@/components/ui/icon";
 import { homeTokens as themeColors } from "@/design-system/theme";
@@ -156,6 +159,24 @@ export function ParentChildAccessContent({
   const [now, setNow] = useState(() => visualFixture?.visualNow ?? Date.now());
 
   const activeDevices = devices?.filter((device) => device.isActive) ?? [];
+  // Phones already linked when the page loaded just sit; one that links
+  // while the parent watches (the kid scanning the code) arrives with a
+  // small entrance and one success buzz.
+  const [knownIds, setKnownIds] = useState<ReadonlySet<string> | null>(null);
+  if (devices !== undefined && knownIds === null) {
+    setKnownIds(new Set(activeDevices.map((device) => device.accessGrantId)));
+  }
+  const newIds = knownIds
+    ? activeDevices
+        .filter((device) => !knownIds.has(device.accessGrantId))
+        .map((device) => device.accessGrantId)
+        .join(",")
+    : "";
+  useEffect(() => {
+    if (newIds) {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
+  }, [newIds]);
   const revokedDevices = devices?.filter((device) => !device.isActive) ?? [];
   const generatedExpired = generated !== null && generated.expiresAt <= now;
   const showGeneratedDivider = generatedExpired || generationCount > 1;
@@ -349,8 +370,13 @@ export function ParentChildAccessContent({
       ) : (
         <View className="mt-3 gap-2.5">
           {activeDevices.map((device, index) => (
-            <View
+            <Animated.View
               key={device.accessGrantId}
+              entering={
+                knownIds && !knownIds.has(device.accessGrantId)
+                  ? FadeInDown.duration(300).easing(Easings.out)
+                  : undefined
+              }
               className="flex-row items-center gap-3 rounded-[20px] bg-surface px-4 py-3"
             >
               <View
@@ -378,7 +404,7 @@ export function ParentChildAccessContent({
                   Unlink
                 </AppText>
               </Pressable>
-            </View>
+            </Animated.View>
           ))}
         </View>
       )}

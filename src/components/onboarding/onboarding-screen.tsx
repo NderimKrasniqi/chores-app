@@ -216,27 +216,35 @@ function Step({
   title,
   body,
   art,
+  first,
   last,
 }: {
   number: string;
   title: string;
   body: string;
   art: ReactNode;
+  first?: boolean;
   last?: boolean;
 }) {
+  // The number sits level with the middle of its card; the rail runs
+  // through the gaps between cards to the next number.
   return (
     <View className="flex-row gap-4">
-      <View className="items-center">
+      <View className="w-11 items-center justify-center">
+        {/* the rail, behind the number: up to the previous step, down to the next */}
+        <View
+          className={`absolute left-[20px] top-0 h-1/2 w-1 ${first ? "" : "bg-nightRaised"}`}
+        />
+        <View
+          className={`absolute bottom-0 left-[20px] h-1/2 w-1 ${last ? "" : "bg-nightRaised"}`}
+        />
         <View className="h-11 w-11 items-center justify-center rounded-full border-b-4 border-accentShade bg-accent">
           <AppText className="font-display text-[20px] text-night">
             {number}
           </AppText>
         </View>
-        {last ? null : (
-          <View className="mt-1 w-1 flex-1 rounded-full bg-nightRaised" />
-        )}
       </View>
-      <View className="mb-5 flex-1 flex-row items-center gap-3 rounded-card bg-surface p-3">
+      <View className="my-2.5 flex-1 flex-row items-center gap-3 rounded-card bg-surface p-3">
         {art}
         <View className="flex-1">
           <AppText variant="cardTitle">{title}</AppText>
@@ -265,7 +273,12 @@ function HowItWorksPage() {
           number="1"
           title="Do the chore"
           body="Complete your assigned chore."
-          art={<ChoreIcon title="Clean your room" size={56} animated />}
+          art={
+            <View className="h-14 w-14 items-center justify-center">
+              <ChoreIcon title="Clean your room" size={48} animated />
+            </View>
+          }
+          first
         />
         <Step
           number="2"
