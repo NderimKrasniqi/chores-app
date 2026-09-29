@@ -3164,3 +3164,43 @@ export const seedStarMapShowcase = internalMutation({
     return { created };
   },
 });
+
+/**
+ * Dev: one Extra available now for the fixture kids, due later today or
+ * tomorrow (so the abort window is open). For hands-on Launch Control tests.
+ */
+export const createAvailableTestExtra = internalMutation({
+  args: {
+    householdId: v.id("households"),
+    expectedParentAuthUserId: v.string(),
+    title: v.string(),
+    valueSek: v.number(),
+    deadlineLocalTime: v.string(),
+    deadlineDayOffset: v.number(),
+  },
+  returns: v.id("choreOccurrences"),
+  handler: async (ctx, args) => {
+    const fixture = await loadFixtureContext(
+      ctx,
+      args.householdId,
+      args.expectedParentAuthUserId,
+    );
+    const definitionId = await createClaimableDefinition(ctx, fixture, {
+      title: args.title,
+      valueSek: args.valueSek,
+      scheduledDate: fixture.today,
+      availabilityLocalTime: "00:00",
+      deadlineLocalTime: args.deadlineLocalTime,
+      deadlineDayOffset: args.deadlineDayOffset,
+    });
+    return await createOccurrence(ctx, fixture, {
+      definitionId,
+      kind: "claimable",
+      title: args.title,
+      valueSek: args.valueSek,
+      deadlineLocalTime: args.deadlineLocalTime,
+      deadlineDayOffset: args.deadlineDayOffset,
+      state: "available",
+    });
+  },
+});
