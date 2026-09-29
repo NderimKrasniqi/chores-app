@@ -416,19 +416,31 @@ export function ParentHomeContent({
                 hitSlop={4}
               >
                 <View className="flex-row items-center gap-2">
+                  {/* The same craft as on the radar: kid's colour, status light. */}
                   <View
-                    className="h-2.5 w-2.5 rounded-full"
+                    className="h-5 w-5 items-center justify-center rounded-full"
                     style={{
-                      backgroundColor:
-                        craft.status === "attention"
-                          ? tokens.pink
-                          : craft.status === "waiting"
-                            ? tokens.gold
-                            : craft.status === "on_track"
-                              ? tokens.primary
-                              : tokens.inkFaint,
+                      backgroundColor: craft.color,
+                      borderWidth: 1.5,
+                      borderColor: tokens.ink,
                     }}
-                  />
+                  >
+                    <View
+                      className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full"
+                      style={{
+                        borderWidth: 1,
+                        borderColor: tokens.surface,
+                        backgroundColor:
+                          craft.status === "attention"
+                            ? tokens.pink
+                            : craft.status === "waiting"
+                              ? tokens.gold
+                              : craft.status === "on_track"
+                                ? tokens.primary
+                                : tokens.inkFaint,
+                      }}
+                    />
+                  </View>
                   <AppText className="font-body-heavy text-[15px]">
                     {child.displayName}
                   </AppText>

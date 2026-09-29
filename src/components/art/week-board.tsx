@@ -149,13 +149,15 @@ export function BudgetGauge({
   return (
     <View
       accessible
-      accessibilityLabel={`Next 7 days pay up to ${personal} kronor for the kids' own chores, plus up to ${extras} kronor in Extras.`}
+      accessibilityLabel={`Next 7 days pay up to ${personal} kronor for the kids' own chores${extras > 0 ? `, plus up to ${extras} kronor in Extras` : ""}.`}
     >
       <View className="flex-row items-baseline justify-between">
         <AppText variant="cardTitle">Up to {personal} kr</AppText>
-        <AppText variant="caption" color="ink-muted">
-          + up to {extras} kr Extras
-        </AppText>
+        {extras > 0 ? (
+          <AppText variant="caption" color="ink-muted">
+            + up to {extras} kr Extras
+          </AppText>
+        ) : null}
       </View>
       <View
         className="mt-2 h-3 flex-row overflow-hidden rounded-full"

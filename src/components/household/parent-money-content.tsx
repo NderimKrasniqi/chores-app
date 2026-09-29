@@ -469,9 +469,11 @@ export function ParentMoneyContent({
                       color={week < 0 ? "urgency" : "ink-muted"}
                       className="ml-1"
                     >
-                      {week === 0
-                        ? "nothing yet this week"
-                        : `${week > 0 ? "+" : "−"}${Math.abs(week)} kr this week`}
+                      {week !== 0
+                        ? `${week > 0 ? "+" : "−"}${Math.abs(week)} kr this week`
+                        : days.some((value) => value !== 0)
+                          ? "±0 kr this week"
+                          : "nothing yet this week"}
                     </AppText>
                   </View>
                 </View>
