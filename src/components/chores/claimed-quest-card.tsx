@@ -14,7 +14,6 @@ import {
   ChoreIcon,
   Floating,
   LockClunk,
-  PulseRings,
   StarBuddy,
   Starfield,
   UnclaimKeys,
@@ -407,15 +406,7 @@ function Hero({
         {waiting ? (
           <View className="absolute h-[112px] w-[112px] rounded-full bg-surface" />
         ) : (
-          <View className="absolute">
-            <PulseRings
-              size={112}
-              color={redo ? tokens.pink : tokens.gold}
-              duration={2600}
-            >
-              <View className="absolute h-[112px] w-[112px] rounded-full bg-surface" />
-            </PulseRings>
-          </View>
+          <View className="absolute h-[112px] w-[112px] rounded-full bg-surface" />
         )}
         <Floating distance={4} duration={3600}>
           <ChoreIcon title={title} size={84} />

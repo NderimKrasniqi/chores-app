@@ -1,5 +1,5 @@
 import { useServerConfirmedMutation } from "@/hooks/use-server-confirmed-mutation";
-import { Floating, PopIn } from "@/components/art";
+import { PopIn } from "@/components/art";
 import { Icon } from "@/components/ui/icon";
 import { questTokens as themeColors } from "@/design-system/theme";
 import { ActionButton, AppText } from "@/design-system";
@@ -351,14 +351,12 @@ export function ChildSubmissionActions({
           </PopIn>
         ) : (
           <View className="w-full items-center rounded-large border-2 border-dashed border-nightRaised px-4 pb-4 pt-5">
-            <Floating distance={5} duration={3200}>
-              <View
-                className="h-[86px] w-[74px] items-center justify-center rounded-[8px] bg-nightRaised"
-                style={{ transform: [{ rotate: "-6deg" }] }}
-              >
-                <Icon name="camera" color={themeColors.star} size={30} />
-              </View>
-            </Floating>
+            <View
+              className="h-[86px] w-[74px] items-center justify-center rounded-[8px] bg-nightRaised"
+              style={{ transform: [{ rotate: "-6deg" }] }}
+            >
+              <Icon name="camera" color={themeColors.star} size={30} />
+            </View>
             <AppText className="mt-3 font-display text-[19px]">
               Snap proof
             </AppText>

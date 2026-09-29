@@ -8,7 +8,6 @@ import {
   ChoreIcon,
   Floating,
   PopIn,
-  PulseRings,
   Scene,
   StarBuddy,
   Starfield,
@@ -269,19 +268,7 @@ function Hero({ occurrence }: { occurrence: ChildHomeChoreOccurrence }) {
           ]}
         />
         {active ? (
-          <View className="absolute">
-            <PulseRings
-              size={112}
-              color={
-                occurrence.state === "redo_required"
-                  ? tokens.pink
-                  : tokens.accent
-              }
-              duration={2600}
-            >
-              <View className="absolute h-[112px] w-[112px] rounded-full bg-surface" />
-            </PulseRings>
-          </View>
+          <View className="absolute h-[112px] w-[112px] rounded-full bg-surface" />
         ) : (
           <View className="absolute h-[112px] w-[112px] rounded-full bg-surface" />
         )}
