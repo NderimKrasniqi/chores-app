@@ -22,6 +22,7 @@ Fredoka (display) + Nunito (body) via `AppText` variants: `display`, `screenTitl
 
 ## Art library (`src/components/art/`)
 
-Starfield, StarBuddy, ChoreIcon, QuestPath (road), TreasureChest, Backpack, UnclaimKeys, LockClunk, CoinDrop, PiggyPlanet, RocketTrack, FamilySky, Fireworks/Sunburst, Confetti, DockingScene, LostSatellite, plus pieces (PopIn, Floating, PulseRings, SpinningCoin).
+Kid: Starfield, StarBuddy, ChoreIcon, StarMap (star map + asteroid belt), HomePlanet, CargoPod, PaydayFlight, Airlock, CommitmentTrack, LaunchPad, UnclaimKeys (abort passes), LockClunk, CoinDrop, CrewBadge + Patch + HighFiveHand, Fireworks/Sunburst, Confetti, DockingScene, PhoneLinkScene, LostSatellite, plus pieces (PopIn, Floating, PulseRings, SpinningCoin, BalanceOrb).
+Parent: GroundRadar, WeekBoard + BudgetGauge (and the shared CargoPod, CrewBadge, Patch).
 
 See `components.md` for the interaction components.

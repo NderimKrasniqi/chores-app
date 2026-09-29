@@ -20,6 +20,7 @@
 - **Payout Week** — the household settlement period defined by the Parent-configured payout weekday.
 - **Ledger Entry** — an immutable financial event such as an approved earning, a missed-commitment penalty, or a settled payout.
 - **Running Balance** — the sum of the Child's unsettled Ledger Entries and any carried negative balance.
+- **Cheer** — a Child's high-five on a sibling's approved chore in the same Household; social recognition only, with no financial effect.
 
 ## Core Invariants
 
@@ -43,6 +44,7 @@
 - **D-18 — Chore values use positive whole SEK:** In the first release, every paid chore value is greater than zero and denominated in whole Swedish kronor; fractional values and other currencies are invalid.
 - **D-19 — Every occurrence has a deterministic availability window:** Each Chore Occurrence has an availability start and deadline. A Parent may configure an explicit availability time; otherwise the availability start is derived from the beginning of the scheduled day. The occurrence cannot be acted on before that start.
 - **D-20 — Household timezone is schedule-authoritative:** One IANA Household Timezone governs recurrence, availability, deadline, and payout-calendar resolution. Changing it affects future occurrence/period generation only; already-created occurrences and open/settled periods keep their previously resolved absolute instants.
+- **D-21 — Cheers are social, not financial:** A Child may cheer only an approved chore of a sibling (never their own, never another Household's, never a removed Child's), at most once per chore per sender. A Cheer creates no Ledger Entry, exposes no balance, and cannot be withdrawn.
 
 ## State Models
 
@@ -105,7 +107,7 @@
 
 - **Chore execution** owns occurrence, claim, submission, review, redo, and deadline semantics.
 - **Household finance** owns earnings, penalties, running balance, payout periods, and settlement history.
-- **Household social visibility** may expose approved activity facts without exposing sibling-private total balances or detailed financial history.
+- **Household social visibility** may expose approved activity facts and Cheers without exposing sibling-private total balances or detailed financial history.
 
 ## Unresolved Domain Questions
 

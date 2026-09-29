@@ -1,6 +1,6 @@
 # Design
 
-**Status:** Active — Quest Path (redesign, branch `redesign/playful`)
+**Status:** Active — Quest Path (on `main`; parent Ground Control on `feature/ground-control`)
 
 ## Authority
 
@@ -11,6 +11,13 @@
 
 ## Direction
 
-Quest Path: the child app is a night sky (quest theme) where chores are quests on a winding road, Extras live in a treasure chest and a one-quest backpack, money is a piggy planet and family wins light stars. The parent app is light (home theme): a mission-control Home, a swipeable review deck, a chore builder, a payday board and a family orbit.
+Quest Path: the child app is a night sky (quest theme). Each kid tab has one job, and every picture stands for a rule:
+
+- **Quests** — "what do I do next?": a star map; the rocket sits at the next quest, finished and sent quests fold into an asteroid belt, the rest behind "+N more". Money card with the home planet (moon climbs to payday).
+- **Extras (Launch Control)** — "is this extra money worth promising?": missions with a commitment track (abort window → 2 h lock → locked in), one mission on the launch pad, abort passes.
+- **Money (payday delivery)** — "what lands on payday, and why?": the rocket tows the cargo pod from last payday's depot to your home planet; a cargo manifest; the delivery lands once after a payout.
+- **Family (the crew)** — siblings only: astronaut badges with weekly patches, siblings' wins with high-fives.
+
+The parent app is light (home theme) and plays Ground Control for the same trip: Home is the console (signals: check / pay / watch; today's radar), Money is the payday dock, Chores is the week board with a budget, Family is the crew roster and house rules.
 
 Principles: rethink each screen around one visual idea; self-made SVG art that moves; motion follows the Emil Kowalski skills in `.claude/skills` (spectacle only for rare moments, frequent screens stay calm, reduced motion is gentler not frozen).

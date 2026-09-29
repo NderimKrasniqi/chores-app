@@ -119,7 +119,10 @@
 - When a chore is approved, household members can see a celebration/activity item identifying the Child, chore, and that chore's earned value.
 - Claimed ownership and approved achievement may be visible to siblings.
 - A sibling cannot use this social surface to view another Child's Running Balance or detailed financial history.
-- **Rules:** `D-15`
+- A Child can cheer (high-five) a sibling's approved chore once; a repeat does nothing. A Child cannot cheer their own chore, a chore from another Household, a removed Child's chore, or work that was not approved.
+- The cheered Child is told who cheered which chore. A Cheer has no financial effect.
+- A Child with no siblings has no shared family surface to cheer on.
+- **Rules:** `D-15`, `D-21`
 - **Excluded:** Leaderboards, rankings, and public running earnings totals.
 
 ## J-12 — Keep the family informed
@@ -128,6 +131,7 @@
 
 - Children are notified about relevant new claimable chores, approvals, rejected work requiring redo, upcoming chore deadlines, and an advance warning before an active Claim reaches its two-hour unclaim lock.
 - Parents are notified when a Child submits work requiring review.
+- A Child is notified when a sibling cheers one of their approved chores.
 - A deadline reminder does not change the authoritative deadline, lock boundary, or submission state if delivery is delayed or missed.
 - **Rules:** `D-04`, `D-10`
 - **Excluded:** Notification delivery is not itself proof of deadline compliance; infrastructure/retry mechanics belong to solution design.

@@ -59,7 +59,7 @@ Missing a locked claimed chore subtracts its full value from the child's running
 
 ### J-11 — Celebrate household progress
 
-Approved chores generate household-visible celebrations showing who completed the chore and how much it was worth, without publishing each child's total balance.
+Approved chores generate household-visible celebrations showing who completed the chore and how much it was worth, without publishing each child's total balance. A child can high-five a sibling's approved chore once; the sibling is told who cheered them. High-fives carry no money.
 
 ### J-12 — Keep the family informed
 

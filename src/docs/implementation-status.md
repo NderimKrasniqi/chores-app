@@ -24,6 +24,14 @@
 - Keep existing behavioral regression coverage green while updating E2E flows to the production interaction model.
 - Remove obsolete temporary presentation and fixture support only after replacement coverage exists.
 
+#### TASK-23/24 progress (Quest Path redesign)
+
+- UX direction, screen purposes and journey coverage are recorded in `design/` (`README.md`, `ux/`, `journey-audit.md`, `simulator-pass.md`).
+- Child app implemented on `main`: star map (Quests), Launch Control (Extras), payday delivery (Money), the crew with sibling-only Family and Cheers (J-11, `D-21`).
+- Parent app in progress on `feature/ground-control`: Ground Control Home (signals + today's radar via `groundControl.todayProgress`), payday dock (Money), week board with budget (Chores), crew roster (Family).
+- New backend: `cheers` table with `cheers.send` / `cheers.listMine` and the `cheer` notification kind; `getCurrentChildAccess.siblingCount`; activity items carry `isUnlockChore`.
+- Verification: `npm run verify` includes `dev/smoke/cheers:run`; Maestro flows in `.maestro/` updated to the current kid screens.
+
 ### TASK-25 — Real-household pilot
 
 - Exercise the production experience with real household usage across multiple representative days.

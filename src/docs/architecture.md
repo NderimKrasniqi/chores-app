@@ -46,7 +46,8 @@ Convex is the authoritative application backend. Mutations enforce household aut
 - Claiming and unclaim allowance
 - Submission, photo evidence, review, and single-redo lifecycle
 - Ledger, payout weeks, and settlement
-- Activity feed and household celebrations
+- Activity feed, household celebrations and Cheers (sibling high-fives)
+- Parent overview projections (today's per-Child progress for Ground Control)
 - Push-notification orchestration
 
 ### Dependency direction
