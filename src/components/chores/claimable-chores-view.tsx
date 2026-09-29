@@ -893,7 +893,7 @@ export function ClaimableChoresView({
             >
               A Parent approved{" "}
               {gate.currentUnlockOccurrence?.title ?? "your Unlock Chore"}.
-              Claim one Extra at a time — open until your next Unlock Chore
+              Launch one mission at a time. Open until your next Unlock Chore
               starts.
             </AppText>
           </View>

@@ -492,8 +492,8 @@ export function ChildHomeChoreList({
             accessibilityRole="button"
             accessibilityLabel={
               unlockApproved
-                ? "Extras airlock open. Open Extras"
-                : "Extras airlock closed. Open Extras"
+                ? "Launch control open. Open Extras"
+                : "Launch control closed. Open Extras"
             }
             onPress={onOpenExtras}
             className="mt-8 flex-row items-center gap-3 rounded-full bg-surface py-2 pl-2 pr-4"
@@ -501,11 +501,11 @@ export function ChildHomeChoreList({
             <Airlock size={40} open={unlockApproved} />
             <View className="flex-1">
               <AppText variant="label" color="gold">
-                {unlockApproved ? "Extras are open" : "Extras airlock"}
+                {unlockApproved ? "Launch control is open" : "Launch control"}
               </AppText>
               <AppText variant="caption" color="ink-muted" numberOfLines={1}>
                 {unlockApproved
-                  ? "Bonus quests for extra money"
+                  ? "Missions for extra money"
                   : "Opens when your Unlock Chore is approved"}
               </AppText>
             </View>

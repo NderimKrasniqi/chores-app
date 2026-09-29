@@ -369,10 +369,10 @@ function UnlockNote({ occurrence }: { occurrence: ChildHomeChoreOccurrence }) {
         </AppText>
         <AppText className="mt-0.5 font-body-heavy text-[15px] leading-[20px]">
           {approved
-            ? "The Extras airlock is open!"
+            ? "Launch control is open!"
             : missed
               ? "This one didn’t open Extras. Only approval of your current Unlock Chore can."
-              : "When a Parent approves this, the Extras airlock opens."}
+              : "When a Parent approves this, launch control opens and you can launch Extras."}
         </AppText>
       </View>
     </View>
