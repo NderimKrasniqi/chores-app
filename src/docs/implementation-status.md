@@ -1,7 +1,9 @@
 # Current Implementation Status
 
-**Current milestone:** TASK-23 — Production UX architecture
-**Next milestone:** TASK-24 — Production UI/UX implementation
+**Current milestone:** TASK-25 — Real-household pilot
+**Next milestone:** TASK-26 — Production distribution readiness
+
+TASK-23 and TASK-24 are complete: the Quest Path redesign replaced the validation-era UI for both apps (see "TASK-23/24 progress" below and `design/`).
 
 ## Planned
 
@@ -28,7 +30,11 @@
 
 - UX direction, screen purposes and journey coverage are recorded in `design/` (`README.md`, `ux/`, `journey-audit.md`, `simulator-pass.md`).
 - Child app implemented on `main`: star map (Quests), Launch Control (Extras), payday delivery (Money), the crew with sibling-only Family and Cheers (J-11, `D-21`).
-- Parent app in progress on `feature/ground-control`: Ground Control Home (signals + today's radar via `groundControl.todayProgress`), payday dock (Money), week board with budget (Chores), crew roster (Family).
+- Parent app on `main`: Ground Control Home (signals + today's radar via `groundControl.todayProgress`), payday dock (Money), week board with budget (Chores), crew roster (Family); parent sign-up/sign-in in the light parent style (a house whose windows light as the form fills).
+- Getting in (onboarding → chooser → Child pairing): one waiting screen and one shared, clock-anchored sky; content fades between steps. Child setup state lives in `AuthRuntimeProvider` because the Convex provider remounts on every Parent/Child login switch (the launch splash sits outside it). Onboarding's "I'm a child" goes straight to pairing.
+- QR scanner: real camera on devices (CameraView sized by style — NativeWind doesn't style it), asks for camera access directly, "Open Settings" when it's off.
+- Removed leftovers: `FormField`, `StatusChip`, `src/constants/theme.ts`, the Expo template's `reset-project` script.
+- Not yet verified: Android (incl. keyboard handling), the Child-setup error path on a device.
 - New backend: `cheers` table with `cheers.send` / `cheers.listMine` and the `cheer` notification kind; `getCurrentChildAccess.siblingCount`; activity items carry `isUnlockChore`.
 - Verification: `npm run verify` includes `dev/smoke/cheers:run`; Maestro flows in `.maestro/` updated to the current kid screens.
 

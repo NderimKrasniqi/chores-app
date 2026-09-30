@@ -1,6 +1,6 @@
 # Design
 
-**Status:** Active — Quest Path (on `main`; parent Ground Control on `feature/ground-control`)
+**Status:** Active — Quest Path, child and parent apps both on `main`
 
 ## Authority
 

@@ -2,7 +2,7 @@
 
 **Status:** Approved — current
 
-**Implementation progress:** TASK-01 through TASK-22 complete. TASK-23 is next.
+**Implementation progress:** TASK-01 through TASK-24 complete. TASK-25 (real-household pilot) is next.
 
 ## Phase 1 — Establish trusted household access
 
@@ -46,8 +46,8 @@
 
 ## Phase 7 — Define and build the production experience
 
-- [ ] TASK-23 Define the real Parent and Child UX architecture, navigation model, journey flows, low-fidelity wireframes, design system, accessibility requirements, and loading/error/offline interaction states before production UI implementation
-- [ ] TASK-24 Implement the production UI/UX journey-by-journey on the stabilized application interfaces, replacing temporary validation surfaces while preserving approved behavior and regression coverage
+- [x] TASK-23 Define the real Parent and Child UX architecture, navigation model, journey flows, low-fidelity wireframes, design system, accessibility requirements, and loading/error/offline interaction states before production UI implementation
+- [x] TASK-24 Implement the production UI/UX journey-by-journey on the stabilized application interfaces, replacing temporary validation surfaces while preserving approved behavior and regression coverage
 
 ## Phase 8 — Pilot and prepare distribution
 
