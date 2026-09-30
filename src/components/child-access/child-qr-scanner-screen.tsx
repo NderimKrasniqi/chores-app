@@ -15,6 +15,7 @@ import {
   View,
 } from "react-native";
 import Animated, {
+  cubicBezier,
   interpolate,
   useAnimatedStyle,
 } from "react-native-reanimated";
@@ -36,6 +37,12 @@ import { ActionButton, AppText } from "@/design-system";
 import { useTheme } from "@/design-system/theme";
 
 import { api } from "../../../convex/_generated/api";
+
+const cameraFadeIn = {
+  transitionProperty: "opacity",
+  transitionDuration: "260ms",
+  transitionTimingFunction: cubicBezier(0.25, 0.1, 0.25, 1),
+} as const;
 
 type ChildQrScannerScreenProps = {
   onCancel: () => void;
@@ -144,6 +151,9 @@ export function ChildQrScannerScreen({
   const [permission, requestPermission, getPermission] = useCameraPermissions();
   const redeemQr = useAction(api.childPairing.redeemQr);
   const [scanned, setScanned] = useState(false);
+  // The camera takes a moment to show its first picture; until then the
+  // porthole says so, and the picture fades in once it's live.
+  const [cameraReady, setCameraReady] = useState(false);
   const [redeeming, setRedeeming] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [askedOnce, setAskedOnce] = useState(false);
@@ -275,12 +285,33 @@ export function ChildQrScannerScreen({
             {!preview ? (
               // Sized with style, not className: NativeWind doesn't style
               // CameraView, so a className left it zero pixels tall.
-              <CameraView
-                style={StyleSheet.absoluteFill}
-                facing="back"
-                barcodeScannerSettings={{ barcodeTypes: ["qr"] }}
-                onBarcodeScanned={scanned ? undefined : handleBarcodeScanned}
-              />
+              <>
+                {!cameraReady ? (
+                  <View className="flex-1 items-center justify-center">
+                    <ActivityIndicator color={tokens.inkMuted} />
+                    <AppText color="ink-muted" className="mt-3 font-body-bold">
+                      Starting the camera…
+                    </AppText>
+                  </View>
+                ) : null}
+                <Animated.View
+                  style={[
+                    StyleSheet.absoluteFill,
+                    { opacity: cameraReady ? 1 : 0 },
+                    cameraFadeIn,
+                  ]}
+                >
+                  <CameraView
+                    style={StyleSheet.absoluteFill}
+                    facing="back"
+                    barcodeScannerSettings={{ barcodeTypes: ["qr"] }}
+                    onCameraReady={() => setCameraReady(true)}
+                    onBarcodeScanned={
+                      scanned ? undefined : handleBarcodeScanned
+                    }
+                  />
+                </Animated.View>
+              </>
             ) : (
               // Design preview: a sample code where the camera would be.
               <View className="flex-1 items-center justify-center">
@@ -295,7 +326,7 @@ export function ChildQrScannerScreen({
                 </View>
               </View>
             )}
-            <PortholeOverlay />
+            {preview || cameraReady ? <PortholeOverlay /> : null}
           </View>
 
           <View className="min-h-[64px] items-center justify-center">
