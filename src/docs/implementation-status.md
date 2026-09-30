@@ -34,7 +34,8 @@ TASK-23 and TASK-24 are complete: the Quest Path redesign replaced the validatio
 - Getting in (onboarding → chooser → Child pairing): one waiting screen and one shared, clock-anchored sky; content fades between steps. Child setup state lives in `AuthRuntimeProvider` because the Convex provider remounts on every Parent/Child login switch (the launch splash sits outside it). Onboarding's "I'm a child" goes straight to pairing.
 - QR scanner: real camera on devices (CameraView sized by style — NativeWind doesn't style it), asks for camera access directly, "Open Settings" when it's off.
 - Removed leftovers: `FormField`, `StatusChip`, `src/constants/theme.ts`, the Expo template's `reset-project` script.
-- Not yet verified: Android (incl. keyboard handling), the Child-setup error path on a device.
+- Android (emulator, Expo Go): the app used to crash on start because `expo-notifications` throws on import in Expo Go on Android; the push bridge now loads lazily and is skipped only there (`src/app/_layout.tsx`), and the "Want a heads-up?" sheet lives in its own `notification-primer.tsx`. Verified on Android: onboarding, chooser, Child setup to the join screen, parent sign-up, and the keyboard keeping the password field visible.
+- Not yet verified: push notifications on Android (need a development build), typing the pairing code on Android, the Child-setup error path on a device.
 - New backend: `cheers` table with `cheers.send` / `cheers.listMine` and the `cheer` notification kind; `getCurrentChildAccess.siblingCount`; activity items carry `isUnlockChore`.
 - Verification: `npm run verify` includes `dev/smoke/cheers:run`; Maestro flows in `.maestro/` updated to the current kid screens.
 

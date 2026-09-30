@@ -31,7 +31,7 @@ import { ParentReviewsContent } from "@/components/chores/parent-reviews-content
 import { ParentBottomNavigation } from "@/components/household/parent-bottom-navigation";
 import { ParentFamilyContent } from "@/components/household/parent-family-content";
 import { ParentInviteCard } from "@/components/household/parent-invite-card";
-import { NotificationPrimer } from "@/components/notifications/push-registration-bridge";
+import { NotificationPrimer } from "@/components/notifications/notification-primer";
 import { ParentScreenHeader } from "@/components/household/parent-screen-header";
 import { RecoveryPayoutDetail } from "@/components/household/parent-money-content";
 import {
