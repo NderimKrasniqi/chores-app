@@ -1,0 +1,17 @@
+appId: host.exp.Exponent
+name: Child join — dock screen and the scanner porthole
+---
+- runFlow:
+    file: _open.yaml
+    env: { STATE: child-pairing-entry }
+- extendedWaitUntil: { visible: ".*Dock with your family.*", timeout: 90000 }
+# Buttons are matched by their accessibility label.
+- assertVisible: "Scan the Parent's QR code"
+- assertVisible: { id: "child-pairing-manual-code" }
+- assertVisible: { id: "child-pairing-submit-manual-code" }
+- assertVisible: ".*Codes last 15 minutes.*"
+- runFlow:
+    file: _open.yaml
+    env: { STATE: child-pairing-scanner }
+- extendedWaitUntil: { visible: ".*Point at their code.*", timeout: 90000 }
+- assertVisible: ".*inside the porthole.*"

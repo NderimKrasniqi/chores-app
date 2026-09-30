@@ -37,7 +37,7 @@ TASK-23 and TASK-24 are complete: the Quest Path redesign replaced the validatio
 - Android (emulator, Expo Go): the app used to crash on start because `expo-notifications` throws on import in Expo Go on Android; the push bridge now loads lazily and is skipped only there (`src/app/_layout.tsx`), and the "Want a heads-up?" sheet lives in its own `notification-primer.tsx`. Verified on Android: onboarding, chooser, Child setup to the join screen, parent sign-up, and the keyboard keeping the password field visible.
 - Not yet verified: push notifications on Android (need a development build), typing the pairing code on Android, the Child-setup error path on a device.
 - New backend: `cheers` table with `cheers.send` / `cheers.listMine` and the `cheer` notification kind; `getCurrentChildAccess.siblingCount`; activity items carry `isUnlockChore`.
-- Verification: `npm run verify` includes `dev/smoke/cheers:run`; Maestro flows in `.maestro/` updated to the current kid screens.
+- Verification: `npm run verify` includes `dev/smoke/cheers:run`. Maestro (`maestro test .maestro`, iOS Simulator + Expo Go): 12/12 flows pass, including `parent-auth.yaml` and `child-join.yaml` for the redesigned parent sign-up/sign-in and Child join/scanner.
 
 ### TASK-25 — Real-household pilot
 

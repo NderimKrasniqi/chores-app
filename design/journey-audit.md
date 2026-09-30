@@ -134,7 +134,7 @@ Legend: ✅ covered · ⚠️ works but weak/unclear · ❌ missing · 💡 prop
 ## Cross-cutting
 
 - ⚠️ Offline banner still old layout.
-- ⚠️ Stale Maestro flows + dead legacy components (cleanup step).
+- ✅ Maestro flows match the current screens (12/12 pass on the iOS Simulator, incl. parent auth and Child join); unused legacy components removed.
 - ⚠️ Some arbitrary text sizes render at body size (seen in the review deck) — simulator pass.
 
 ---

@@ -1,0 +1,19 @@
+appId: host.exp.Exponent
+name: Parent auth — house form, switch to sign in, first-problem message
+---
+- runFlow:
+    file: _open.yaml
+    env: { STATE: parent-sign-up }
+- extendedWaitUntil: { visible: ".*Create parent account.*", timeout: 90000 }
+- assertVisible: { id: "parent-auth-name" }
+- assertVisible: { id: "parent-auth-email" }
+- assertVisible: { id: "parent-auth-password" }
+- assertVisible: ".*At least 8 characters.*"
+- assertVisible: ".*Kids don’t need an email.*"
+# The button is never disabled: pressing it names the first missing thing.
+- tapOn: { text: "Create account", index: 1 }
+- assertVisible: ".*Add your name.*"
+# Sign in: no name field, a returning-parent title.
+- tapOn: { id: "parent-auth-mode-sign-in" }
+- assertVisible: ".*Welcome back.*"
+- assertNotVisible: { id: "parent-auth-name" }
