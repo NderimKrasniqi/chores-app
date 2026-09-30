@@ -41,6 +41,8 @@ TASK-23 and TASK-24 are complete: the Quest Path redesign replaced the validatio
 
 ### TASK-25 — Real-household pilot
 
+Checklist and setup options: `src/docs/pilot-plan.md`.
+
 - Exercise the production experience with real household usage across multiple representative days.
 - Validate recurrence, timezone behavior, deadlines, locks, review delay, Redo, balances, payout periods, shared-device access, revocation, offline recovery, and notifications under normal usage.
 - Record pilot findings separately from speculative feature ideas.
