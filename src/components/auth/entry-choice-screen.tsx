@@ -1,5 +1,4 @@
 import {
-  createChildAuthStoragePrefix,
   listLocalChildContexts,
   removeLocalChildContext,
   type LocalChildContext,
@@ -16,7 +15,9 @@ import {
 } from "@/lib/child-access/unlock-policy";
 import { Icon } from "@/components/ui/icon";
 import { childAvatarTone, Avatar } from "@/components/ui/avatar";
-import { Scene, StarBuddy, Starfield } from "@/components/art";
+import { ENTRY_SKY_SEED, Scene, StarBuddy, Starfield } from "@/components/art";
+import { EntryFade, useLeave } from "@/components/child-access/entry-fade";
+import { WaitingScreen } from "@/components/child-access/waiting-screen";
 import {
   ActionButton,
   AppText,
@@ -51,7 +52,18 @@ type EntryChoiceScreenProps = {
 let automaticallyOpenedSingleChild = false;
 
 export function EntryChoiceScreen({ onChooseParent }: EntryChoiceScreenProps) {
-  const { activateParentStorage, activateStoragePrefix } = useAuthRuntime();
+  const {
+    activateParentStorage,
+    activateStoragePrefix,
+    startChildSetup,
+    childSetupPending: startingChildSession,
+    // Kept in the provider: starting a Child switches logins, which
+    // remounts this screen, so a failure can't live in local state.
+    childSetupError,
+    clearChildSetupError,
+  } = useAuthRuntime();
+
+  const { leaving, leave } = useLeave();
 
   const [localChildContexts, setLocalChildContexts] = useState<
     LocalChildContext[]
@@ -69,9 +81,8 @@ export function EntryChoiceScreen({ onChooseParent }: EntryChoiceScreenProps) {
     null,
   );
 
-  const [startingChildSession, setStartingChildSession] = useState(false);
-
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const shownError = errorMessage ?? childSetupError;
 
   /*
    * Live Convex subscription for the
@@ -399,6 +410,7 @@ export function EntryChoiceScreen({ onChooseParent }: EntryChoiceScreenProps) {
 
   function handleChooseParent() {
     setErrorMessage(null);
+    clearChildSetupError();
 
     activateParentStorage();
 
@@ -407,6 +419,7 @@ export function EntryChoiceScreen({ onChooseParent }: EntryChoiceScreenProps) {
 
   function handleChooseSavedChild(context: LocalChildContext) {
     setErrorMessage(null);
+    clearChildSetupError();
 
     setSwitchingContextId(context.contextId);
 
@@ -419,34 +432,12 @@ export function EntryChoiceScreen({ onChooseParent }: EntryChoiceScreenProps) {
     }
   }
 
-  async function handleAddChild() {
-    setStartingChildSession(true);
-
+  function handleAddChild() {
     setErrorMessage(null);
 
-    try {
-      const childStoragePrefix = createChildAuthStoragePrefix();
-
-      const childAuthClient = activateStoragePrefix(childStoragePrefix);
-
-      const result = await childAuthClient.signIn.anonymous();
-
-      if (result.error) {
-        activateParentStorage();
-
-        setErrorMessage(
-          result.error.message ?? "Could not start child session.",
-        );
-      }
-    } catch (error) {
-      activateParentStorage();
-
-      setErrorMessage(
-        userErrorMessage(error, "Could not start child session."),
-      );
-    } finally {
-      setStartingChildSession(false);
-    }
+    // A failure comes back as `childSetupError` (startChildSetup clears
+    // the previous one).
+    void startChildSetup();
   }
 
   /*
@@ -471,39 +462,16 @@ export function EntryChoiceScreen({ onChooseParent }: EntryChoiceScreenProps) {
           onPairAgain={() => {
             activateParentStorage();
             setSwitchingContextId(null);
-            void handleAddChild();
+            handleAddChild();
           }}
         />
       );
     }
 
-    let message = "Loading profiles…";
-
-    if (updatingAccess) {
-      message = "Updating access…";
-    }
-
-    if (switchingContextId !== null) {
-      message = "Opening child profile…";
-    }
-
     return (
-      <ThemeScope mode="quest">
-        <View className="flex-1 items-center justify-center bg-canvas px-6">
-          <StatusBar style="light" />
-          <Starfield seed={31} />
-          <StarBuddy size={84} mood="hop" />
-          <AppText variant="sectionTitle" className="mt-6 text-center">
-            Getting things ready
-          </AppText>
-          <AppText
-            color="ink-muted"
-            className="mt-1 text-center font-body-bold"
-          >
-            {message}
-          </AppText>
-        </View>
-      </ThemeScope>
+      <WaitingScreen
+        message={updatingAccess ? "Updating access…" : "Loading profiles…"}
+      />
     );
   }
 
@@ -511,144 +479,148 @@ export function EntryChoiceScreen({ onChooseParent }: EntryChoiceScreenProps) {
     <ThemeScope mode="quest">
       <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-canvas">
         <StatusBar style="light" />
-        <Starfield seed={5} />
-        <ScrollView
-          contentContainerClassName="flex-grow px-5 pb-6 pt-2"
-          showsVerticalScrollIndicator={false}
-        >
-          <View className="items-center pt-4">
-            <View className="items-center justify-center">
-              <Scene name="planet" size={190} />
-              <View className="absolute" style={{ top: 58 }}>
-                <StarBuddy size={70} mood="wave" />
+        <Starfield seed={ENTRY_SKY_SEED} />
+        <EntryFade leaving={leaving}>
+          <ScrollView
+            contentContainerClassName="flex-grow px-5 pb-6 pt-2"
+            showsVerticalScrollIndicator={false}
+          >
+            <View className="items-center pt-4">
+              <View className="items-center justify-center">
+                <Scene name="planet" size={190} />
+                <View className="absolute" style={{ top: 58 }}>
+                  <StarBuddy size={70} mood="wave" />
+                </View>
               </View>
-            </View>
-            <AppText variant="screenTitle" className="mt-4 text-center">
-              Who’s using this phone?
-            </AppText>
-            <AppText
-              color="ink-muted"
-              className="mt-2 text-center font-body-bold"
-            >
-              Pick your profile, sign in as a Parent, or pair another Child.
-            </AppText>
-          </View>
-
-          {localChildContexts.length > 0 ? (
-            <View className="mt-7">
-              <AppText
-                variant="label"
-                color="ink-muted"
-                className="uppercase tracking-[1.2px]"
-              >
-                Saved Child profiles
+              <AppText variant="screenTitle" className="mt-4 text-center">
+                Who’s using this phone?
               </AppText>
-
-              <View className="mt-3 gap-3">
-                {localChildContexts.map((context) => (
-                  <Pressable
-                    key={context.contextId}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Open ${context.childDisplayName} in ${context.householdName}`}
-                    className="min-h-[84px] flex-row items-center gap-4 rounded-large bg-surface px-4 py-3"
-                    onPress={() => handleChooseSavedChild(context)}
-                  >
-                    <Avatar
-                      tone={childAvatarTone(context.childDisplayName)}
-                      className="h-[58px] w-[58px]"
-                      fallbackLabel={context.childDisplayName}
-                    />
-                    <View className="flex-1">
-                      <AppText className="font-display text-[22px] leading-[26px]">
-                        {context.childDisplayName}
-                      </AppText>
-                      <AppText variant="bodySmall" color="ink-muted">
-                        {context.householdName}
-                      </AppText>
-                    </View>
-                    <View className="h-11 w-11 items-center justify-center rounded-full bg-primary">
-                      <Icon name="chevron" color={tokens.night} size={20} />
-                    </View>
-                  </Pressable>
-                ))}
-              </View>
+              <AppText
+                color="ink-muted"
+                className="mt-2 text-center font-body-bold"
+              >
+                Pick your profile, sign in as a Parent, or pair another Child.
+              </AppText>
             </View>
-          ) : null}
 
-          <View className="mt-7 gap-3">
-            <Pressable
-              testID="entry-pair-child"
-              accessibilityRole="button"
-              accessibilityLabel="Pair another child"
-              disabled={startingChildSession}
-              onPress={handleAddChild}
-              className="flex-row items-center gap-3.5 rounded-large border-b-[5px] border-primaryShade bg-primary p-4"
-            >
-              <View className="h-[52px] w-[52px] items-center justify-center rounded-[18px] bg-night">
-                <Icon name="scan" color={tokens.gold} size={26} />
-              </View>
-              <View className="flex-1">
-                <AppText className="font-display text-[20px] text-night">
-                  {startingChildSession
-                    ? "Starting Child setup…"
-                    : localChildContexts.length > 0
-                      ? "Pair another child"
-                      : "I’m a child"}
+            {localChildContexts.length > 0 ? (
+              <View className="mt-7">
+                <AppText
+                  variant="label"
+                  color="ink-muted"
+                  className="uppercase tracking-[1.2px]"
+                >
+                  Saved Child profiles
                 </AppText>
-                <AppText className="font-body-bold text-[14px] text-night">
-                  Scan the code from a Parent
-                </AppText>
-              </View>
-              <Icon name="chevron" color={tokens.night} size={20} />
-            </Pressable>
 
-            <Pressable
-              testID="entry-continue-parent"
-              accessibilityRole="button"
-              accessibilityLabel="Continue as a parent"
-              onPress={handleChooseParent}
-              className="flex-row items-center gap-3.5 rounded-large bg-surface p-4"
-            >
-              <View className="h-[52px] w-[52px] items-center justify-center rounded-[18px] bg-nightRaised">
-                <Icon name="home" color={tokens.ink} size={26} />
+                <View className="mt-3 gap-3">
+                  {localChildContexts.map((context) => (
+                    <Pressable
+                      key={context.contextId}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Open ${context.childDisplayName} in ${context.householdName}`}
+                      className="min-h-[84px] flex-row items-center gap-4 rounded-large bg-surface px-4 py-3"
+                      onPress={() =>
+                        leave(() => handleChooseSavedChild(context))
+                      }
+                    >
+                      <Avatar
+                        tone={childAvatarTone(context.childDisplayName)}
+                        className="h-[58px] w-[58px]"
+                        fallbackLabel={context.childDisplayName}
+                      />
+                      <View className="flex-1">
+                        <AppText className="font-display text-[22px] leading-[26px]">
+                          {context.childDisplayName}
+                        </AppText>
+                        <AppText variant="bodySmall" color="ink-muted">
+                          {context.householdName}
+                        </AppText>
+                      </View>
+                      <View className="h-11 w-11 items-center justify-center rounded-full bg-primary">
+                        <Icon name="chevron" color={tokens.night} size={20} />
+                      </View>
+                    </Pressable>
+                  ))}
+                </View>
               </View>
-              <View className="flex-1">
-                <AppText className="font-display text-[20px]">
-                  I’m a parent
-                </AppText>
+            ) : null}
+
+            <View className="mt-7 gap-3">
+              <Pressable
+                testID="entry-pair-child"
+                accessibilityRole="button"
+                accessibilityLabel="Pair another child"
+                disabled={startingChildSession}
+                onPress={() => leave(handleAddChild)}
+                className="flex-row items-center gap-3.5 rounded-large border-b-[5px] border-primaryShade bg-primary p-4"
+              >
+                <View className="h-[52px] w-[52px] items-center justify-center rounded-[18px] bg-night">
+                  <Icon name="scan" color={tokens.gold} size={26} />
+                </View>
+                <View className="flex-1">
+                  <AppText className="font-display text-[20px] text-night">
+                    {startingChildSession
+                      ? "Starting Child setup…"
+                      : localChildContexts.length > 0
+                        ? "Pair another child"
+                        : "I’m a child"}
+                  </AppText>
+                  <AppText className="font-body-bold text-[14px] text-night">
+                    Scan the code from a Parent
+                  </AppText>
+                </View>
+                <Icon name="chevron" color={tokens.night} size={20} />
+              </Pressable>
+
+              <Pressable
+                testID="entry-continue-parent"
+                accessibilityRole="button"
+                accessibilityLabel="Continue as a parent"
+                onPress={() => leave(handleChooseParent)}
+                className="flex-row items-center gap-3.5 rounded-large bg-surface p-4"
+              >
+                <View className="h-[52px] w-[52px] items-center justify-center rounded-[18px] bg-nightRaised">
+                  <Icon name="home" color={tokens.ink} size={26} />
+                </View>
+                <View className="flex-1">
+                  <AppText className="font-display text-[20px]">
+                    I’m a parent
+                  </AppText>
+                  <AppText
+                    variant="bodySmall"
+                    color="ink-muted"
+                    className="font-body-bold"
+                  >
+                    Sign in or open the Parent account
+                  </AppText>
+                </View>
+                <Icon name="chevron" color={tokens.inkMuted} size={20} />
+              </Pressable>
+            </View>
+
+            {shownError ? (
+              <Surface tone="coral" className="mt-4 p-3">
                 <AppText
                   variant="bodySmall"
-                  color="ink-muted"
-                  className="font-body-bold"
+                  color="urgency"
+                  className="text-center"
                 >
-                  Sign in or open the Parent account
+                  {shownError}
                 </AppText>
-              </View>
-              <Icon name="chevron" color={tokens.inkMuted} size={20} />
-            </Pressable>
-          </View>
+              </Surface>
+            ) : null}
 
-          {errorMessage ? (
-            <Surface tone="coral" className="mt-4 p-3">
-              <AppText
-                variant="bodySmall"
-                color="urgency"
-                className="text-center"
-              >
-                {errorMessage}
-              </AppText>
-            </Surface>
-          ) : null}
-
-          <View className="flex-1" />
-          <AppText
-            variant="caption"
-            color="ink-muted"
-            className="mt-10 text-center"
-          >
-            Saved profiles stay private on this device.
-          </AppText>
-        </ScrollView>
+            <View className="flex-1" />
+            <AppText
+              variant="caption"
+              color="ink-muted"
+              className="mt-10 text-center"
+            >
+              Saved profiles stay private on this device.
+            </AppText>
+          </ScrollView>
+        </EntryFade>
       </SafeAreaView>
     </ThemeScope>
   );
@@ -677,35 +649,30 @@ function OpeningProfile({
     return () => clearTimeout(timer);
   }, []);
   return (
-    <ThemeScope mode="quest">
-      <View className="flex-1 items-center justify-center bg-canvas px-6">
-        <StatusBar style="light" />
-        <Starfield seed={31} />
-        <StarBuddy size={84} mood={slow ? "sleepy" : "hop"} />
-        <AppText variant="sectionTitle" className="mt-6 text-center">
-          {slow ? `Can’t open ${name}` : "Getting things ready"}
-        </AppText>
-        <AppText color="ink-muted" className="mt-1 text-center font-body-bold">
-          {slow
-            ? "Check the Wi-Fi. If it’s on, this phone may need pairing again — ask a Parent for a new code."
-            : "Opening child profile…"}
-        </AppText>
-        {slow ? (
-          <>
-            <ActionButton
-              className="mt-6 w-full"
-              label="Pair again"
-              onPress={onPairAgain}
-            />
-            <ActionButton
-              className="mt-1 w-full"
-              tone="quiet"
-              label="Back"
-              onPress={onBack}
-            />
-          </>
-        ) : null}
-      </View>
-    </ThemeScope>
+    <WaitingScreen
+      title={slow ? `Can’t open ${name}` : "Getting things ready"}
+      message={
+        slow
+          ? "Check the Wi-Fi. If it’s on, this phone may need pairing again — ask a Parent for a new code."
+          : "Opening child profile…"
+      }
+      sleepy={slow}
+    >
+      {slow ? (
+        <>
+          <ActionButton
+            className="mt-6 w-full"
+            label="Pair again"
+            onPress={onPairAgain}
+          />
+          <ActionButton
+            className="mt-1 w-full"
+            tone="quiet"
+            label="Back"
+            onPress={onBack}
+          />
+        </>
+      ) : null}
+    </WaitingScreen>
   );
 }

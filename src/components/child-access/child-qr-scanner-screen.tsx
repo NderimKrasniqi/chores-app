@@ -4,10 +4,16 @@ import {
   type BarcodeScanningResult,
   useCameraPermissions,
 } from "expo-camera";
-import * as Device from "expo-device";
 import { StatusBar } from "expo-status-bar";
-import { useState, type ReactNode } from "react";
-import { ActivityIndicator, Pressable, View } from "react-native";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  ActivityIndicator,
+  AppState,
+  Linking,
+  Pressable,
+  StyleSheet,
+  View,
+} from "react-native";
 import Animated, {
   interpolate,
   useAnimatedStyle,
@@ -16,8 +22,14 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { currentDeviceLabel } from "@/lib/child-access/device-label";
 import { userErrorMessage } from "@/lib/errors";
 
-import { DockingScene, Starfield, useLoop } from "@/components/art";
+import {
+  DockingScene,
+  ENTRY_SKY_SEED,
+  Starfield,
+  useLoop,
+} from "@/components/art";
 import { Easings } from "@/components/art/motion";
+import { EntryFade } from "./entry-fade";
 import { Icon } from "@/components/ui/icon";
 import { PairingQrCode } from "@/components/ui/pairing-qr-code";
 import { ActionButton, AppText } from "@/design-system";
@@ -27,6 +39,8 @@ import { api } from "../../../convex/_generated/api";
 
 type ChildQrScannerScreenProps = {
   onCancel: () => void;
+  /** Design preview only: a sample code in the porthole instead of the camera. */
+  preview?: boolean;
 };
 
 const WINDOW = 250;
@@ -107,7 +121,7 @@ function PermissionState({
   return (
     <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-canvas px-6">
       <StatusBar style="light" />
-      <Starfield seed={61} />
+      <Starfield seed={ENTRY_SKY_SEED} />
       <View className="flex-1 items-center justify-center">
         <DockingScene width={300} height={160} />
         <AppText variant="screenTitle" className="mt-4 text-center">
@@ -122,13 +136,46 @@ function PermissionState({
   );
 }
 
-export function ChildQrScannerScreen({ onCancel }: ChildQrScannerScreenProps) {
+export function ChildQrScannerScreen({
+  onCancel,
+  preview = false,
+}: ChildQrScannerScreenProps) {
   const { tokens } = useTheme();
-  const [permission, requestPermission] = useCameraPermissions();
+  const [permission, requestPermission, getPermission] = useCameraPermissions();
   const redeemQr = useAction(api.childPairing.redeemQr);
   const [scanned, setScanned] = useState(false);
   const [redeeming, setRedeeming] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [askedOnce, setAskedOnce] = useState(false);
+  const requested = useRef(false);
+
+  // The Child already chose "scan", so ask iOS/Android for the camera
+  // straight away instead of showing a page that asks first. Only once:
+  // Android can keep "canAskAgain" true after a refusal.
+  const needsAsking =
+    !preview &&
+    permission !== null &&
+    !permission.granted &&
+    permission.canAskAgain &&
+    !askedOnce;
+
+  useEffect(() => {
+    if (!needsAsking || requested.current) return;
+    requested.current = true;
+    void requestPermission()
+      .catch(() => undefined)
+      .finally(() => setAskedOnce(true));
+  }, [needsAsking, requestPermission]);
+
+  // Android doesn't restart the app when camera access is granted in
+  // Settings, so re-read it when the Child comes back.
+  useEffect(() => {
+    if (preview) return;
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state === "active") void getPermission().catch(() => undefined);
+    });
+    return () => subscription.remove();
+  }, [getPermission, preview]);
 
   async function handleBarcodeScanned(result: BarcodeScanningResult) {
     if (scanned || redeeming) return;
@@ -152,26 +199,31 @@ export function ChildQrScannerScreen({ onCancel }: ChildQrScannerScreenProps) {
     }
   }
 
-  if (!permission) {
+  if (!preview && (!permission || needsAsking)) {
     return (
       <View className="flex-1 items-center justify-center bg-canvas px-6">
         <StatusBar style="light" />
-        <ActivityIndicator color={tokens.accent} />
-        <AppText color="ink-muted" className="mt-3 font-body-bold">
-          Warming up the scanner…
-        </AppText>
+        <Starfield seed={ENTRY_SKY_SEED} />
+        <EntryFade>
+          <View className="flex-1 items-center justify-center">
+            <ActivityIndicator color={tokens.accent} />
+            <AppText color="ink-muted" className="mt-3 font-body-bold">
+              Warming up the scanner…
+            </AppText>
+          </View>
+        </EntryFade>
       </View>
     );
   }
 
-  if (!permission.granted) {
+  if (!preview && permission && !permission.granted) {
     return (
       <PermissionState
         title="Open the porthole?"
         body={
           permission.canAskAgain
             ? "The camera is only used to scan your Parent’s pairing code."
-            : "Camera access is off for this app. You can still type the code instead."
+            : "Camera access is off for this app. Turn it on in Settings, or type the code instead."
         }
       >
         {permission.canAskAgain ? (
@@ -179,7 +231,12 @@ export function ChildQrScannerScreen({ onCancel }: ChildQrScannerScreenProps) {
             label="Allow camera"
             onPress={() => void requestPermission()}
           />
-        ) : null}
+        ) : (
+          <ActionButton
+            label="Open Settings"
+            onPress={() => void Linking.openSettings()}
+          />
+        )}
         <ActionButton
           tone="secondary"
           label="Type the code instead"
@@ -190,70 +247,77 @@ export function ChildQrScannerScreen({ onCancel }: ChildQrScannerScreenProps) {
   }
 
   return (
-    <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-canvas px-5">
+    <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-canvas">
       <StatusBar style="light" />
-      <View className="flex-row items-center justify-between pt-2">
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Back to typing the code"
-          onPress={onCancel}
-          disabled={redeeming}
-          hitSlop={8}
-          className="h-11 w-11 items-center justify-center rounded-full bg-surface"
-        >
-          <Icon name="close" color={tokens.ink} size={18} />
-        </Pressable>
-      </View>
-      <AppText variant="screenTitle" className="mt-3">
-        Point at their code
-      </AppText>
-      <AppText color="ink-muted" className="mt-1 font-body-bold">
-        Fit the code on your Parent’s phone inside the porthole.
-      </AppText>
-
-      <View className="mt-5 flex-1 overflow-hidden rounded-[36px] border-4 border-nightRaised bg-night">
-        {Device.isDevice ? (
-          <CameraView
-            className="flex-1"
-            facing="back"
-            barcodeScannerSettings={{ barcodeTypes: ["qr"] }}
-            onBarcodeScanned={scanned ? undefined : handleBarcodeScanned}
-          />
-        ) : (
-          // The simulator has no camera: show a sample code in the window.
-          <View className="flex-1 items-center justify-center">
-            <View className="rounded-[14px] bg-star p-3">
-              <PairingQrCode
-                value="visual-scanner-preview"
-                size={150}
-                quietZone={1}
-                color={tokens.night}
-                backgroundColor={tokens.star}
-              />
-            </View>
+      <Starfield seed={ENTRY_SKY_SEED} />
+      <EntryFade>
+        <View className="flex-1 px-5">
+          <View className="flex-row items-center justify-between pt-2">
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Back to typing the code"
+              onPress={onCancel}
+              disabled={redeeming}
+              hitSlop={8}
+              className="h-11 w-11 items-center justify-center rounded-full bg-surface"
+            >
+              <Icon name="close" color={tokens.ink} size={18} />
+            </Pressable>
           </View>
-        )}
-        <PortholeOverlay />
-      </View>
-
-      <View className="min-h-[64px] items-center justify-center">
-        {redeeming ? (
-          <View className="flex-row items-center">
-            <ActivityIndicator color={tokens.accent} />
-            <AppText color="ink-muted" className="ml-3 font-body-bold">
-              Docking…
-            </AppText>
-          </View>
-        ) : errorMessage ? (
-          <AppText
-            accessibilityLiveRegion="polite"
-            color="pink"
-            className="text-center font-body-bold"
-          >
-            {errorMessage}
+          <AppText variant="screenTitle" className="mt-3">
+            Point at their code
           </AppText>
-        ) : null}
-      </View>
+          <AppText color="ink-muted" className="mt-1 font-body-bold">
+            Fit the code on your Parent’s phone inside the porthole.
+          </AppText>
+
+          <View className="mt-5 flex-1 overflow-hidden rounded-[36px] border-4 border-nightRaised bg-night">
+            {!preview ? (
+              // Sized with style, not className: NativeWind doesn't style
+              // CameraView, so a className left it zero pixels tall.
+              <CameraView
+                style={StyleSheet.absoluteFill}
+                facing="back"
+                barcodeScannerSettings={{ barcodeTypes: ["qr"] }}
+                onBarcodeScanned={scanned ? undefined : handleBarcodeScanned}
+              />
+            ) : (
+              // Design preview: a sample code where the camera would be.
+              <View className="flex-1 items-center justify-center">
+                <View className="rounded-[14px] bg-star p-3">
+                  <PairingQrCode
+                    value="visual-scanner-preview"
+                    size={150}
+                    quietZone={1}
+                    color={tokens.night}
+                    backgroundColor={tokens.star}
+                  />
+                </View>
+              </View>
+            )}
+            <PortholeOverlay />
+          </View>
+
+          <View className="min-h-[64px] items-center justify-center">
+            {redeeming ? (
+              <View className="flex-row items-center">
+                <ActivityIndicator color={tokens.accent} />
+                <AppText color="ink-muted" className="ml-3 font-body-bold">
+                  Docking…
+                </AppText>
+              </View>
+            ) : errorMessage ? (
+              <AppText
+                accessibilityLiveRegion="polite"
+                color="pink"
+                className="text-center font-body-bold"
+              >
+                {errorMessage}
+              </AppText>
+            ) : null}
+          </View>
+        </View>
+      </EntryFade>
     </SafeAreaView>
   );
 }

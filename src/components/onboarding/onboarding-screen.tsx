@@ -10,6 +10,7 @@ import { Easings, PRESS, pressTransition } from "@/components/art/motion";
 import {
   BalanceOrb,
   ChoreIcon,
+  ENTRY_SKY_SEED,
   Scene,
   StarBuddy,
   Starfield,
@@ -82,7 +83,7 @@ function OnboardingContent({
   return (
     <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-canvas">
       <StatusBar style="light" />
-      <Starfield seed={3} />
+      <Starfield seed={ENTRY_SKY_SEED} />
 
       <View className="flex-row items-center justify-between px-5 pb-2 pt-1">
         <Pressable

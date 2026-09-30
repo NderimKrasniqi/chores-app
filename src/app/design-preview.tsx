@@ -747,7 +747,7 @@ function VerificationState({ state }: { state: string }) {
     case "child-pairing-entry":
       return <ChildJoinScreen />;
     case "child-pairing-scanner":
-      return <ChildQrScannerScreen onCancel={noop} />;
+      return <ChildQrScannerScreen onCancel={noop} preview />;
     case "child-pin-setup":
       return (
         <ChildPinSetupScreen

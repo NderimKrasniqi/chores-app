@@ -58,11 +58,13 @@ export default function RootLayout() {
             <ThemeScope mode="home">
               <PushRegistrationBridge />
               <ServerConnectionBanner />
-              <AnimatedSplashOverlay />
               <Slot />
             </ThemeScope>
           </ThemeProvider>
         </ConvexClientProvider>
+        {/* Outside the Convex provider: that remounts on every Parent/Child
+            switch, and the launch splash must only ever play once. */}
+        <AnimatedSplashOverlay />
       </AuthRuntimeProvider>
     </GestureHandlerRootView>
   );

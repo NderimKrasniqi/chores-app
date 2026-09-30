@@ -1,4 +1,4 @@
-import { LostSatellite, Starfield } from "@/components/art";
+import { ENTRY_SKY_SEED, LostSatellite, Starfield } from "@/components/art";
 import {
   getLocalChildContextByStoragePrefix,
   removeLocalChildContext,
@@ -18,6 +18,7 @@ import { View } from "react-native";
 import { userErrorMessage } from "@/lib/errors";
 
 import { ChildJoinScreen } from "./child-join-screen";
+import { WaitingScreen } from "./waiting-screen";
 
 type CleanupState = "checking" | "join" | "cleaning" | "error";
 
@@ -158,7 +159,7 @@ export function ChildNoAccessScreen({
     return (
       <View className="flex-1 items-center justify-center bg-canvas px-6">
         <StatusBar style="light" />
-        <Starfield seed={71} />
+        <Starfield seed={ENTRY_SKY_SEED} />
         <LostSatellite size={210} />
         <AppText
           variant="label"
@@ -195,19 +196,15 @@ export function ChildNoAccessScreen({
     );
   }
 
+  // Checking is usually instant (a fresh Child has nothing saved yet), so
+  // it shares the entry waiting screen rather than flashing its own.
   return (
-    <View className="flex-1 items-center justify-center bg-canvas px-6">
-      <StatusBar style="light" />
-      <Starfield seed={71} />
-      <LostSatellite size={170} />
-      <AppText variant="sectionTitle" className="mt-3 text-center">
-        Tuning in…
-      </AppText>
-      <AppText color="ink-muted" className="mt-1 text-center font-body-bold">
-        {cleanupState === "cleaning"
+    <WaitingScreen
+      message={
+        cleanupState === "cleaning"
           ? "Clearing this device’s old access…"
-          : "Checking this device’s access…"}
-      </AppText>
-    </View>
+          : "Connecting…"
+      }
+    />
   );
 }

@@ -7,6 +7,7 @@ import {
   useSharedValue,
   withDelay,
   withRepeat,
+  withSequence,
   withSpring,
   withTiming,
   type EasingFunction,
@@ -82,6 +83,76 @@ export function useLoop({
     );
     return () => cancelAnimation(progress);
   }, [delay, duration, easing, progress, rest, reverse, still]);
+
+  return progress;
+}
+
+/**
+ * Like `useLoop`, but anchored to the wall clock instead of to when the
+ * component mounted: every copy with the same duration and phase is at the
+ * same point at the same moment. Use it for backgrounds shared by screens
+ * that replace each other (the entry sky), so a screen change doesn't
+ * restart every twinkle at once. `phase` (ms) spreads copies apart.
+ */
+export function useClockLoop({
+  duration,
+  phase = 0,
+  reverse = false,
+  easing = Easings.float,
+  rest = 0,
+  essential = false,
+}: {
+  duration: number;
+  phase?: number;
+  reverse?: boolean;
+  easing?: EasingFunction | EasingFunctionFactory;
+  rest?: number;
+  essential?: boolean;
+}) {
+  const reducedMotion = useReducedMotion();
+  const progress = useSharedValue(rest);
+  const still = reducedMotion && !essential;
+
+  useEffect(() => {
+    if (still) {
+      progress.set(rest);
+      return;
+    }
+    const period = reverse ? duration * 2 : duration;
+    const t = (Date.now() + phase) % period;
+    const rising = t < duration;
+    const through = (rising ? t : t - duration) / duration;
+    // Finish the current leg (linearly — a slight easing mismatch on one
+    // partial leg is invisible), then loop as usual.
+    progress.set(rising ? through : 1 - through);
+    const remaining = Math.max(1, duration * (1 - through));
+    const finishLeg = withTiming(rising ? 1 : 0, {
+      duration: remaining,
+      easing: Easings.linear,
+    });
+    progress.set(
+      reverse
+        ? withSequence(
+            finishLeg,
+            withRepeat(
+              withTiming(rising ? 0 : 1, { duration, easing }),
+              -1,
+              true,
+            ),
+          )
+        : withSequence(
+            finishLeg,
+            withRepeat(
+              withSequence(
+                withTiming(0, { duration: 0 }),
+                withTiming(1, { duration, easing }),
+              ),
+              -1,
+            ),
+          ),
+    );
+    return () => cancelAnimation(progress);
+  }, [duration, easing, phase, progress, rest, reverse, still]);
 
   return progress;
 }

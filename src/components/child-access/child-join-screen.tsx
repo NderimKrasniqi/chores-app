@@ -17,15 +17,22 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { currentDeviceLabel } from "@/lib/child-access/device-label";
 import { userErrorMessage } from "@/lib/errors";
 
-import { DockingScene, Starfield, useLoop } from "@/components/art";
+import {
+  DockingScene,
+  ENTRY_SKY_SEED,
+  Starfield,
+  useLoop,
+} from "@/components/art";
 import { PRESS, pressTransition } from "@/components/art/motion";
 import { Icon } from "@/components/ui/icon";
 import { ActionButton, AppText } from "@/design-system";
 import { useTheme } from "@/design-system/theme";
+import { clearChildAuthStoragePrefix } from "@/lib/auth/client";
 import { useAuthRuntime } from "@/providers/auth-runtime-provider";
 
 import { api } from "../../../convex/_generated/api";
 import { ChildQrScannerScreen } from "./child-qr-scanner-screen";
+import { EntryFade, useLeave } from "./entry-fade";
 
 type JoinMode = "manual" | "qr";
 
@@ -122,12 +129,13 @@ function CodeBoxes({
 export function ChildJoinScreen() {
   const { tokens } = useTheme();
   const { width } = useWindowDimensions();
-  const { authClient, activateParentStorage } = useAuthRuntime();
+  const { authClient, storagePrefix, activateParentStorage } = useAuthRuntime();
   const [joinMode, setJoinMode] = useState<JoinMode>("manual");
   const [code, setCode] = useState("");
   const [focused, setFocused] = useState(false);
   const [redeeming, setRedeeming] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const { leaving, leave } = useLeave();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const inputRef = useRef<TextInput>(null);
   const redeemManual = useAction(api.childPairing.redeemManual);
@@ -155,23 +163,25 @@ export function ChildJoinScreen() {
     }
   }
 
-  async function handleExitChildSetup() {
+  function handleExitChildSetup() {
     setSigningOut(true);
     setErrorMessage(null);
 
-    try {
-      const result = await authClient.signOut();
-
-      if (result.error) {
-        throw new Error(result.error.message ?? "Could not exit Child setup.");
-      }
-
-      activateParentStorage();
-    } catch (error) {
-      setErrorMessage(userErrorMessage(error, "Could not exit Child setup."));
-    } finally {
-      setSigningOut(false);
-    }
+    // Switch back to the Parent login first, then sign the unpaired Child
+    // login out in the background. The other way round the chooser showed,
+    // vanished while the app switched logins, and showed again. Nothing is
+    // saved for an unpaired Child, so a failed sign-out leaves nothing behind
+    // that the chooser would show.
+    const childAuthClient = authClient;
+    const childStoragePrefix = storagePrefix;
+    activateParentStorage();
+    // Whatever the sign-out does (offline, server error), clear this
+    // unpaired Child's storage slot so no login is left behind in it.
+    void childAuthClient
+      .signOut()
+      .catch(() => undefined)
+      .finally(() => clearChildAuthStoragePrefix(childStoragePrefix))
+      .catch(() => undefined);
   }
 
   if (joinMode === "qr") {
@@ -181,136 +191,138 @@ export function ChildJoinScreen() {
   return (
     <SafeAreaView edges={["top", "bottom"]} className="flex-1 bg-canvas">
       <StatusBar style="light" />
-      <Starfield seed={53} />
-      <KeyboardAvoidingView className="flex-1" behavior="padding">
-        <ScrollView
-          contentContainerClassName="flex-grow px-5 pb-6"
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Cancel child setup"
-            disabled={signingOut}
-            onPress={() => void handleExitChildSetup()}
-            hitSlop={8}
-            className="mt-2 h-11 w-11 items-center justify-center rounded-full bg-surface"
+      <Starfield seed={ENTRY_SKY_SEED} />
+      <EntryFade leaving={leaving}>
+        <KeyboardAvoidingView className="flex-1" behavior="padding">
+          <ScrollView
+            contentContainerClassName="flex-grow px-5 pb-6"
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
           >
-            <Icon name="close" color={tokens.ink} size={18} />
-          </Pressable>
-
-          <View className="mt-2 items-center">
-            <DockingScene width={width - 40} height={170} />
-          </View>
-          <AppText variant="display" className="mt-1 text-center">
-            Dock with your family
-          </AppText>
-          <AppText
-            color="ink-muted"
-            className="mt-1.5 text-center font-body-bold"
-          >
-            Ask a Parent to tap your name, then “Phones”, on their phone.
-          </AppText>
-
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Scan the Parent's QR code"
-            onPress={() => {
-              setErrorMessage(null);
-              setJoinMode("qr");
-            }}
-            className="mt-6"
-          >
-            {({ pressed }) => (
-              <Animated.View
-                className="min-h-[76px] flex-row items-center gap-4 rounded-large border-b-4 border-primaryShade bg-primary px-5"
-                style={[
-                  { transform: [{ scale: pressed ? PRESS.scale : 1 }] },
-                  pressTransition,
-                ]}
-              >
-                <Icon name="scan" color={tokens.night} size={28} />
-                <View className="flex-1">
-                  <AppText className="font-display text-[20px] text-night">
-                    Scan their code
-                  </AppText>
-                  <AppText className="font-body-bold text-[13px] text-night">
-                    Quickest way — uses the camera
-                  </AppText>
-                </View>
-                <Icon name="chevron" color={tokens.night} size={20} />
-              </Animated.View>
-            )}
-          </Pressable>
-
-          <View className="my-5 flex-row items-center">
-            <View className="h-px flex-1 bg-nightRaised" />
-            <AppText
-              variant="label"
-              color="ink-muted"
-              className="px-3 uppercase tracking-[1.4px]"
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Cancel child setup"
+              disabled={signingOut}
+              onPress={() => leave(handleExitChildSetup)}
+              hitSlop={8}
+              className="mt-2 h-11 w-11 items-center justify-center rounded-full bg-surface"
             >
-              or type it
+              <Icon name="close" color={tokens.ink} size={18} />
+            </Pressable>
+
+            <View className="mt-2 items-center">
+              <DockingScene width={width - 40} height={170} />
+            </View>
+            <AppText variant="display" className="mt-1 text-center">
+              Dock with your family
             </AppText>
-            <View className="h-px flex-1 bg-nightRaised" />
-          </View>
+            <AppText
+              color="ink-muted"
+              className="mt-1.5 text-center font-body-bold"
+            >
+              Ask a Parent to tap your name, then “Phones”, on their phone.
+            </AppText>
 
-          <View>
-            <CodeBoxes
-              value={code}
-              focused={focused}
-              onFocus={() => inputRef.current?.focus()}
-            />
-            <TextInput
-              ref={inputRef}
-              testID="child-pairing-manual-code"
-              accessibilityLabel="Pairing code, 6 letters and numbers"
-              value={code}
-              onChangeText={(value) => {
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Scan the Parent's QR code"
+              onPress={() => {
                 setErrorMessage(null);
-                setCode(normalizeCode(value));
+                setJoinMode("qr");
               }}
-              onFocus={() => setFocused(true)}
-              onBlur={() => setFocused(false)}
-              autoCapitalize="characters"
-              autoCorrect={false}
-              // Generous: pasted codes may carry spaces; normalize caps at 6.
-              maxLength={32}
-              caretHidden
-              style={{
-                position: "absolute",
-                inset: 0,
-                opacity: 0.02,
-                color: "transparent",
-              }}
+              className="mt-6"
+            >
+              {({ pressed }) => (
+                <Animated.View
+                  className="min-h-[76px] flex-row items-center gap-4 rounded-large border-b-4 border-primaryShade bg-primary px-5"
+                  style={[
+                    { transform: [{ scale: pressed ? PRESS.scale : 1 }] },
+                    pressTransition,
+                  ]}
+                >
+                  <Icon name="scan" color={tokens.night} size={28} />
+                  <View className="flex-1">
+                    <AppText className="font-display text-[20px] text-night">
+                      Scan their code
+                    </AppText>
+                    <AppText className="font-body-bold text-[13px] text-night">
+                      Quickest way — uses the camera
+                    </AppText>
+                  </View>
+                  <Icon name="chevron" color={tokens.night} size={20} />
+                </Animated.View>
+              )}
+            </Pressable>
+
+            <View className="my-5 flex-row items-center">
+              <View className="h-px flex-1 bg-nightRaised" />
+              <AppText
+                variant="label"
+                color="ink-muted"
+                className="px-3 uppercase tracking-[1.4px]"
+              >
+                or type it
+              </AppText>
+              <View className="h-px flex-1 bg-nightRaised" />
+            </View>
+
+            <View>
+              <CodeBoxes
+                value={code}
+                focused={focused}
+                onFocus={() => inputRef.current?.focus()}
+              />
+              <TextInput
+                ref={inputRef}
+                testID="child-pairing-manual-code"
+                accessibilityLabel="Pairing code, 6 letters and numbers"
+                value={code}
+                onChangeText={(value) => {
+                  setErrorMessage(null);
+                  setCode(normalizeCode(value));
+                }}
+                onFocus={() => setFocused(true)}
+                onBlur={() => setFocused(false)}
+                autoCapitalize="characters"
+                autoCorrect={false}
+                // Generous: pasted codes may carry spaces; normalize caps at 6.
+                maxLength={32}
+                caretHidden
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  opacity: 0.02,
+                  color: "transparent",
+                }}
+              />
+            </View>
+
+            <AppText
+              accessibilityLiveRegion="polite"
+              color="pink"
+              className="mt-3 min-h-[20px] text-center font-body-bold"
+            >
+              {errorMessage ?? ""}
+            </AppText>
+
+            <ActionButton
+              testID="child-pairing-submit-manual-code"
+              className="mt-2"
+              label="Dock!"
+              disabled={code.length < CODE_LENGTH}
+              loading={redeeming}
+              onPress={() => void handleRedeem()}
             />
-          </View>
-
-          <AppText
-            accessibilityLiveRegion="polite"
-            color="pink"
-            className="mt-3 min-h-[20px] text-center font-body-bold"
-          >
-            {errorMessage ?? ""}
-          </AppText>
-
-          <ActionButton
-            testID="child-pairing-submit-manual-code"
-            className="mt-2"
-            label="Dock!"
-            disabled={code.length < CODE_LENGTH}
-            loading={redeeming}
-            onPress={() => void handleRedeem()}
-          />
-          <AppText
-            variant="caption"
-            color="ink-muted"
-            className="mt-3 text-center"
-          >
-            Codes last 15 minutes and work once.
-          </AppText>
-        </ScrollView>
-      </KeyboardAvoidingView>
+            <AppText
+              variant="caption"
+              color="ink-muted"
+              className="mt-3 text-center"
+            >
+              Codes last 15 minutes and work once.
+            </AppText>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </EntryFade>
     </SafeAreaView>
   );
 }

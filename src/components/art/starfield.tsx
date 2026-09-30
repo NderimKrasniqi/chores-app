@@ -8,7 +8,7 @@ import Animated, {
 
 import { useTheme } from "@/design-system/theme";
 
-import { seeded, Easings, useLoop } from "./motion";
+import { seeded, Easings, useClockLoop } from "./motion";
 
 function TwinkleStar({
   x,
@@ -29,9 +29,10 @@ function TwinkleStar({
 }) {
   // Twinkling is gentle enough to keep under reduced motion — as a fade only.
   const reducedMotion = useReducedMotion();
-  const progress = useLoop({
+  // Clock-anchored: screens sharing a sky hand over mid-twinkle.
+  const progress = useClockLoop({
     duration,
-    delay,
+    phase: delay,
     reverse: true,
     rest: 0.7,
     essential: true,
@@ -107,7 +108,11 @@ function TwinkleStar({
 
 function ShootingStar({ top, delay }: { top: number; delay: number }) {
   const { tokens } = useTheme();
-  const progress = useLoop({ duration: 7000, delay, easing: Easings.linear });
+  const progress = useClockLoop({
+    duration: 7000,
+    phase: delay,
+    easing: Easings.linear,
+  });
   const style = useAnimatedStyle(() => ({
     opacity: interpolate(
       progress.get(),
@@ -156,6 +161,12 @@ function ShootingStar({ top, delay }: { top: number; delay: number }) {
     </Animated.View>
   );
 }
+
+/**
+ * The sky for getting into the app — onboarding, the profile chooser, every
+ * waiting step and Child pairing — so it never reshuffles between them.
+ */
+export const ENTRY_SKY_SEED = 3;
 
 /**
  * Ambient night sky: twinkling dots, a few sparkles, and an occasional

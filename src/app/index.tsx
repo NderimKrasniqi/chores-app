@@ -5,15 +5,13 @@ import { ChildNoAccessScreen } from "@/components/child-access/child-no-access-s
 import { HouseholdListScreen } from "@/components/household/household-list-screen";
 import { HouseholdSetupScreen } from "@/components/household/household-setup-screen";
 import { OnboardingScreen } from "@/components/onboarding/onboarding-screen";
-import { StarBuddy, Starfield } from "@/components/art";
-import { ActionButton, AppText, ThemeScope } from "@/design-system";
+import { WaitingScreen } from "@/components/child-access/waiting-screen";
+import { ActionButton, ThemeScope } from "@/design-system";
 import { useAuthRuntime } from "@/providers/auth-runtime-provider";
 import { authClient } from "@/lib/auth/client";
 import { hasCompletedOnboarding } from "@/lib/onboarding";
 import { useConvexAuth, useQuery } from "convex/react";
-import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
-import { View } from "react-native";
 
 import { api } from "../../convex/_generated/api";
 
@@ -26,21 +24,7 @@ function isAnonymousUser(user: object) {
 }
 
 function LoadingScreen({ message }: { message: string }) {
-  return (
-    <ThemeScope mode="quest">
-      <View className="flex-1 items-center justify-center bg-canvas px-6">
-        <StatusBar style="light" />
-        <Starfield seed={21} />
-        <StarBuddy size={84} mood="hop" />
-        <AppText variant="sectionTitle" className="mt-6 text-center">
-          Getting things ready
-        </AppText>
-        <AppText color="ink-muted" className="mt-1 text-center font-body-bold">
-          {message}
-        </AppText>
-      </View>
-    </ThemeScope>
-  );
+  return <WaitingScreen message={message} />;
 }
 
 const SLOW_CONNECT_MS = 12_000;
@@ -57,45 +41,49 @@ function ChildConnecting() {
     return () => clearTimeout(timer);
   }, []);
   return (
-    <ThemeScope mode="quest">
-      <View className="flex-1 items-center justify-center bg-canvas px-6">
-        <StatusBar style="light" />
-        <Starfield seed={21} />
-        <StarBuddy size={84} mood={slow ? "sleepy" : "hop"} />
-        <AppText variant="sectionTitle" className="mt-6 text-center">
-          {slow ? "Still connecting…" : "Getting things ready"}
-        </AppText>
-        <AppText color="ink-muted" className="mt-1 text-center font-body-bold">
-          {slow
-            ? "Check the Wi-Fi. Your profile is safe on this phone."
-            : "Connecting your profile…"}
-        </AppText>
-        {slow ? (
-          <ActionButton
-            className="mt-6 w-full"
-            tone="quiet"
-            label="Back to profiles"
-            onPress={() => activateParentStorage()}
-          />
-        ) : null}
-      </View>
-    </ThemeScope>
+    <WaitingScreen
+      title={slow ? "Still connecting…" : "Getting things ready"}
+      message={
+        slow
+          ? "Check the Wi-Fi. Your profile is safe on this phone."
+          : "Connecting…"
+      }
+      sleepy={slow}
+    >
+      {slow ? (
+        <ActionButton
+          className="mt-6 w-full"
+          tone="quiet"
+          label="Back to profiles"
+          onPress={() => activateParentStorage()}
+        />
+      ) : null}
+    </WaitingScreen>
   );
 }
 
+// Once onboarding is known to be done it stays done for this app session.
+// This screen remounts on every Parent/Child switch; without this it would
+// re-check storage (and show a waiting step) each time.
+let onboardingKnownComplete = false;
+
 export default function HomeScreen() {
-  const [onboardingState, setOnboardingState] =
-    useState<OnboardingState>("loading");
+  const [onboardingState, setOnboardingState] = useState<OnboardingState>(() =>
+    onboardingKnownComplete ? "complete" : "loading",
+  );
 
   const [entryMode, setEntryMode] = useState<EntryMode>("choose");
+  const { startChildSetup, childSetupPending } = useAuthRuntime();
 
   useEffect(() => {
+    if (onboardingKnownComplete) return;
     let cancelled = false;
 
     async function loadOnboardingState() {
       try {
         const complete = await hasCompletedOnboarding();
 
+        if (complete) onboardingKnownComplete = true;
         if (!cancelled) {
           setOnboardingState(complete ? "complete" : "required");
         }
@@ -141,12 +129,16 @@ export default function HomeScreen() {
     return (
       <OnboardingScreen
         onChooseParent={() => {
+          onboardingKnownComplete = true;
           setEntryMode("parent");
           setOnboardingState("complete");
         }}
         onChooseChild={() => {
-          setEntryMode("choose");
+          // Onboarding already asked "who's using this phone?" — go
+          // straight into Child setup instead of asking again.
+          onboardingKnownComplete = true;
           setOnboardingState("complete");
+          void startChildSetup();
         }}
       />
     );
@@ -157,16 +149,20 @@ export default function HomeScreen() {
       return <ParentAuthScreen onBack={() => setEntryMode("choose")} />;
     }
 
+    if (childSetupPending) {
+      return <LoadingScreen message="Connecting…" />;
+    }
+
     return <EntryChoiceScreen onChooseParent={() => setEntryMode("parent")} />;
   }
 
   if (!isAuthenticated) {
-    return <LoadingScreen message="Connecting secure session…" />;
+    return <LoadingScreen message="Connecting…" />;
   }
 
   if (anonymousSession) {
     if (childAccess === undefined) {
-      return <LoadingScreen message="Checking child access…" />;
+      return <LoadingScreen message="Connecting…" />;
     }
 
     // The login isn't recognised yet (auth settling after a restart):

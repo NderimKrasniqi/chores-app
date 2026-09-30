@@ -11,7 +11,7 @@ export {
 export { StarMap, type QuestStop, type QuestStopStatus } from "./star-map";
 export { Scene, type SceneName } from "./scenes";
 export { StarBuddy, type BuddyMood } from "./star-buddy";
-export { Starfield } from "./starfield";
+export { ENTRY_SKY_SEED, Starfield } from "./starfield";
 export { LockClunk } from "./lock-clunk";
 export { UnclaimKeys } from "./unclaim-keys";
 export { CargoPod } from "./cargo-pod";
